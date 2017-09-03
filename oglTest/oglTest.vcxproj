@@ -71,15 +71,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -107,6 +111,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -137,6 +142,9 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,6 +154,46 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Debug\src\application.cpp" />
+    <ClCompile Include="Debug\src\buffer.cpp" />
+    <ClCompile Include="Debug\src\glew.c" />
+    <ClCompile Include="Debug\src\input.cpp" />
+    <ClCompile Include="Debug\src\math.cpp" />
+    <ClCompile Include="Debug\src\program.cpp" />
+    <ClCompile Include="Debug\src\texture.cpp" />
+    <ClCompile Include="Debug\src\vertex.cpp" />
+    <ClCompile Include="Debug\src\winmain.cpp" />
+    <ClCompile Include="src\application.cpp" />
+    <ClCompile Include="src\buffer.cpp" />
+    <ClCompile Include="src\glew.c" />
+    <ClCompile Include="src\input.cpp" />
+    <ClCompile Include="src\math.cpp" />
+    <ClCompile Include="src\program.cpp" />
+    <ClCompile Include="src\texture.cpp" />
+    <ClCompile Include="src\vertex.cpp" />
+    <ClCompile Include="src\winmain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Debug\src\application.h" />
+    <ClInclude Include="Debug\src\texture.h" />
+    <ClInclude Include="include\GL\eglew.h" />
+    <ClInclude Include="include\GL\glew.h" />
+    <ClInclude Include="include\GL\glxew.h" />
+    <ClInclude Include="include\GL\wglew.h" />
+    <ClInclude Include="Debug\src\buffer.h" />
+    <ClInclude Include="Debug\src\common.h" />
+    <ClInclude Include="Debug\src\input.h" />
+    <ClInclude Include="Debug\src\math.h" />
+    <ClInclude Include="Debug\src\program.h" />
+    <ClInclude Include="Debug\src\vertex.h" />
+    <ClInclude Include="src\application.h" />
+    <ClInclude Include="src\buffer.h" />
+    <ClInclude Include="src\common.h" />
+    <ClInclude Include="src\input.h" />
+    <ClInclude Include="src\math.h" />
+    <ClInclude Include="src\program.h" />
+    <ClInclude Include="src\texture.h" />
+    <ClInclude Include="src\vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
