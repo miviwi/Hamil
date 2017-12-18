@@ -1,7 +1,7 @@
 #include "vertex.h"
 #include "buffer.h"
 
-namespace ogl {
+namespace gx {
 
 VertexFormat& VertexFormat::attr(AttributeType type, unsigned size, bool normalized)
 {

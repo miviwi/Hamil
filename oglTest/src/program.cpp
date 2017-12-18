@@ -5,7 +5,7 @@
 
 #include <vector>
 
-namespace ogl {
+namespace gx {
 
 Program::Program(const Shader& vertex, const Shader& fragment)
 {
@@ -46,16 +46,23 @@ Program& Program::use()
   return *this;
 }
 
-Program& Program::uniformInt(const char *name, int i)
+Program& Program::uniformInt(int location, int i)
 {
-  glUniform1i(glGetUniformLocation(m, name), i);
+  glUniform1i(location, i);
 
   return *this;
 }
 
-Program& Program::uniformMatrix4x4(const char *name, const float *mtx)
+Program& Program::uniformVector3(int location, size_t size, const vec3 *v)
 {
-  glUniformMatrix4fv(glGetUniformLocation(m, name), 1, GL_TRUE, mtx);
+  glUniform3fv(location, size, (const float *)v);
+
+  return *this;
+}
+
+Program& Program::uniformMatrix4x4(int location, const float *mtx)
+{
+  glUniformMatrix4fv(location, 1, GL_TRUE, mtx);
 
   return *this;
 }
@@ -63,6 +70,15 @@ Program& Program::uniformMatrix4x4(const char *name, const float *mtx)
 void Program::drawTraingles(unsigned num)
 {
   glDrawArrays(GL_TRIANGLES, 0, num*3);
+}
+
+void Program::getUniforms(const std::unordered_map<std::string, unsigned>& offsets, int locations[])
+{
+  for(auto& o : offsets) {
+    GLint loc = glGetUniformLocation(m, o.first.c_str());
+
+    locations[o.second] = loc;
+  }
 }
 
 Shader::Shader(Type type, const char *source)

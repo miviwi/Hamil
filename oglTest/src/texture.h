@@ -2,11 +2,11 @@
 
 #include <GL/glew.h>
 
-namespace ogl {
+namespace gx {
 
 class Sampler;
 
-class Texture {
+class Texture2D {
 public:
   enum Format {
     r, rg, rgb, rgba,
@@ -21,18 +21,22 @@ public:
   enum Type {
     i8, u8, i16, u16, i32, u32,
     u16_565, u16_5551,
+    u32_8888, 
   };
 
-  Texture(Format format);
-  Texture(const Texture& other) = delete;
-  ~Texture();
+  Texture2D(Format format);
+  Texture2D(const Texture2D& other) = delete;
+  ~Texture2D();
 
+  void init(unsigned w, unsigned h);
   void init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t);
   void upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type t);
 
 private:
-  friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
+  friend void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
+
+  friend class Framebuffer;
 
   static GLenum internalformat(Format format);
   static GLenum type(Type t);
@@ -60,7 +64,7 @@ public:
   void param(ParamName name, Param p);
 
 private:
-  friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
+  friend void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
 
   static GLenum pname(ParamName name);
   static GLenum param(Param p);
@@ -68,6 +72,6 @@ private:
   GLuint m;
 };
 
-void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
+void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
 
 }

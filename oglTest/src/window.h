@@ -12,9 +12,9 @@
 
 namespace win32 {
 
-class Application {
+class Window {
 public:
-  Application(int width, int height);
+  Window(int width, int height);
 
   static LPWSTR wnd_class_name() { return L"Appliaction"; }
   static LPWSTR wnd_name() { return L"Application"; }

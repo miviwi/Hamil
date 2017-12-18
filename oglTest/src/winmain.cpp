@@ -1,10 +1,11 @@
-#include "application.h"
+#include "window.h"
 #include "buffer.h"
 #include "vertex.h"
 #include "program.h"
 #include "texture.h"
+#include "framebuffer.h"
+#include "font.h"
 
-#define GLEW_STATIC
 #include <Gl/glew.h>
 
 #include <vector>
@@ -13,8 +14,12 @@
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-  using win32::Application;
-  Application app(1280, 720);
+  using win32::Window;
+  Window window(1280, 720);
+
+  ft::init();
+
+  ft::Face face("C:\\Windows\\Fonts\\times.ttf", 64);
 
   struct Triangle {
     vec2 a, b, c;
@@ -35,48 +40,78 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   float view_x = 0, view_y = 0;
   float zoom = 1.0f, rot = 0.0f;
 
+  vec3 colors[3] = {
+    {1.0f, 0.5f, 0.0f},
+    {0.0f, 1.0f, 1.0f},
+    {0.6f, 0.0f, 1.0f},
+  };
+
   bool constrained = true;
 
-  auto fmt = ogl::VertexFormat().attr(ogl::VertexFormat::f32, 2);
-  auto cursor_fmt = ogl::VertexFormat()
-    .attr(ogl::VertexFormat::f32, 2)
-    .attr(ogl::VertexFormat::f32, 2);
+  int animate = -1;
 
-  ogl::VertexBuffer buf(ogl::VertexBuffer::Stream);
-  ogl::VertexArray vtx_array(fmt, buf);
+  auto fmt = gx::VertexFormat()
+    .attr(gx::VertexFormat::f32, 2);
+  auto cursor_fmt = gx::VertexFormat()
+    .attr(gx::VertexFormat::f32, 2)
+    .attr(gx::VertexFormat::f32, 2);
 
-  ogl::VertexBuffer cursor_buf(ogl::VertexBuffer::Static);
-  ogl::VertexArray cursor(cursor_fmt, cursor_buf);
+  gx::VertexBuffer buf(gx::VertexBuffer::Stream);
+  gx::VertexArray vtx_array(fmt, buf);
+
+  gx::VertexBuffer cursor_buf(gx::VertexBuffer::Static);
+  gx::VertexArray cursor(cursor_fmt, cursor_buf);
 
   vec2 cursor_vtx[6] = {
-    { 0.0f, 0.0f }, { 0.0f, 0.0f },
-    { 0.0f, 0.8f }, { 0.0f, 1.5f },
-    { 0.7f, 0.5f }, { 1.5f, 1.5f },
+    { 0.0f, 0.0f }, { 0.0f, 2.0f },
+    { 0.0f, 0.8f }, { 0.0f, 0.0f },
+    { 0.7f, 0.5f }, { 2.0f, 0.0f },
   };
 
-  cursor_buf.init(cursor_vtx, sizeof(vec2), 6);
+  cursor_buf.init(cursor_vtx, 6);
 
-  unsigned char tex_image[] = {
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  u32 tex_image[] = {
+    0xFF000000, 0xFF000000, 0xFFFFFF00, 0xFFFFFF00,
+    0xFF000000, 0xFF000000, 0xFFFFFF00, 0xFFFFFF00,
+    0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
+    0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
+
+    //0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    //0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    //0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00,
+    //0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00,
   };
 
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  gx::Texture2D tex(gx::Texture2D::rgb);
+  gx::Sampler sampler;
 
-  ogl::Texture tex(ogl::Texture::rgb);
-  ogl::Sampler sampler;
+  sampler.param(gx::Sampler::WrapS, gx::Sampler::Repeat);
+  sampler.param(gx::Sampler::WrapT, gx::Sampler::Repeat);
 
-  sampler.param(ogl::Sampler::WrapS, ogl::Sampler::Repeat);
-  sampler.param(ogl::Sampler::WrapT, ogl::Sampler::Repeat);
+  sampler.param(gx::Sampler::MinFilter, gx::Sampler::Linear);
+  sampler.param(gx::Sampler::MagFilter, gx::Sampler::Linear);
 
-  sampler.param(ogl::Sampler::MinFilter, ogl::Sampler::Nearest);
-  sampler.param(ogl::Sampler::MagFilter, ogl::Sampler::Nearest);
+  tex.init(tex_image, 0, 4, 4, gx::Texture2D::rgba, gx::Texture2D::u32_8888);
 
-  tex.init(tex_image, 0, 4, 4, ogl::Texture::rgb, ogl::Texture::u8);
+  gx::Texture2D fb_tex(gx::Texture2D::rgb5a1);
+  gx::Framebuffer fb;
 
-  ogl::tex_unit(0, tex, sampler);
+  fb_tex.init(640, 360);
+
+  fb.use();
+  fb.tex(fb_tex, 0, gx::Framebuffer::Color0);
+
+  gx::tex_unit(0, tex, sampler);
+
+  /*
+  GLuint rb;
+  glGenRenderbuffers(1, &rb);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, rb);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB5_A1, 640, 360);
+
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
+  */
 
   unsigned cp = 0;
 
@@ -86,16 +121,22 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 uniform mat4 uModelView;
 uniform mat4 uProjection;
 
+uniform vec3 uCol[3];
+
 layout(location = 0) in vec2 iPosition;
 
 out vec3 Color;
 
 void main() {
+/*
   switch(gl_VertexID % 3) {
   case 0: Color = vec3(1.0f, 0.5f, 0.0f); break;
   case 1: Color = vec3(0.0f, 1.0f, 1.0f); break;
   case 2: Color = vec3(0.6f, 0.0f, 1.0f); break;
   }
+*/
+
+  Color = uCol[gl_VertexID % 3];
 
   gl_Position = uProjection * uModelView * vec4(iPosition, 0.0f, 1.0f);
 }
@@ -144,16 +185,19 @@ void main() {
 }
 )FG";
 
-  ogl::Shader vtx_shader(ogl::Shader::Vertex, vs_src);
-  ogl::Shader frag_shader(ogl::Shader::Fragment, fs_src);
+  gx::Shader vtx_shader(gx::Shader::Vertex, vs_src);
+  gx::Shader frag_shader(gx::Shader::Fragment, fs_src);
 
-  ogl::Shader cursor_vtx_shader(ogl::Shader::Vertex, cursor_vs_src);
-  ogl::Shader cursor_frag_shader(ogl::Shader::Fragment, cursor_fs_src);
+  gx::Shader cursor_vtx_shader(gx::Shader::Vertex, cursor_vs_src);
+  gx::Shader cursor_frag_shader(gx::Shader::Fragment, cursor_fs_src);
 
-  ogl::Program program(vtx_shader, frag_shader);
-  ogl::Program cursor_program(cursor_vtx_shader, cursor_frag_shader);
+  gx::Program program(vtx_shader, frag_shader);
+  gx::Program cursor_program(cursor_vtx_shader, cursor_frag_shader);
 
-  glViewport(0, 0, 1280, 720);
+  program.getUniformsLocations(U::program);
+  cursor_program.getUniformsLocations(U::cursor);
+
+  glViewport(0, 0, 640, 360);
 
   float r = 1280.0f;
   float b = 720.0f;
@@ -166,27 +210,43 @@ void main() {
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_CULL_FACE);
 
-  app.captureMouse();
+  window.captureMouse();
   
-  while(app.processMessages()) {
-    while(auto input = app.getInput()) {
+  while(window.processMessages()) {
+    mat4 imtx = mat4{
+      1.0f/zoom, 0.0f, 0.0f, -zoom_mtx.d[3]/zoom,
+      0.0f, 1.0f/zoom, 0.0f, -zoom_mtx.d[7]/zoom,
+      0.0f, 0.0f,            1.0f, 0.0f,
+      0.0f,                  0.0f, 1.0f,
+    }*xform::translate(-view_x, -view_y, 0);
+
+    vec4 m = imtx * vec4{ (float)mouse_x, (float)mouse_y, 0, 1 };
+
+    constexpr auto anim_time = 5000.0f;
+    auto time = GetTickCount();
+
+    while(auto input = window.getInput()) {
       if(input->getTag() == win32::Keyboard::tag()) {
         using win32::Keyboard;
         auto kb = (Keyboard *)input.get();
 
         if(kb->keyDown('A')) {
           char buf[1024];
-          sprintf_s(buf, "%f %f %f %f\n"
+          sprintf_s(buf,
+                    "%f %f %f %f\n"
                     "%f %f %f %f\n"
                     "%f %f %f %f\n"
                     "%f %f %f %f",
-
                     zoom_mtx[0], zoom_mtx[1], zoom_mtx[2], zoom_mtx[3],
                     zoom_mtx[4], zoom_mtx[5], zoom_mtx[6], zoom_mtx[7],
                     zoom_mtx[8], zoom_mtx[9], zoom_mtx[10], zoom_mtx[11],
                     zoom_mtx[12], zoom_mtx[13], zoom_mtx[14], zoom_mtx[15]);
 
           MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
+        } else if(kb->keyDown('U')) {
+          animate = animate < 0 ? time : -1;
+        } else if(kb->keyDown('N')) {
+          colors[0] = colors[0]+vec3{0.05f, 0.05f, 0.05f};
         }
       } else {
         using win32::Mouse;
@@ -195,18 +255,18 @@ void main() {
         mouse_x += mouse->dx;
         mouse_y += mouse->dy;
 
-        if(mouse->buttonDown(Mouse::Left) && zoom == 1.0f) {
+        if(mouse->buttonDown(Mouse::Left)) {
           auto& pp = p[cp];
 
-          pp.x = mouse_x - view_x;
-          pp.y = mouse_y - view_y;
+          pp.x = m.x;
+          pp.y = m.y;
 
           cp = (cp + 1)%3;
 
           if(!cp) {
             trigs.push_back(p);
 
-            buf.init(trigs.data(), sizeof(Triangle), trigs.size());
+            buf.init(trigs.data(), trigs.size());
           }
         } else if(mouse->buttons & Mouse::Right) {
           view_x += mouse->dx;
@@ -214,12 +274,10 @@ void main() {
         } else if(mouse->event == Mouse::Wheel) {
           zoom += (mouse->ev_data/120)*0.05f;
 
-          ivec2 d = { mouse_x-view_x, mouse_y-view_y };
-
           zoom_mtx =
-            xform::translate(d.x, d.y, 0)
+            xform::translate(m.x, m.y, 0)
             *xform::scale(zoom, zoom, 1)
-            *xform::translate(-d.x, -d.y, 0);
+            *xform::translate(-m.x, -m.y, 0);
         } else if(mouse->buttonDown(Mouse::Middle)) {
           zoom = 1.0f;
 
@@ -228,11 +286,22 @@ void main() {
       }
     }
 
+    fb.use();
+
     glClearColor(0.25f, 0.25f, 0.25f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     glLineWidth(2.0f);
     glPointSize(4.0f);
+
+    if(animate > 0) {
+      rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
+        *xform::rotz(lerp(0.0f, 3.1415f, (float)((time-animate)%(int)anim_time)/(anim_time/2.0f)))
+        *xform::translate(-1280.0f/2.0f, -720.0f/2.0f, 0)
+        ;
+    } else {
+      rot_mtx = xform::identity();
+    }
 
     mat4 modelview =
       xform::translate(view_x, view_y, 0)
@@ -248,19 +317,25 @@ void main() {
 
     vtx_array.use();
     program.use()
-      .uniformMatrix4x4("uProjection", projection)
-      .uniformMatrix4x4("uModelView", modelview)
+      .uniformMatrix4x4(U::program.uProjection, projection)
+      .uniformMatrix4x4(U::program.uModelView, modelview)
+      .uniformVector3(U::program.uCol, 3, colors)
       .drawTraingles(trigs.size());
 
     cursor.use();
     cursor_program.use()
-      .uniformMatrix4x4("uProjection", projection)
-      .uniformMatrix4x4("uModelView", cursor_mtx)
-      .uniformInt("uTex", 0)
+      .uniformMatrix4x4(U::cursor.uProjection, projection)
+      .uniformMatrix4x4(U::cursor.uModelView, cursor_mtx)
+      .uniformInt(U::cursor.uTex, 0)
       .drawTraingles(1);
 
-    app.swapBuffers();
+    fb.blitToWindow(ivec4{ 0, 0, 640, 360 }, ivec4{ 0, 0, 1280, 720 },
+                    gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
+
+    window.swapBuffers();
   }
+
+  ft::finalize();
 
   return 0;
 }

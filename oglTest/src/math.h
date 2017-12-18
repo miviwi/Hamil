@@ -4,6 +4,19 @@
 
 #include <type_traits>
 
+static unsigned pow2_round(unsigned v)
+{
+  v--;
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+
+  return v;
+}
+
 #pragma pack(push, 1)
 
 template <typename T>
@@ -100,7 +113,7 @@ using vec3 = Vector3<float>;
 using ivec3 = Vector3<int>;
 
 template <typename T>
-struct Vector4 {
+struct alignas(16) Vector4 {
   union {
     struct { T x, y, z, w; };
     struct { T r, g, b, a; };
@@ -199,7 +212,7 @@ struct Matrix4 {
 };
 
 namespace intrin {
-void mtx4_mult(const float *a, const float *b, float *out);
+void mat4_mult(const float *a, const float *b, float *out);
 }
 
 template <typename T>
@@ -220,8 +233,37 @@ static mat4 operator*(mat4 a, mat4 b)
 {
   mat4 c;
 
-  intrin::mtx4_mult(a.d, b.d, c.d);
+  intrin::mat4_mult(a, b, c);
   return c;
+}
+
+template <typename T>
+Vector4<T> operator*(Matrix4<T> a, Vector4<T> b)
+{
+  return Vector4<T>{
+    a.d[ 0]*b.x+a.d[ 1]*b.y+a.d[ 2]*b.z+a.d[ 3]*b.w,
+    a.d[ 4]*b.x+a.d[ 5]*b.y+a.d[ 6]*b.z+a.d[ 7]*b.w,
+    a.d[ 8]*b.x+a.d[ 9]*b.y+a.d[10]*b.z+a.d[11]*b.w,
+    a.d[12]*b.x+a.d[14]*b.y+a.d[14]*b.z+a.d[15]*b.w,
+  };
+}
+
+namespace intrin {
+void mat4_vec4_mult(const float *a, const float *b, float *out);
+}
+
+static vec4 operator*(mat4 a, vec4 b)
+{
+  vec4 c;
+
+  intrin::mat4_vec4_mult(a, b, c);
+  return c;
+}
+
+template <typename T>
+T lerp(T a, T b, float u)
+{
+  return a + (b-a)*u;
 }
 
 namespace xform {

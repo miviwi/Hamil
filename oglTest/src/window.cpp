@@ -1,4 +1,4 @@
-#include "application.h"
+#include "window.h"
 
 #include <cassert>
 #include <algorithm>
@@ -6,7 +6,6 @@
 
 #include <windowsx.h>
 
-#define GLEW_STATIC
 #include <GL/glew.h>
 #include <GL/wglew.h>
 
@@ -14,7 +13,7 @@
 
 namespace win32 {
 
-Application::Application(int width, int height)
+Window::Window(int width, int height)
 {
   WNDCLASSEX wndClass;
   auto ptr = (unsigned char *)&wndClass;
@@ -25,7 +24,7 @@ Application::Application(int width, int height)
 
   wndClass.cbSize        = sizeof(WNDCLASSEX);
   wndClass.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-  wndClass.lpfnWndProc   = &Application::WindowProc;
+  wndClass.lpfnWndProc   = &Window::WindowProc;
   wndClass.cbWndExtra    = sizeof(this);
   wndClass.hInstance     = hInstance;
   wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
@@ -48,7 +47,7 @@ Application::Application(int width, int height)
   SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
 }
 
-bool Application::processMessages()
+bool Window::processMessages()
 {
   MSG msg;
   while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) != 0) {
@@ -61,22 +60,22 @@ bool Application::processMessages()
   return true;
 }
 
-void Application::swapBuffers()
+void Window::swapBuffers()
 {
   wglSwapLayerBuffers(GetDC(m_hwnd), WGL_SWAP_MAIN_PLANE);
 }
 
-Input::Ptr Application::getInput()
+Input::Ptr Window::getInput()
 {
   return m_input_man.getInput();
 }
 
-void Application::setMouseSpeed(float speed)
+void Window::setMouseSpeed(float speed)
 {
   m_input_man.setMouseSpeed(speed);
 }
 
-ivec2 Application::getMousePos()
+ivec2 Window::getMousePos()
 {
   POINT p;
   
@@ -86,7 +85,7 @@ ivec2 Application::getMousePos()
   return { p.x, p.y };
 }
 
-void Application::captureMouse()
+void Window::captureMouse()
 {
   RECT rc;
   POINT pt = { 0, 0 };
@@ -103,14 +102,14 @@ void Application::captureMouse()
   while(ShowCursor(FALSE) >= 0);
 }
 
-void Application::releaseMouse()
+void Window::releaseMouse()
 {
   ClipCursor(nullptr);
 
   while(ShowCursor(TRUE) < 0);
 }
 
-HGLRC Application::ogl_create_context(HWND hWnd)
+HGLRC Window::ogl_create_context(HWND hWnd)
 {
   PIXELFORMATDESCRIPTOR pfd = {
     sizeof(PIXELFORMATDESCRIPTOR),
@@ -144,13 +143,14 @@ HGLRC Application::ogl_create_context(HWND hWnd)
   if(err != GLEW_OK) return nullptr;
 
   wglSwapIntervalEXT(0);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
   return context;
 }
 
-LRESULT Application::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
+LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 {
-  auto self = (Application *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
+  auto self = (Window *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
   switch(uMsg) {
   case WM_CREATE:

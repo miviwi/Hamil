@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace ogl {
+namespace gx {
 
 class VertexBuffer;
 

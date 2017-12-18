@@ -1,6 +1,6 @@
 #include "buffer.h"
 
-namespace ogl {
+namespace gx {
 
 VertexBuffer::VertexBuffer(Usage usage) :
   m_usage(usage)
@@ -18,7 +18,7 @@ void VertexBuffer::init(void *data, size_t elem_sz, size_t elem_count)
   size_t sz = elem_sz*elem_count;
 
   glBindBuffer(GL_ARRAY_BUFFER, m);
-  glBufferData(GL_ARRAY_BUFFER, sz, data, glUsage());
+  glBufferData(GL_ARRAY_BUFFER, sz, data, usage());
 }
 
 void VertexBuffer::upload(void *data, size_t offset, size_t elem_sz, size_t elem_count)
@@ -29,7 +29,7 @@ void VertexBuffer::upload(void *data, size_t offset, size_t elem_sz, size_t elem
   glBufferSubData(GL_ARRAY_BUFFER, offset, sz, data);
 }
 
-GLenum VertexBuffer::glUsage() const
+GLenum VertexBuffer::usage() const
 {
   static const GLenum table[] = {
     ~0u,
