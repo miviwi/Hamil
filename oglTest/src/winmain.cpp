@@ -17,9 +17,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   using win32::Window;
   Window window(1280, 720);
 
+  constexpr ivec2 FB_DIMS{ 1280, 720 };
+
   ft::init();
 
-  ft::Face face("C:\\Windows\\Fonts\\times.ttf", 64);
+  ft::Font face(ft::FontFamily("arial"), 35);
+  ft::Font small_face(ft::FontFamily("arial"), 24);
 
   struct Triangle {
     vec2 a, b, c;
@@ -56,10 +59,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     .attr(gx::VertexFormat::f32, 2)
     .attr(gx::VertexFormat::f32, 2);
 
-  gx::VertexBuffer buf(gx::VertexBuffer::Stream);
+  gx::VertexBuffer buf(gx::Buffer::Stream);
   gx::VertexArray vtx_array(fmt, buf);
 
-  gx::VertexBuffer cursor_buf(gx::VertexBuffer::Static);
+  gx::VertexBuffer cursor_buf(gx::Buffer::Static);
   gx::VertexArray cursor(cursor_fmt, cursor_buf);
 
   vec2 cursor_vtx[6] = {
@@ -93,10 +96,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   tex.init(tex_image, 0, 4, 4, gx::Texture2D::rgba, gx::Texture2D::u32_8888);
 
-  gx::Texture2D fb_tex(gx::Texture2D::rgb5a1);
+  gx::Texture2D fb_tex(gx::Texture2D::rgba8);
   gx::Framebuffer fb;
 
-  fb_tex.init(640, 360);
+  fb_tex.init(FB_DIMS.x, FB_DIMS.y);
 
   fb.use();
   fb.tex(fb_tex, 0, gx::Framebuffer::Color0);
@@ -197,7 +200,7 @@ void main() {
   program.getUniformsLocations(U::program);
   cursor_program.getUniformsLocations(U::cursor);
 
-  glViewport(0, 0, 640, 360);
+  glViewport(0, 0, FB_DIMS.x, FB_DIMS.y);
 
   float r = 1280.0f;
   float b = 720.0f;
@@ -211,6 +214,11 @@ void main() {
   glDisable(GL_CULL_FACE);
 
   window.captureMouse();
+
+  int frames = 0;
+  auto start_time = GetTickCount();
+
+  auto hello = small_face.string("Hello, sailor!");
   
   while(window.processMessages()) {
     mat4 imtx = mat4{
@@ -315,24 +323,37 @@ void main() {
       //*xform::rotz(11*3.1415/6.0f)
       ;
 
-    vtx_array.use();
     program.use()
       .uniformMatrix4x4(U::program.uProjection, projection)
       .uniformMatrix4x4(U::program.uModelView, modelview)
       .uniformVector3(U::program.uCol, 3, colors)
-      .drawTraingles(trigs.size());
+      .drawTraingles(vtx_array, trigs.size());
 
-    cursor.use();
+    gx::tex_unit(0, tex, sampler);
+
     cursor_program.use()
       .uniformMatrix4x4(U::cursor.uProjection, projection)
       .uniformMatrix4x4(U::cursor.uModelView, cursor_mtx)
       .uniformInt(U::cursor.uTex, 0)
-      .drawTraingles(1);
+      .drawTraingles(cursor, 1);
 
-    fb.blitToWindow(ivec4{ 0, 0, 640, 360 }, ivec4{ 0, 0, 1280, 720 },
+    int fps = (float)frames / ((float)(time-start_time) / 1000.0f);
+
+    char str[256];
+    sprintf_s(str, "FPS: %d", fps);
+
+    face.draw(face.string(str), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
+    small_face.draw(hello, vec2{ 30.0f, 100.0f }, vec4{ 0.8f, 0.5f, 0.0f, 1.0f });
+
+    //face.drawString("ala ma kota a moze i dwa va av Ma Ta Tb Tc", vec2{ 30.0f, 130.0f },
+      //              vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+
+    fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, 1280, 720 },
                     gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 
     window.swapBuffers();
+
+    frames++;
   }
 
   ft::finalize();

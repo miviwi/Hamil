@@ -6,16 +6,15 @@
 
 namespace gx {
 
-class VertexBuffer {
+class Buffer {
 public:
   enum Usage {
     Invalid,
     Static, Dynamic, Stream,
   };
 
-  VertexBuffer(Usage usage);
-  VertexBuffer(const VertexBuffer&) = delete;
-  ~VertexBuffer();
+  Buffer(const Buffer&) = delete;
+  ~Buffer();
 
   template <typename T>
   void init(T data[], size_t count) { init(data, sizeof(T), count); }
@@ -25,13 +24,39 @@ public:
   void init(void *data, size_t elem_sz, size_t elem_count);
   void upload(void *data, size_t offset, size_t elem_sz, size_t elem_count);
 
-private:
+protected:
+  Buffer(Usage usage, GLenum target);
+
   friend class VertexArray;
+  friend class Program;
 
   GLenum usage() const;
 
   Usage m_usage;
   GLuint m;
+  GLenum m_target;
 };
+
+class VertexBuffer : public Buffer {
+public:
+  VertexBuffer(Usage usage);
+};
+
+class IndexBuffer : public Buffer {
+public:
+  enum Type {
+    u8 = GL_UNSIGNED_BYTE,
+    u16 = GL_UNSIGNED_SHORT,
+    u32 = GL_UNSIGNED_INT,
+  };
+
+  IndexBuffer(Usage usage, Type type);
+
+private:
+  friend class Program;
+
+  Type m_type;
+};
+
 
 }

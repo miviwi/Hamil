@@ -8,7 +8,7 @@
 
 namespace gx {
 
-class VertexBuffer;
+class Buffer;
 
 class VertexFormat {
 public:
@@ -47,11 +47,9 @@ private:
 
 class VertexArray {
 public:
-  VertexArray(const VertexFormat& fmt, const VertexBuffer& buf);
+  VertexArray(const VertexFormat& fmt, const Buffer& buf);
   VertexArray(const VertexArray&) = delete;
   ~VertexArray();
-
-  void use();
 
 private:
   friend class Program;

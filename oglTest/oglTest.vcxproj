@@ -164,6 +164,7 @@
   <ItemGroup>
     <ClCompile Include="src\font.cpp" />
     <ClCompile Include="src\font.h" />
+    <ClCompile Include="src\rectpack.c" />
     <ClCompile Include="src\uniforms.cpp" />
     <ClCompile Include="src\window.cpp" />
     <ClCompile Include="src\buffer.cpp" />

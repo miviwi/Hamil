@@ -10,6 +10,9 @@
 
 namespace gx {
 
+class VertexArray;
+class IndexBuffer;
+
 class Shader {
 public:
   enum Type {
@@ -45,13 +48,19 @@ public:
     getUniforms(T::offsets, klass.locations);
   }
 
+  GLint getUniformLocation(const char *name);
+
   Program& use();
 
   Program& uniformInt(int location, int i);
   Program& uniformVector3(int location, size_t size, const vec3 *v);
+  Program& uniformVector3(int location, vec3 v);
+  Program& uniformVector4(int location, size_t size, const vec4 *v);
+  Program& uniformVector4(int location, vec4 v);
   Program& uniformMatrix4x4(int location, const float *mtx);
 
-  void drawTraingles(unsigned num);
+  void drawTraingles(const VertexArray& vtx, unsigned num);
+  void drawTraingles(const VertexArray& vtx, const IndexBuffer& idx, unsigned num);
 
 private:
   void getUniforms(const std::unordered_map<std::string, unsigned>& offsets, int locations[]);

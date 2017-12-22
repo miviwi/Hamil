@@ -81,7 +81,7 @@ size_t VertexFormat::byteSize(Desc desc)
   return table[desc.type]*desc.size;
 }
 
-VertexArray::VertexArray(const VertexFormat& fmt, const VertexBuffer& buf)
+VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf)
 {
   glGenVertexArrays(1, &m);
 
@@ -103,11 +103,6 @@ VertexArray::VertexArray(const VertexFormat& fmt, const VertexBuffer& buf)
 VertexArray::~VertexArray()
 {
   glDeleteVertexArrays(1, &m);
-}
-
-void VertexArray::use()
-{
-  glBindVertexArray(m);
 }
 
 }

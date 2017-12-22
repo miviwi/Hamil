@@ -1,4 +1,6 @@
 #include "program.h"
+#include "buffer.h"
+#include "vertex.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -39,6 +41,11 @@ Program::~Program()
   glDeleteProgram(m);
 }
 
+GLint Program::getUniformLocation(const char *name)
+{
+  return glGetUniformLocation(m, name);
+}
+
 Program& Program::use()
 {
   glUseProgram(m);
@@ -60,6 +67,27 @@ Program& Program::uniformVector3(int location, size_t size, const vec3 *v)
   return *this;
 }
 
+Program& Program::uniformVector3(int location, vec3 v)
+{
+  glUniform3f(location, v.x, v.y, v.z);
+
+  return *this;
+}
+
+Program& Program::uniformVector4(int location, size_t size, const vec4 *v)
+{
+  glUniform4fv(location, size, (const float *)v);
+
+  return *this;
+}
+
+Program& Program::uniformVector4(int location, vec4 v)
+{
+  glUniform4f(location, v.x, v.y, v.z, v.w);
+
+  return *this;
+}
+
 Program& Program::uniformMatrix4x4(int location, const float *mtx)
 {
   glUniformMatrix4fv(location, 1, GL_TRUE, mtx);
@@ -67,9 +95,19 @@ Program& Program::uniformMatrix4x4(int location, const float *mtx)
   return *this;
 }
 
-void Program::drawTraingles(unsigned num)
+void Program::drawTraingles(const VertexArray& vtx, unsigned num)
 {
+  glBindVertexArray(vtx.m);
+
   glDrawArrays(GL_TRIANGLES, 0, num*3);
+}
+
+void Program::drawTraingles(const VertexArray& vtx, const IndexBuffer& idx, unsigned num)
+{
+  glBindVertexArray(vtx.m);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
+
+  glDrawElements(GL_TRIANGLES, num*3, idx.m_type, 0);
 }
 
 void Program::getUniforms(const std::unordered_map<std::string, unsigned>& offsets, int locations[])

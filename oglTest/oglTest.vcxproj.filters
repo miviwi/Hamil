@@ -48,10 +48,13 @@
     <ClCompile Include="src\uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\font.h">
+    <ClCompile Include="src\font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\font.cpp">
+    <ClCompile Include="src\font.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rectpack.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

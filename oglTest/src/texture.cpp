@@ -100,7 +100,7 @@ GLenum Sampler::param(Param p)
 
 void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
 {
-  glBindSampler(0, sampler.m);
+  glBindSampler(idx, sampler.m);
 
   glActiveTexture(GL_TEXTURE0+idx);
   glBindTexture(GL_TEXTURE_2D, tex.m);

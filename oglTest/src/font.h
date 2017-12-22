@@ -5,43 +5,60 @@
 #include FT_GLYPH_H
 
 #include <vector>
+#include <memory>
 
 #include "math.h"
 #include "texture.h"
+#include "vertex.h"
+#include "buffer.h"
 
 namespace ft {
 
 void init();
 void finalize();
 
-class pGlyph {
+class pGlyph;
+
+class FontFamily {
 public:
-  pGlyph() : m(0) { }
-  pGlyph(int ch, FT_GlyphSlot slot);
+  FontFamily(const char *name);
 
-  pGlyph(pGlyph&& other);
-  pGlyph(const pGlyph& other) = delete;
-
-  ~pGlyph();
+  const char *getPath() const;
 
 private:
-  friend class Face;
-
-  int m_ch;
-  FT_Glyph m;
+  std::string m_path;
 };
 
-class Face {
-public:
-  static constexpr unsigned ATLAS_DIMENSIONS = 256;
+struct pString;
+using String = std::shared_ptr<pString>;
 
-  Face(const char *fname, unsigned height);
+class Font {
+public:
+  Font(const FontFamily& family, unsigned height);
+
+  String string(const char *str);
+  void draw(const String& str, vec2 pos, vec4 color);
 
 private:
+  struct GlyphRenderData {
+    int top, left;
+    int width, height;
+    FT_Vector advance;
+
+    vec2 uvs[4];
+  };
+
+  void populateRenderData(const std::vector<pGlyph>& glyphs);
+
+  int glyphIndex(int ch);
+  const GlyphRenderData& getGlyphRenderData(int ch);
+
   FT_Face m;
 
   gx::Texture2D m_atlas;
-  std::vector<vec2> m_uv;
+  gx::Sampler m_sampler;
+  std::vector<GlyphRenderData> m_render_data;
+  std::vector<int> m_glyph_index;
 };
 
 }
