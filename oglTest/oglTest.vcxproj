@@ -162,14 +162,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="extern\GL\glew.c" />
     <ClCompile Include="src\font.cpp" />
     <ClCompile Include="src\font.h" />
+    <ClCompile Include="src\pipeline.cpp" />
     <ClCompile Include="src\rectpack.c" />
     <ClCompile Include="src\uniforms.cpp" />
     <ClCompile Include="src\window.cpp" />
     <ClCompile Include="src\buffer.cpp" />
     <ClCompile Include="src\framebuffer.cpp" />
-    <ClCompile Include="src\glew.c" />
     <ClCompile Include="src\input.cpp" />
     <ClCompile Include="src\math.cpp" />
     <ClCompile Include="src\program.cpp">
@@ -181,10 +182,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h" />
-    <ClInclude Include="include\GL\eglew.h" />
-    <ClInclude Include="include\GL\glew.h" />
-    <ClInclude Include="include\GL\glxew.h" />
-    <ClInclude Include="include\GL\wglew.h" />
+    <ClInclude Include="extern\GL\eglew.h" />
+    <ClInclude Include="extern\GL\glew.h" />
+    <ClInclude Include="extern\GL\glxew.h" />
+    <ClInclude Include="extern\GL\wglew.h" />
+    <ClInclude Include="src\pipeline.h" />
     <ClInclude Include="src\uniforms.h" />
     <ClInclude Include="src\window.h" />
     <ClInclude Include="src\buffer.h" />
@@ -198,6 +200,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="src\cursor.uniform" />
+    <None Include="src\font.uniform" />
     <None Include="src\program.uniform" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

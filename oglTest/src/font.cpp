@@ -1,5 +1,6 @@
 #include "common.h"
 #include "font.h"
+#include "pipeline.h"
 #include "program.h"
 
 #include <stb_rect_pack/stb_rect_pack.h>
@@ -10,6 +11,7 @@
 #include <algorithm>
 #include <utility>
 
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 namespace ft {
@@ -17,7 +19,7 @@ namespace ft {
 class pGlyph {
 public:
   pGlyph() : m(0) {}
-  pGlyph(int ch, FT_GlyphSlot slot);
+  pGlyph(int ch, unsigned idx, FT_GlyphSlot slot);
 
   pGlyph(pGlyph&& other);
   pGlyph(const pGlyph& other) = delete;
@@ -28,14 +30,17 @@ private:
   friend class Font;
 
   int m_ch;
+  unsigned m_idx;
   FT_Glyph m;
 };
 
-struct pString {
+class pString {
+public:
   pString() :
-    vtx_buf(gx::Buffer::Static), vtx(fmt, vtx_buf), ind(gx::Buffer::Static, gx::IndexBuffer::u16)
+    vtx_buf(gx::Buffer::Static),
+    vtx(fmt, vtx_buf),
+    ind(gx::Buffer::Static, gx::IndexBuffer::u16)
   { }
-  pString(const pString& other) = delete;
 
   FT_Face m;
 
@@ -90,16 +95,28 @@ void main() {
 
 )FRAG";
 
+std::unique_ptr<gx::Program> font_program;
+
 const gx::VertexFormat pString::fmt = 
   gx::VertexFormat()
     .attr(gx::VertexFormat::f32, 2)
     .attr(gx::VertexFormat::f32, 2);
+
+const static auto pipeline =
+  gx::Pipeline()
+    .alphaBlend();
 
 void init()
 {
   auto err = FT_Init_FreeType(&ft);
 
   assert(!err && "FreeType init error!");
+
+  gx::Shader vtx(gx::Shader::Vertex, vs_src);
+  gx::Shader frag(gx::Shader::Fragment, fs_src);
+
+  font_program = std::make_unique<gx::Program>(vtx, frag);
+  font_program->getUniformsLocations(U::font);
 }
 
 void finalize()
@@ -113,20 +130,31 @@ Font::Font(const FontFamily& family, unsigned height) :
   m_atlas(gx::Texture2D::r8)
 {
   auto err = FT_New_Face(ft, family.getPath(), 0, &m);
-  if(err) throw "FreeType face creation error " + std::to_string(err) + "!";
+  if(err) {
+    std::string err_message = "FreeType face creation error " + std::to_string(err) + "!";
 
+    MessageBoxA(nullptr, err_message.c_str(), "FreeTyper error!", MB_OK);
+    ExitProcess(-2);
+  }
+      
   FT_Set_Pixel_Sizes(m, 0, height);
 
   // Load glyphs (TODO!!)
   std::vector<pGlyph> glyphs;
   for(int i = 0x20; i < 0x7F; i++) {
-    FT_Load_Char(m, i, FT_LOAD_DEFAULT);
+    auto idx = FT_Get_Char_Index(m, i);
+
+    FT_Load_Glyph(m, idx, FT_LOAD_DEFAULT);
     FT_Render_Glyph(m->glyph, FT_RENDER_MODE_NORMAL);
 
-    glyphs.emplace_back(i, m->glyph);
+    glyphs.emplace_back(i, idx, m->glyph);
   }
 
   populateRenderData(glyphs);
+}
+
+Font::~Font()
+{
 }
 
 String Font::string(const char *str)
@@ -139,14 +167,34 @@ String Font::string(const char *str)
   std::vector<Vertex> verts;
   std::vector<u16> indices;
 
-  FT_Pos pen_x = 0;
+  const char *begin = str;
+  FT_Vector pen = { 0, 0 };
   while(*str) {
-    auto g = getGlyphRenderData(*str);
+    const auto& g = getGlyphRenderData(*str);
 
-    float x = pen_x / (float)(1<<16),
-      y = -g.top;
-    
+    float x = (float)pen.x / (float)(1<<16),
+      y = (float)pen.y / (float)(1<<16);
+
     x += g.left;
+    y -= g.top;
+
+    if(*str == '\n') {
+      pen.x = 0;
+      pen.y += m->size->metrics.height << 10;
+
+      str++;
+      continue;
+    }
+
+    if(str != begin && FT_HAS_KERNING(m)) {
+      FT_Vector kern = { 0, 0 };
+      const auto& a = getGlyphRenderData(*(str - 1));
+
+      FT_Get_Kerning(m, a.idx, g.idx, FT_KERNING_DEFAULT, &kern);
+
+      x += kern.x / (float)(1<<6);
+      y += kern.y / (float)(1<<6);
+    }
 
     auto base = verts.size();
 
@@ -167,11 +215,12 @@ String Font::string(const char *str)
       g.uvs[3]
     });
 
-
     indices.push_back(base+0); indices.push_back(base+1); indices.push_back(base+2);
     indices.push_back(base+2); indices.push_back(base+1); indices.push_back(base+3);
 
-    pen_x += g.advance.x;
+    pen.x += g.advance.x;
+    pen.y += g.advance.y;
+
     str++;
   }
 
@@ -197,26 +246,31 @@ void Font::draw(const String& str, vec2 pos, vec4 color)
 
   gx::tex_unit(0, m_atlas, m_sampler);
 
-  static gx::Shader vtx_shader(gx::Shader::Vertex, vs_src);
-  static gx::Shader frag_shader(gx::Shader::Fragment, fs_src);
-
-  static gx::Program program(vtx_shader, frag_shader);
-
-  int umvp_loc = program.getUniformLocation("uModelViewProjection"),
-    uatlas_loc = program.getUniformLocation("uAtlas"),
-    ucolor_loc = program.getUniformLocation("uColor");
-
   mat4 mvp = xform::ortho(0.0f, 0.0f, 720.0f, 1280.0f, 0.0f, 1.0f)
     *xform::translate(pos.x, pos.y, 0.0f);
 
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  pipeline.use();
 
-  program.use()
-    .uniformMatrix4x4(umvp_loc, mvp)
-    .uniformInt(uatlas_loc, 0)
-    .uniformVector4(ucolor_loc, color)
+  font_program->use()
+    .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
+    .uniformInt(U::font.uAtlas, 0)
+    .uniformVector4(U::font.uColor, color)
     .drawTraingles(p->vtx, p->ind, p->num);
+}
+
+void Font::draw(const char * str, vec2 pos, vec4 color)
+{
+  draw(string(str), pos, color);
+}
+
+void Font::draw(const String& str, vec2 pos, vec3 color)
+{
+  draw(str, pos, vec4{ color.r, color.g, color.b, 1.0f });
+}
+
+void Font::draw(const char *str, vec2 pos, vec3 color)
+{
+  draw(str, pos, vec4{ color.r, color.g, color.b, 1.0f });
 }
 
 void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
@@ -301,6 +355,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
 
     GlyphRenderData rd;
 
+    rd.idx = glyphs[i].m_idx;
     rd.top = bm->top;
     rd.left = bm->left;
     rd.width = bm->bitmap.width;
@@ -332,8 +387,8 @@ const Font::GlyphRenderData& Font::getGlyphRenderData(int ch)
   return m_render_data[glyphIndex(ch)];
 }
 
-pGlyph::pGlyph(int ch, FT_GlyphSlot slot) :
-  m_ch(ch)
+pGlyph::pGlyph(int ch, unsigned idx, FT_GlyphSlot slot) :
+  m_ch(ch), m_idx(idx)
 {
   auto err = FT_Get_Glyph(slot, &m);
 
@@ -341,9 +396,10 @@ pGlyph::pGlyph(int ch, FT_GlyphSlot slot) :
 }
 
 pGlyph::pGlyph(pGlyph&& other) :
-  m_ch(other.m_ch), m(other.m)
+  m_ch(other.m_ch), m_idx(other.m_idx), m(other.m)
 {
   other.m_ch = 0;
+  other.m_idx = 0;
   other.m = 0;
 }
 
@@ -354,6 +410,8 @@ pGlyph::~pGlyph()
 
 static const std::unordered_map<std::string, std::string> family_to_path = {
   { "arial", "C:\\Windows\\Fonts\\arial.ttf" },
+  { "times", "C:\\Windows\\Fonts\\times.ttf" },
+  { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
 };
 
 FontFamily::FontFamily(const char *name)

@@ -2,6 +2,7 @@
 #include "buffer.h"
 #include "vertex.h"
 #include "program.h"
+#include "pipeline.h"
 #include "texture.h"
 #include "framebuffer.h"
 #include "font.h"
@@ -21,8 +22,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   ft::init();
 
-  ft::Font face(ft::FontFamily("arial"), 35);
-  ft::Font small_face(ft::FontFamily("arial"), 24);
+  ft::Font face(ft::FontFamily("times"), 35);
+  ft::Font small_face(ft::FontFamily("times"), 26);
 
   struct Triangle {
     vec2 a, b, c;
@@ -200,7 +201,10 @@ void main() {
   program.getUniformsLocations(U::program);
   cursor_program.getUniformsLocations(U::cursor);
 
-  glViewport(0, 0, FB_DIMS.x, FB_DIMS.y);
+  auto pipeline = gx::Pipeline()
+    .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
+    .scissor(120, 300, 1000, 400)
+    .clearColor(vec4{ 0.2f, 0.2f, 0.2f, 1.0f });
 
   float r = 1280.0f;
   float b = 720.0f;
@@ -210,15 +214,13 @@ void main() {
   mat4 zoom_mtx = xform::identity();
   mat4 rot_mtx = xform::identity();
 
-  glDisable(GL_DEPTH_TEST);
-  glDisable(GL_CULL_FACE);
-
   window.captureMouse();
 
   int frames = 0;
   auto start_time = GetTickCount();
 
-  auto hello = small_face.string("Hello, sailor!");
+  auto hello = small_face.string("gggg Hello, sailor! gggg \nMMM Va AV VA Ta Tc"),
+    cursor_label = small_face.string("Cursor");
   
   while(window.processMessages()) {
     mat4 imtx = mat4{
@@ -254,7 +256,7 @@ void main() {
         } else if(kb->keyDown('U')) {
           animate = animate < 0 ? time : -1;
         } else if(kb->keyDown('N')) {
-          colors[0] = colors[0]+vec3{0.05f, 0.05f, 0.05f};
+          colors[0] = colors[0]+vec3{ 0.05f, 0.05f, 0.05f };
         }
       } else {
         using win32::Mouse;
@@ -295,12 +297,9 @@ void main() {
     }
 
     fb.use();
+    pipeline.use();
 
-    glClearColor(0.25f, 0.25f, 0.25f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-
-    glLineWidth(2.0f);
-    glPointSize(4.0f);
 
     if(animate > 0) {
       rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
@@ -342,8 +341,10 @@ void main() {
     char str[256];
     sprintf_s(str, "FPS: %d", fps);
 
-    face.draw(face.string(str), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
+    face.draw(str, vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
     small_face.draw(hello, vec2{ 30.0f, 100.0f }, vec4{ 0.8f, 0.5f, 0.0f, 1.0f });
+
+    small_face.draw(cursor_label, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
 
     //face.drawString("ala ma kota a moze i dwa va av Ma Ta Tb Tc", vec2{ 30.0f, 130.0f },
       //              vec4{ 0.0f, 0.0f, 0.0f, 1.0f });

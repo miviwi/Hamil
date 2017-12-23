@@ -18,6 +18,7 @@ void init();
 void finalize();
 
 class pGlyph;
+class pString;
 
 class FontFamily {
 public:
@@ -29,18 +30,24 @@ private:
   std::string m_path;
 };
 
-struct pString;
 using String = std::shared_ptr<pString>;
 
 class Font {
 public:
   Font(const FontFamily& family, unsigned height);
+  ~Font();
 
+  // Must be drawn with the same Font!
   String string(const char *str);
+
   void draw(const String& str, vec2 pos, vec4 color);
+  void draw(const char *str, vec2 pos, vec4 color);
+  void draw(const String& str, vec2 pos, vec3 color);
+  void draw(const char *str, vec2 pos, vec3 color);
 
 private:
   struct GlyphRenderData {
+    unsigned idx;
     int top, left;
     int width, height;
     FT_Vector advance;
