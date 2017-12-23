@@ -8,6 +8,14 @@ namespace gx {
 
 class Pipeline {
 public:
+  enum ConfigType {
+    Viewport, Scissor, Blend,
+    Depth, Stencil, Cull,
+    Clear, Wireframe,
+
+    NumConfigTypes,
+  };
+
   enum DepthFunc {
     Never = GL_NEVER,
     Always = GL_ALWAYS,
@@ -36,31 +44,37 @@ public:
 
   Pipeline& viewport(int x, int y, int w, int h);
   Pipeline& scissor(int x, int y, int w, int h);
-  Pipeline& noScissor();
   Pipeline& alphaBlend();
+  Pipeline& additiveBlend();
   Pipeline& depthTest(DepthFunc func);
   Pipeline& cull(FrontFace front, CullMode mode);
+  Pipeline& cull(CullMode mode);
   Pipeline& clearColor(vec4 color);
   Pipeline& clearDepth(float depth);
   Pipeline& clearStencil(int stencil);
   Pipeline& clear(vec4 color, float depth);
+  Pipeline& wireframe();
+
+  Pipeline& noScissor();
+  Pipeline& noBlend();
+  Pipeline& noDepthTest();
+  Pipeline& noCull();
+  Pipeline& filledPolys();
+
+  Pipeline& currentScissor();
+
+  static Pipeline current();
+
+  bool isEnabled(ConfigType what);
 
 private:
-  enum ConfigType {
-    Viewport, Scissor, Blend,
-    Depth, Stencil, Cull,
-    Clear,
-
-    NumConfigTypes,
-  };
-
   struct ViewportConfig {
     int x, y;
     int width, height;
   } m_viewport;
 
   struct ScissorConfig {
-    bool set;
+    bool current;
 
     int x, y;
     int width, height;
@@ -89,7 +103,15 @@ private:
   void enable(ConfigType config) const;
 
   bool m_enabled[NumConfigTypes];
+};
 
+class ScopedPipeline {
+public:
+  ScopedPipeline(const Pipeline& p);
+  ~ScopedPipeline();
+
+private:
+  Pipeline m;
 };
 
 }

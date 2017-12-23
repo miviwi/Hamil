@@ -1,5 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cctype>
@@ -53,6 +56,7 @@ error:
 
   if(u.str.size()) uniforms.push_back(u);
 
+  fname = strrchr(fname, '\\')+1;
   std::string cname(fname, strchr(fname, '.')-fname);
 
   for(auto& u : uniforms) {
@@ -108,7 +112,7 @@ error:
 int main(int argc, char *argv[])
 {
   if(argc < 2) {
-    puts("usage: uniformgen <file1> <file2>...");
+    puts("usage: uniformgen <directory1> <directory2>...");
     exit(-1);
   }
 
@@ -116,23 +120,34 @@ int main(int argc, char *argv[])
     *src = fopen("uniforms.cpp", "wb");
 
   fprintf(header,
-          "#include <unordered_map>\n"
-          "\n"
-          // "#include <GL/glew.h>\n"
-          "\n"
-          "namespace U {\n"
-          "\n"
-
+    "#include <unordered_map>\n"
+    "\n"
+    // "#include <GL/glew.h>\n"
+    "\n"
+    "namespace U {\n"
+    "\n"
   );
 
   fprintf(src,
-   "#include \"uniforms.h\"\n"
-   "\n"
-   "namespace U {\n"
+    "#include \"uniforms.h\"\n"
+    "\n"
+    "namespace U {\n"
   );
 
   for(int i = 1; i < argc; i++) {
-    gen(header, src, argv[i]);
+    auto pattern = argv[i] + std::string("\\*.uniform");
+
+    WIN32_FIND_DATAA find_data;
+    auto handle = FindFirstFileA(pattern.c_str(), &find_data);
+    do {
+      printf("file: %s\n", find_data.cFileName);
+
+      auto fname = argv[i] + std::string("\\") + find_data.cFileName;
+
+      gen(header, src, fname.c_str());
+    } while(FindNextFileA(handle, &find_data));
+
+    FindClose(handle);
   }
 
   fprintf(header, "}");

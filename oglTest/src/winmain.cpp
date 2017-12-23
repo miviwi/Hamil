@@ -23,7 +23,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::init();
 
   ft::Font face(ft::FontFamily("times"), 35);
-  ft::Font small_face(ft::FontFamily("times"), 26);
+  ft::Font small_face(ft::FontFamily("times"), 18);
 
   struct Triangle {
     vec2 a, b, c;
@@ -203,7 +203,6 @@ void main() {
 
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
-    .scissor(120, 300, 1000, 400)
     .clearColor(vec4{ 0.2f, 0.2f, 0.2f, 1.0f });
 
   float r = 1280.0f;
@@ -219,8 +218,10 @@ void main() {
   int frames = 0;
   auto start_time = GetTickCount();
 
-  auto hello = small_face.string("gggg Hello, sailor! gggg \nMMM Va AV VA Ta Tc"),
+  auto hello = small_face.string("gggg Hello, sailor! gggg \nTeraz wchodzimy w nowe millenium"),
     cursor_label = small_face.string("Cursor");
+
+  bool display_zoom_mtx = false;
   
   while(window.processMessages()) {
     mat4 imtx = mat4{
@@ -241,22 +242,14 @@ void main() {
         auto kb = (Keyboard *)input.get();
 
         if(kb->keyDown('A')) {
-          char buf[1024];
-          sprintf_s(buf,
-                    "%f %f %f %f\n"
-                    "%f %f %f %f\n"
-                    "%f %f %f %f\n"
-                    "%f %f %f %f",
-                    zoom_mtx[0], zoom_mtx[1], zoom_mtx[2], zoom_mtx[3],
-                    zoom_mtx[4], zoom_mtx[5], zoom_mtx[6], zoom_mtx[7],
-                    zoom_mtx[8], zoom_mtx[9], zoom_mtx[10], zoom_mtx[11],
-                    zoom_mtx[12], zoom_mtx[13], zoom_mtx[14], zoom_mtx[15]);
-
-          MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
+          display_zoom_mtx = !display_zoom_mtx;
         } else if(kb->keyDown('U')) {
           animate = animate < 0 ? time : -1;
         } else if(kb->keyDown('N')) {
           colors[0] = colors[0]+vec3{ 0.05f, 0.05f, 0.05f };
+        } else if(kb->keyDown('W')) {
+          if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
+          else pipeline.filledPolys();
         }
       } else {
         using win32::Mouse;
@@ -299,7 +292,7 @@ void main() {
     fb.use();
     pipeline.use();
 
-    glClear(GL_COLOR_BUFFER_BIT);
+    gx::clear(gx::Framebuffer::ColorBit);
 
     if(animate > 0) {
       rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
@@ -342,9 +335,29 @@ void main() {
     sprintf_s(str, "FPS: %d", fps);
 
     face.draw(str, vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
-    small_face.draw(hello, vec2{ 30.0f, 100.0f }, vec4{ 0.8f, 0.5f, 0.0f, 1.0f });
 
-    small_face.draw(cursor_label, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
+    {
+      //gx::ScopedPipeline p(gx::Pipeline().scissor(30, 590, 300, 30));
+
+      small_face.draw(hello, vec2{ 30.0f, 100.0f }, vec4{ 0.8f, 0.5f, 0.0f, 1.0f });
+    }
+
+    sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
+    small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
+
+    char buf[1024];
+    sprintf_s(buf,
+              "%f %f %f %f\n"
+              "%f %f %f %f\n"
+              "%f %f %f %f\n"
+              "%f %f %f %f",
+              zoom_mtx[0], zoom_mtx[1], zoom_mtx[2], zoom_mtx[3],
+              zoom_mtx[4], zoom_mtx[5], zoom_mtx[6], zoom_mtx[7],
+              zoom_mtx[8], zoom_mtx[9], zoom_mtx[10], zoom_mtx[11],
+              zoom_mtx[12], zoom_mtx[13], zoom_mtx[14], zoom_mtx[15]);
+
+    //MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
+    if(display_zoom_mtx) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
 
     //face.drawString("ala ma kota a moze i dwa va av Ma Ta Tb Tc", vec2{ 30.0f, 130.0f },
       //              vec4{ 0.0f, 0.0f, 0.0f, 1.0f });

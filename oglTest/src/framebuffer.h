@@ -48,4 +48,6 @@ private:
   GLuint m;
 };
 
+void clear(Framebuffer::BlitMask mask);
+
 }

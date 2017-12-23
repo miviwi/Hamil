@@ -104,6 +104,7 @@ const gx::VertexFormat pString::fmt =
 
 const static auto pipeline =
   gx::Pipeline()
+    .currentScissor()
     .alphaBlend();
 
 void init()
@@ -249,7 +250,7 @@ void Font::draw(const String& str, vec2 pos, vec4 color)
   mat4 mvp = xform::ortho(0.0f, 0.0f, 720.0f, 1280.0f, 0.0f, 1.0f)
     *xform::translate(pos.x, pos.y, 0.0f);
 
-  pipeline.use();
+  gx::ScopedPipeline sp(pipeline);
 
   font_program->use()
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
@@ -343,7 +344,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     auto bm = (FT_BitmapGlyph)g;
 
     float x0 = r.x+1, y0 = r.y-1,
-      x1 = r.x+r.w-1, y1 = r.y+r.h+1;
+      x1 = r.x+r.w-1, y1 = r.y+r.h;
 
     y0 = atlas_sz - y0;
     y1 = atlas_sz - y1;

@@ -169,6 +169,7 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
     return 0;
 
   case WM_SETFOCUS:
+  case WM_ACTIVATE:
     if(self) self->captureMouse();
     return 0;
 

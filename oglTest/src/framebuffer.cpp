@@ -79,4 +79,9 @@ GLenum Framebuffer::attachement(Attachment att)
   return 0;
 }
 
+void clear(Framebuffer::BlitMask mask)
+{
+  glClear(mask);
+}
+
 }
