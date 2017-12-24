@@ -28,8 +28,8 @@ struct Vector2 {
     struct { T u, v; };
   };
 
-  T length() { return (T)sqrt((x*x) + (y*y)); }
-  T dot(const Vector2& b) { return (a.x*b.x) + (a.y*b.y); }
+  T length() const { return (T)sqrt((x*x) + (y*y)); }
+  T dot(const Vector2& b) const { return (a.x*b.x) + (a.y*b.y); }
 
   operator float *() { return (float *)this; }
 };
@@ -53,12 +53,6 @@ Vector2<T> operator*(Vector2<T> a, Vector2<T> b)
 }
 
 template <typename T>
-Vector2<T> operator/(Vector2<T> a, Vector2<T> b)
-{
-  return Vector2<T>{ a.x/b.x, a.y/b.y };
-}
-
-template <typename T>
 Vector2<T> operator*(Vector2<T> a, T u)
 {
   return Vector2<T>{ a.x*u, a.y*u };
@@ -75,8 +69,19 @@ struct Vector3 {
     struct { T u, v; };
   };
 
-  T length() { return (T)sqrt((x*x) + (y*y) + (z*z)); }
-  T dot(const Vector3& b) { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z); }
+  T length() const { return (T)sqrt((x*x) + (y*y) + (z*z)); }
+  T dot(const Vector3& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z); }
+
+  Vector3 normalize() const
+  {
+    T l = length();
+    return Vector3{ x/l, y/l, z/l };
+  }
+
+  Vector3 cross(const Vector3& b) const
+  {
+    return Vector3{ y*b.z - z*b.y, z*b.x - x*b.z, x*b.y - y*b.x };
+  }
 
   operator float *() { return (float *)this; }
 };
@@ -100,12 +105,6 @@ Vector3<T> operator*(Vector3<T> a, Vector3<T> b)
 }
 
 template <typename T>
-Vector3<T> operator/(Vector3<T> a, Vector3<T> b)
-{
-  return Vector3<T>{ a.x/b.x, a.y/b.y, a.z/b.z };
-}
-
-template <typename T>
 Vector3<T> operator*(Vector3<T> a, T u)
 {
   return Vector3<T>{ a.x*u, a.y*u, a.z*u };
@@ -122,8 +121,8 @@ struct alignas(16) Vector4 {
     struct { T u, v; };
   };
 
-  T length() { return (T)sqrt((x*x) + (y*y) + (z*z) + (w*w)); }
-  T dot(const Vector4& b) { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z) + (a.w*b.w); }
+  T length() const { return (T)sqrt((x*x) + (y*y) + (z*z) + (w*w)); }
+  T dot(const Vector4& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z) + (a.w*b.w); }
 
   operator float *() { return (float *)this; }
 };
@@ -144,12 +143,6 @@ template <typename T>
 Vector4<T> operator*(Vector4<T> a, Vector4<T> b)
 {
   return Vector4<T>{ a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w };
-}
-
-template <typename T>
-Vector4<T> operator/(Vector4<T> a, Vector4<T> b)
-{
-  return Vector4<T>{ a.x/b.x, a.y/b.y, a.z/b.z, a.w/b.w };
 }
 
 template <typename T>
@@ -228,6 +221,17 @@ Matrix4<T> operator*(Matrix4<T> a, Matrix4<T> b)
   };
 }
 
+template <typename T>
+Matrix4<T> operator*(Matrix4<T> a, T b)
+{
+  return Matrix4<T>{
+    a.d[0]*b,  a.d[1]*b,  a.d[2]*b,  a.d[3]*b,
+    a.d[4]*b,  a.d[5]*b,  a.d[6]*b,  a.d[7]*b,
+    a.d[8]*b,  a.d[9]*b,  a.d[10]*b, a.d[11]*b,
+    a.d[12]*b, a.d[13]*b, a.d[14]*b, a.d[15]*b,
+  };
+}
+
 using mat4 = Matrix4<float>;
 using imat4 = Matrix4<int>;
 
@@ -300,6 +304,11 @@ static mat4 scale(float x, float y, float z)
   };
 }
 
+static mat4 scale(float s)
+{
+  return scale(s, s, s);
+}
+
 static mat4 rotx(float a)
 {
   return mat4{
@@ -342,11 +351,12 @@ static mat4 ortho(float t, float l, float b, float r, float n, float f)
 
 static mat4 frutsum(float t, float l, float b, float r, float n, float f)
 {
+  auto n2 = n*2.0f;
   return mat4{
-    2.0f*n/(r-l), 0.0f,         (r+l)/(r-l),  0.0f,
-    0.0f,         2.0f*n/(t-b), (t+b)/(t-b),  0.0f,
-    0.0f,         0.0f,         -(f+n)/(f-n), -2.0f*f*n/(f-n),
-    0.0f,         0.0f,         -1.0f,        0.0f,
+    n2/(r-l), 0.0f,     (r+l)/(r-l),  0.0f,
+    0.0f,     n2/(t-b), (t+b)/(t-b),  0.0f,
+    0.0f,     0.0f,     -(f+n)/(f-n), -f*n2/(f-n),
+    0.0f,     0.0f,     -1.0f,        0.0f,
 
   };
 }
@@ -359,6 +369,26 @@ static mat4 perspective(float fovy, float aspect, float n, float f)
   w = h * aspect;
 
   return frutsum(h, -w, -h, w, n, f);
+}
+
+static mat4 look_at(vec3 eye, vec3 target, vec3 up)
+{
+  vec3 forward = (eye-target).normalize();
+  vec3 left = up.cross(forward).normalize();
+
+  up = forward.cross(left);
+
+  float x = -left.x * eye.x - left.y * eye.y - left.z * eye.z,
+    y = -up.x * eye.x - up.y * eye.y - up.z * eye.z,
+    z = -forward.x * eye.x - forward.y * eye.y - forward.z * eye.z;
+
+  return mat4{
+    left.x,    left.y,    left.z,    x,
+    up.x,      up.y,      up.z,      y,
+    forward.x, forward.y, forward.z, z,
+    0.0f,      0.0f,      0.0f,      1.0f,
+  };
+
 }
 
 }

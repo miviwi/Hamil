@@ -109,6 +109,11 @@ void Window::releaseMouse()
   while(ShowCursor(TRUE) < 0);
 }
 
+void Window::quit()
+{
+  PostQuitMessage(0);
+}
+
 HGLRC Window::ogl_create_context(HWND hWnd)
 {
   PIXELFORMATDESCRIPTOR pfd = {
@@ -178,7 +183,7 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
     return 0;
 
   case WM_DESTROY:
-    PostQuitMessage(0);
+    self->quit();
     return 0;
 
   default: return DefWindowProc(hWnd, uMsg, wparam, lparam);

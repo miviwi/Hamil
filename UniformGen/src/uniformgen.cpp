@@ -60,7 +60,7 @@ error:
   std::string cname(fname, strchr(fname, '.')-fname);
 
   for(auto& u : uniforms) {
-    printf("name: `%s' has_dot?: %d\n", u.str.c_str(), u.has_dot);
+    printf("    name: `%s' has_dot?: %d\n", u.str.c_str(), u.has_dot);
   }
 
   fprintf(header,

@@ -327,7 +327,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     }
   }
 
-  // Setup atla texture and sampler
+  // Setup atlas texture and sampler
   m_atlas.init(img.data(), 0, atlas_sz, atlas_sz, gx::Texture2D::r, gx::Texture2D::u8);
 
   m_sampler.param(gx::Sampler::MinFilter, gx::Sampler::Linear);

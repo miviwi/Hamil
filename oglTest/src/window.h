@@ -32,6 +32,8 @@ public:
   void captureMouse();
   void releaseMouse();
 
+  void quit();
+
 private:
   static HGLRC ogl_create_context(HWND hWnd);
 

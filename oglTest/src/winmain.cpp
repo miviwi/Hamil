@@ -23,7 +23,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::init();
 
   ft::Font face(ft::FontFamily("times"), 35);
-  ft::Font small_face(ft::FontFamily("times"), 18);
+  ft::Font small_face(ft::FontFamily("consola"), 18);
 
   struct Triangle {
     vec2 a, b, c;
@@ -241,7 +241,7 @@ void main() {
 
     vec4 m = imtx * vec4{ (float)mouse_x, (float)mouse_y, 0, 1 };
 
-    constexpr auto anim_time = 5000.0f;
+    constexpr auto anim_time = 10000.0f;
     auto time = GetTickCount();
 
     while(auto input = window.getInput()) {
@@ -258,6 +258,8 @@ void main() {
         } else if(kb->keyDown('W')) {
           if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
           else pipeline.filledPolys();
+        } else if(kb->keyDown('Q')) {
+          window.quit();
         }
       } else {
         using win32::Mouse;
@@ -312,7 +314,7 @@ void main() {
     }
 
     mat4 modelview =
-      xform::translate(view_x, view_y, -1.0f)
+      xform::translate(view_x, view_y, -50.0f)
       *zoom_mtx
       *rot_mtx
       ;
@@ -329,18 +331,116 @@ void main() {
       .uniformVector3(U::program.uCol, 3, colors)
       .drawTraingles(vtx_array, trigs.size());
 
-    auto persp = xform::perspective(70, 16./9., 0.1f, 100.0f);
+    float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
+
+    auto persp = xform::perspective(70, 16./9., 0.1f, 1000.0f);
+      //xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
     //modelview = xform::roty(PI/4.0f);
-    modelview = xform::translate(0.0f, 0.0f, -20.0f)
-      *xform::scale(1.0f, 1.0f, 10.0f)
-      *xform::roty(lerp(0.0, PI, (float)((time-animate)%(int)anim_time)/(anim_time/2.0f)))
-      *xform::rotz(lerp(0.0, PI, (float)((time-animate)%(int)anim_time)/(anim_time/2.0f)))
+
+    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 70.0f };
+    /*
+    if(anim_factor < 1.0f) {
+      eye.x = lerp(-30.0f, 30.0f, anim_factor);
+      //eye.y = eye.x*0.5f;
+    } else {
+      eye.x = lerp(-30.0f, 30.0f, 1.0f - (anim_factor-1.0f));
+      //eye.y = eye.x*0.5f;
+    }
+    */
+
+    auto drawquad = [&]()
+    {
+      program.use()
+        .uniformMatrix4x4(U::program.uProjection, persp)
+        .uniformMatrix4x4(U::program.uModelView, modelview)
+        .uniformVector3(U::program.uCol, 3, colors)
+        .drawTraingles(arr, vtxs.size()/3);
+    };
+
+    auto drawcube = [&]()
+    {
+      mat4 mv = modelview;
+
+      drawquad();
+
+      modelview = mv
+        *xform::translate(0.0f, 0.0f, -2.0f)
+        ;
+      drawquad();
+
+      modelview = mv
+        *xform::translate(1.0f, 0.0f, -1.0f)
+        *xform::roty(PI/2.0f);
+        ;
+      drawquad();
+
+      modelview = mv
+        *xform::translate(-1.0f, 0.0f, -1.0f)
+        *xform::roty(PI/2.0f);
+        ;
+      drawquad();
+
+      modelview = mv
+        *xform::translate(0.0f, -1.0f, -1.0f)
+        *xform::rotx(PI/2.0f);
+        ;
+      drawquad();
+
+      modelview = mv
+        *xform::translate(0.0f, 1.0f, -1.0f)
+        *xform::rotx(PI/2.0f);
+        ;
+      drawquad();
+
+    };
+
+    auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
+
+    auto rot = xform::identity()
+      //*xform::rotz(lerp(0.0, PI, anim_factor))*0.5f
+      *xform::translate(0.0f, 0.0f, -1.0f)
+      *xform::roty(lerp(0.0, PI, anim_factor))
+      *xform::translate(0.0f, 0.0f, 1.0f)
+      //*xform::rotz(lerp(0.0, PI, anim_factor))
+      ;
+
+    modelview = xform::identity()
+      *view
+      //*xform::translate(0.0f, 0.0f, -30.0f)
+      ;
+    drawcube();
+
+    modelview = xform::identity()
+      *view
+      *xform::translate(3.0f, 0.0f, -6.0f)
+      *rot
+      ;
+    drawcube();
+
+    modelview = xform::identity()
+      *view
+      *xform::translate(-3.0f, 0.0f, -6.0f)
+      *rot
+      ;
+    drawcube();
+
+    vec3 floor_color[3] = {
+      { 0, 0, 0 },
+      { 1, 1, 1 },
+      { 1, 1, 1 },
+    };
+
+    modelview = xform::identity()
+      *view
+      *xform::translate(0.0f, -1.01f, -6.0f)
+      *xform::scale(10.0f)
+      *xform::rotx(PI/2.0f)
       ;
 
     program.use()
       .uniformMatrix4x4(U::program.uProjection, persp)
       .uniformMatrix4x4(U::program.uModelView, modelview)
-      .uniformVector3(U::program.uCol, 3, colors)
+      .uniformVector3(U::program.uCol, 3, floor_color)
       .drawTraingles(arr, vtxs.size()/3);
 
     gx::tex_unit(0, tex, sampler);
@@ -358,11 +458,8 @@ void main() {
 
     face.draw(str, vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
 
-    {
-      //gx::ScopedPipeline p(gx::Pipeline().scissor(30, 590, 300, 30));
-
-      small_face.draw(hello, vec2{ 30.0f, 100.0f }, vec4{ 0.8f, 0.5f, 0.0f, 1.0f });
-    }
+    sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_factor, eye.x, eye.y, eye.z);
+    small_face.draw(str, vec2{ 30.0f, 100.0f }, vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 
     sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
     small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });

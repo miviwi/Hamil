@@ -86,8 +86,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)Generated;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)Generated;$(SourcePath)</SourcePath>
+    <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -168,6 +170,12 @@ move uniforms.* Generated\</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CustomBuildStep>
+      <Message>Generate Uniform Location</Message>
+      <Outputs>uniforms.cpp;uniforms.h;%(Outputs)</Outputs>
+      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"
+move uniforms.* Generated\</Command>
+    </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="extern\GL\glew.c" />
