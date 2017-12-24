@@ -17,6 +17,8 @@ static unsigned pow2_round(unsigned v)
   return v;
 }
 
+constexpr double PI = 3.1415926535897932384626433832795;
+
 #pragma pack(push, 1)
 
 template <typename T>
@@ -336,6 +338,27 @@ static mat4 ortho(float t, float l, float b, float r, float n, float f)
     0.0f,       0.0f,       -2.0f/(f-n), -(f+n)/(f-n),
     0.0f,       0.0f,       0.0f,        1.0f,
   };
+}
+
+static mat4 frutsum(float t, float l, float b, float r, float n, float f)
+{
+  return mat4{
+    2.0f*n/(r-l), 0.0f,         (r+l)/(r-l),  0.0f,
+    0.0f,         2.0f*n/(t-b), (t+b)/(t-b),  0.0f,
+    0.0f,         0.0f,         -(f+n)/(f-n), -2.0f*f*n/(f-n),
+    0.0f,         0.0f,         -1.0f,        0.0f,
+
+  };
+}
+
+static mat4 perspective(float fovy, float aspect, float n, float f)
+{
+  float w, h;
+
+  h = tan(fovy / (360.0*PI)) * n;
+  w = h * aspect;
+
+  return frutsum(h, -w, -h, w, n, f);
 }
 
 }

@@ -104,18 +104,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   fb.use();
   fb.tex(fb_tex, 0, gx::Framebuffer::Color0);
+  fb.renderbuffer(gx::Framebuffer::depth24, gx::Framebuffer::Depth);
 
   gx::tex_unit(0, tex, sampler);
-
-  /*
-  GLuint rb;
-  glGenRenderbuffers(1, &rb);
-
-  glBindRenderbuffer(GL_RENDERBUFFER, rb);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB5_A1, 640, 360);
-
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rb);
-  */
 
   unsigned cp = 0;
 
@@ -203,12 +194,14 @@ void main() {
 
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
-    .clearColor(vec4{ 0.2f, 0.2f, 0.2f, 1.0f });
+    .depthTest(gx::Pipeline::LessEqual)
+    .clear(vec4{ 0.2f, 0.2f, 0.2f, 1.0f }, 1.0f);
 
   float r = 1280.0f;
   float b = 720.0f;
 
-  mat4 projection = xform::ortho(0, 0, b, r, 0, 1);
+  mat4 projection = xform::ortho(0, 0, b, r, 0.1f, 100.0f);
+   // xform::perspective(59.0f, 16.0f/9.0f, 0.01f, 100.0f);
 
   mat4 zoom_mtx = xform::identity();
   mat4 rot_mtx = xform::identity();
@@ -222,6 +215,21 @@ void main() {
     cursor_label = small_face.string("Cursor");
 
   bool display_zoom_mtx = false;
+
+  std::vector<vec2> vtxs = {
+    { -1.0f, 1.0f },
+    { -1.0f, -1.0f },
+    { 1.0f, -1.0f },
+
+    { -1.0f, 1.0f },
+    { 1.0f, 1.0f },
+    { 1.0f, -1.0f },
+  };
+
+  gx::VertexBuffer vbuf(gx::Buffer::Static);
+  vbuf.init(vtxs.data(), vtxs.size());
+
+  gx::VertexArray arr(fmt, vbuf);
   
   while(window.processMessages()) {
     mat4 imtx = mat4{
@@ -292,7 +300,7 @@ void main() {
     fb.use();
     pipeline.use();
 
-    gx::clear(gx::Framebuffer::ColorBit);
+    gx::clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
 
     if(animate > 0) {
       rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
@@ -304,13 +312,13 @@ void main() {
     }
 
     mat4 modelview =
-      xform::translate(view_x, view_y, 0)
+      xform::translate(view_x, view_y, -1.0f)
       *zoom_mtx
       *rot_mtx
       ;
 
     mat4 cursor_mtx =
-      xform::translate(mouse_x, mouse_y, 0)
+      xform::translate(mouse_x, mouse_y, -1.0f)
       *xform::scale(16.0f, 16.0f, 1.0f)
       //*xform::rotz(11*3.1415/6.0f)
       ;
@@ -320,6 +328,20 @@ void main() {
       .uniformMatrix4x4(U::program.uModelView, modelview)
       .uniformVector3(U::program.uCol, 3, colors)
       .drawTraingles(vtx_array, trigs.size());
+
+    auto persp = xform::perspective(70, 16./9., 0.1f, 100.0f);
+    //modelview = xform::roty(PI/4.0f);
+    modelview = xform::translate(0.0f, 0.0f, -20.0f)
+      *xform::scale(1.0f, 1.0f, 10.0f)
+      *xform::roty(lerp(0.0, PI, (float)((time-animate)%(int)anim_time)/(anim_time/2.0f)))
+      *xform::rotz(lerp(0.0, PI, (float)((time-animate)%(int)anim_time)/(anim_time/2.0f)))
+      ;
+
+    program.use()
+      .uniformMatrix4x4(U::program.uProjection, persp)
+      .uniformMatrix4x4(U::program.uModelView, modelview)
+      .uniformVector3(U::program.uCol, 3, colors)
+      .drawTraingles(arr, vtxs.size()/3);
 
     gx::tex_unit(0, tex, sampler);
 

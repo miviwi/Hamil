@@ -75,8 +75,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)Generated;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;$(LibraryPath)</LibraryPath>
+    <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
+    <SourcePath>$(ProjectDir)Generated;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -109,6 +111,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <DisableSpecificWarnings>4244;4049;4217;4273</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -120,7 +123,10 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </Bscmake>
     <CustomBuildStep>
-      <Message>Generate Uniform Tables</Message>
+      <Message>Generate Uniform Location</Message>
+      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"
+move uniforms.* Generated\</Command>
+      <Outputs>uniforms.cpp;uniforms.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -165,11 +171,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="extern\GL\glew.c" />
+    <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\font.cpp" />
     <ClCompile Include="src\font.h" />
     <ClCompile Include="src\pipeline.cpp" />
     <ClCompile Include="src\rectpack.c" />
-    <ClCompile Include="src\uniforms.cpp" />
     <ClCompile Include="src\window.cpp" />
     <ClCompile Include="src\buffer.cpp" />
     <ClCompile Include="src\framebuffer.cpp" />
@@ -188,8 +194,8 @@
     <ClInclude Include="extern\GL\glew.h" />
     <ClInclude Include="extern\GL\glxew.h" />
     <ClInclude Include="extern\GL\wglew.h" />
+    <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="src\pipeline.h" />
-    <ClInclude Include="src\uniforms.h" />
     <ClInclude Include="src\window.h" />
     <ClInclude Include="src\buffer.h" />
     <ClInclude Include="src\common.h" />
