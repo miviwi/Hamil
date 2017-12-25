@@ -378,9 +378,9 @@ static mat4 look_at(vec3 eye, vec3 target, vec3 up)
 
   up = forward.cross(left);
 
-  float x = -left.x * eye.x - left.y * eye.y - left.z * eye.z,
-    y = -up.x * eye.x - up.y * eye.y - up.z * eye.z,
-    z = -forward.x * eye.x - forward.y * eye.y - forward.z * eye.z;
+  float x = -left.x*eye.x - left.y*eye.y - left.z*eye.z,
+    y = -up.x*eye.x - up.y*eye.y - up.z*eye.z,
+    z = -forward.x*eye.x - forward.y*eye.y - forward.z*eye.z;
 
   return mat4{
     left.x,    left.y,    left.z,    x,

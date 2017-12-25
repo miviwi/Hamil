@@ -64,19 +64,47 @@ GLenum Texture2D::type(Type t)
   return table[t];
 }
 
-Sampler::Sampler()
+Sampler::Sampler() :
+  m_ref(new unsigned(1))
 {
   glGenSamplers(1, &m);
 }
 
-Sampler::~Sampler()
+Sampler::Sampler(const Sampler& other) :
+  m(other.m), m_ref(other.m_ref)
 {
-  glDeleteSamplers(1, &m);
+  *m_ref++;
 }
 
-void Sampler::param(ParamName name, Param p)
+Sampler::~Sampler()
+{
+  *m_ref--;
+
+  if(!*m_ref) {
+    glDeleteSamplers(1, &m);
+    delete m_ref;
+  }
+}
+
+Sampler& Sampler::param(ParamName name, Param p)
 {
   glSamplerParameteri(m, pname(name), param(p));
+
+  return *this;
+}
+
+Sampler& Sampler::param(ParamName name, float value)
+{
+  glSamplerParameterf(m, pname(name), value);
+
+  return *this;
+}
+
+Sampler& Sampler::param(ParamName name, vec4 value)
+{
+  glSamplerParameterfv(m, pname(name), value);
+
+  return *this;
 }
 
 GLenum Sampler::pname(ParamName name)
@@ -84,6 +112,8 @@ GLenum Sampler::pname(ParamName name)
   static const GLenum table[] = {
     GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER,
     GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T,
+    GL_TEXTURE_MAX_ANISOTROPY_EXT,
+    GL_TEXTURE_BORDER_COLOR,
   };
   return table[name];
 }

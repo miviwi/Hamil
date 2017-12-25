@@ -330,11 +330,11 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   // Setup atlas texture and sampler
   m_atlas.init(img.data(), 0, atlas_sz, atlas_sz, gx::Texture2D::r, gx::Texture2D::u8);
 
-  m_sampler.param(gx::Sampler::MinFilter, gx::Sampler::Linear);
-  m_sampler.param(gx::Sampler::MagFilter, gx::Sampler::Linear);
-
-  m_sampler.param(gx::Sampler::WrapS, gx::Sampler::EdgeClamp);
-  m_sampler.param(gx::Sampler::WrapT, gx::Sampler::EdgeClamp);
+  m_sampler
+    .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
+    .param(gx::Sampler::MagFilter, gx::Sampler::Linear)
+    .param(gx::Sampler::WrapS, gx::Sampler::EdgeClamp)
+    .param(gx::Sampler::WrapT, gx::Sampler::EdgeClamp);
 
   // Populate render data
   float denom = atlas_sz;

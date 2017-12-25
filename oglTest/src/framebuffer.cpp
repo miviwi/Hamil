@@ -1,5 +1,7 @@
 #include "framebuffer.h"
 
+#include <cassert>
+
 namespace gx {
 
 Framebuffer::Framebuffer()
@@ -13,35 +15,39 @@ Framebuffer::~Framebuffer()
   glDeleteRenderbuffers(m_rb.size(), m_rb.data());
 }
 
-void Framebuffer::use()
+Framebuffer& Framebuffer::use()
 {
   glBindFramebuffer(GL_FRAMEBUFFER, m);
-
   m_bound = GL_FRAMEBUFFER;
+
+  return *this;
 }
 
-void Framebuffer::use(BindTarget target)
+Framebuffer& Framebuffer::use(BindTarget target)
 {
   m_bound = binding(target);
-
   glBindFramebuffer(m_bound, m);
+
+  return *this;
 }
 
-void Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment att)
+Framebuffer& Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment att)
 {
   checkIfBound();
 
   glFramebufferTexture(m_bound, attachement(att), tex.m, level);
+
+  return *this;
 }
 
-void Framebuffer::renderbuffer(Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbuffer(Format fmt, Attachment att)
 {
   auto dimensions = getColorAttachementDimensions();
 
-  renderbuffer(dimensions.x, dimensions.y, fmt, att);
+  return renderbuffer(dimensions.x, dimensions.y, fmt, att);
 }
 
-void Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att)
 {
   GLuint rb;
   glGenRenderbuffers(1, &rb);
@@ -53,6 +59,8 @@ void Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment at
   glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
 
   m_rb.push_back(rb);
+
+  return *this;
 }
 
 void Framebuffer::blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)
@@ -115,7 +123,7 @@ void Framebuffer::checkIfBound()
   default:                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound);
   }
 
-  if(bound != m) throw "INVALID OPERATION!";
+  if(bound != m) assert(0 && "Framebuffer needs to be boun before use");
 }
 
 ivec2 Framebuffer::getColorAttachementDimensions()

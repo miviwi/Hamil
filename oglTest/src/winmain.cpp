@@ -13,12 +13,23 @@
 #include <array>
 #include <utility>
 
+#include <glang/glang.h>
+#include <glang/heap.h>
+
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   using win32::Window;
   Window window(1280, 720);
 
   constexpr ivec2 FB_DIMS{ 1280, 720 };
+
+  glang::FastHeap heap;
+  auto vm = new glang::Vm(&heap);
+
+  auto co = glang::compile_string("(assoc {:a 1 :b 2} :c 3)");
+
+  auto o = (const glang::IntObject *)vm->execute(co);
+  auto repr = o->repr();
 
   ft::init();
 
@@ -87,13 +98,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   };
 
   gx::Texture2D tex(gx::Texture2D::rgb);
-  gx::Sampler sampler;
-
-  sampler.param(gx::Sampler::WrapS, gx::Sampler::Repeat);
-  sampler.param(gx::Sampler::WrapT, gx::Sampler::Repeat);
-
-  sampler.param(gx::Sampler::MinFilter, gx::Sampler::Linear);
-  sampler.param(gx::Sampler::MagFilter, gx::Sampler::Linear);
+  auto sampler = gx::Sampler()
+    .param(gx::Sampler::WrapS, gx::Sampler::Repeat)
+    .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
+    .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
+    .param(gx::Sampler::MagFilter, gx::Sampler::Linear);
 
   tex.init(tex_image, 0, 4, 4, gx::Texture2D::rgba, gx::Texture2D::u32_8888);
 
@@ -102,9 +111,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   fb_tex.init(FB_DIMS.x, FB_DIMS.y);
 
-  fb.use();
-  fb.tex(fb_tex, 0, gx::Framebuffer::Color0);
-  fb.renderbuffer(gx::Framebuffer::depth24, gx::Framebuffer::Depth);
+  fb.use()
+    .tex(fb_tex, 0, gx::Framebuffer::Color0)
+    .renderbuffer(gx::Framebuffer::depth24, gx::Framebuffer::Depth);
 
   gx::tex_unit(0, tex, sampler);
 
@@ -214,7 +223,8 @@ void main() {
   auto hello = small_face.string("gggg Hello, sailor! gggg \nTeraz wchodzimy w nowe millenium"),
     cursor_label = small_face.string("Cursor");
 
-  bool display_zoom_mtx = false;
+  bool display_zoom_mtx = false,
+    ortho_projection = false;
 
   std::vector<vec2> vtxs = {
     { -1.0f, 1.0f },
@@ -226,11 +236,35 @@ void main() {
     { 1.0f, -1.0f },
   };
 
+  std::vector<vec2> floor_vtxs = {
+    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+    { -1.0f, -1.0f }, { 0.0f,  0.0f },
+    { 1.0f, -1.0f },  { 10.0f, 0.0f },
+
+    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+    { 1.0f, 1.0f },   { 10.0f, 10.0f },
+    { 1.0f, -1.0f },  { 10.0f, 0.0f },
+  };
+
   gx::VertexBuffer vbuf(gx::Buffer::Static);
   vbuf.init(vtxs.data(), vtxs.size());
 
   gx::VertexArray arr(fmt, vbuf);
-  
+
+  gx::VertexBuffer floor_vbuf(gx::Buffer::Static);
+  floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
+
+  gx::VertexArray floor_arr(cursor_fmt, floor_vbuf);
+
+  pipeline.alphaBlend();
+
+  auto floor_sampler = gx::Sampler()
+    .param(gx::Sampler::MinFilter, gx::Sampler::Nearest)
+    .param(gx::Sampler::MagFilter, gx::Sampler::Nearest)
+    .param(gx::Sampler::WrapS, gx::Sampler::Repeat)
+    .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
+    .param(gx::Sampler::Anisotropy, 16.0f);
+
   while(window.processMessages()) {
     mat4 imtx = mat4{
       1.0f/zoom, 0.0f, 0.0f, -zoom_mtx.d[3]/zoom,
@@ -260,6 +294,8 @@ void main() {
           else pipeline.filledPolys();
         } else if(kb->keyDown('Q')) {
           window.quit();
+        } else if(kb->keyDown('O')) {
+          ortho_projection = !ortho_projection;
         }
       } else {
         using win32::Mouse;
@@ -333,11 +369,11 @@ void main() {
 
     float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
 
-    auto persp = xform::perspective(70, 16./9., 0.1f, 1000.0f);
-      //xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
+    auto persp = !ortho_projection ? xform::perspective(70, 16./9., 0.1f, 1000.0f) :
+      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
     //modelview = xform::roty(PI/4.0f);
 
-    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 70.0f };
+    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f };
     /*
     if(anim_factor < 1.0f) {
       eye.x = lerp(-30.0f, 30.0f, anim_factor);
@@ -347,6 +383,8 @@ void main() {
       //eye.y = eye.x*0.5f;
     }
     */
+
+    auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
 
     auto drawquad = [&]()
     {
@@ -394,8 +432,6 @@ void main() {
 
     };
 
-    auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
-
     auto rot = xform::identity()
       //*xform::rotz(lerp(0.0, PI, anim_factor))*0.5f
       *xform::translate(0.0f, 0.0f, -1.0f)
@@ -424,12 +460,6 @@ void main() {
       ;
     drawcube();
 
-    vec3 floor_color[3] = {
-      { 0, 0, 0 },
-      { 1, 1, 1 },
-      { 1, 1, 1 },
-    };
-
     modelview = xform::identity()
       *view
       *xform::translate(0.0f, -1.01f, -6.0f)
@@ -437,14 +467,14 @@ void main() {
       *xform::rotx(PI/2.0f)
       ;
 
-    program.use()
-      .uniformMatrix4x4(U::program.uProjection, persp)
-      .uniformMatrix4x4(U::program.uModelView, modelview)
-      .uniformVector3(U::program.uCol, 3, floor_color)
-      .drawTraingles(arr, vtxs.size()/3);
+    gx::tex_unit(0, tex, floor_sampler);
+    cursor_program.use()
+      .uniformMatrix4x4(U::cursor.uProjection, persp)
+      .uniformMatrix4x4(U::cursor.uModelView, modelview)
+      .uniformInt(U::cursor.uTex, 0)
+      .drawTraingles(floor_arr, floor_vtxs.size()/3);
 
     gx::tex_unit(0, tex, sampler);
-
     cursor_program.use()
       .uniformMatrix4x4(U::cursor.uProjection, projection)
       .uniformMatrix4x4(U::cursor.uModelView, cursor_mtx)
@@ -477,6 +507,9 @@ void main() {
 
     //MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
     if(display_zoom_mtx) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
+
+    sprintf_s(buf, "vm: %s", o->repr().c_str());
+    face.draw(buf, vec2{ 30.0f, 180.0f }, vec3{ 0.2f, 0, 0 });
 
     //face.drawString("ala ma kota a moze i dwa va av Ma Ta Tb Tc", vec2{ 30.0f, 130.0f },
       //              vec4{ 0.0f, 0.0f, 0.0f, 1.0f });

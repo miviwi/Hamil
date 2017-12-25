@@ -40,12 +40,12 @@ public:
   Framebuffer(const Framebuffer&) = delete;
   ~Framebuffer();
 
-  void use();
-  void use(BindTarget target);
+  Framebuffer& use();
+  Framebuffer& use(BindTarget target);
 
-  void tex(const Texture2D& tex, unsigned level, Attachment att);
-  void renderbuffer(Format fmt, Attachment att);
-  void renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att);
+  Framebuffer& tex(const Texture2D& tex, unsigned level, Attachment att);
+  Framebuffer& renderbuffer(Format fmt, Attachment att);
+  Framebuffer& renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att);
 
   void blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "math.h"
+
 #include <GL/glew.h>
 
 namespace gx {
@@ -50,6 +52,8 @@ public:
   enum ParamName {
     MinFilter, MagFilter,
     WrapS, WrapT,
+    Anisotropy,
+    BorderColor,
   };
 
   enum Param {
@@ -58,10 +62,12 @@ public:
   };
 
   Sampler();
-  Sampler(const Sampler& other) = delete;
+  Sampler(const Sampler& other);
   ~Sampler();
 
-  void param(ParamName name, Param p);
+  Sampler& param(ParamName name, Param p);
+  Sampler& param(ParamName name, float value);
+  Sampler& param(ParamName name, vec4 value);
 
 private:
   friend void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
@@ -70,6 +76,7 @@ private:
   static GLenum param(Param p);
 
   GLuint m;
+  unsigned *m_ref;
 };
 
 void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
