@@ -48,4 +48,15 @@ IndexBuffer::IndexBuffer(Usage usage, Type type) :
 {
 }
 
+unsigned IndexBuffer::elemSize() const
+{
+  switch(m_type) {
+  case u8: return 1;
+  case u16: return 2;
+  case u32: return 3;
+  }
+
+  return 0;
+}
+
 }

@@ -17,7 +17,7 @@ VertexFormat& VertexFormat::iattr(AttributeType type, unsigned size)
   return *this;
 }
 
-size_t VertexFormat::vertextByteSize() const
+size_t VertexFormat::vertexByteSize() const
 {
   size_t sz = 0;
   for(auto& desc : m_descs) sz += byteSize(desc);
@@ -81,7 +81,8 @@ size_t VertexFormat::byteSize(Desc desc)
   return table[desc.type]*desc.size;
 }
 
-VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf)
+VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf) :
+  m_elem_size(fmt.vertexByteSize())
 {
   glGenVertexArrays(1, &m);
 
@@ -92,10 +93,10 @@ VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf)
     glEnableVertexAttribArray(i);
 
     if(fmt.attrInteger(i)) {
-      glVertexAttribIPointer(i, fmt.attrSize(i), fmt.attrType(i), fmt.vertextByteSize(), fmt.attrOffset(i));
+      glVertexAttribIPointer(i, fmt.attrSize(i), fmt.attrType(i), m_elem_size, fmt.attrOffset(i));
     } else {
       glVertexAttribPointer(i, fmt.attrSize(i), fmt.attrType(i), fmt.attrNormalized(i),
-                            fmt.vertextByteSize(), fmt.attrOffset(i));
+                            m_elem_size, fmt.attrOffset(i));
     }
   }
 }
@@ -103,6 +104,11 @@ VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf)
 VertexArray::~VertexArray()
 {
   glDeleteVertexArrays(1, &m);
+}
+
+unsigned VertexArray::elemSize() const
+{
+  return m_elem_size;
 }
 
 }

@@ -2,6 +2,11 @@
 #include "font.h"
 #include "pipeline.h"
 #include "program.h"
+#include "uniforms.h"
+
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_GLYPH_H
 
 #include <stb_rect_pack/stb_rect_pack.h>
 
@@ -15,6 +20,18 @@
 #include <Windows.h>
 
 namespace ft {
+
+class pFace {
+public:
+  pFace(FT_Face f) :
+    m(f)
+  { }
+
+  operator FT_Face() { return m; }
+
+private:
+  FT_Face m;
+};
 
 class pGlyph {
 public:
@@ -130,25 +147,28 @@ void finalize()
 Font::Font(const FontFamily& family, unsigned height) :
   m_atlas(gx::Texture2D::r8)
 {
-  auto err = FT_New_Face(ft, family.getPath(), 0, &m);
+  FT_Face face;
+  auto err = FT_New_Face(ft, family.getPath(), 0, &face);
   if(err) {
     std::string err_message = "FreeType face creation error " + std::to_string(err) + "!";
 
     MessageBoxA(nullptr, err_message.c_str(), "FreeTyper error!", MB_OK);
     ExitProcess(-2);
   }
+
+  m = new pFace(face);
       
-  FT_Set_Pixel_Sizes(m, 0, height);
+  FT_Set_Pixel_Sizes(*m, 0, height);
 
   // Load glyphs (TODO!!)
   std::vector<pGlyph> glyphs;
   for(int i = 0x20; i < 0x7F; i++) {
-    auto idx = FT_Get_Char_Index(m, i);
+    auto idx = FT_Get_Char_Index(face, i);
 
-    FT_Load_Glyph(m, idx, FT_LOAD_DEFAULT);
-    FT_Render_Glyph(m->glyph, FT_RENDER_MODE_NORMAL);
+    FT_Load_Glyph(face, idx, FT_LOAD_DEFAULT);
+    FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
 
-    glyphs.emplace_back(i, idx, m->glyph);
+    glyphs.emplace_back(i, idx, face->glyph);
   }
 
   populateRenderData(glyphs);
@@ -164,6 +184,8 @@ String Font::string(const char *str)
     vec2 pos;
     vec2 uv;
   };
+
+  FT_Face face = *m;
 
   std::vector<Vertex> verts;
   std::vector<u16> indices;
@@ -181,17 +203,17 @@ String Font::string(const char *str)
 
     if(*str == '\n') {
       pen.x = 0;
-      pen.y += m->size->metrics.height << 10;
+      pen.y += face->size->metrics.height << 10;
 
       str++;
       continue;
     }
 
-    if(str != begin && FT_HAS_KERNING(m)) {
+    if(str != begin && FT_HAS_KERNING(face)) {
       FT_Vector kern = { 0, 0 };
       const auto& a = getGlyphRenderData(*(str - 1));
 
-      FT_Get_Kerning(m, a.idx, g.idx, FT_KERNING_DEFAULT, &kern);
+      FT_Get_Kerning(face, a.idx, g.idx, FT_KERNING_DEFAULT, &kern);
 
       x += kern.x / (float)(1<<6);
       y += kern.y / (float)(1<<6);
@@ -229,12 +251,12 @@ String Font::string(const char *str)
     delete p;
   });
 
-  s->m = m;
+  s->m = face;
 
   s->vtx_buf.init(verts.data(), verts.size());
   s->ind.init(indices.data(), indices.size());
 
-  s->num = indices.size()/3;
+  s->num = indices.size();
 
   return s;
 }
@@ -243,7 +265,7 @@ void Font::draw(const String& str, vec2 pos, vec4 color)
 {
   pString *p = str.get();
 
-  assert(p->m == m && "Drawing string with wrong Font!");
+  assert(p->m == *m && "Drawing string with wrong Font!");
 
   gx::tex_unit(0, m_atlas, m_sampler);
 
@@ -256,10 +278,10 @@ void Font::draw(const String& str, vec2 pos, vec4 color)
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
     .uniformInt(U::font.uAtlas, 0)
     .uniformVector4(U::font.uColor, color)
-    .drawTraingles(p->vtx, p->ind, p->num);
+    .draw(gx::Triangles, p->vtx, p->ind, p->num);
 }
 
-void Font::draw(const char * str, vec2 pos, vec4 color)
+void Font::draw(const char *str, vec2 pos, vec4 color)
 {
   draw(string(str), pos, color);
 }
@@ -361,7 +383,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     rd.left = bm->left;
     rd.width = bm->bitmap.width;
     rd.height = bm->bitmap.rows;
-    rd.advance = g->advance;
+    rd.advance = ivec2{ g->advance.x, g->advance.y };
 
     rd.uvs[0] = uvs[0]; rd.uvs[1] = uvs[1];
     rd.uvs[2] = uvs[2]; rd.uvs[3] = uvs[3];

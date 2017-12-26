@@ -243,3 +243,4 @@ ModelManifest.xml
 
 *.raw
 uniforms.*
+*.lib

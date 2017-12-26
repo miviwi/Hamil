@@ -95,19 +95,29 @@ Program& Program::uniformMatrix4x4(int location, const float *mtx)
   return *this;
 }
 
-void Program::drawTraingles(const VertexArray& vtx, unsigned num)
+void Program::draw(Primitive p, const VertexArray& vtx, unsigned offset, unsigned num)
 {
   glBindVertexArray(vtx.m);
 
-  glDrawArrays(GL_TRIANGLES, 0, num*3);
+  glDrawArrays(p, offset, num);
 }
 
-void Program::drawTraingles(const VertexArray& vtx, const IndexBuffer& idx, unsigned num)
+void Program::draw(Primitive p, const VertexArray& vtx, unsigned num)
+{
+  draw(p, vtx, 0, num);
+}
+
+void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned offset, unsigned num)
 {
   glBindVertexArray(vtx.m);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
 
-  glDrawElements(GL_TRIANGLES, num*3, idx.m_type, 0);
+  glDrawElements(p, num, idx.m_type, (void *)(offset * idx.elemSize()));
+}
+
+void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned num)
+{
+  draw(p, vtx, idx, 0, num);
 }
 
 void Program::getUniforms(const std::unordered_map<std::string, unsigned>& offsets, int locations[])

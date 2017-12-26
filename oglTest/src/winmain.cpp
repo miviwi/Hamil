@@ -2,12 +2,15 @@
 #include "buffer.h"
 #include "vertex.h"
 #include "program.h"
+#include "uniforms.h"
 #include "pipeline.h"
 #include "texture.h"
 #include "framebuffer.h"
 #include "font.h"
 
-#include <Gl/glew.h>
+#include "ui/ui.h"
+
+#include <GL/glew.h>
 
 #include <vector>
 #include <array>
@@ -15,6 +18,9 @@
 
 #include <glang/glang.h>
 #include <glang/heap.h>
+
+#include <fcntl.h>
+#include <io.h>
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -26,15 +32,30 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   glang::FastHeap heap;
   auto vm = new glang::Vm(&heap);
 
-  auto co = glang::compile_string("(assoc {:a 1 :b 2} :c 3)");
-
-  auto o = (const glang::IntObject *)vm->execute(co);
-  auto repr = o->repr();
+  //auto map = (glang::MapObject *)o;
+  //auto map_b = map->seqget(vm->objMan().kw(":b"));
 
   ft::init();
+  ui::init();
 
   ft::Font face(ft::FontFamily("times"), 35);
   ft::Font small_face(ft::FontFamily("consola"), 18);
+
+  auto write = glang::CallableFn<glang::NumberObject, glang::NumberObject, glang::StringObject>(
+    [&](glang::ObjectManager& om, auto args) -> glang::Object *
+  {
+    auto x = std::get<0>(args);
+    auto y = std::get<1>(args);
+    auto str = (glang::StringObject *)std::get<2>(args);
+
+    small_face.draw(str->get(), vec2{ (float)x->toFloat(), (float)y->toFloat() }, vec3{ 0, 0, 0 });
+
+    return om.nil();
+  });
+
+  vm->envSet("write", vm->objMan().fn(&write));
+
+  auto co = glang::compile_string("(write 30 150. \"hello, world!\")", true);
 
   struct Triangle {
     vec2 a, b, c;
@@ -265,6 +286,18 @@ void main() {
     .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
     .param(gx::Sampler::Anisotropy, 16.0f);
 
+  auto alpha = (byte)(255*0.95);
+
+  ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 });
+
+  ui::Frame f(ui::Geometry{ 200.0f, 100.0f, 700.0f, 400.0f });
+  auto color_a = ui::Color{ 45, 45, 150, alpha },
+    color_b = ui::Color{ 20, 20, 66, alpha };
+  f.color(color_a, color_b, color_b, color_a);
+  f.border(1, ui::white(), ui::transparent(), ui::white(), ui::transparent());
+
+  iface.frame(&f);
+
   while(window.processMessages()) {
     mat4 imtx = mat4{
       1.0f/zoom, 0.0f, 0.0f, -zoom_mtx.d[3]/zoom,
@@ -365,7 +398,7 @@ void main() {
       .uniformMatrix4x4(U::program.uProjection, projection)
       .uniformMatrix4x4(U::program.uModelView, modelview)
       .uniformVector3(U::program.uCol, 3, colors)
-      .drawTraingles(vtx_array, trigs.size());
+      .draw(gx::Triangles, vtx_array, trigs.size()*3);
 
     float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
 
@@ -392,7 +425,7 @@ void main() {
         .uniformMatrix4x4(U::program.uProjection, persp)
         .uniformMatrix4x4(U::program.uModelView, modelview)
         .uniformVector3(U::program.uCol, 3, colors)
-        .drawTraingles(arr, vtxs.size()/3);
+        .draw(gx::Triangles, arr, vtxs.size());
     };
 
     auto drawcube = [&]()
@@ -472,14 +505,7 @@ void main() {
       .uniformMatrix4x4(U::cursor.uProjection, persp)
       .uniformMatrix4x4(U::cursor.uModelView, modelview)
       .uniformInt(U::cursor.uTex, 0)
-      .drawTraingles(floor_arr, floor_vtxs.size()/3);
-
-    gx::tex_unit(0, tex, sampler);
-    cursor_program.use()
-      .uniformMatrix4x4(U::cursor.uProjection, projection)
-      .uniformMatrix4x4(U::cursor.uModelView, cursor_mtx)
-      .uniformInt(U::cursor.uTex, 0)
-      .drawTraingles(cursor, 1);
+      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
     int fps = (float)frames / ((float)(time-start_time) / 1000.0f);
 
@@ -490,9 +516,6 @@ void main() {
 
     sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_factor, eye.x, eye.y, eye.z);
     small_face.draw(str, vec2{ 30.0f, 100.0f }, vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
-
-    sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
-    small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
 
     char buf[1024];
     sprintf_s(buf,
@@ -508,11 +531,25 @@ void main() {
     //MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
     if(display_zoom_mtx) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
 
-    sprintf_s(buf, "vm: %s", o->repr().c_str());
-    face.draw(buf, vec2{ 30.0f, 180.0f }, vec3{ 0.2f, 0, 0 });
+    iface.paint();
+    
+    //vm->execute(co);
+
+    //sprintf_s(buf, "vm: %s", o->repr().c_str());
+    //face.draw(buf, vec2{ 30.0f, 180.0f }, vec3{ 0.2f, 0, 0 });
 
     //face.drawString("ala ma kota a moze i dwa va av Ma Ta Tb Tc", vec2{ 30.0f, 130.0f },
       //              vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+
+    sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
+    small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
+
+    gx::tex_unit(0, tex, sampler);
+    cursor_program.use()
+      .uniformMatrix4x4(U::cursor.uProjection, projection)
+      .uniformMatrix4x4(U::cursor.uModelView, cursor_mtx)
+      .uniformInt(U::cursor.uTex, 0)
+      .draw(gx::Triangles, cursor, 3);
 
     fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, 1280, 720 },
                     gx::Framebuffer::ColorBit, gx::Sampler::Nearest);

@@ -13,6 +13,8 @@ public:
   CodeObject();
   CodeObject(const CodeObject& other);
 
+  CodeObject& operator=(const CodeObject& other) = delete;
+
   ~CodeObject();
 
   void push(const void *data, size_t sz);

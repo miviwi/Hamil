@@ -20,9 +20,6 @@
     <ClCompile Include="src\input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\program.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -44,12 +41,6 @@
     <ClCompile Include="src\font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\font.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\rectpack.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\pipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -59,39 +50,24 @@
     <ClCompile Include="Generated\uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="include\font.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vmath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\ui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\stb_rect_pack\rectpack.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\painter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\buffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\common.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\input.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\math.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\program.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\vertex.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\framebuffer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\pipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="extern\GL\eglew.h">
@@ -109,6 +85,45 @@
     <ClInclude Include="Generated\uniforms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\ui\ui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\input.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\framebuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\program.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vertex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\vmath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ui\painter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ui\common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\cursor.uniform">
@@ -120,5 +135,6 @@
     <None Include="src\program.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
+    <None Include="src\ui.uniform" />
   </ItemGroup>
 </Project>
