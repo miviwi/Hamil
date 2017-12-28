@@ -36,6 +36,7 @@ Framebuffer& Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment a
   checkIfBound();
 
   glFramebufferTexture(m_bound, attachement(att), tex.m, level);
+  m_samples = tex.m_samples;
 
   return *this;
 }
@@ -53,7 +54,32 @@ Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attac
   glGenRenderbuffers(1, &rb);
 
   glBindRenderbuffer(GL_RENDERBUFFER, rb);
-  glRenderbufferStorage(GL_RENDERBUFFER, internalformat(fmt), w, h);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, internalformat(fmt), w, h);
+
+  checkIfBound();
+  glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
+
+  m_rb.push_back(rb);
+
+  return *this;
+}
+
+Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, Attachment att)
+{
+  auto dimensions = getColorAttachementDimensions();
+
+  return renderbufferMultisample(samples, dimensions.x, dimensions.y, fmt, att);
+}
+
+Framebuffer & Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att)
+{
+  m_samples = samples;
+
+  GLuint rb;
+  glGenRenderbuffers(1, &rb);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, rb);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, internalformat(fmt), w, h);
 
   checkIfBound();
   glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
@@ -148,14 +174,20 @@ ivec2 Framebuffer::getColorAttachementDimensions()
     break;
 
   case GL_TEXTURE: {
-    glBindTexture(GL_TEXTURE_2D, name);
+    GLenum target = GL_TEXTURE_2D;
+
+    glBindTexture(target, name);
+    if(glGetError() == GL_INVALID_OPERATION) {
+      target = GL_TEXTURE_2D_MULTISAMPLE;
+      glBindTexture(target, name);
+    }
 
     int level = -1;
     glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,
                                           GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &level);
 
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, level , GL_TEXTURE_WIDTH, &dims.x);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &dims.y);
+    glGetTexLevelParameteriv(target, level , GL_TEXTURE_WIDTH, &dims.x);
+    glGetTexLevelParameteriv(target, level, GL_TEXTURE_HEIGHT, &dims.y);
     break;
   }
 

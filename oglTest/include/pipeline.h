@@ -44,6 +44,7 @@ public:
 
   Pipeline& viewport(int x, int y, int w, int h);
   Pipeline& scissor(int x, int y, int w, int h);
+  Pipeline& scissor(ivec4 rect);
   Pipeline& alphaBlend();
   Pipeline& additiveBlend();
   Pipeline& depthTest(DepthFunc func);

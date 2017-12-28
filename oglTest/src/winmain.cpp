@@ -38,7 +38,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::init();
   ui::init();
 
-  ft::Font face(ft::FontFamily("times"), 35);
+  ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("consola"), 18);
 
   auto write = glang::CallableFn<glang::NumberObject, glang::NumberObject, glang::StringObject>(
@@ -130,13 +130,20 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   gx::Texture2D fb_tex(gx::Texture2D::rgba8);
   gx::Framebuffer fb;
 
-  fb_tex.init(FB_DIMS.x, FB_DIMS.y);
+  fb_tex.initMultisample(2, FB_DIMS.x, FB_DIMS.y);
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color0)
     .renderbuffer(gx::Framebuffer::depth24, gx::Framebuffer::Depth);
 
   gx::tex_unit(0, tex, sampler);
+
+  int vram_size;
+  glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &vram_size);
+
+  char vram_size_buf[256];
+  sprintf_s(vram_size_buf, "VRAM: %.2fGB", (float)vram_size/(1024.0f*1024.0f));
+  auto vram_size_str = face.string(vram_size_buf);
 
   unsigned cp = 0;
 
@@ -293,7 +300,7 @@ void main() {
   ui::Frame f(ui::Geometry{ 200.0f, 100.0f, 700.0f, 400.0f });
   auto color_a = ui::Color{ 45, 45, 150, alpha },
     color_b = ui::Color{ 20, 20, 66, alpha };
-  f.color(color_a, color_b, color_b, color_a);
+  f.color(color_b, color_a, color_a, color_b);
   f.border(1, ui::white(), ui::transparent(), ui::white(), ui::transparent());
 
   iface.frame(&f);
@@ -514,6 +521,8 @@ void main() {
 
     face.draw(str, vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
 
+    face.draw(vram_size_str, vec2{ FB_DIMS.x - 300.0f, 70.0f }, vec3{ 0.8f, 0.0f, 0.0f });
+
     sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_factor, eye.x, eye.y, eye.z);
     small_face.draw(str, vec2{ 30.0f, 100.0f }, vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 
@@ -543,6 +552,8 @@ void main() {
 
     sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
     small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
+
+    gx::Pipeline().alphaBlend().use();
 
     gx::tex_unit(0, tex, sampler);
     cursor_program.use()

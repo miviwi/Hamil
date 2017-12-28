@@ -46,6 +46,8 @@ public:
   Framebuffer& tex(const Texture2D& tex, unsigned level, Attachment att);
   Framebuffer& renderbuffer(Format fmt, Attachment att);
   Framebuffer& renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att);
+  Framebuffer& renderbufferMultisample(unsigned samples, Format fmt, Attachment att);
+  Framebuffer& renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att);
 
   void blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
 
@@ -62,6 +64,7 @@ private:
   ivec2 getColorAttachementDimensions();
 
   GLenum m_bound;
+  unsigned m_samples;
   GLuint m;
   std::vector<GLuint> m_rb;
 };

@@ -43,6 +43,11 @@ Pipeline& Pipeline::scissor(int x, int y, int w, int h)
   return *this;
 }
 
+Pipeline& Pipeline::scissor(ivec4 rect)
+{
+  return scissor(rect.x, rect.y, rect.z, rect.w);
+}
+
 Pipeline& Pipeline::noScissor()
 {
   m_enabled[Scissor] = false;

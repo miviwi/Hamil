@@ -12,6 +12,8 @@ namespace ui {
 void init();
 void finalize();
 
+class VertexPainter;
+
 class Frame;
 
 class Ui {
@@ -19,6 +21,8 @@ public:
   static const vec2 FramebufferSize;
 
   Ui(Geometry geom);
+
+  static ivec4 scissor_rect(Geometry g);
 
   void frame(Frame *frame);
   void paint();
@@ -43,7 +47,7 @@ public:
 private:
   friend class Ui;
 
-  void paint(Geometry parent);
+  void paint(VertexPainter& painter, Geometry parent);
 
   PositionMode m_pos_mode;
   Geometry m_geom;

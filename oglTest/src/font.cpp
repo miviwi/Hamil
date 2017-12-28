@@ -17,21 +17,23 @@
 #include <utility>
 
 #define WIN32_LEAN_AND_MEAN
+#define NO_MIN_MAX
 #include <Windows.h>
 
 namespace ft {
 
 class pFace {
 public:
-  pFace(FT_Face f) :
-    m(f)
-  { }
+  pFace(FT_Face f);
+  ~pFace();
 
   operator FT_Face() { return m; }
+  FT_Face get() { return m; }
 
 private:
   FT_Face m;
 };
+
 
 class pGlyph {
 public:
@@ -67,6 +69,9 @@ public:
   gx::IndexBuffer ind;
 
   unsigned num;
+
+  float width;
+  float height;
 
   static const gx::VertexFormat fmt;
 };
@@ -140,6 +145,7 @@ void init()
 void finalize()
 {
   auto err = FT_Done_FreeType(ft);
+  ft = nullptr;
 
   assert(!err && "FreeType finalize error!");
 }
@@ -176,6 +182,7 @@ Font::Font(const FontFamily& family, unsigned height) :
 
 Font::~Font()
 {
+  delete m;
 }
 
 String Font::string(const char *str)
@@ -185,13 +192,19 @@ String Font::string(const char *str)
     vec2 uv;
   };
 
+  auto length = strlen(str);
+
   FT_Face face = *m;
 
   std::vector<Vertex> verts;
   std::vector<u16> indices;
 
+  verts.reserve(6*length);
+  indices.reserve(4*length);
+
   const char *begin = str;
   FT_Vector pen = { 0, 0 };
+  float width = 0.0f;
   while(*str) {
     const auto& g = getGlyphRenderData(*str);
 
@@ -202,6 +215,8 @@ String Font::string(const char *str)
     y -= g.top;
 
     if(*str == '\n') {
+      width = std::max(pen.x / (float)(1<<16), width);
+
       pen.x = 0;
       pen.y += face->size->metrics.height << 10;
 
@@ -258,6 +273,9 @@ String Font::string(const char *str)
 
   s->num = indices.size();
 
+  s->width = std::max(pen.x / (float)(1<<16), width);
+  s->height = (pen.y / (float)(1<<16)) + height();
+
   return s;
 }
 
@@ -294,6 +312,47 @@ void Font::draw(const String& str, vec2 pos, vec3 color)
 void Font::draw(const char *str, vec2 pos, vec3 color)
 {
   draw(str, pos, vec4{ color.r, color.g, color.b, 1.0f });
+}
+
+void Font::draw(const String& str, vec2 pos, Vector4<byte> color)
+{
+  vec4 normalized = {
+    color.r / 255.0f,
+    color.g / 255.0f,
+    color.b / 255.0f,
+    color.a / 255.0f,
+  };
+  draw(str, pos, normalized);
+}
+
+void Font::draw(const char *str, vec2 pos, Vector4<byte> color)
+{
+  draw(string(str), pos, color);
+}
+
+float Font::width(const String& str)
+{
+  return str->width;
+}
+
+float Font::height(const String& str)
+{
+  return str->height;
+}
+
+float Font::ascender() const
+{
+  return m->get()->size->metrics.ascender >> 6;
+}
+
+float Font::descener() const
+{
+  return m->get()->size->metrics.descender >> 6;
+}
+
+float Font::height() const
+{
+  return m->get()->size->metrics.height / (float)(1<<6);
 }
 
 void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
@@ -418,6 +477,16 @@ pGlyph::pGlyph(int ch, unsigned idx, FT_GlyphSlot slot) :
   assert(!err && "FreeType glyph get error!");
 }
 
+pFace::pFace(FT_Face f) :
+  m(f)
+{
+}
+
+pFace::~pFace()
+{
+  if(ft) FT_Done_Face(m);
+}
+
 pGlyph::pGlyph(pGlyph&& other) :
   m_ch(other.m_ch), m_idx(other.m_idx), m(other.m)
 {
@@ -434,6 +503,7 @@ pGlyph::~pGlyph()
 static const std::unordered_map<std::string, std::string> family_to_path = {
   { "arial", "C:\\Windows\\Fonts\\arial.ttf" },
   { "times", "C:\\Windows\\Fonts\\times.ttf" },
+  { "georgia", "C:\\Windows\\Fonts\\georgia.ttf" },
   { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
 };
 

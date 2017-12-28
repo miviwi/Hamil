@@ -31,6 +31,7 @@ public:
   ~Texture2D();
 
   void init(unsigned w, unsigned h);
+  void initMultisample(unsigned samples, unsigned w, unsigned h);
   void init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t);
   void upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type t);
@@ -44,6 +45,7 @@ private:
   static GLenum type(Type t);
 
   Format m_format;
+  unsigned m_samples;
   GLuint m;
 };
 

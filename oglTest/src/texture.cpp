@@ -8,7 +8,7 @@
 namespace gx {
 
 Texture2D::Texture2D(Format format) :
-  m_format(format)
+  m_format(format), m_samples(0)
 {
   glGenTextures(1, &m);
 }
@@ -22,6 +22,14 @@ void Texture2D::init(unsigned w, unsigned h)
 {
   glBindTexture(GL_TEXTURE_2D, m);
   glTexImage2D(GL_TEXTURE_2D, 0, internalformat(m_format), w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+}
+
+void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
+{
+  m_samples = samples;
+
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m);
+  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalformat(m_format), w, h, GL_TRUE);
 }
 
 void Texture2D::init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t)

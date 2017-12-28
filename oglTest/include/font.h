@@ -1,12 +1,14 @@
 #pragma once
 
-#include <vector>
-#include <memory>
+#include <common.h>
 
 #include "vmath.h"
 #include "texture.h"
 #include "vertex.h"
 #include "buffer.h"
+
+#include <vector>
+#include <memory>
 
 namespace ft {
 
@@ -41,6 +43,16 @@ public:
   void draw(const char *str, vec2 pos, vec4 color);
   void draw(const String& str, vec2 pos, vec3 color);
   void draw(const char *str, vec2 pos, vec3 color);
+  void draw(const String& str, vec2 pos, Vector4<byte> color);
+  void draw(const char *str, vec2 pos, Vector4<byte> color);
+
+  float width(const String& str);
+  float height(const String& str);
+
+  float ascender() const;
+  float descener() const;
+
+  float height() const;
 
 private:
   struct GlyphRenderData {
