@@ -83,10 +83,11 @@ public:
   static const gx::VertexFormat Fmt;
 
   VertexPainter& rect(Geometry g, Color a, Color b, Color c, Color d);
-  VertexPainter& rect(Geometry g, Color c[]);
+  VertexPainter& rect(Geometry g, const Color c[4]);
   VertexPainter& rect(Geometry g, Color c);
   VertexPainter& border(Geometry g, Color a, Color b, Color c, Color d);
-  VertexPainter& border(Geometry g, Color c[]);
+  VertexPainter& border(Geometry g, const Color c[4]);
+  VertexPainter& border(Geometry g, Color c);
   VertexPainter& circleSegment(vec2 pos, float radius, float start_angle, float end_angle, Color a, Color b);
   VertexPainter& circle(vec2 pos, float radius, Color a, Color b);
   VertexPainter& circle(vec2 pos, float radius, Color c);

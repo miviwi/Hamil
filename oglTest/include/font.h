@@ -33,21 +33,24 @@ using String = std::shared_ptr<pString>;
 
 class Font {
 public:
+  using Ptr = std::shared_ptr<Font>;
+
   Font(const FontFamily& family, unsigned height);
+  Font(const Font& other) = delete;
   ~Font();
 
   // Must be drawn with the same Font!
-  String string(const char *str);
+  String string(const char *str) const;
 
-  void draw(const String& str, vec2 pos, vec4 color);
-  void draw(const char *str, vec2 pos, vec4 color);
-  void draw(const String& str, vec2 pos, vec3 color);
-  void draw(const char *str, vec2 pos, vec3 color);
-  void draw(const String& str, vec2 pos, Vector4<byte> color);
-  void draw(const char *str, vec2 pos, Vector4<byte> color);
+  void draw(const String& str, vec2 pos, vec4 color) const;
+  void draw(const char *str, vec2 pos, vec4 color) const;
+  void draw(const String& str, vec2 pos, vec3 color) const;
+  void draw(const char *str, vec2 pos, vec3 color) const;
+  void draw(const String& str, vec2 pos, Vector4<byte> color) const;
+  void draw(const char *str, vec2 pos, Vector4<byte> color) const;
 
-  float width(const String& str);
-  float height(const String& str);
+  float width(const String& str) const;
+  float height(const String& str) const;
 
   float ascender() const;
   float descener() const;
@@ -66,8 +69,8 @@ private:
 
   void populateRenderData(const std::vector<pGlyph>& glyphs);
 
-  int glyphIndex(int ch);
-  const GlyphRenderData& getGlyphRenderData(int ch);
+  int glyphIndex(int ch) const;
+  const GlyphRenderData& getGlyphRenderData(int ch) const;
 
   pFace *m;
 

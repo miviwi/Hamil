@@ -24,7 +24,7 @@ VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color 
   return *this;
 }
 
-VertexPainter& VertexPainter::rect(Geometry g, Color c[])
+VertexPainter& VertexPainter::rect(Geometry g, const Color c[4])
 {
   return rect(g, c[0], c[1], c[2], c[3]);
 }
@@ -61,9 +61,14 @@ VertexPainter& VertexPainter::border(Geometry g, Color a, Color b, Color c, Colo
   return *this;
 }
 
-VertexPainter& VertexPainter::border(Geometry g, Color c[])
+VertexPainter& VertexPainter::border(Geometry g, const Color c[4])
 {
   return border(g, c[0], c[1], c[2], c[3]);
+}
+
+VertexPainter& VertexPainter::border(Geometry g, Color c)
+{
+  return border(g, c, c, c, c);
 }
 
 VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,

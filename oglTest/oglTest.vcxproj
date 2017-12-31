@@ -86,8 +86,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Generated;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)Generated;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\win64;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir)Generated;$(SourcePath)</SourcePath>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
@@ -111,7 +111,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>NOMINMAX;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <DisableSpecificWarnings>4244;4049;4217;4273;4251;4075</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -160,7 +160,7 @@ move uniforms.* Generated\</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
@@ -171,7 +171,7 @@ move uniforms.* Generated\</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;glang.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
       <Message>Generate Uniform Location</Message>
@@ -186,11 +186,13 @@ move uniforms.* Generated\</Command>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\font.cpp" />
-    <ClCompile Include="include\font.h" />
+    <ClInclude Include="include\font.h" />
     <ClCompile Include="src\pipeline.cpp" />
     <ClCompile Include="extern\stb_rect_pack\rectpack.c" />
     <ClCompile Include="src\ui\common.cpp" />
+    <ClCompile Include="src\ui\frame.cpp" />
     <ClCompile Include="src\ui\painter.cpp" />
+    <ClCompile Include="src\ui\style.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
     <ClCompile Include="src\window.cpp" />
     <ClCompile Include="src\buffer.cpp" />
@@ -213,7 +215,9 @@ move uniforms.* Generated\</Command>
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\pipeline.h" />
     <ClInclude Include="include\ui\common.h" />
+    <ClInclude Include="include\ui\frame.h" />
     <ClInclude Include="include\ui\painter.h" />
+    <ClInclude Include="include\ui\style.h" />
     <ClInclude Include="include\ui\ui.h" />
     <ClInclude Include="include\window.h" />
     <ClInclude Include="include\buffer.h" />

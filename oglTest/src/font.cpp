@@ -7,6 +7,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
+#include FT_STROKER_H
 
 #include <stb_rect_pack/stb_rect_pack.h>
 
@@ -16,8 +17,6 @@
 #include <algorithm>
 #include <utility>
 
-#define WIN32_LEAN_AND_MEAN
-#define NO_MIN_MAX
 #include <Windows.h>
 
 namespace ft {
@@ -27,18 +26,17 @@ public:
   pFace(FT_Face f);
   ~pFace();
 
-  operator FT_Face() { return m; }
-  FT_Face get() { return m; }
+  operator FT_Face() const { return m; }
+  FT_Face get() const { return m; }
 
 private:
   FT_Face m;
 };
 
-
 class pGlyph {
 public:
   pGlyph() : m(0) {}
-  pGlyph(int ch, unsigned idx, FT_GlyphSlot slot);
+  pGlyph(int ch, unsigned idx, FT_Glyph glyph);
 
   pGlyph(pGlyph&& other);
   pGlyph(const pGlyph& other) = delete;
@@ -166,16 +164,32 @@ Font::Font(const FontFamily& family, unsigned height) :
       
   FT_Set_Pixel_Sizes(*m, 0, height);
 
+  FT_Stroker stroker;
+  err = FT_Stroker_New(ft, &stroker);
+  if(err) {
+    std::string err_message = "FreeType stroker creation error " + std::to_string(err) + "!";
+
+    MessageBoxA(nullptr, err_message.c_str(), "FreeType error!", MB_OK);
+    ExitProcess(-2);
+  }
+
+  FT_Stroker_Set(stroker, 0<<6, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+
   // Load glyphs (TODO!!)
   std::vector<pGlyph> glyphs;
   for(int i = 0x20; i < 0x7F; i++) {
     auto idx = FT_Get_Char_Index(face, i);
+    FT_Glyph glyph;
 
     FT_Load_Glyph(face, idx, FT_LOAD_DEFAULT);
-    FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+    FT_Get_Glyph(face->glyph, &glyph);
 
-    glyphs.emplace_back(i, idx, face->glyph);
+    //FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
+    FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, true);
+
+    glyphs.emplace_back(i, idx, glyph);
   }
+  FT_Stroker_Done(stroker);
 
   populateRenderData(glyphs);
 }
@@ -185,7 +199,7 @@ Font::~Font()
   delete m;
 }
 
-String Font::string(const char *str)
+String Font::string(const char *str) const
 {
   struct Vertex {
     vec2 pos;
@@ -279,7 +293,7 @@ String Font::string(const char *str)
   return s;
 }
 
-void Font::draw(const String& str, vec2 pos, vec4 color)
+void Font::draw(const String& str, vec2 pos, vec4 color) const
 {
   pString *p = str.get();
 
@@ -299,22 +313,22 @@ void Font::draw(const String& str, vec2 pos, vec4 color)
     .draw(gx::Triangles, p->vtx, p->ind, p->num);
 }
 
-void Font::draw(const char *str, vec2 pos, vec4 color)
+void Font::draw(const char *str, vec2 pos, vec4 color) const
 {
   draw(string(str), pos, color);
 }
 
-void Font::draw(const String& str, vec2 pos, vec3 color)
+void Font::draw(const String& str, vec2 pos, vec3 color) const
 {
   draw(str, pos, vec4{ color.r, color.g, color.b, 1.0f });
 }
 
-void Font::draw(const char *str, vec2 pos, vec3 color)
+void Font::draw(const char *str, vec2 pos, vec3 color) const
 {
   draw(str, pos, vec4{ color.r, color.g, color.b, 1.0f });
 }
 
-void Font::draw(const String& str, vec2 pos, Vector4<byte> color)
+void Font::draw(const String& str, vec2 pos, Vector4<byte> color) const
 {
   vec4 normalized = {
     color.r / 255.0f,
@@ -325,17 +339,17 @@ void Font::draw(const String& str, vec2 pos, Vector4<byte> color)
   draw(str, pos, normalized);
 }
 
-void Font::draw(const char *str, vec2 pos, Vector4<byte> color)
+void Font::draw(const char *str, vec2 pos, Vector4<byte> color) const
 {
   draw(string(str), pos, color);
 }
 
-float Font::width(const String& str)
+float Font::width(const String& str) const
 {
   return str->width;
 }
 
-float Font::height(const String& str)
+float Font::height(const String& str) const
 {
   return str->height;
 }
@@ -459,22 +473,14 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   }
 }
 
-int Font::glyphIndex(int ch)
+int Font::glyphIndex(int ch) const
 {
   return m_glyph_index[ch];
 }
 
-const Font::GlyphRenderData& Font::getGlyphRenderData(int ch)
+const Font::GlyphRenderData& Font::getGlyphRenderData(int ch) const
 {
   return m_render_data[glyphIndex(ch)];
-}
-
-pGlyph::pGlyph(int ch, unsigned idx, FT_GlyphSlot slot) :
-  m_ch(ch), m_idx(idx)
-{
-  auto err = FT_Get_Glyph(slot, &m);
-
-  assert(!err && "FreeType glyph get error!");
 }
 
 pFace::pFace(FT_Face f) :
@@ -485,6 +491,11 @@ pFace::pFace(FT_Face f) :
 pFace::~pFace()
 {
   if(ft) FT_Done_Face(m);
+}
+
+pGlyph::pGlyph(int ch, unsigned idx, FT_Glyph glyph) :
+  m_ch(ch), m_idx(idx), m(glyph)
+{
 }
 
 pGlyph::pGlyph(pGlyph&& other) :
@@ -504,6 +515,7 @@ static const std::unordered_map<std::string, std::string> family_to_path = {
   { "arial", "C:\\Windows\\Fonts\\arial.ttf" },
   { "times", "C:\\Windows\\Fonts\\times.ttf" },
   { "georgia", "C:\\Windows\\Fonts\\georgia.ttf" },
+  { "calibri", "C:\\Windows\\Fonts\\calibri.ttf" },
   { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
 };
 

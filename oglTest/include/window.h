@@ -1,14 +1,13 @@
 #pragma once
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
 #include "input.h"
 #include "vmath.h"
 
 #include <utility>
 #include <functional>
 #include <map>
+
+#include <Windows.h>
 
 namespace win32 {
 
@@ -27,7 +26,6 @@ public:
 
   Input::Ptr getInput();
   void setMouseSpeed(float speed);
-  ivec2 getMousePos();
 
   void captureMouse();
   void releaseMouse();

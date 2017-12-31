@@ -75,16 +75,6 @@ void Window::setMouseSpeed(float speed)
   m_input_man.setMouseSpeed(speed);
 }
 
-ivec2 Window::getMousePos()
-{
-  POINT p;
-  
-  GetCursorPos(&p);
-  ScreenToClient(m_hwnd, &p);
-
-  return { p.x, p.y };
-}
-
 void Window::captureMouse()
 {
   RECT rc;

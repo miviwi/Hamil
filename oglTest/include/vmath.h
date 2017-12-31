@@ -19,11 +19,19 @@ static unsigned pow2_round(unsigned v)
 }
 
 constexpr double PI = 3.1415926535897932384626433832795;
+constexpr float PIf = (float)PI;
 
 #pragma pack(push, 1)
 
 template <typename T>
 struct Vector2 {
+  constexpr Vector2(T x_, T y_) :
+    x(x_), y(y_)
+  { }
+  Vector2() :
+    x(0), y(0)
+  { }
+
   union {
     struct { T x, y; };
     struct { T u, v; };
@@ -64,6 +72,13 @@ using ivec2 = Vector2<int>;
 
 template <typename T>
 struct Vector3 {
+  constexpr Vector3(T x_, T y_, T z_) :
+    x(x_), y(y_), z(z_)
+  { }
+  Vector3() :
+    x(0), y(0), z(0)
+  { }
+
   union {
     struct { T x, y, z; };
     struct { T r, g, b; };
@@ -116,6 +131,19 @@ using ivec3 = Vector3<int>;
 
 template <typename T>
 struct Vector4 {
+  constexpr Vector4( T x_, T y_, T z_, T w_) :
+    x(x_), y(y_), z(z_), w(w_)
+  { }
+  Vector4(Vector2<T> xy, T z_, T w_) :
+    x(xy.x), y(xy.y), z(z_), w(w_)
+  { }
+  Vector4(Vector3<T> xyz, T w_) :
+    x(xyz.x), y(xyz.y), z(xyz.z), w(w_)
+  { }
+  Vector4() :
+    x(0), y(0), z(0), w(1)
+  { }
+
   union {
     struct { T x, y, z, w; };
     struct { T r, g, b, a; };

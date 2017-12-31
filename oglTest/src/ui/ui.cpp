@@ -1,4 +1,5 @@
 #include "ui/ui.h"
+#include "ui/frame.h"
 #include "ui/painter.h"
 
 #include "pipeline.h"
@@ -52,8 +53,6 @@ void main() {
 
 std::unique_ptr<gx::Program> ui_program;
 
-std::unique_ptr<ft::Font> font;
-
 void init()
 {
   gx::Shader vtx(gx::Shader::Vertex, vs_src);
@@ -67,8 +66,12 @@ void finalize()
 {
 }
 
-Ui::Ui(Geometry geom) :
-  m_geom(geom)
+Ui::Ui(Geometry geom, const Style& style) :
+  m_geom(geom), m_style(style)
+{
+}
+
+Ui::~Ui()
 {
 }
 
@@ -85,9 +88,24 @@ void Ui::frame(Frame *frame)
   m_frame = frame;
 }
 
+const Style& Ui::style() const
+{
+  return m_style;
+}
+
+bool Ui::input(ivec2 mouse_pos, const InputPtr& input)
+{
+  if(!m_geom.intersect(mouse_pos)) return false;
+
+  return m_frame ? m_frame->input(mouse_pos, input) : false;
+}
+
 void Ui::paint()
 {
+  if(!m_frame) return;
+
   VertexPainter painter;
+  auto pipeline = gx::Pipeline::current();
 
   m_frame->paint(painter, m_geom);
 
@@ -118,89 +136,8 @@ void Ui::paint()
     default: break;
     }
   });
-}
 
-Frame::Frame(Geometry geom) :
-  m_pos_mode(Local), m_geom(geom), m_border_width(1.0f)
-{
-  std::fill(m_color, m_color+4, Color{ 0, 0, 0, 0 });
-  std::fill(m_border_color, m_border_color+4, Color{ 0, 0, 0, 0 });
-}
-
-Frame& Frame::color(Color a, Color b, Color c, Color d)
-{
-  m_color[0] = a;
-  m_color[1] = b;
-  m_color[2] = c;
-  m_color[3] = d;
-
-  return *this;
-}
-
-Frame& Frame::border(float width, Color a, Color b, Color c, Color d)
-{
-  m_border_width = width;
-  m_border_color[0] = a;
-  m_border_color[1] = b;
-  m_border_color[2] = c;
-  m_border_color[3] = d;
-
-  return *this;
-}
-
-void Frame::paint(VertexPainter& painter, Geometry parent)
-{
-  Geometry g = parent.clip(m_geom);
-
-  auto ga = vec2{ g.x, g.y },
-    gb = vec2{ g.x+g.w, g.y+g.h };
-  
- vec2 circle = {
-    (gb.x-ga.x)/2.0f + ga.x,
-    (gb.y-ga.y)/2.0f + ga.y,
-  };
-
-  auto time = GetTickCount();
-  auto anim_time = 10000;
-
-  auto anim_factor = (float)(time % anim_time)/(float)anim_time;
-
-  float radius = lerp(0.0f, 55.0f/2.0f, anim_factor);
-
-  Color gray = { 100, 100, 100, 255 },
-    dark_gray = { 200, 200, 200, 255 };
-  Geometry bg_pos = { gb.x - 30.0f, ga.y, 30.0f, 30.0f };
-  vec2 close_btn = {
-    (bg_pos.w / 2.0f) + bg_pos.x,
-    (bg_pos.h / 2.0f) + bg_pos.y,
-  };
-
-  Geometry round_rect = {
-    g.x+15.0f, g.y+15.0f, 55.0f, 55.0f
-  };
-
-  if(!font) font = std::make_unique<ft::Font>(ft::FontFamily("times"), 32);
-
-  vec2 title_pos = {
-    g.x+5.0f, g.y+font->ascender()
-  };
-  
-  const char *title = "Title";
-
-  painter
-    .pipeline(gx::Pipeline().alphaBlend().scissor(Ui::scissor_rect(g)))
-    .rect(g, m_color)
-    .border(g, m_border_color)
-    .text(*font.get(), title, title_pos, white())
-    .border({ g.x+5.0f, title_pos.y-32.0f-font->descener(),
-            font->width(font->string(title)), font->height(font->string(title)) }, white(), white(), white(), white())
-    .rect(bg_pos, gray)
-    .circle(close_btn, 9, { 228, 80, 80, 255 })
-    .text(*font.get(), "Hello!", circle, white())
-    .circleSegment(circle, 180.0f, 3.0f*PI/2.0f, 2.0f*PI, transparent(), white())
-    //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
-    //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
-    .arcFull(circle, radius, { 0, 128, 0, 255 });
+  pipeline.use();
 }
 
 }

@@ -3,7 +3,10 @@
 #include <common.h>
 
 #include "vmath.h"
+#include "input.h"
+#include "window.h"
 #include "ui/common.h"
+#include "ui/style.h"
 
 #include <vector>
 
@@ -13,47 +16,29 @@ void init();
 void finalize();
 
 class VertexPainter;
-
 class Frame;
+
+using InputPtr = win32::Input::Ptr;
 
 class Ui {
 public:
   static const vec2 FramebufferSize;
 
-  Ui(Geometry geom);
+  Ui(Geometry geom, const Style& style);
+  ~Ui();
 
   static ivec4 scissor_rect(Geometry g);
 
   void frame(Frame *frame);
+  const Style& style() const;
+
+  bool input(ivec2 mouse_pos, const InputPtr& input);
   void paint();
 
 private:
   Geometry m_geom;
-
+  Style m_style;
   Frame *m_frame;
-};
-
-class Frame {
-public:
-  enum PositionMode {
-    Local, Global,
-  };
-
-  Frame(Geometry geom);
-
-  Frame& color(Color a, Color b, Color c, Color d);
-  Frame& border(float width, Color a, Color b, Color c, Color d);
-
-private:
-  friend class Ui;
-
-  void paint(VertexPainter& painter, Geometry parent);
-
-  PositionMode m_pos_mode;
-  Geometry m_geom;
-  Color m_color[4];
-  float m_border_width;
-  Color m_border_color[4];
 };
 
 }

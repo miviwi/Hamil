@@ -68,6 +68,12 @@
     <ClCompile Include="src\ui\common.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\frame.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\style.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -127,6 +133,12 @@
     <ClInclude Include="include\ui\common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\ui\style.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ui\frame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\cursor.uniform">
@@ -138,6 +150,8 @@
     <None Include="src\program.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
-    <None Include="src\ui.uniform" />
+    <None Include="src\ui.uniform">
+      <Filter>Uniform Definitions</Filter>
+    </None>
   </ItemGroup>
 </Project>

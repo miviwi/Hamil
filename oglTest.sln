@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "oglTest", "oglTest\oglTest.vcxproj", "{7AE601F0-DAFF-45BA-82CA-C08B172D57A6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9A1EB56C-7EFB-413D-B580-ADB4F536D46A} = {9A1EB56C-7EFB-413D-B580-ADB4F536D46A}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UniformGen", "UniformGen\UniformGen.vcxproj", "{9A1EB56C-7EFB-413D-B580-ADB4F536D46A}"
 EndProject

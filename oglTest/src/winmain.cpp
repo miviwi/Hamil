@@ -9,15 +9,13 @@
 #include "font.h"
 
 #include "ui/ui.h"
+#include "ui/frame.h"
 
 #include <GL/glew.h>
 
 #include <vector>
 #include <array>
 #include <utility>
-
-#include <glang/glang.h>
-#include <glang/heap.h>
 
 #include <fcntl.h>
 #include <io.h>
@@ -27,10 +25,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   using win32::Window;
   Window window(1280, 720);
 
-  constexpr ivec2 FB_DIMS{ 1280, 720 };
-
-  glang::FastHeap heap;
-  auto vm = new glang::Vm(&heap);
+  constexpr ivec2 FB_DIMS { 1280, 720 };
 
   //auto map = (glang::MapObject *)o;
   //auto map_b = map->seqget(vm->objMan().kw(":b"));
@@ -41,6 +36,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("consola"), 18);
 
+#if 0
   auto write = glang::CallableFn<glang::NumberObject, glang::NumberObject, glang::StringObject>(
     [&](glang::ObjectManager& om, auto args) -> glang::Object *
   {
@@ -56,6 +52,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   vm->envSet("write", vm->objMan().fn(&write));
 
   auto co = glang::compile_string("(write 30 150. \"hello, world!\")", true);
+#endif
 
   struct Triangle {
     vec2 a, b, c;
@@ -294,14 +291,21 @@ void main() {
     .param(gx::Sampler::Anisotropy, 16.0f);
 
   auto alpha = (byte)(255*0.95);
-
-  ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 });
-
-  ui::Frame f(ui::Geometry{ 200.0f, 100.0f, 700.0f, 400.0f });
   auto color_a = ui::Color{ 45, 45, 150, alpha },
     color_b = ui::Color{ 20, 20, 66, alpha };
-  f.color(color_b, color_a, color_a, color_b);
-  f.border(1, ui::white(), ui::transparent(), ui::white(), ui::transparent());
+
+  ui::Style style;
+  style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("times"), 24));
+
+  style.bg.color[0] = style.bg.color[3] = color_b;
+  style.bg.color[1] = style.bg.color[2] = color_a;
+
+  style.border.color[0] = style.border.color[2] = ui::white();
+  style.border.color[1] = style.border.color[3] = ui::transparent();
+
+  ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
+
+  ui::Frame f(&iface, ui::Geometry{ 200.0f, 100.0f, 700.0f, 400.0f });
 
   iface.frame(&f);
 
@@ -319,6 +323,13 @@ void main() {
     auto time = GetTickCount();
 
     while(auto input = window.getInput()) {
+      if(iface.input({ mouse_x, mouse_y }, input)) {
+        auto mouse = (win32::Mouse *)input.get();
+        mouse_x += mouse->dx; mouse_y += mouse->dy;
+
+        continue;
+      }
+
       if(input->getTag() == win32::Keyboard::tag()) {
         using win32::Keyboard;
         auto kb = (Keyboard *)input.get();
