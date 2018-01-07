@@ -4,6 +4,10 @@
 
 #include "vmath.h"
 
+#include <map>
+#include <utility>
+#include <functional>
+
 namespace ui {
 
 struct Geometry {
@@ -41,5 +45,61 @@ struct Color : public Vector4<byte> {
 static Color transparent() { return Color{ 0, 0, 0, 0 }; }
 static Color black() { return Color{ 0, 0, 0, 255 }; }
 static Color white() { return Color{ 255, 255, 255, 255 }; }
+
+using Position = Vector2<i16>;
+
+template <typename... Args>
+class Signal {
+public:
+  using Id = unsigned;
+  using Slot = std::function<void(Args...)>;
+
+  Signal() :
+    m_current(0)
+  { }
+  Signal(const Signal& other) :
+    m_current(0)
+  { }
+
+  Signal& operator=(const Signal& other) = delete;
+
+  Id connect(const Slot& slot)
+  {
+    Id id = m_current++;
+
+    m_slots.insert({ id, slot });
+    return id;
+  }
+
+  template <typename C>
+  Id connect(C *c, void (C::*fn)(Args...))
+  {
+    return connect([=](Args&&... args) -> void {
+      (c->*fn)(std::forward<Args>(args)...);
+    });
+  }
+
+  template <typename C>
+  Id connect(C *c, void (C::*fn)(Args...) const)
+  {
+    return connect([=](Args&&... args) -> void {
+      (c->*fn)(std::forward<Args>(args)...);
+    });
+  }
+
+  void disconnect(Id id)
+  {
+    m_slots.erase(id);
+  }
+
+  void emit(Args... args)
+  {
+    for(auto& slot : m_slots) slot.second(std::forward<Args>(args)...);
+  }
+
+private:
+  Id m_current;
+  std::map<Id, Slot> m_slots;
+};
 
 }

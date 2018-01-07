@@ -13,7 +13,7 @@ class VertexPainter;
 
 class ButtonFrame : public Frame {
 public:
-  using OnClickFn = std::function<void(ButtonFrame *)>;
+  using OnClick = Signal<ButtonFrame *>;
 
   using Frame::Frame;
   virtual ~ButtonFrame();
@@ -22,7 +22,9 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   ButtonFrame& caption(std::string caption);
-  ButtonFrame& onClick(OnClickFn on_click);
+  ButtonFrame& onClick(OnClick::Slot on_click);
+
+  OnClick& click();
 
 private:
   enum State {
@@ -31,7 +33,7 @@ private:
 
   State m_state = Default;
   ft::String m_caption;
-  OnClickFn m_on_click;
+  OnClick m_on_click;
 };
 
 

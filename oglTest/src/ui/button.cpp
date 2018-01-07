@@ -28,7 +28,7 @@ bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
   } else if(m_state == Pressed && mouse->buttonUp(Mouse::Left)) {
     m_state = Hover;
 
-    if(m_on_click) m_on_click(this);
+    m_on_click.emit(this);
   } else if(mouse->event == Mouse::Move) {
     if(mouseWillLeave(mouse_pos, mouse)) m_state = Default;
 
@@ -80,11 +80,16 @@ ButtonFrame& ButtonFrame::caption(std::string caption)
   return *this;
 }
 
-ButtonFrame& ButtonFrame::onClick(OnClickFn on_click)
+ButtonFrame& ButtonFrame::onClick(ButtonFrame::OnClick::Slot on_click)
 {
-  m_on_click = on_click;
+  m_on_click.connect(on_click);
 
   return *this;
+}
+
+ButtonFrame::OnClick& ButtonFrame::click()
+{
+  return m_on_click;
 }
 
 }

@@ -79,6 +79,7 @@ FT_Library ft;
 static const char *vs_src = R"VTX(
 #version 330
 
+uniform sampler2D uAtlas;
 uniform mat4 uModelViewProjection;
 
 layout(location = 0) in vec2 iPos;
@@ -89,7 +90,9 @@ out VertexData {
 } output;
 
 void main() {
-  output.uv = iUV;
+  ivec2 atlas_sz = textureSize(uAtlas, 0);
+
+  output.uv = iUV / atlas_sz;
   gl_Position = uModelViewProjection * vec4(iPos, 0.0f, 1.0f);
 }
 
@@ -121,8 +124,8 @@ std::unique_ptr<gx::Program> font_program;
 
 const gx::VertexFormat pString::fmt = 
   gx::VertexFormat()
-    .attr(gx::VertexFormat::f32, 2)
-    .attr(gx::VertexFormat::f32, 2);
+    .attr(gx::VertexFormat::i16, 2, false)
+    .attr(gx::VertexFormat::u16, 2, false);
 
 const static auto pipeline =
   gx::Pipeline()
@@ -202,8 +205,12 @@ Font::~Font()
 String Font::string(const char *str) const
 {
   struct Vertex {
-    vec2 pos;
-    vec2 uv;
+    Position pos;
+    Uv uv;
+
+    Vertex(vec2 pos_, Uv uv_) :
+      pos((i16)pos_.x, (i16)pos_.y), uv(uv_)
+    { }
   };
 
   auto length = strlen(str);
@@ -437,21 +444,20 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     .param(gx::Sampler::WrapT, gx::Sampler::EdgeClamp);
 
   // Populate render data
-  float denom = atlas_sz;
   for(unsigned i = 0; i < glyphs.size(); i++) {
     const auto& r = rects[i];
     auto g = glyphs[i].m;
     auto bm = (FT_BitmapGlyph)g;
 
-    float x0 = r.x+1, y0 = r.y,
+    u16 x0 = r.x+1, y0 = r.y,
       x1 = r.x+r.w-1, y1 = r.y+bm->bitmap.rows+1;
 
     y0 = atlas_sz - y0;
     y1 = atlas_sz - y1;
 
-    vec2 uvs[] = {
-      { x0/denom, y0/denom }, { x0/denom, y1/denom },
-      { x1/denom, y0/denom }, { x1/denom, y1/denom },
+    Uv uvs[] = {
+      { x0, y0 }, { x0, y1 },
+      { x1, y0 }, { x1, y1 },
     };
 
     GlyphRenderData rd;

@@ -320,14 +320,20 @@ void main() {
     .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
     ;
 
-  iface.getFrameByName<ui::ButtonFrame>("a")->caption("Toggle wireframe!").onClick([&](auto target)
-  {
+  auto btn_a = iface.getFrameByName<ui::ButtonFrame>("a"),
+    btn_b = iface.getFrameByName<ui::ButtonFrame>("b"),
+    btn_c = iface.getFrameByName<ui::ButtonFrame>("c");
+
+  btn_a->caption("Toggle wireframe!").onClick([&](auto target) {
     if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
     else pipeline.filledPolys();
   });
-  iface.getFrameByName<ui::ButtonFrame>("b")->caption("Application");
-  iface.getFrameByName<ui::ButtonFrame>("c")->caption("Toggle zoom_mtx!").onClick([&](auto target)
-  {
+  btn_b->caption("Quit Application").onClick([&](auto target) {
+    window.quit();
+  });
+  btn_c->caption("Toggle zoom_mtx!");
+
+  btn_c->click().connect([&](auto target) {
     display_zoom_mtx = !display_zoom_mtx;
   });
 

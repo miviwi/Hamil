@@ -15,8 +15,11 @@
 namespace ui {
 
 struct Vertex {
-  vec2 pos;
+  Position pos;
   Color color;
+
+  Vertex();
+  Vertex(vec2 pos_, Color color_);
 };
 
 class VertexPainter {
@@ -118,7 +121,6 @@ private:
   std::vector<Vertex> m_buf;
 
   std::vector<Command> m_commands;
-
 };
 
 }

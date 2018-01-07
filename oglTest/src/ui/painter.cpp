@@ -1,15 +1,32 @@
 #include "ui/painter.h"
 
+#include <cmath>
+
 namespace ui {
 
 const gx::VertexFormat VertexPainter::Fmt = 
   gx::VertexFormat()
-    .attr(gx::VertexFormat::f32, 2)
+    .attr(gx::VertexFormat::i16, 2, false)
     .attr(gx::VertexFormat::u8, 4);
+
+Vertex::Vertex() :
+  pos(~0, ~0), color(transparent())
+{
+}
+
+Vertex::Vertex(vec2 pos_, Color color_) :
+  color(color_)
+{
+  float x = pos_.x * (float)(1<<4),
+    y = pos_.y * (float)(1<<4);
+
+  x = floor(x+0.5f); y = floor(y+0.5f);
+  pos = Position{ (i16)x, (i16)y };
+}
 
 VertexPainter::VertexPainter()
 {
-  m_buf.reserve(1024);
+  m_buf.reserve(InitialBufferReserve);
   m_commands.reserve(32);
 }
 
@@ -207,13 +224,13 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
     base, 6*5 + num_tris
   ));
 
-  if(corners&TopLeft)
+  if(corners & TopLeft)
     circleSegment({ g.x+radius, g.y+radius }, radius, PI, 3.0f*PI/2.0f, b, a);
-  if(corners&BottomLeft)
+  if(corners & BottomLeft)
     circleSegment({ g.x+radius, g.y+radius + (g.h - d) }, radius, PI/2.0f, PI, b, a);
-  if(corners&BottomRight)
+  if(corners & BottomRight)
     circleSegment({ g.x+radius + (g.w - d), g.y+radius + (g.h - d) }, radius, 0, PI/2.0f, b, a);
-  if(corners&TopRight)
+  if(corners & TopRight)
     circleSegment({ g.x+radius + (g.w - d), g.y+radius }, radius, 3.0f*PI/2.0f, 2.0f*PI, b, a);
 
   return *this;

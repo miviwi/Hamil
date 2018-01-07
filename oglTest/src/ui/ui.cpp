@@ -31,7 +31,7 @@ out VertexData {
 
 void main() {
   output.color = iColor;
-  gl_Position = uProjection * vec4(iPos, 0.0f, 1.0f);
+  gl_Position = uProjection * vec4(iPos / float(1<<4), 0.0f, 1.0f);
 }
 
 )VTX";
@@ -67,7 +67,8 @@ void finalize()
 }
 
 Ui::Ui(Geometry geom, const Style& style) :
-  m_geom(geom), m_style(style)
+  m_geom(geom), m_style(style), m_repaint(true),
+  m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx)
 {
 }
 
@@ -123,25 +124,24 @@ void Ui::paint()
 {
   if(m_frames.empty()) return;
 
-  VertexPainter painter;
   auto pipeline = gx::Pipeline::current();
 
-  for(const auto& frame : m_frames) frame->paint(painter, m_geom);
+  if(m_repaint) {
+    m_painter = VertexPainter();
+    for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
 
-  gx::VertexBuffer vtx(gx::Buffer::Static);
-  painter.uploadVerts(vtx);
-
-  gx::VertexArray arr(VertexPainter::Fmt, vtx);
+    m_painter.uploadVerts(m_vtx);
+  }
 
   auto projection = xform::ortho(0, 0, Ui::FramebufferSize.y, Ui::FramebufferSize.x, 0.0f, 1.0f);
 
-  painter.doCommands([&](VertexPainter::Command cmd)
+  m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
     switch(cmd.type) {
     case VertexPainter::Primitive:
       ui_program->use()
         .uniformMatrix4x4(U::ui.uProjection, projection)
-        .draw(cmd.p, arr, cmd.offset, cmd.num);
+        .draw(cmd.p, m_vtx_array, cmd.offset, cmd.num);
       break;
 
     case VertexPainter::Text:

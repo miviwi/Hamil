@@ -60,13 +60,16 @@ public:
   float bearingY() const;
 
 private:
+  using Position = Vector2<i16>;
+  using Uv = Vector2<u16>;
+
   struct GlyphRenderData {
     unsigned idx;
     int top, left;
     int width, height;
     ivec2 advance;
 
-    vec2 uvs[4];
+    Uv uvs[4];
   };
 
   void populateRenderData(const std::vector<pGlyph>& glyphs);

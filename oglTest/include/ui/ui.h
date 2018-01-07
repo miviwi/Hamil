@@ -2,11 +2,13 @@
 
 #include <common.h>
 
+#include "ui/common.h"
+#include "ui/style.h"
 #include "vmath.h"
 #include "input.h"
 #include "window.h"
-#include "ui/common.h"
-#include "ui/style.h"
+#include "buffer.h"
+#include "vertex.h"
 
 #include <string>
 #include <vector>
@@ -62,6 +64,12 @@ private:
   Style m_style;
   std::vector<Frame *> m_frames;
   std::unordered_map<std::string, Frame *> m_names;
+
+  VertexPainter m_painter;
+  bool m_repaint;
+
+  gx::VertexBuffer m_vtx;
+  gx::VertexArray m_vtx_array;
 };
 
 }
