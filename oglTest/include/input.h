@@ -24,7 +24,7 @@ struct Mouse : public Input {
   };
 
   enum Event {
-    Inavlid, Up, Down, Wheel,
+    Move, Up, Down, Wheel,
   };
 
   unsigned buttons;

@@ -25,6 +25,7 @@ struct Style {
   struct {
     Color color[2];
     float radius;
+    float margin;
   } button;
 
   Style() { memset(this, 0, sizeof(*this)); }

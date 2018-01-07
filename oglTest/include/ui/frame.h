@@ -31,6 +31,8 @@ public:
 protected:
   friend class Ui;
 
+  bool mouseWillLeave(ivec2 mouse_pos, const win32::Mouse *mouse);
+
   Ui *m_ui;
 
   const char *m_name;

@@ -115,6 +115,7 @@ bool Ui::input(ivec2 mouse_pos, const InputPtr& input)
     const auto& frame = *iter;
     if(frame->input(mouse_pos, input)) return true;
   }
+
   return false;
 }
 

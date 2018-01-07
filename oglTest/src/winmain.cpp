@@ -36,7 +36,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ui::init();
 
   ft::Font face(ft::FontFamily("georgia"), 35);
-  ft::Font small_face(ft::FontFamily("consola"), 18);
+  ft::Font small_face(ft::FontFamily("consola"), 12);
 
 #if 0
   auto write = glang::CallableFn<glang::NumberObject, glang::NumberObject, glang::StringObject>(
@@ -297,7 +297,7 @@ void main() {
     color_b = ui::Color{ 20, 20, 66, alpha };
 
   ui::Style style;
-  style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("times"), 16));
+  style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("segoeui"), 12));
 
   style.bg.color[0] = style.bg.color[3] = color_b;
   style.bg.color[1] = style.bg.color[2] = color_a;
@@ -305,18 +305,19 @@ void main() {
   style.border.color[0] = style.border.color[3] = ui::white();
   style.border.color[1] = style.border.color[2] = ui::transparent();
 
-  style.button.color[0] = ui::black(); style.button.color[1] = color_a;
-  style.button.radius = 5.0f;
+  style.button.color[0] = color_b; style.button.color[1] = color_b.lighten(10);
+  style.button.radius = 3.0f;
+  style.button.margin = 1;
 
   ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
 
-  auto playout = new ui::StackLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 200.0f, 400.0f });
+  auto playout = new ui::StackLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 160.0f, 450.0f });
   auto& layout = *playout;
   
   layout
-    .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, 0, 0, 45.0f })
-    //.frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, 0, 200.0f, 100.0f })
-    .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, 0, 0, 45.0f })
+    .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
+    .frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
+    .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
     ;
 
   iface.getFrameByName<ui::ButtonFrame>("a")->caption("Toggle wireframe!").onClick([&](auto target)
@@ -324,6 +325,7 @@ void main() {
     if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
     else pipeline.filledPolys();
   });
+  iface.getFrameByName<ui::ButtonFrame>("b")->caption("Application");
   iface.getFrameByName<ui::ButtonFrame>("c")->caption("Toggle zoom_mtx!").onClick([&](auto target)
   {
     display_zoom_mtx = !display_zoom_mtx;

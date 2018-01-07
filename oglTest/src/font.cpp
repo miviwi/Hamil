@@ -101,6 +101,8 @@ static const char *fs_src = R"FRAG(
 uniform sampler2D uAtlas;
 uniform vec4 uColor;
 
+const float gamma = 1.8f;
+
 in VertexData {
   vec2 uv;
 } input;
@@ -110,7 +112,7 @@ out vec4 color;
 void main() {
   float a = texture(uAtlas, input.uv).r;
   
-  color = uColor*a;
+  color = uColor * pow(a, 1.0/gamma);
 }
 
 )FRAG";
@@ -441,8 +443,8 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     auto g = glyphs[i].m;
     auto bm = (FT_BitmapGlyph)g;
 
-    float x0 = r.x+1, y0 = r.y-1,
-      x1 = r.x+r.w-1, y1 = r.y+r.h;
+    float x0 = r.x+1, y0 = r.y,
+      x1 = r.x+r.w-1, y1 = r.y+bm->bitmap.rows+1;
 
     y0 = atlas_sz - y0;
     y1 = atlas_sz - y1;
@@ -458,7 +460,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     rd.top = bm->top;
     rd.left = bm->left;
     rd.width = bm->bitmap.width;
-    rd.height = bm->bitmap.rows;
+    rd.height = bm->bitmap.rows+1;
     rd.advance = ivec2{ g->advance.x, g->advance.y };
 
     rd.uvs[0] = uvs[0]; rd.uvs[1] = uvs[1];
@@ -520,6 +522,7 @@ static const std::unordered_map<std::string, std::string> family_to_path = {
   { "georgia", "C:\\Windows\\Fonts\\georgia.ttf" },
   { "calibri", "C:\\Windows\\Fonts\\calibri.ttf" },
   { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
+  { "segoeui", "C:\\Windows\\Fonts\\segoeui.ttf" },
 };
 
 FontFamily::FontFamily(const char *name)

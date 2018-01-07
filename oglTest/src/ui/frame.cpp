@@ -72,6 +72,12 @@ Frame::Gravity Frame::gravity() const
   return m_gravity;
 }
 
+bool Frame::mouseWillLeave(ivec2 mouse_pos, const win32::Mouse *mouse)
+{
+  mouse_pos += ivec2{ (int)mouse->dx, (int)mouse->dy };
+  return !m_geom.intersect(mouse_pos);
+}
+
 void Frame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = m_geom;

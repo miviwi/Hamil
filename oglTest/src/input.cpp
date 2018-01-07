@@ -72,7 +72,7 @@ void InputDeviceManager::process(void *handle)
 
     input = Input::Ptr(new Mouse());
     auto mi = (Mouse *)input.get();
-
+    
     switch(m->usButtonFlags) {
     case RI_MOUSE_LEFT_BUTTON_DOWN:
       mi->event = Mouse::Down;
@@ -121,7 +121,7 @@ void InputDeviceManager::process(void *handle)
       mi->ev_data = (short)m->usButtonData;
       break;
 
-    default: break;
+    default: mi->event = Mouse::Move;
     }
 
     mi->dx = (float)m->lLastX*m_mouse_speed;

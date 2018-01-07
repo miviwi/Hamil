@@ -67,6 +67,20 @@ Vector2<T> operator*(Vector2<T> a, T u)
   return Vector2<T>{ a.x*u, a.y*u };
 }
 
+template <typename T>
+Vector2<T>& operator+=(Vector2<T>& a, Vector2<T> b)
+{
+  a = a+b;
+  return a;
+}
+
+template <typename T>
+Vector2<T>& operator*=(Vector2<T>& a, T u)
+{
+  a = a*u;
+  return a;
+}
+
 using vec2 = Vector2<float>;
 using ivec2 = Vector2<int>;
 
@@ -126,6 +140,20 @@ Vector3<T> operator*(Vector3<T> a, T u)
   return Vector3<T>{ a.x*u, a.y*u, a.z*u };
 }
 
+template <typename T>
+Vector3<T>& operator+=(Vector3<T>& a, Vector3<T> b)
+{
+  a = a+b;
+  return a;
+}
+
+template <typename T>
+Vector3<T>& operator*=(Vector3<T>& a, T u)
+{
+  a = a*u;
+  return a;
+}
+
 using vec3 = Vector3<float>;
 using ivec3 = Vector3<int>;
 
@@ -178,6 +206,20 @@ template <typename T>
 Vector4<T> operator*(Vector4<T> a, T u)
 {
   return Vector4<T>{ a.x*u, a.y*u, a.z*u, a.w*u };
+}
+
+template <typename T>
+Vector4<T>& operator+=(Vector4<T>& a, Vector4<T> b)
+{
+  a = a+b;
+  return a;
+}
+
+template <typename T>
+Vector4<T>& operator*=(Vector4<T>& a, T u)
+{
+  a = a*u;
+  return a;
 }
 
 using vec4 = Vector4<float>;

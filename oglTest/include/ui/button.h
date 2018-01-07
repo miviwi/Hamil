@@ -25,7 +25,11 @@ public:
   ButtonFrame& onClick(OnClickFn on_click);
 
 private:
-  bool m_depressed = false;
+  enum State {
+    Default, Hover, Pressed
+  };
+
+  State m_state = Default;
   ft::String m_caption;
   OnClickFn m_on_click;
 };
