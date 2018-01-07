@@ -50,9 +50,6 @@
     <ClCompile Include="Generated\uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="include\font.h">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\vmath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -72,6 +69,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ui\style.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\layout.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\button.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -137,6 +140,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ui\frame.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\font.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ui\layout.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\ui\button.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

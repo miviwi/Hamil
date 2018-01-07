@@ -73,6 +73,7 @@ Ui::Ui(Geometry geom, const Style& style) :
 
 Ui::~Ui()
 {
+  for(const auto& frame : m_frames) delete frame;
 }
 
 ivec4 Ui::scissor_rect(Geometry g)
@@ -80,12 +81,25 @@ ivec4 Ui::scissor_rect(Geometry g)
   auto ga = ivec2{ (int)g.x, (int)g.y },
     gb = ivec2{ ga.x+(int)g.w, ga.y+(int)g.h };
 
-  return ivec4{ (int)g.x-1, (int)FramebufferSize.y - gb.y-1, (int)g.w+2, (int)g.h+2 };
+  return ivec4{ (int)g.x, (int)FramebufferSize.y - gb.y, (int)g.w, (int)g.h };
 }
 
-void Ui::frame(Frame *frame)
+Ui& Ui::frame(Frame *frame)
 {
-  m_frame = frame;
+  m_frames.push_back(frame);
+
+  return *this;
+}
+
+void Ui::registerFrame(Frame *frame)
+{
+  if(frame->m_name) m_names.insert({ frame->m_name, frame });
+}
+
+Frame *Ui::getFrameByName(const std::string& name)
+{
+  auto f = m_names.find(name);
+  return f != m_names.end() ? f->second : nullptr;
 }
 
 const Style& Ui::style() const
@@ -97,17 +111,21 @@ bool Ui::input(ivec2 mouse_pos, const InputPtr& input)
 {
   if(!m_geom.intersect(mouse_pos)) return false;
 
-  return m_frame ? m_frame->input(mouse_pos, input) : false;
+  for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
+    const auto& frame = *iter;
+    if(frame->input(mouse_pos, input)) return true;
+  }
+  return false;
 }
 
 void Ui::paint()
 {
-  if(!m_frame) return;
+  if(m_frames.empty()) return;
 
   VertexPainter painter;
   auto pipeline = gx::Pipeline::current();
 
-  m_frame->paint(painter, m_geom);
+  for(const auto& frame : m_frames) frame->paint(painter, m_geom);
 
   gx::VertexBuffer vtx(gx::Buffer::Static);
   painter.uploadVerts(vtx);

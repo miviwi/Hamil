@@ -1,6 +1,7 @@
 #include "ui/common.h"
 
 namespace ui {
+
 Geometry Geometry::clip(const Geometry& g) const
 {
   auto b = vec2{ x+w, w+h },
@@ -48,8 +49,8 @@ vec2 Geometry::center() const
     b = { x+w, y+h };
 
   return vec2(
-    (b.x-a.x)/2.0f + a.x,
-    (b.y-a.y)/2.0f + a.y
+    floor((b.x-a.x)/2.0f + a.x),
+    floor((b.y-a.y)/2.0f + a.y)
   );
 }
 

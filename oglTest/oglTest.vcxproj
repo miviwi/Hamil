@@ -185,6 +185,8 @@ move uniforms.* Generated\</Command>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="src\ui\button.cpp" />
+    <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\font.cpp" />
     <ClInclude Include="include\font.h" />
     <ClCompile Include="src\pipeline.cpp" />
@@ -214,8 +216,10 @@ move uniforms.* Generated\</Command>
     <ClInclude Include="extern\GL\wglew.h" />
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\pipeline.h" />
+    <ClInclude Include="include\ui\button.h" />
     <ClInclude Include="include\ui\common.h" />
     <ClInclude Include="include\ui\frame.h" />
+    <ClInclude Include="include\ui\layout.h" />
     <ClInclude Include="include\ui\painter.h" />
     <ClInclude Include="include\ui\style.h" />
     <ClInclude Include="include\ui\ui.h" />

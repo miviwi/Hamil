@@ -3,8 +3,28 @@
 
 namespace ui {
 
-Frame::Frame(Ui *ui, Geometry geom) :
-  m_ui(ui), m_pos_mode(Local), m_geom(geom)
+Frame::Frame(Ui &ui, const char *name, Geometry geom) :
+  m_ui(&ui), m_name(name), m_gravity(Left), m_geom(geom)
+{
+  m_ui->registerFrame(this);
+}
+
+Frame::Frame(Ui& ui, Geometry geom) :
+  Frame(ui, nullptr, geom)
+{
+}
+
+Frame::Frame(Ui& ui, const char *name) :
+  Frame(ui, name, Geometry{ 0, 0, 0, 0 })
+{
+}
+
+Frame::Frame(Ui& ui) :
+  Frame(ui, nullptr)
+{
+}
+
+Frame::~Frame()
 {
 }
 
@@ -26,6 +46,30 @@ bool Frame::input(ivec2 mouse_pos, const InputPtr& input)
   }
 
   return false;
+}
+
+Frame& Frame::geometry(Geometry geom)
+{
+  m_geom = geom;
+
+  return *this;
+}
+
+Geometry Frame::geometry() const
+{
+  return m_geom;
+}
+
+Frame& Frame::gravity(Gravity gravity)
+{
+  m_gravity = gravity;
+
+  return *this;
+}
+
+Frame::Gravity Frame::gravity() const
+{
+  return m_gravity;
 }
 
 void Frame::paint(VertexPainter& painter, Geometry parent)
@@ -66,18 +110,19 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
   float angle = lerp(0.0f, 2.0f*PIf, anim_factor);
 
   painter
-    .pipeline(gx::Pipeline().alphaBlend().scissor(Ui::scissor_rect(m_geom.clip(parent))))
+    .pipeline(gx::Pipeline().alphaBlend().scissor(Ui::scissor_rect(parent.clip(g))))
     .rect(g, style.bg.color)
     .border(g, style.border.color)
-    .text(*style.font.get(), title, title_pos, white())
-    .border({ g.x+5.0f, title_pos.y-style.font->ascender()-style.font->descener(),
-            style.font->width(style.font->string(title)),
-            style.font->height(style.font->string(title)) }, white())
+    //.text(*style.font.get(), title, title_pos, white())
+    //.border({ g.x+5.0f, title_pos.y-style.font->ascender()-style.font->descener(),
+    //        style.font->width(style.font->string(title)),
+    //        style.font->height(style.font->string(title)) }, white())
     .text(*style.font.get(), std::to_string(m_countrer).c_str(), circle, black())
     .circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
     //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
     //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
-    .arcFull(circle, radius, { 0, 128, 0, 255 });
+    .arcFull(circle, radius, { 0, 128, 0, 255 })
+    ;
 }
 
 }

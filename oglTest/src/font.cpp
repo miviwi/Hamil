@@ -161,17 +161,13 @@ Font::Font(const FontFamily& family, unsigned height) :
   }
 
   m = new pFace(face);
+  m_bearing_y = 0;
       
   FT_Set_Pixel_Sizes(*m, 0, height);
 
   FT_Stroker stroker;
   err = FT_Stroker_New(ft, &stroker);
-  if(err) {
-    std::string err_message = "FreeType stroker creation error " + std::to_string(err) + "!";
-
-    MessageBoxA(nullptr, err_message.c_str(), "FreeType error!", MB_OK);
-    ExitProcess(-2);
-  }
+  assert(!err && "FreeType stroker creation error!");
 
   FT_Stroker_Set(stroker, 0<<6, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
 
@@ -182,8 +178,10 @@ Font::Font(const FontFamily& family, unsigned height) :
     FT_Glyph glyph;
 
     FT_Load_Glyph(face, idx, FT_LOAD_DEFAULT);
-    FT_Get_Glyph(face->glyph, &glyph);
 
+    m_bearing_y = std::max(m_bearing_y, (float)(face->glyph->metrics.horiBearingY >> 6));
+
+    FT_Get_Glyph(face->glyph, &glyph);
     //FT_Glyph_StrokeBorder(&glyph, stroker, false, true);
     FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, nullptr, true);
 
@@ -359,7 +357,7 @@ float Font::ascender() const
   return m->get()->size->metrics.ascender >> 6;
 }
 
-float Font::descener() const
+float Font::descender() const
 {
   return m->get()->size->metrics.descender >> 6;
 }
@@ -367,6 +365,11 @@ float Font::descener() const
 float Font::height() const
 {
   return m->get()->size->metrics.height / (float)(1<<6);
+}
+
+float Font::bearingY() const
+{
+  return m_bearing_y;
 }
 
 void Font::populateRenderData(const std::vector<pGlyph>& glyphs)

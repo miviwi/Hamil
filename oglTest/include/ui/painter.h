@@ -21,6 +21,8 @@ struct Vertex {
 
 class VertexPainter {
 public:
+  enum { InitialBufferReserve = 1024 };
+
   enum CommandType {
     Text, Primitive, Pipeline,
   };
@@ -82,6 +84,8 @@ public:
 
   static const gx::VertexFormat Fmt;
 
+  VertexPainter();
+
   VertexPainter& rect(Geometry g, Color a, Color b, Color c, Color d);
   VertexPainter& rect(Geometry g, const Color c[4]);
   VertexPainter& rect(Geometry g, Color c);
@@ -93,9 +97,12 @@ public:
   VertexPainter& circle(vec2 pos, float radius, Color c);
   VertexPainter& arc(vec2 pos, float radius, float start_angle, float end_angle, Color c);
   VertexPainter& arcFull(vec2 pos, float radius, Color c);
-  VertexPainter& roundedRect(Geometry g, float radius, unsigned corners, Color c);
+  VertexPainter& roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b);
+  VertexPainter& roundedBorder(Geometry g, float radius, unsigned corners, Color c);
 
   VertexPainter& text(ft::Font& font, const char *str, vec2 pos, Color c);
+  VertexPainter& text(ft::Font& font, ft::String str, vec2 pos, Color c);
+  VertexPainter& textCentered(ft::Font& font, ft::String str, Geometry g, Color c);
 
   VertexPainter& pipeline(const gx::Pipeline& pipeline);
 

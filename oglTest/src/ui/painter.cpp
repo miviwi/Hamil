@@ -7,6 +7,12 @@ const gx::VertexFormat VertexPainter::Fmt =
     .attr(gx::VertexFormat::f32, 2)
     .attr(gx::VertexFormat::u8, 4);
 
+VertexPainter::VertexPainter()
+{
+  m_buf.reserve(1024);
+  m_commands.reserve(32);
+}
+
 VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color d)
 {
   auto base = m_buf.size();
@@ -38,7 +44,8 @@ VertexPainter& VertexPainter::border(Geometry g, Color a, Color b, Color c, Colo
 {
   auto base = m_buf.size();
 
-  g.x += 0.5; g.y += 0.5f;
+  g.x += 0.5f; g.y += 0.5f;
+  g.w -= 1.0f; g.h -= 1.0f;
 
   m_buf.push_back({
     { g.x, g.y, }, a
@@ -153,45 +160,45 @@ VertexPainter& VertexPainter::arcFull(vec2 pos, float radius, Color c)
   return arc(pos, radius, 0, 2.0*PI, c);
 }
 
-VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned corners, Color c)
+VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b)
 {
   unsigned base = m_buf.size();
 
-  auto push_rect = [this](float x, float y, float w, float h, Color c)
+  auto push_rect = [this](float x, float y, float w, float h, Color a, Color b, Color c, Color d)
   {
-    m_buf.push_back({ { x, y }, c });
-    m_buf.push_back({ { x, y+h }, c });
+    m_buf.push_back({ { x, y }, a });
+    m_buf.push_back({ { x, y+h }, b });
     m_buf.push_back({ { x+w, y+h }, c });
     m_buf.push_back({ { x+w, y+h }, c });
-    m_buf.push_back({ { x, y }, c });
-    m_buf.push_back({ { x+w, y }, c });
+    m_buf.push_back({ { x, y }, a });
+    m_buf.push_back({ { x+w, y }, d });
   };
 
   float d = 2.0f*radius;
 
-  push_rect(g.x+radius, g.y, g.w - d, radius, c);
-  push_rect(g.x, g.y+radius, radius, g.h - d, c);
-  push_rect(g.x+radius, g.y+g.h-radius, g.w - d, radius, c);
-  push_rect(g.x+g.w-radius, g.y+radius, radius, g.h - d, c);
+  push_rect(g.x+radius, g.y, g.w - d, radius, a, b, b, a);
+  push_rect(g.x, g.y+radius, radius, g.h - d, a, a, b, b);
+  push_rect(g.x+radius, g.y+g.h-radius, g.w - d, radius, b, a, a, b);
+  push_rect(g.x+g.w-radius, g.y+radius, radius, g.h - d, b, b, a, a);
 
-  push_rect(g.x+radius, g.y+radius, g.w - d, g.h - d, c);
+  push_rect(g.x+radius, g.y+radius, g.w - d, g.h - d, b, b, b, b);
 
   unsigned num_tris = 0;
 
   if(~corners & TopLeft) {
-    push_rect(g.x, g.y, radius, radius, c);
+    push_rect(g.x, g.y, radius, radius, a, a, b, a);
     num_tris += 6;
   }
   if(~corners & BottomLeft) {
-    push_rect(g.x, g.y+g.h-radius, radius, radius, c);
+    push_rect(g.x, g.y+g.h-radius, radius, radius, a, a, a, b);
     num_tris += 6;
   }
   if(~corners & BottomRight) {
-    push_rect(g.x+g.w-radius, g.y+g.h-radius, radius, radius, c);
+    push_rect(g.x+g.w-radius, g.y+g.h-radius, radius, radius, b, a, a, a);
     num_tris += 6;
   }
   if(~corners & TopRight) {
-    push_rect(g.x+g.w-radius, g.y, radius, radius, c);
+    push_rect(g.x+g.w-radius, g.y, radius, radius, a, b, a, a);
     num_tris += 6;
   }
 
@@ -201,13 +208,92 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
   ));
 
   if(corners&TopLeft)
-    circleSegment({ g.x+radius, g.y+radius }, radius, PI, 3.0f*PI/2.0f, c, c);
+    circleSegment({ g.x+radius, g.y+radius }, radius, PI, 3.0f*PI/2.0f, b, a);
   if(corners&BottomLeft)
-    circleSegment({ g.x+radius, g.y+radius + (g.h - d) }, radius, PI/2.0f, PI, c, c);
+    circleSegment({ g.x+radius, g.y+radius + (g.h - d) }, radius, PI/2.0f, PI, b, a);
   if(corners&BottomRight)
-    circleSegment({ g.x+radius + (g.w - d), g.y+radius + (g.h - d) }, radius, 0, PI/2.0f, c, c);
+    circleSegment({ g.x+radius + (g.w - d), g.y+radius + (g.h - d) }, radius, 0, PI/2.0f, b, a);
   if(corners&TopRight)
-    circleSegment({ g.x+radius + (g.w - d), g.y+radius }, radius, 3.0f*PI/2.0f, 2.0f*PI, c, c);
+    circleSegment({ g.x+radius + (g.w - d), g.y+radius }, radius, 3.0f*PI/2.0f, 2.0f*PI, b, a);
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned corners, Color c)
+{
+  unsigned base = m_buf.size();
+  unsigned num_verts = 0;
+
+  auto segment = [&,this](vec2 pos, float start_angle, float end_angle) {
+    auto point = [=](float angle) -> vec2
+    {
+      return vec2{
+        pos.x + (radius * cos(angle)),
+        pos.y + (radius * sin(angle)),
+      };
+    };
+
+    float angle = start_angle;
+    float step = radius < 100.0f ? PI/16.0f : PI/32.0f;
+    while(angle <= end_angle) {
+      m_buf.push_back({ point(angle), c });
+
+      angle += step;
+      num_verts++;
+    }
+
+    m_buf.push_back({ point(end_angle), c });
+    num_verts++;
+  };
+
+  float d = 2.0f*radius;
+
+  g.x += 0.5f; g.y += 0.5f;
+  g.w -= 1.0f; g.h -= 1.0f;
+
+  if(corners & TopLeft) {
+    segment({ g.x+radius, g.y+radius }, PI, 3.0f*PI/2.0f);
+  } else {
+    m_buf.push_back({ { g.x, g.y }, c });
+    m_buf.push_back({ { g.x+radius, g.y }, c });
+
+    num_verts += 2;
+  }
+
+  if(corners & TopRight) {
+    segment({ g.x + (g.w - radius), g.y+radius }, 3.0f*PI/2.0f, PI*2.0f);
+  } else {
+    m_buf.push_back({ { g.x + (g.w - radius), g.y }, c });
+    m_buf.push_back({ { g.x + g.w, g.y }, c });
+    m_buf.push_back({ { g.x + g.w, g.y + radius }, c });
+
+    num_verts += 3;
+  }
+
+  if(corners & BottomRight) {
+    segment({ g.x + (g.w - radius), g.y + (g.h - radius) }, 0, PI/2.0f);
+  } else {
+    m_buf.push_back({ { g.x + g.w, g.y + (g.h - radius) }, c });
+    m_buf.push_back({ { g.x + g.w, g.y + g.h }, c });
+    m_buf.push_back({ { g.x + (g.w - radius), g.y + g.h }, c });
+
+    num_verts += 3;
+  }
+
+  if(corners & BottomLeft) {
+    segment({ g.x+radius, g.y + (g.h - radius) }, PI/2.0f, PI);
+  } else {
+    m_buf.push_back({ { g.x + radius, g.y + g.h }, c });
+    m_buf.push_back({ { g.x, g.y + g.h }, c });
+    m_buf.push_back({ { g.x, g.y + (g.h - radius) }, c });
+
+    num_verts += 3;
+  }
+
+  m_commands.push_back(Command::primitive(
+    gx::LineLoop,
+    base, num_verts
+  ));
 
   return *this;
 }
@@ -220,6 +306,27 @@ VertexPainter& VertexPainter::text(ft::Font& font, const char *str, vec2 pos, Co
   ));
 
   return *this;
+}
+
+VertexPainter& VertexPainter::text(ft::Font & font, ft::String str, vec2 pos, Color c)
+{
+  m_commands.push_back(Command::text(
+    &font, str,
+    pos, c
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::textCentered(ft::Font& font, ft::String str, Geometry g, Color c)
+{
+  vec2 center = g.center();
+  vec2 text_pos = {
+    center.x - floor(font.width(str)/2.0f),
+    center.y + floor(font.bearingY()/2.0f)
+  };
+
+  return text(font, str, text_pos, c);
 }
 
 VertexPainter& VertexPainter::pipeline(const gx::Pipeline& pipeline)

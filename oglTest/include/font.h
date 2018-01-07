@@ -53,9 +53,11 @@ public:
   float height(const String& str) const;
 
   float ascender() const;
-  float descener() const;
+  float descender() const;
 
   float height() const;
+
+  float bearingY() const;
 
 private:
   struct GlyphRenderData {
@@ -73,6 +75,8 @@ private:
   const GlyphRenderData& getGlyphRenderData(int ch) const;
 
   pFace *m;
+
+  float m_bearing_y;
 
   gx::Texture2D m_atlas;
   gx::Sampler m_sampler;

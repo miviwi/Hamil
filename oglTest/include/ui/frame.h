@@ -9,22 +9,32 @@ namespace ui {
 
 class Frame {
 public:
-  enum PositionMode {
-    Local, Global,
+  enum Gravity {
+    Left, Center, Right,
   };
 
-  Frame(Ui *ui, Geometry geom);
+  Frame(Ui& ui, const char *name, Geometry geom);
+  Frame(Ui& ui, Geometry geom);
+  Frame(Ui& ui, const char *name);
+  Frame(Ui& ui);
+  virtual ~Frame();
 
   virtual bool input(ivec2 mouse_pos, const InputPtr& input);
+  virtual void paint(VertexPainter& painter, Geometry parent);
+
+  Frame& geometry(Geometry geom);
+  Geometry geometry() const;
+
+  Frame& gravity(Gravity gravity);
+  Gravity gravity() const;
 
 protected:
   friend class Ui;
 
-  virtual void paint(VertexPainter& painter, Geometry parent);
-
   Ui *m_ui;
 
-  PositionMode m_pos_mode;
+  const char *m_name;
+  Gravity m_gravity;
   Geometry m_geom;
   unsigned m_countrer = 0;
 };

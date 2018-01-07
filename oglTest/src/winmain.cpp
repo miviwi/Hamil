@@ -10,6 +10,8 @@
 
 #include "ui/ui.h"
 #include "ui/frame.h"
+#include "ui/layout.h"
+#include "ui/button.h"
 
 #include <GL/glew.h>
 
@@ -25,7 +27,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   using win32::Window;
   Window window(1280, 720);
 
-  constexpr ivec2 FB_DIMS { 1280, 720 };
+  constexpr ivec2 FB_DIMS{ 1280, 720 };
 
   //auto map = (glang::MapObject *)o;
   //auto map_b = map->seqget(vm->objMan().kw(":b"));
@@ -57,8 +59,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   struct Triangle {
     vec2 a, b, c;
 
-    Triangle(vec2 a_, vec2 b_, vec2 c_) : a(a_), b(b_), c(c_) { }
-    Triangle(vec2 p[3]) : a(p[0]), b(p[1]), c(p[2]) { }
+    Triangle(vec2 a_, vec2 b_, vec2 c_) : a(a_), b(b_), c(c_) {}
+    Triangle(vec2 p[3]) : a(p[0]), b(p[1]), c(p[2]) {}
   };
 
   vec2 p[3] = {
@@ -235,7 +237,7 @@ void main() {
   float b = 720.0f;
 
   mat4 projection = xform::ortho(0, 0, b, r, 0.1f, 100.0f);
-   // xform::perspective(59.0f, 16.0f/9.0f, 0.01f, 100.0f);
+  // xform::perspective(59.0f, 16.0f/9.0f, 0.01f, 100.0f);
 
   mat4 zoom_mtx = xform::identity();
   mat4 rot_mtx = xform::identity();
@@ -295,19 +297,42 @@ void main() {
     color_b = ui::Color{ 20, 20, 66, alpha };
 
   ui::Style style;
-  style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("times"), 24));
+  style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("times"), 16));
 
   style.bg.color[0] = style.bg.color[3] = color_b;
   style.bg.color[1] = style.bg.color[2] = color_a;
 
-  style.border.color[0] = style.border.color[2] = ui::white();
-  style.border.color[1] = style.border.color[3] = ui::transparent();
+  style.border.color[0] = style.border.color[3] = ui::white();
+  style.border.color[1] = style.border.color[2] = ui::transparent();
+
+  style.button.color[0] = ui::black(); style.button.color[1] = color_a;
+  style.button.radius = 5.0f;
 
   ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
 
-  ui::Frame f(&iface, ui::Geometry{ 200.0f, 100.0f, 700.0f, 400.0f });
+  auto playout = new ui::StackLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 200.0f, 400.0f });
+  auto& layout = *playout;
+  
+  layout
+    .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, 0, 0, 45.0f })
+    //.frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, 0, 200.0f, 100.0f })
+    .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, 0, 0, 45.0f })
+    ;
 
-  iface.frame(&f);
+  iface.getFrameByName<ui::ButtonFrame>("a")->caption("Toggle wireframe!").onClick([&](auto target)
+  {
+    if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
+    else pipeline.filledPolys();
+  });
+  iface.getFrameByName<ui::ButtonFrame>("c")->caption("Toggle zoom_mtx!").onClick([&](auto target)
+  {
+    display_zoom_mtx = !display_zoom_mtx;
+  });
+
+  iface
+    .frame(playout)
+    .frame<ui::Frame>(iface, ui::Geometry{ 1000.0f, 300.0f, 200.0f, 300.0f })
+    ;
 
   while(window.processMessages()) {
     mat4 imtx = mat4{
