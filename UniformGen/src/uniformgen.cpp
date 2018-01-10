@@ -81,26 +81,26 @@ error:
     "    int locations[%d];\n"
     "  };\n"
     "\n"
-    "  static const std::unordered_map<std::string, unsigned> offsets;\n"
+    "  static const std::array<Location, %d> offsets;\n"
     "};\n"
     "extern %s_klass %s;\n"
     "\n",
 
-    (int)uniforms.size(), cname.c_str(), cname.c_str()
+    (int)uniforms.size(), (int)uniforms.size(), cname.c_str(), cname.c_str()
   );
 
   fprintf(src,
     "\n"
     "%s_klass %s;\n"
-    "const std::unordered_map<std::string, unsigned> %s_klass::offsets = {\n",
+    "const std::array<Location, %d> %s_klass::offsets = {\n",
 
-    cname.c_str(), cname.c_str(), cname.c_str()
+    cname.c_str(), cname.c_str(), (int)uniforms.size(), cname.c_str()
   );
 
   for(int i = 0; i < uniforms.size(); i++) {
     const Uniform& u = uniforms[i];
 
-    fprintf(src, "  %s{ \"%s\", %u },\n", u.has_dot ? "//" : "", u.str.c_str(), i);
+    fprintf(src, "  %sLocation{ \"%s\", %u },\n", u.has_dot ? "//" : "", u.str.c_str(), i);
   }
 
   fprintf(src,
@@ -120,11 +120,15 @@ int main(int argc, char *argv[])
     *src = fopen("uniforms.cpp", "wb");
 
   fprintf(header,
-    "#include <unordered_map>\n"
-    "\n"
+    "#include <array>\n"
+    "#include <string>\n"
+    "#include <utility>\n"
+    //"\n"
     // "#include <GL/glew.h>\n"
     "\n"
     "namespace U {\n"
+    "\n"
+    "using Location = std::pair<std::string, unsigned>;\n"
     "\n"
   );
 

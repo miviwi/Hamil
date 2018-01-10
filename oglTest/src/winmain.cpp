@@ -76,9 +76,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   float zoom = 1.0f, rot = 0.0f;
 
   vec3 colors[3] = {
-    {1.0f, 0.5f, 0.0f},
     {0.0f, 1.0f, 1.0f},
     {0.6f, 0.0f, 1.0f},
+    {1.0f, 0.5f, 0.0f},
   };
 
   bool constrained = true;
@@ -190,6 +190,7 @@ void main() {
 
 uniform mat4 uModelView;
 uniform mat4 uProjection;
+uniform mat4 uTexMatrix;
 
 layout(location = 0) in vec2 iPosition;
 layout(location = 1) in vec2 iTexCoord;
@@ -197,7 +198,7 @@ layout(location = 1) in vec2 iTexCoord;
 out vec2 TexCoord;
 
 void main() {
-  TexCoord = iTexCoord;
+  TexCoord = (uTexMatrix * vec4(iTexCoord, 0.0f, 1.0f)).st;
   gl_Position = uProjection * uModelView * vec4(iPosition, 0.0f, 1.0f);
 }
 )VTX";
@@ -255,12 +256,12 @@ void main() {
 
   std::vector<vec2> vtxs = {
     { -1.0f, 1.0f },
-    { -1.0f, -1.0f },
     { 1.0f, -1.0f },
+    { -1.0f, -1.0f },
 
     { -1.0f, 1.0f },
-    { 1.0f, 1.0f },
     { 1.0f, -1.0f },
+    { 1.0f, 1.0f },
   };
 
   std::vector<vec2> floor_vtxs = {
@@ -268,9 +269,17 @@ void main() {
     { -1.0f, -1.0f }, { 0.0f,  0.0f },
     { 1.0f, -1.0f },  { 10.0f, 0.0f },
 
-    { -1.0f, 1.0f },  { 0.0f,  10.0f },
-    { 1.0f, 1.0f },   { 10.0f, 10.0f },
     { 1.0f, -1.0f },  { 10.0f, 0.0f },
+    { 1.0f, 1.0f },   { 10.0f, 10.0f },
+    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+
+    //{ -1.0f, 1.0f },  { 0.0f,  10.0f },
+    //{ 1.0f, -1.0f },  { 10.0f, 0.0f },
+    //{ -1.0f, -1.0f }, { 0.0f,  0.0f },
+
+    //{ 1.0f, -1.0f },  { 10.0f, 0.0f },
+    //{ -1.0f, 1.0f },  { 0.0f,  10.0f },
+    //{ 1.0f, 1.0f },   { 10.0f, 10.0f },
   };
 
   gx::VertexBuffer vbuf(gx::Buffer::Static);
@@ -282,8 +291,6 @@ void main() {
   floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
 
   gx::VertexArray floor_arr(cursor_fmt, floor_vbuf);
-
-  pipeline.alphaBlend();
 
   auto floor_sampler = gx::Sampler()
     .param(gx::Sampler::MinFilter, gx::Sampler::Nearest)
@@ -315,9 +322,9 @@ void main() {
   auto& layout = *playout;
   
   layout
-    .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
-    .frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
-    .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, 0, 0, style.font->height()+4 })
+    .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, style.font->height()+20 })
+    .frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, style.font->height()+20 })
+    .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, style.font->height()+20 })
     ;
 
   auto btn_a = iface.getFrameByName<ui::ButtonFrame>("a"),
@@ -492,7 +499,8 @@ void main() {
 
       modelview = mv
         *xform::translate(1.0f, 0.0f, -1.0f)
-        *xform::roty(PI/2.0f);
+        *xform::roty(PI/2.0f)
+        *xform::rotz(PI/2.0f)
         ;
       drawquad();
 
@@ -526,6 +534,7 @@ void main() {
 
     modelview = xform::identity()
       *view
+      *xform::translate(0.0f, sin((float)time/1000.0f * PI)+1.0f, 0.0f)
       //*xform::translate(0.0f, 0.0f, -30.0f)
       ;
     drawcube();
@@ -551,10 +560,18 @@ void main() {
       *xform::rotx(PI/2.0f)
       ;
 
+    mat4 texmatrix = xform::identity()
+      //*xform::translate(5.0f, 5.0f, 0.0f)
+      //*xform::rotz(lerp(0.0f, PIf, anim_factor))
+      //*xform::scale(1.0f/(sin((float)time/1000.0f * PI/2.0f) + 2.0f))
+      //*xform::translate(-5.0f, -5.0f, 0.0f)
+      ;
+
     gx::tex_unit(0, tex, floor_sampler);
     cursor_program.use()
       .uniformMatrix4x4(U::cursor.uProjection, persp)
       .uniformMatrix4x4(U::cursor.uModelView, modelview)
+      .uniformMatrix4x4(U::cursor.uTexMatrix, texmatrix)
       .uniformInt(U::cursor.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
@@ -603,6 +620,7 @@ void main() {
     cursor_program.use()
       .uniformMatrix4x4(U::cursor.uProjection, projection)
       .uniformMatrix4x4(U::cursor.uModelView, cursor_mtx)
+      .uniformMatrix4x4(U::cursor.uTexMatrix, xform::identity())
       .uniformInt(U::cursor.uTex, 0)
       .draw(gx::Triangles, cursor, 3);
 

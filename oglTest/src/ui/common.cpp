@@ -81,4 +81,20 @@ Color Color::luminance() const
   return Color{ y, y, y, a };
 }
 
+Position::Position() :
+  Vector2<i16>(~0, ~0)
+{
+}
+
+Position::Position(vec2 pos)
+{
+  float fx = pos.x * (float)(1<<4),
+    fy = pos.y * (float)(1<<4);
+
+  // Doesen't seem necessary (?)
+  //fx = floor(fx+0.5f); fy = floor(fy+0.5f);
+
+  x = (i16)fx; y = (i16)fy;
+}
+
 }

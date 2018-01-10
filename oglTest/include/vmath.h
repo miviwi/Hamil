@@ -40,6 +40,12 @@ struct Vector2 {
   T length() const { return (T)sqrt((x*x) + (y*y)); }
   T dot(const Vector2& b) const { return (a.x*b.x) + (a.y*b.y); }
 
+  Vector2 normalize() const
+  {
+    T l = length();
+    return Vector2{ x/l, y/l };
+  }
+
   operator float *() { return (float *)this; }
 };
 

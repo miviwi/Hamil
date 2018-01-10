@@ -19,6 +19,9 @@ struct Geometry {
   Geometry(vec2 pos, float w_, float h_) :
     x(pos.x), y(pos.y), w(w_), h(h_)
   { }
+  Geometry(float w_, float h_) :
+    x(0), y(0), w(w_), h(h_)
+  { }
 
   Geometry clip(const Geometry& g) const;
   Geometry contract(float factor) const;
@@ -33,6 +36,9 @@ struct Color : public Vector4<byte> {
   Color(byte r_, byte g_, byte b_, byte a_) :
     Vector4<byte>(r_, g_, b_, a_)
   { }
+  Color(byte r_, byte g_, byte b_) :
+    Vector4<byte>(r_, g_, b_, 255)
+  { }
   Color() :
     Vector4<byte>(0, 0, 0, 0)
   { }
@@ -46,7 +52,10 @@ static Color transparent() { return Color{ 0, 0, 0, 0 }; }
 static Color black() { return Color{ 0, 0, 0, 255 }; }
 static Color white() { return Color{ 255, 255, 255, 255 }; }
 
-using Position = Vector2<i16>;
+struct Position : public Vector2<i16> {
+  Position();
+  Position(vec2 pos);
+};
 
 template <typename... Args>
 class Signal {

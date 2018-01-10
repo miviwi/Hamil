@@ -1,6 +1,7 @@
 #include "ui/painter.h"
 
 #include <cmath>
+#include <unordered_map>
 
 namespace ui {
 
@@ -10,24 +11,150 @@ const gx::VertexFormat VertexPainter::Fmt =
     .attr(gx::VertexFormat::u8, 4);
 
 Vertex::Vertex() :
-  pos(~0, ~0), color(transparent())
+  color(transparent())
 {
 }
 
 Vertex::Vertex(vec2 pos_, Color color_) :
-  color(color_)
+  pos(pos_), color(color_)
 {
-  float x = pos_.x * (float)(1<<4),
-    y = pos_.y * (float)(1<<4);
-
-  x = floor(x+0.5f); y = floor(y+0.5f);
-  pos = Position{ (i16)x, (i16)y };
 }
 
 VertexPainter::VertexPainter()
 {
   m_buf.reserve(InitialBufferReserve);
   m_commands.reserve(32);
+}
+
+VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, float cap_r, Color ca, Color cb)
+{
+  if(b.x < a.x) {
+    std::swap(a, b);
+    std::swap(ca, cb);
+  }
+
+  float r = width/2.0f;
+  auto n = vec2{ -(b.y - a.y), b.x - a.x }.normalize();
+
+  auto quad = [&,this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
+  {
+    unsigned base = m_buf.size();
+
+    m_buf.push_back({ a, color });
+    m_buf.push_back({ b, color });
+    m_buf.push_back({ d, color });
+    m_buf.push_back({ c, color });
+
+    m_commands.push_back(Command::primitive(
+      gx::TriangleStrip,
+      base, 4
+    ));
+  };
+
+  auto d = n*r,
+    u = (b-a).normalize()*cap_r;
+
+  float alpha = acos(n.x);
+
+  cap_r = cap_r > 0 ? cap_r : r;
+  switch(cap) {
+  case CapRound:  circleSegment(a, cap_r, alpha, alpha+PI, ca, ca); break;
+  case CapSquare: quad(a-u+d, a-u-d, a-d, a+d, ca); break;
+  case CapButt:   break;
+  }
+
+  unsigned base = m_buf.size();
+
+  m_buf.push_back({ a+d, ca });
+  m_buf.push_back({ a-d, ca });
+  m_buf.push_back({ b+d, cb });
+  m_buf.push_back({ b-d, cb });
+
+  m_commands.push_back(Command::primitive(
+    gx::TriangleStrip,
+    base, 4
+  ));
+
+  switch(cap) {
+  case CapRound:  circleSegment(b, cap_r, alpha+PI, alpha + 2.0f*PI, cb, cb); break;
+  case CapSquare: quad(b+d, b-d, b+u-d, b+u+d, cb); break;
+  case CapButt:   break;
+  }
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, Color ca, Color cb)
+{
+  return line(a, b, width, cap, 0, ca, cb);
+}
+
+VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
+                                         LineCap cap, float cap_r, Color ca, Color cb)
+{
+  if(b.x < a.x) {
+    std::swap(a, b);
+    std::swap(ca, cb);
+  }
+
+  float r = width/2.0f;
+
+  auto n = vec2{ -(b.y - a.y), b.x - a.x }.normalize();
+
+  auto square_cap = [&, this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
+  {
+    unsigned base = m_buf.size();
+
+    m_buf.push_back({ a, color });
+    m_buf.push_back({ b, color });
+    m_buf.push_back({ c, color });
+    m_buf.push_back({ d, color });
+
+    m_commands.push_back(Command::primitive(
+      gx::LineStrip,
+      base, 4
+    ));
+  };
+
+  auto d = n*r,
+    u = (b-a).normalize()*cap_r;
+
+  float alpha = acos(n.x);
+
+  unsigned vertex_count = 0;
+
+  cap_r = cap_r > 0 ? cap_r : r;
+  switch(cap) {
+  case CapRound:  arc(a, cap_r, alpha, alpha+PI, ca); break;
+  case CapSquare: square_cap(a-d, a-u-d, a-u+d, a+d, ca); break;
+  case CapButt:   break;
+  }
+
+  unsigned base = m_buf.size();
+
+  m_buf.push_back({ a+d, ca });
+  m_buf.push_back({ b+d, cb });
+
+  m_buf.push_back({ b-d, cb });
+  m_buf.push_back({ a-d, ca });
+
+  m_commands.push_back(Command::primitive(
+    gx::Lines,
+    base, 4
+  ));
+
+  switch(cap) {
+  case CapRound:  arc(b, cap_r, alpha+PI, alpha + 2.0f*PI, cb); break;
+  case CapSquare: square_cap(b+d, b+u+d, b+u-d, b-d, cb); break;
+  case CapButt:   break;
+  }
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width, LineCap cap, Color ca, Color cb)
+{
+  return lineBorder(a, b, width, cap, 0, ca, cb);
 }
 
 VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color d)
@@ -57,7 +184,7 @@ VertexPainter& VertexPainter::rect(Geometry g, Color c)
   return rect(g, c, c, c, c);
 }
 
-VertexPainter& VertexPainter::border(Geometry g, Color a, Color b, Color c, Color d)
+VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, Color c, Color d)
 {
   auto base = m_buf.size();
 
@@ -85,14 +212,14 @@ VertexPainter& VertexPainter::border(Geometry g, Color a, Color b, Color c, Colo
   return *this;
 }
 
-VertexPainter& VertexPainter::border(Geometry g, const Color c[4])
+VertexPainter& VertexPainter::border(Geometry g, float width, const Color c[4])
 {
-  return border(g, c[0], c[1], c[2], c[3]);
+  return border(g, width, c[0], c[1], c[2], c[3]);
 }
 
-VertexPainter& VertexPainter::border(Geometry g, Color c)
+VertexPainter& VertexPainter::border(Geometry g, float width, Color c)
 {
-  return border(g, c, c, c, c);
+  return border(g, width, c, c, c, c);
 }
 
 VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
@@ -353,9 +480,14 @@ VertexPainter& VertexPainter::pipeline(const gx::Pipeline& pipeline)
   return *this;
 }
 
-void VertexPainter::uploadVerts(gx::VertexBuffer& buf)
+Vertex *VertexPainter::vertices()
 {
-  buf.init(m_buf.data(), m_buf.size());
+  return m_buf.data();
+}
+
+size_t VertexPainter::numVertices()
+{
+  return m_buf.size();
 }
 
 }

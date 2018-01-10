@@ -391,19 +391,23 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     total_area += area;
   }
 
-  int atlas_sz = pow2_round(sqrt(total_area));
+  int atlas_a = pow2_round(sqrt(total_area));
+  ivec2 atlas_sz = {
+    atlas_a,
+    atlas_a*(atlas_a/2) >= total_area ? atlas_a/2 : atlas_a
+  };
 
   stbrp_context ctx;
-  std::vector<stbrp_node> nodes(atlas_sz);
+  std::vector<stbrp_node> nodes(atlas_sz.u);
 
-  stbrp_init_target(&ctx, atlas_sz, atlas_sz, nodes.data(), nodes.size());
+  stbrp_init_target(&ctx, atlas_sz.u, atlas_sz.v, nodes.data(), nodes.size());
 
   std::vector<stbrp_rect> rects;
   rects.reserve(glyphs.size());
   for(int i = 0; i < glyphs.size(); i++) {
     auto g = (FT_BitmapGlyph)glyphs[i].m;
 
-    // Spacing arounmd glyphs
+    // Spacing around glyphs
     auto w = (stbrp_coord)(g->bitmap.width + 2),
       h = (stbrp_coord)(g->bitmap.rows + 2);
 
@@ -415,7 +419,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
 
   stbrp_pack_rects(&ctx, rects.data(), rects.size());
 
-  std::vector<unsigned char> img(atlas_sz*atlas_sz);
+  std::vector<unsigned char> img(atlas_sz.u*atlas_sz.v);
 
   // Blit glyphs to atlas
   for(auto& r : rects) {
@@ -425,17 +429,17 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     assert(r.was_packed && "not all glyphs packed into atlas!!!");
 
     for(unsigned y = 0; y < bm.rows; y++) {
-      auto dsty = (atlas_sz - (r.y+y))-2;
+      auto dsty = (atlas_sz.v - (r.y+y))-2;
 
       auto src = bm.buffer + (y*bm.pitch);
-      auto dst = img.data() + (dsty*atlas_sz) + r.x + 1;
+      auto dst = img.data() + (dsty*atlas_sz.u) + r.x + 1;
 
       for(unsigned x = 0; x < bm.width; x++) *dst++ = *src++;
     }
   }
 
   // Setup atlas texture and sampler
-  m_atlas.init(img.data(), 0, atlas_sz, atlas_sz, gx::Texture2D::r, gx::Texture2D::u8);
+  m_atlas.init(img.data(), 0, atlas_sz.u, atlas_sz.v, gx::Texture2D::r, gx::Texture2D::u8);
 
   m_sampler
     .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
@@ -452,8 +456,8 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     u16 x0 = r.x+1, y0 = r.y,
       x1 = r.x+r.w-1, y1 = r.y+bm->bitmap.rows+1;
 
-    y0 = atlas_sz - y0;
-    y1 = atlas_sz - y1;
+    y0 = atlas_sz.v - y0;
+    y1 = atlas_sz.v - y1;
 
     Uv uvs[] = {
       { x0, y0 }, { x0, y1 },

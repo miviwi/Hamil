@@ -32,6 +32,8 @@ private:
 };
 
 enum Primitive {
+  Points = GL_POINTS,
+
   Lines = GL_LINES,
   LineLoop = GL_LINE_LOOP,
   LineStrip = GL_LINE_STRIP,
@@ -54,7 +56,7 @@ public:
   template <typename T>
   void getUniformsLocations(T& klass)
   {
-    getUniforms(T::offsets, klass.locations);
+    getUniforms(T::offsets.data(), T::offsets.size(), klass.locations);
   }
 
   GLint getUniformLocation(const char *name);
@@ -74,7 +76,7 @@ public:
   void draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned num);
 
 private:
-  void getUniforms(const std::unordered_map<std::string, unsigned>& offsets, int locations[]);
+  void getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[]);
 
   GLuint m;
 };

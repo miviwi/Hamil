@@ -22,6 +22,9 @@ struct Vertex {
   Vertex(vec2 pos_, Color color_);
 };
 
+// TODO:
+//    - cache painted geometry (with a lot of vertices) based on size and color,
+//      when retrieving translate to appropriate place
 class VertexPainter {
 public:
   enum { InitialBufferReserve = 1024 };
@@ -45,7 +48,6 @@ public:
     static Command primitive(gx::Primitive prim, size_t offset, size_t num)
     {
       Command c;
-
       c.type = Primitive;
       c.p = prim;
       c.offset = offset;  c.num = num;
@@ -56,7 +58,6 @@ public:
     static Command text(ft::Font *font, ft::String str, vec2 pos, Color color)
     {
       Command c;
-
       c.type = Text;
       c.font = font;
       c.str = str;
@@ -68,7 +69,6 @@ public:
     static Command pipeline(const gx::Pipeline& pipeline)
     {
       Command c;
-
       c.type = Pipeline;
       c.pipel = pipeline;
 
@@ -85,16 +85,28 @@ public:
     All = 0xF,
   };
 
+  enum LineCap {
+    CapRound, CapSquare, CapButt,
+  };
+
+  enum LineJoin {
+    JoinRound, JoinBevel,
+  };
+
   static const gx::VertexFormat Fmt;
 
   VertexPainter();
 
+  VertexPainter& line(vec2 a, vec2 b, float width, LineCap cap, float cap_r, Color ca, Color cb);
+  VertexPainter& line(vec2 a, vec2 b, float width, LineCap cap, Color ca, Color cb);
+  VertexPainter& lineBorder(vec2 a, vec2 b, float width, LineCap cap, float cap_r, Color ca, Color cb);
+  VertexPainter& lineBorder(vec2 a, vec2 b, float width, LineCap cap, Color ca, Color cb);
   VertexPainter& rect(Geometry g, Color a, Color b, Color c, Color d);
   VertexPainter& rect(Geometry g, const Color c[4]);
   VertexPainter& rect(Geometry g, Color c);
-  VertexPainter& border(Geometry g, Color a, Color b, Color c, Color d);
-  VertexPainter& border(Geometry g, const Color c[4]);
-  VertexPainter& border(Geometry g, Color c);
+  VertexPainter& border(Geometry g, float width, Color a, Color b, Color c, Color d);
+  VertexPainter& border(Geometry g, float width, const Color c[4]);
+  VertexPainter& border(Geometry g, float width, Color c);
   VertexPainter& circleSegment(vec2 pos, float radius, float start_angle, float end_angle, Color a, Color b);
   VertexPainter& circle(vec2 pos, float radius, Color a, Color b);
   VertexPainter& circle(vec2 pos, float radius, Color c);
@@ -109,7 +121,8 @@ public:
 
   VertexPainter& pipeline(const gx::Pipeline& pipeline);
 
-  void uploadVerts(gx::VertexBuffer& buf);
+  Vertex *vertices();
+  size_t numVertices();
 
   template <typename Fn>
   void doCommands(Fn fn)

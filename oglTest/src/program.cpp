@@ -119,9 +119,10 @@ void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, 
   draw(p, vtx, idx, 0, num);
 }
 
-void Program::getUniforms(const std::unordered_map<std::string, unsigned>& offsets, int locations[])
+void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[])
 {
-  for(auto& o : offsets) {
+  for(unsigned i = 0; i < sz; i++) {
+    const auto& o = offsets[i];
     GLint loc = glGetUniformLocation(m, o.first.c_str());
 
     locations[o.second] = loc;

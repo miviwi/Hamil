@@ -53,19 +53,22 @@ void ButtonFrame::paint(VertexPainter& painter, Geometry parent)
   }
 
   Color color[] = {
-    style.button.color[0].darken(factor),
-    style.button.color[1].darken(factor),
+    style.button.color[0].lighten(factor),
+    style.button.color[1].lighten(factor),
   };
 
   Geometry highlight_g = {
-    g.x + g.w*0.01f, g.y + g.h*0.1f,
-    g.w*0.98f, g.h*0.5f
+    g.x + g.w*0.02f, g.y + g.h*0.08f,
+    g.w*0.96f, g.h*0.5f
   };
 
+  auto pipeline = gx::Pipeline()
+    .alphaBlend()
+    .scissor(Ui::scissor_rect(g))
+    ;
+
   painter
-    .pipeline(gx::Pipeline()
-              .alphaBlend()
-              .scissor(Ui::scissor_rect(g)))
+    .pipeline(pipeline)
     .roundedRect(g, style.button.radius, VertexPainter::All, color[0], color[0])
     .roundedRect(highlight_g, style.button.radius, VertexPainter::All, color[1], color[1])
     .roundedBorder(g, style.button.radius, VertexPainter::All, black())

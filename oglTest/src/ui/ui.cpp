@@ -22,6 +22,8 @@ static const char *vs_src = R"VTX(
 
 uniform mat4 uProjection;
 
+const float fixed_factor = 1.0 / float(1<<4);
+
 layout(location = 0) in vec2 iPos;
 layout(location = 1) in vec4 iColor;
 
@@ -31,7 +33,7 @@ out VertexData {
 
 void main() {
   output.color = iColor;
-  gl_Position = uProjection * vec4(iPos / float(1<<4), 0.0f, 1.0f);
+  gl_Position = uProjection * vec4(iPos * fixed_factor, 0.0f, 1.0f);
 }
 
 )VTX";
@@ -130,7 +132,7 @@ void Ui::paint()
     m_painter = VertexPainter();
     for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
 
-    m_painter.uploadVerts(m_vtx);
+    m_vtx.init(m_painter.vertices(), m_painter.numVertices());
   }
 
   auto projection = xform::ortho(0, 0, Ui::FramebufferSize.y, Ui::FramebufferSize.x, 0.0f, 1.0f);

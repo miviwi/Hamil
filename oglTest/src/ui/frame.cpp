@@ -87,6 +87,7 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     gb = vec2{ g.x+g.w, g.y+g.h };
 
   vec2 circle = g.center();
+  vec2 c = g.center();
 
   auto time = GetTickCount();
   auto anim_time = 10000;
@@ -115,16 +116,26 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
 
   float angle = lerp(0.0f, 2.0f*PIf, anim_factor);
 
+  vec2 line_delta = {
+    50.0f, 0.0f
+  };
+
   painter
     .pipeline(gx::Pipeline().alphaBlend().scissor(Ui::scissor_rect(parent.clip(g))))
     .rect(g, style.bg.color)
-    .border(g, style.border.color)
+    .border(g, 1, style.border.color)
     //.text(*style.font.get(), title, title_pos, white())
     //.border({ g.x+5.0f, title_pos.y-style.font->ascender()-style.font->descener(),
     //        style.font->width(style.font->string(title)),
     //        style.font->height(style.font->string(title)) }, white())
     .text(*style.font.get(), std::to_string(m_countrer).c_str(), circle, black())
-    .circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
+    //.circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
+    .line(c+line_delta, c-line_delta, 16, VertexPainter::CapRound, { 0, 20, 80 }, { 0, 20, 80 })
+    .line(c+line_delta, c-line_delta, 8, VertexPainter::CapRound, { 20, 20, 100 }, { 20, 20, 100 })
+    .lineBorder(c+line_delta, c-line_delta, 16-1, VertexPainter::CapRound, black(), black())
+    .circle({ c.x-45.0f, c.y }, 13, style.bg.color[0])
+    .circle({ c.x-45.0f, c.y }, 7, style.bg.color[1])
+    .arcFull({ c.x-45.0f, c.y }, 12, black())
     //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
     //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
     .arcFull(circle, radius, { 0, 128, 0, 255 })
