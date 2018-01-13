@@ -193,13 +193,13 @@ struct Vector4 {
 template <typename T>
 Vector4<T> operator+(Vector4<T> a, Vector4<T> b)
 {
-  return Vector4<T>{ a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w };
+  return Vector4<T>{ (T)(a.x+b.x), (T)(a.y+b.y), (T)(a.z+b.z), (T)(a.w+b.w) };
 }
 
 template <typename T>
 Vector4<T> operator-(Vector4<T> a, Vector4<T> b)
 {
-  return Vector4<T>{ a.x-b.x, a.y-b.y, a.z-b.z, a.w-b.w };
+  return Vector4<T>{ (T)(a.x-b.x), (T)(a.y-b.y), (T)(a.z-b.z), (T)(a.w-b.w) };
 }
 
 template <typename T>
@@ -355,6 +355,13 @@ T clamp(T x, T minimum, T maximum)
   if(x <= minimum) return minimum;
   
   return std::min(x, maximum);
+}
+
+template <typename T>
+float smoothstep(T min, T max, float u)
+{
+  u = clamp((u - min) / (max - min), 0.0f, 1.0f);
+  return u*u*(3 - 2*u);
 }
 
 namespace xform {

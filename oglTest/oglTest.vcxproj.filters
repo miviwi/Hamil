@@ -47,9 +47,6 @@
     <ClCompile Include="extern\GL\glew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Generated\uniforms.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\vmath.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -77,6 +74,9 @@
     <ClCompile Include="src\ui\button.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\uniforms.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -92,9 +92,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="extern\GL\wglew.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Generated\uniforms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ui\ui.h">
@@ -149,6 +146,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ui\button.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\uniforms.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

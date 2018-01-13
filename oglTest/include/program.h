@@ -16,7 +16,9 @@ class Shader {
 public:
   enum Type {
     Invalid,
-    Vertex, Fragment,
+    Vertex = GL_VERTEX_SHADER,
+    Geometry = GL_GEOMETRY_SHADER,
+    Fragment = GL_FRAGMENT_SHADER,
   };
 
   Shader(Type type, const char *source);
@@ -25,8 +27,6 @@ public:
 
 private:
   friend class Program;
-
-  static GLenum shader_type(Type type);
 
   GLuint m;
 };
@@ -46,6 +46,7 @@ enum Primitive {
 class Program {
 public:
   Program(const Shader& vertex, const Shader& fragment);
+  Program(const Shader& vertex, const Shader& geometry, const Shader& fragment);
   Program(const Program&) = delete;
   ~Program();
 
@@ -75,7 +76,12 @@ public:
   void draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned offset, unsigned num);
   void draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned num);
 
+  void drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuffer& idx,
+            unsigned base, unsigned offset, unsigned num);
+
 private:
+  void link();
+
   void getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[]);
 
   GLuint m;

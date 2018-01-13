@@ -13,6 +13,14 @@ Buffer::~Buffer()
   glDeleteBuffers(1, &m);
 }
 
+void Buffer::init(size_t elem_sz, size_t elem_count)
+{
+  size_t sz = elem_sz*elem_count;
+
+  glBindBuffer(m_target, m);
+  glBufferData(m_target, sz, nullptr, usage());
+}
+
 void Buffer::init(void *data, size_t elem_sz, size_t elem_count)
 {
   size_t sz = elem_sz*elem_count;
@@ -26,7 +34,7 @@ void Buffer::upload(void *data, size_t offset, size_t elem_sz, size_t elem_count
   size_t sz = elem_sz*elem_count;
 
   glBindBuffer(m_target, m);
-  glBufferSubData(m_target, offset, sz, data);
+  glBufferSubData(m_target, offset*elem_sz, sz, data);
 }
 
 GLenum Buffer::usage() const

@@ -70,6 +70,7 @@ private:
 
   gx::VertexBuffer m_vtx;
   gx::VertexArray m_vtx_array;
+  gx::IndexBuffer m_ind;
 };
 
 }

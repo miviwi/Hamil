@@ -11,6 +11,7 @@
 #include "ui/common.h"
 
 #include <vector>
+#include <initializer_list>
 
 namespace ui {
 
@@ -61,6 +62,7 @@ public:
       c.type = Text;
       c.font = font;
       c.str = str;
+      
       c.pos = pos; c.color = color;
 
       return c;
@@ -124,6 +126,9 @@ public:
   Vertex *vertices();
   size_t numVertices();
 
+  u16 *indices();
+  size_t numIndices();
+
   template <typename Fn>
   void doCommands(Fn fn)
   {
@@ -131,7 +136,12 @@ public:
   }
 
 private:
+  void appendVertices(std::initializer_list<Vertex> verts);
+  void appendCommand(const Command& c);
+  void restartPrimitive();
+
   std::vector<Vertex> m_buf;
+  std::vector<u16> m_ind;
 
   std::vector<Command> m_commands;
 };

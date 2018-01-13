@@ -12,6 +12,7 @@ public:
     Viewport, Scissor, Blend,
     Depth, Stencil, Cull,
     Clear, Wireframe,
+    PrimitiveRestert,
 
     NumConfigTypes,
   };
@@ -55,6 +56,7 @@ public:
   Pipeline& clearStencil(int stencil);
   Pipeline& clear(vec4 color, float depth);
   Pipeline& wireframe();
+  Pipeline& primitiveRestart(unsigned index);
 
   Pipeline& noScissor();
   Pipeline& noBlend();
@@ -99,6 +101,10 @@ private:
     float depth;
     int stencil;
   } m_clear;
+
+  struct RestartConfig {
+    unsigned index;
+  } m_restart;
 
   void disable(ConfigType config) const;
   void enable(ConfigType config) const;

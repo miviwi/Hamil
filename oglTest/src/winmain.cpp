@@ -36,7 +36,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ui::init();
 
   ft::Font face(ft::FontFamily("georgia"), 35);
-  ft::Font small_face(ft::FontFamily("consola"), 12);
+  ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
 #if 0
   auto write = glang::CallableFn<glang::NumberObject, glang::NumberObject, glang::StringObject>(
@@ -251,7 +251,7 @@ void main() {
   auto hello = small_face.string("gggg Hello, sailor! gggg \nTeraz wchodzimy w nowe millenium"),
     cursor_label = small_face.string("Cursor");
 
-  bool display_zoom_mtx = false,
+  bool display_tex_matrix = false,
     ortho_projection = false;
 
   std::vector<vec2> vtxs = {
@@ -338,10 +338,10 @@ void main() {
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-  btn_c->caption("Toggle zoom_mtx!");
+  btn_c->caption("Toggle texmatrix!");
 
   btn_c->click().connect([&](auto target) {
-    display_zoom_mtx = !display_zoom_mtx;
+    display_tex_matrix = !display_tex_matrix;
   });
 
   iface
@@ -375,7 +375,7 @@ void main() {
         auto kb = (Keyboard *)input.get();
 
         if(kb->keyDown('A')) {
-          display_zoom_mtx = !display_zoom_mtx;
+          display_tex_matrix = !display_tex_matrix;
         } else if(kb->keyDown('U')) {
           animate = animate < 0 ? time : -1;
         } else if(kb->keyDown('N')) {
@@ -561,10 +561,10 @@ void main() {
       ;
 
     mat4 texmatrix = xform::identity()
-      //*xform::translate(5.0f, 5.0f, 0.0f)
-      //*xform::rotz(lerp(0.0f, PIf, anim_factor))
-      //*xform::scale(1.0f/(sin((float)time/1000.0f * PI/2.0f) + 2.0f))
-      //*xform::translate(-5.0f, -5.0f, 0.0f)
+      *xform::translate(5.0f, 5.0f, 0.0f)
+      *xform::rotz(lerp(0.0f, PIf, anim_factor))
+      *xform::scale(1.0f/(sin((float)time/1000.0f * PI/2.0f) + 2.0f))
+      *xform::translate(-5.0f, -5.0f, 0.0f)
       ;
 
     gx::tex_unit(0, tex, floor_sampler);
@@ -593,13 +593,13 @@ void main() {
               "%f %f %f %f\n"
               "%f %f %f %f\n"
               "%f %f %f %f",
-              zoom_mtx[0], zoom_mtx[1], zoom_mtx[2], zoom_mtx[3],
-              zoom_mtx[4], zoom_mtx[5], zoom_mtx[6], zoom_mtx[7],
-              zoom_mtx[8], zoom_mtx[9], zoom_mtx[10], zoom_mtx[11],
-              zoom_mtx[12], zoom_mtx[13], zoom_mtx[14], zoom_mtx[15]);
+              texmatrix[0], texmatrix[1], texmatrix[2], texmatrix[3],
+              texmatrix[4], texmatrix[5], texmatrix[6], texmatrix[7],
+              texmatrix[8], texmatrix[9], texmatrix[10], texmatrix[11],
+              texmatrix[12], texmatrix[13], texmatrix[14], texmatrix[15]);
 
     //MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
-    if(display_zoom_mtx) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
+    if(display_tex_matrix) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
 
     iface.paint();
     

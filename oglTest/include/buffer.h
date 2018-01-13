@@ -21,6 +21,7 @@ public:
   template <typename T>
   void upload(T data[], size_t offset, size_t count) { upload(data, offset, sizeof(T), count); }
 
+  void init(size_t elem_sz, size_t elem_count);
   void init(void *data, size_t elem_sz, size_t elem_count);
   void upload(void *data, size_t offset, size_t elem_sz, size_t elem_count);
 

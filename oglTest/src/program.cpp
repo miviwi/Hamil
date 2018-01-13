@@ -15,23 +15,24 @@ Program::Program(const Shader& vertex, const Shader& fragment)
   glAttachShader(m, vertex.m);
   glAttachShader(m, fragment.m);
 
-  glLinkProgram(m);
+  link();
+ 
+  glDetachShader(m, vertex.m);
+  glDetachShader(m, fragment.m);
+}
 
-  GLint link_success = 0;
-  glGetProgramiv(m, GL_LINK_STATUS, &link_success);
+Program::Program(const Shader& vertex, const Shader& geometry, const Shader& fragment)
+{
+  m = glCreateProgram();
 
-  if(link_success == GL_FALSE) {
-    GLint log_size;
-    glGetProgramiv(m, GL_LINK_STATUS, &log_size);
+  glAttachShader(m, vertex.m);
+  glAttachShader(m, geometry.m);
+  glAttachShader(m, fragment.m);
 
-    std::vector<char> log(log_size);
-    glGetProgramInfoLog(m, log_size, nullptr, log.data());
-
-    MessageBoxA(nullptr, log.data(), "OpenGL program linking error", MB_OK);
-    ExitProcess(-2);
-  }
+  link();
 
   glDetachShader(m, vertex.m);
+  glDetachShader(m, geometry.m);
   glDetachShader(m, fragment.m);
 }
 
@@ -119,6 +120,34 @@ void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, 
   draw(p, vtx, idx, 0, num);
 }
 
+void Program::drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuffer& idx,
+                             unsigned base, unsigned offset, unsigned num)
+{
+  glBindVertexArray(vtx.m);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
+
+  glDrawElementsBaseVertex(p, num, idx.m_type, (void *)(offset * idx.elemSize()), base);
+}
+
+void Program::link()
+{
+  glLinkProgram(m);
+
+  GLint link_success = 0;
+  glGetProgramiv(m, GL_LINK_STATUS, &link_success);
+
+  if(link_success == GL_FALSE) {
+    GLint log_size;
+    glGetProgramiv(m, GL_LINK_STATUS, &log_size);
+
+    std::vector<char> log(log_size);
+    glGetProgramInfoLog(m, log_size, nullptr, log.data());
+
+    MessageBoxA(nullptr, log.data(), "OpenGL program linking error", MB_OK);
+    ExitProcess(-2);
+  }
+}
+
 void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[])
 {
   for(unsigned i = 0; i < sz; i++) {
@@ -131,7 +160,7 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
 
 Shader::Shader(Type type, const char *source)
 {
-  m = glCreateShader(shader_type(type));
+  m = glCreateShader(type);
 
   glShaderSource(m, 1, &source, nullptr);
   glCompileShader(m);
@@ -154,15 +183,6 @@ Shader::Shader(Type type, const char *source)
 Shader::~Shader()
 {
   glDeleteShader(m);
-}
-
-GLenum Shader::shader_type(Type type)
-{
-  static const GLenum table[] = {
-    ~0u,
-    GL_VERTEX_SHADER, GL_FRAGMENT_SHADER,
-  };
-  return table[type];
 }
 
 }

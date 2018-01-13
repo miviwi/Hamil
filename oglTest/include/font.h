@@ -15,6 +15,9 @@ namespace ft {
 void init();
 void finalize();
 
+using Position = Vector2<i16>;
+using Uv = Vector2<u16>;
+
 class pFace;
 class pGlyph;
 class pString;
@@ -60,9 +63,6 @@ public:
   float bearingY() const;
 
 private:
-  using Position = Vector2<i16>;
-  using Uv = Vector2<u16>;
-
   struct GlyphRenderData {
     unsigned idx;
     int top, left;

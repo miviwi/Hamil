@@ -128,14 +128,39 @@ HGLRC Window::ogl_create_context(HWND hWnd)
   
   SetPixelFormat(hdc, pixel_format, &pfd);
 
-  HGLRC context = wglCreateContext(hdc);
-  assert(context && "failed to create ogl context");
+  HGLRC temp_context = wglCreateContext(hdc);
+  assert(temp_context && "failed to create temporary ogl context");
 
-  BOOL result = wglMakeCurrent(hdc, context);
-  assert(result && "failed to make context current");
+  wglMakeCurrent(hdc, temp_context);
   
   GLenum err = glewInit();
-  if(err != GLEW_OK) return nullptr;
+  if(err != GLEW_OK) {
+    MessageBoxA(nullptr, "Failed to initialize GLEW!", "Fatal Error", MB_OK);
+    ExitProcess(-1);
+  }
+
+  int attribs[] = {
+    WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+    WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+    WGL_CONTEXT_FLAGS_ARB, 0,
+    0
+  };
+
+  if(!wglewIsSupported("WGL_ARB_create_context")) {
+    MessageBoxA(nullptr, "OpenGL version >= 3.3 required!", "Fatal Error", MB_OK);
+    ExitProcess(-1);
+  }
+
+  HGLRC context = wglCreateContextAttribsARB(hdc, nullptr, attribs);
+  if(!context) {
+    MessageBoxA(nullptr, "OpenGL version >= 3.3 required!", "Fatal Error", MB_OK);
+    ExitProcess(-1);
+  }
+
+  wglMakeCurrent(nullptr, nullptr);
+  wglDeleteContext(temp_context);
+
+  wglMakeCurrent(hdc, context);
 
   wglSwapIntervalEXT(0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);

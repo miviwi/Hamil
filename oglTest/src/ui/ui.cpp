@@ -70,7 +70,8 @@ void finalize()
 
 Ui::Ui(Geometry geom, const Style& style) :
   m_geom(geom), m_style(style), m_repaint(true),
-  m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx)
+  m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx),
+  m_ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
 {
 }
 
@@ -133,6 +134,7 @@ void Ui::paint()
     for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
 
     m_vtx.init(m_painter.vertices(), m_painter.numVertices());
+    m_ind.init(m_painter.indices(), m_painter.numIndices());
   }
 
   auto projection = xform::ortho(0, 0, Ui::FramebufferSize.y, Ui::FramebufferSize.x, 0.0f, 1.0f);
@@ -143,7 +145,7 @@ void Ui::paint()
     case VertexPainter::Primitive:
       ui_program->use()
         .uniformMatrix4x4(U::ui.uProjection, projection)
-        .draw(cmd.p, m_vtx_array, cmd.offset, cmd.num);
+        .draw(cmd.p, m_vtx_array, m_ind, cmd.offset, cmd.num);
       break;
 
     case VertexPainter::Text:
@@ -152,6 +154,7 @@ void Ui::paint()
 
     case VertexPainter::Pipeline:
       cmd.pipel.use();
+
       break;
 
     default: break;

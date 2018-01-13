@@ -14,9 +14,12 @@ Pipeline::Pipeline()
 
 void Pipeline::use() const
 {
+  auto last = p_current;
   p_current = *this;
 
   for(unsigned i = 0; i < NumConfigTypes; i++) {
+    if(!m_enabled[i] && !last.m_enabled[i]) continue;
+
     if(!m_enabled[i]) disable((ConfigType)i);
     else              enable((ConfigType)i);
   }
@@ -178,6 +181,14 @@ Pipeline& Pipeline::wireframe()
   return *this;
 }
 
+Pipeline& Pipeline::primitiveRestart(unsigned index)
+{
+  m_enabled[PrimitiveRestert] = true;
+  m_restart.index = index;
+
+  return *this;
+}
+
 void Pipeline::disable(ConfigType config) const
 {
   switch(config) {
@@ -189,6 +200,7 @@ void Pipeline::disable(ConfigType config) const
   case Cull:      glDisable(GL_CULL_FACE); break;
   case Clear:     break;
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+  case PrimitiveRestert: glDisable(GL_PRIMITIVE_RESTART); break;
 
   default: break;
   }
@@ -231,6 +243,10 @@ void Pipeline::enable(ConfigType config) const
     glClearStencil(c.stencil);
     break;
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
+  case PrimitiveRestert:
+    glEnable(GL_PRIMITIVE_RESTART);
+    glPrimitiveRestartIndex(m_restart.index);
+    break;
 
   default: break;
   }

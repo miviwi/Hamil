@@ -65,6 +65,7 @@ void ButtonFrame::paint(VertexPainter& painter, Geometry parent)
   auto pipeline = gx::Pipeline()
     .alphaBlend()
     .scissor(Ui::scissor_rect(g))
+    .primitiveRestart(0xFFFF)
     ;
 
   painter

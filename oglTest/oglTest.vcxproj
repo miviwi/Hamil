@@ -188,6 +188,7 @@ move uniforms.* Generated\</Command>
     <ClCompile Include="src\ui\button.cpp" />
     <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\font.cpp" />
+    <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\font.h" />
     <ClCompile Include="src\pipeline.cpp" />
     <ClCompile Include="extern\stb_rect_pack\rectpack.c" />
@@ -214,7 +215,6 @@ move uniforms.* Generated\</Command>
     <ClInclude Include="extern\GL\glew.h" />
     <ClInclude Include="extern\GL\glxew.h" />
     <ClInclude Include="extern\GL\wglew.h" />
-    <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\pipeline.h" />
     <ClInclude Include="include\ui\button.h" />
     <ClInclude Include="include\ui\common.h" />

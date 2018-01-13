@@ -14,12 +14,44 @@
 #include <cstdio>
 #include <cassert>
 #include <string>
+#include <list>
 #include <algorithm>
 #include <utility>
 
 #include <Windows.h>
 
 namespace ft {
+
+struct pFt {
+public:
+  enum {
+    NumBufferChars = 1024*1024,
+
+    Error = ~0u,
+  };
+
+  pFt() :
+    ptr(0),
+    buf(gx::Buffer::Dynamic), vtx(fmt, buf),
+    ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
+  { }
+
+  unsigned alloc(unsigned num_chars);
+  void dealloc(unsigned offset, unsigned num_chars);
+
+  static const gx::VertexFormat fmt;
+
+  unsigned ptr;
+  std::list<std::pair<unsigned, unsigned>> free_list;
+
+  gx::VertexBuffer buf;
+  gx::VertexArray vtx;
+
+  gx::IndexBuffer ind;
+
+private:
+  unsigned allocAtEnd(unsigned num_chars);
+};
 
 class pFace {
 public:
@@ -53,25 +85,26 @@ private:
 
 class pString {
 public:
-  pString() :
-    vtx_buf(gx::Buffer::Static),
-    vtx(fmt, vtx_buf),
-    ind(gx::Buffer::Static, gx::IndexBuffer::u16)
-  { }
+  pString();
+  pString(const pString& other) = delete;
+  ~pString();
 
   FT_Face m;
 
-  gx::VertexBuffer vtx_buf;
-  gx::VertexArray vtx;
-
-  gx::IndexBuffer ind;
-
+  unsigned base, offset;
   unsigned num;
 
   float width;
   float height;
+};
 
-  static const gx::VertexFormat fmt;
+struct Vertex {
+  Position pos;
+  Uv uv;
+
+  Vertex(vec2 pos_, Uv uv_) :
+    pos((i16)pos_.x, (i16)pos_.y), uv(uv_)
+  { }
 };
 
 FT_Library ft;
@@ -120,9 +153,10 @@ void main() {
 
 )FRAG";
 
+std::unique_ptr<pFt> p;
 std::unique_ptr<gx::Program> font_program;
 
-const gx::VertexFormat pString::fmt = 
+const gx::VertexFormat pFt::fmt = 
   gx::VertexFormat()
     .attr(gx::VertexFormat::i16, 2, false)
     .attr(gx::VertexFormat::u16, 2, false);
@@ -135,8 +169,11 @@ const static auto pipeline =
 void init()
 {
   auto err = FT_Init_FreeType(&ft);
-
   assert(!err && "FreeType init error!");
+
+  p = std::make_unique<pFt>();
+  p->buf.init(sizeof(Vertex)*4, pFt::NumBufferChars);
+  p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
 
   gx::Shader vtx(gx::Shader::Vertex, vs_src);
   gx::Shader frag(gx::Shader::Fragment, fs_src);
@@ -204,15 +241,6 @@ Font::~Font()
 
 String Font::string(const char *str) const
 {
-  struct Vertex {
-    Position pos;
-    Uv uv;
-
-    Vertex(vec2 pos_, Uv uv_) :
-      pos((i16)pos_.x, (i16)pos_.y), uv(uv_)
-    { }
-  };
-
   auto length = strlen(str);
 
   FT_Face face = *m;
@@ -289,9 +317,13 @@ String Font::string(const char *str) const
 
   s->m = face;
 
-  s->vtx_buf.init(verts.data(), verts.size());
-  s->ind.init(indices.data(), indices.size());
+  unsigned ptr = p->alloc(length);
+  assert(ptr != pFt::Error && "no more space in string vertex buffer!");
+  
+  p->buf.upload(verts.data(), ptr*4, verts.size());
+  p->ind.upload(indices.data(), ptr*6, indices.size());
 
+  s->base = ptr*4; s->offset = ptr*6;
   s->num = indices.size();
 
   s->width = std::max(pen.x / (float)(1<<16), width);
@@ -302,9 +334,9 @@ String Font::string(const char *str) const
 
 void Font::draw(const String& str, vec2 pos, vec4 color) const
 {
-  pString *p = str.get();
+  pString *p_str = str.get();
 
-  assert(p->m == *m && "Drawing string with wrong Font!");
+  assert(p_str->m == *m && "Drawing string with wrong Font!");
 
   gx::tex_unit(0, m_atlas, m_sampler);
 
@@ -317,7 +349,7 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
     .uniformInt(U::font.uAtlas, 0)
     .uniformVector4(U::font.uColor, color)
-    .draw(gx::Triangles, p->vtx, p->ind, p->num);
+    .drawBaseVertex(gx::Triangles, p->vtx, p->ind, p_str->base, p_str->offset, p_str->num);
 }
 
 void Font::draw(const char *str, vec2 pos, vec4 color) const
@@ -498,6 +530,42 @@ const Font::GlyphRenderData& Font::getGlyphRenderData(int ch) const
   return m_render_data[glyphIndex(ch)];
 }
 
+unsigned pFt::alloc(unsigned num_chars)
+{
+  if(p->free_list.empty()) return allocAtEnd(num_chars);
+
+  for(auto iter = p->free_list.begin(); iter != p->free_list.end(); iter++) {
+    if(iter->second < num_chars) continue;
+
+    unsigned ptr = iter->first;
+    p->free_list.erase(iter);
+
+    return ptr;
+  }
+
+  return allocAtEnd(num_chars);
+}
+
+void pFt::dealloc(unsigned offset, unsigned num_chars) 
+{
+  if(p->ptr == offset+num_chars) {
+    p->ptr -= num_chars;
+    return;
+  }
+
+  p->free_list.push_front({ offset, num_chars });
+}
+
+unsigned pFt::allocAtEnd(unsigned num_chars)
+{
+  if(p->ptr+num_chars >= pFt::NumBufferChars) return pFt::Error;
+
+  unsigned ptr = p->ptr;
+  p->ptr += num_chars;
+
+  return ptr;
+}
+
 pFace::pFace(FT_Face f) :
   m(f)
 {
@@ -524,6 +592,15 @@ pGlyph::pGlyph(pGlyph&& other) :
 pGlyph::~pGlyph()
 {
   if(m) FT_Done_Glyph(m);
+}
+
+pString::pString()
+{
+}
+
+pString::~pString()
+{
+  p->dealloc(offset/6, num);
 }
 
 static const std::unordered_map<std::string, std::string> family_to_path = {

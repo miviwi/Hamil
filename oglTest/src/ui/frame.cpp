@@ -117,14 +117,20 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
   float angle = lerp(0.0f, 2.0f*PIf, anim_factor);
 
   vec2 line_delta = {
-    50.0f, 0.0f
+    cos(angle)*50.0f, sin(angle)*50.0f
   };
 
+  auto pipeline = gx::Pipeline()
+    .alphaBlend()
+    .scissor(Ui::scissor_rect(parent.clip(g)))
+    .primitiveRestart(0xFFFF)
+    ;
+
   painter
-    .pipeline(gx::Pipeline().alphaBlend().scissor(Ui::scissor_rect(parent.clip(g))))
+    .pipeline(pipeline)
     .rect(g, style.bg.color)
     .border(g, 1, style.border.color)
-    //.text(*style.font.get(), title, title_pos, white())
+    .text(*style.font.get(), title, title_pos, white())
     //.border({ g.x+5.0f, title_pos.y-style.font->ascender()-style.font->descener(),
     //        style.font->width(style.font->string(title)),
     //        style.font->height(style.font->string(title)) }, white())
@@ -133,9 +139,8 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     .line(c+line_delta, c-line_delta, 16, VertexPainter::CapRound, { 0, 20, 80 }, { 0, 20, 80 })
     .line(c+line_delta, c-line_delta, 8, VertexPainter::CapRound, { 20, 20, 100 }, { 20, 20, 100 })
     .lineBorder(c+line_delta, c-line_delta, 16-1, VertexPainter::CapRound, black(), black())
-    .circle({ c.x-45.0f, c.y }, 13, style.bg.color[0])
-    .circle({ c.x-45.0f, c.y }, 7, style.bg.color[1])
-    .arcFull({ c.x-45.0f, c.y }, 12, black())
+    .circle({ c.x-45.0f, c.y }, 13, { 255, 0, 0 }, { 255, 0, 0, 0 })
+    .arcFull({ c.x-45.0f, c.y }, 13, black())
     //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
     //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
     .arcFull(circle, radius, { 0, 128, 0, 255 })

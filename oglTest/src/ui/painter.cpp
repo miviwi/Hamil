@@ -23,6 +23,7 @@ Vertex::Vertex(vec2 pos_, Color color_) :
 VertexPainter::VertexPainter()
 {
   m_buf.reserve(InitialBufferReserve);
+  m_ind.reserve(InitialBufferReserve);
   m_commands.reserve(32);
 }
 
@@ -38,15 +39,17 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
   auto quad = [&,this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    unsigned base = m_buf.size();
+    unsigned base = m_ind.size();
 
-    m_buf.push_back({ a, color });
-    m_buf.push_back({ b, color });
-    m_buf.push_back({ d, color });
-    m_buf.push_back({ c, color });
+    appendVertices({
+     { a, color },
+     { b, color },
+     { c, color },
+     { d, color }
+    });
 
-    m_commands.push_back(Command::primitive(
-      gx::TriangleStrip,
+    appendCommand(Command::primitive(
+      gx::TriangleFan,
       base, 4
     ));
   };
@@ -63,15 +66,17 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   case CapButt:   break;
   }
 
-  unsigned base = m_buf.size();
+  unsigned base = m_ind.size();
 
-  m_buf.push_back({ a+d, ca });
-  m_buf.push_back({ a-d, ca });
-  m_buf.push_back({ b+d, cb });
-  m_buf.push_back({ b-d, cb });
+  appendVertices({
+    { a+d, ca },
+    { a-d, ca },
+    { b-d, cb },
+    { b+d, cb }
+  });
 
-  m_commands.push_back(Command::primitive(
-    gx::TriangleStrip,
+  appendCommand(Command::primitive(
+    gx::TriangleFan,
     base, 4
   ));
 
@@ -103,15 +108,17 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   auto square_cap = [&, this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    unsigned base = m_buf.size();
+    unsigned base = m_ind.size();
 
-    m_buf.push_back({ a, color });
-    m_buf.push_back({ b, color });
-    m_buf.push_back({ c, color });
-    m_buf.push_back({ d, color });
+    appendVertices({
+      { a, color },
+      { b, color },
+      { c, color },
+      { d, color }
+    });
 
-    m_commands.push_back(Command::primitive(
-      gx::LineStrip,
+    appendCommand(Command::primitive(
+      gx::TriangleFan,
       base, 4
     ));
   };
@@ -130,17 +137,23 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
   case CapButt:   break;
   }
 
-  unsigned base = m_buf.size();
+  unsigned base = m_ind.size();
 
-  m_buf.push_back({ a+d, ca });
-  m_buf.push_back({ b+d, cb });
+  appendVertices({
+    { a+d, ca },
+    { b+d, cb }
+  });
+  
+  restartPrimitive();
 
-  m_buf.push_back({ b-d, cb });
-  m_buf.push_back({ a-d, ca });
+  appendVertices({
+    { b-d, cb },
+    { a-d, ca },
+  });
 
-  m_commands.push_back(Command::primitive(
-    gx::Lines,
-    base, 4
+  appendCommand(Command::primitive(
+    gx::LineStrip,
+    base, 4 + 1
   ));
 
   switch(cap) {
@@ -159,14 +172,16 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width, LineCap ca
 
 VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color d)
 {
-  auto base = m_buf.size();
+  auto base = m_ind.size();
 
-  m_buf.push_back({ { g.x, g.y, }, a });
-  m_buf.push_back({ { g.x, g.y+g.h, }, b });
-  m_buf.push_back({ { g.x+g.w, g.y+g.h, }, c });
-  m_buf.push_back({ { g.x+g.w, g.y, }, d });
+  appendVertices({
+    { { g.x, g.y, }, a },
+    { { g.x, g.y+g.h, }, b },
+    { { g.x+g.w, g.y+g.h, }, c },
+    { { g.x+g.w, g.y, }, d }
+  });
 
-  m_commands.push_back(Command::primitive(
+  appendCommand(Command::primitive(
     gx::TriangleFan,
     base, 4
   ));
@@ -186,25 +201,19 @@ VertexPainter& VertexPainter::rect(Geometry g, Color c)
 
 VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, Color c, Color d)
 {
-  auto base = m_buf.size();
+  auto base = m_ind.size();
 
   g.x += 0.5f; g.y += 0.5f;
   g.w -= 1.0f; g.h -= 1.0f;
 
-  m_buf.push_back({
-    { g.x, g.y, }, a
-  });
-  m_buf.push_back({
-    { g.x, g.y+g.h, }, b
-  });
-  m_buf.push_back({
-    { g.x+g.w, g.y+g.h, }, c
-  });
-  m_buf.push_back({
-    { g.x+g.w, g.y, }, d
+  appendVertices({
+    { { g.x, g.y, }, a },
+    { { g.x, g.y+g.h, }, b },
+    { { g.x+g.w, g.y+g.h, }, c },
+    { { g.x+g.w, g.y, }, d }
   });
 
-  m_commands.push_back(Command::primitive(
+  appendCommand(Command::primitive(
     gx::LineLoop,
     base, 4
   ));
@@ -225,9 +234,7 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color c)
 VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
                                             float start_angle, float end_angle, Color a, Color b)
 {
-  auto base = m_buf.size();
-
-  m_buf.push_back({ pos, a });
+  auto base = m_ind.size();
 
   auto point = [=](float angle) -> vec2
   {
@@ -237,21 +244,23 @@ VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
     };
   };
 
+  appendVertices({ { pos, b } });
+
   float angle = start_angle;
   float step = (end_angle - start_angle)/radius;
   unsigned num_verts = 0;
   while(angle <= end_angle) {
-    m_buf.push_back({ point(angle), b });
+    appendVertices({ {point(angle), a } });
 
     angle += step;
     num_verts++;
   }
 
-  m_buf.push_back({ point(end_angle), b });
+  appendVertices({ { point(end_angle), a } });
 
-  m_commands.push_back(Command::primitive(
+  appendCommand(Command::primitive(
     gx::TriangleFan,
-    base, num_verts+2
+    base, num_verts + 2
   ));
 
   return *this;
@@ -269,7 +278,7 @@ VertexPainter& VertexPainter::circle(vec2 pos, float radius, Color c)
 
 VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, float end_angle, Color c)
 {
-  auto base = m_buf.size();
+  auto base = m_ind.size();
 
   auto point = [=](float angle) -> vec2
   {
@@ -283,15 +292,15 @@ VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, flo
   float step = radius < 100.0f ? PI/16.0f : PI/32.0f;
   unsigned num_verts = 0;
   while(angle <= end_angle) {
-    m_buf.push_back({ point(angle), c });
+    appendVertices({ { point(angle), c } });
 
     angle += step;
     num_verts++;
   }
 
-  m_buf.push_back({ point(end_angle), c });
+  appendVertices({ { point(end_angle), c } });
 
-  m_commands.push_back(Command::primitive(
+  appendCommand(Command::primitive(
     gx::LineStrip,
     base, num_verts+1
   ));
@@ -306,50 +315,46 @@ VertexPainter& VertexPainter::arcFull(vec2 pos, float radius, Color c)
 
 VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b)
 {
-  unsigned base = m_buf.size();
+  unsigned base = m_ind.size();
 
-  auto push_rect = [this](float x, float y, float w, float h, Color a, Color b, Color c, Color d)
+  auto quad = [this](float x, float y, float w, float h, Color a, Color b, Color c, Color d)
   {
-    m_buf.push_back({ { x, y }, a });
-    m_buf.push_back({ { x, y+h }, b });
-    m_buf.push_back({ { x+w, y+h }, c });
-    m_buf.push_back({ { x+w, y+h }, c });
-    m_buf.push_back({ { x, y }, a });
-    m_buf.push_back({ { x+w, y }, d });
+    unsigned base = m_ind.size();
+
+    appendVertices({
+      { { x, y }, a },
+      { { x, y+h }, b },
+      { { x+w, y+h }, c },
+      { { x+w, y }, d }
+    });
+
+    appendCommand(Command::primitive(
+      gx::TriangleFan,
+      base, 4
+    ));
   };
 
   float d = 2.0f*radius;
 
-  push_rect(g.x+radius, g.y, g.w - d, radius, a, b, b, a);
-  push_rect(g.x, g.y+radius, radius, g.h - d, a, a, b, b);
-  push_rect(g.x+radius, g.y+g.h-radius, g.w - d, radius, b, a, a, b);
-  push_rect(g.x+g.w-radius, g.y+radius, radius, g.h - d, b, b, a, a);
+  quad(g.x+radius, g.y, g.w - d, radius, a, b, b, a);
+  quad(g.x, g.y+radius, radius, g.h - d, a, a, b, b);
+  quad(g.x+radius, g.y+g.h-radius, g.w - d, radius, b, a, a, b);
+  quad(g.x+g.w-radius, g.y+radius, radius, g.h - d, b, b, a, a);
 
-  push_rect(g.x+radius, g.y+radius, g.w - d, g.h - d, b, b, b, b);
-
-  unsigned num_tris = 0;
+  quad(g.x+radius, g.y+radius, g.w - d, g.h - d, b, b, b, b);
 
   if(~corners & TopLeft) {
-    push_rect(g.x, g.y, radius, radius, a, a, b, a);
-    num_tris += 6;
+    quad(g.x, g.y, radius, radius, a, a, b, a);
   }
   if(~corners & BottomLeft) {
-    push_rect(g.x, g.y+g.h-radius, radius, radius, a, a, a, b);
-    num_tris += 6;
+    quad(g.x, g.y+g.h-radius, radius, radius, a, a, a, b);
   }
   if(~corners & BottomRight) {
-    push_rect(g.x+g.w-radius, g.y+g.h-radius, radius, radius, b, a, a, a);
-    num_tris += 6;
+    quad(g.x+g.w-radius, g.y+g.h-radius, radius, radius, b, a, a, a);
   }
   if(~corners & TopRight) {
-    push_rect(g.x+g.w-radius, g.y, radius, radius, a, b, a, a);
-    num_tris += 6;
+    quad(g.x+g.w-radius, g.y, radius, radius, a, b, a, a);
   }
-
-  m_commands.push_back(Command::primitive(
-    gx::Triangles,
-    base, 6*5 + num_tris
-  ));
 
   if(corners & TopLeft)
     circleSegment({ g.x+radius, g.y+radius }, radius, PI, 3.0f*PI/2.0f, b, a);
@@ -365,7 +370,7 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
 
 VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned corners, Color c)
 {
-  unsigned base = m_buf.size();
+  unsigned base = m_ind.size();
   unsigned num_verts = 0;
 
   auto segment = [&,this](vec2 pos, float start_angle, float end_angle) {
@@ -380,13 +385,13 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
     float angle = start_angle;
     float step = radius < 100.0f ? PI/16.0f : PI/32.0f;
     while(angle <= end_angle) {
-      m_buf.push_back({ point(angle), c });
+      appendVertices({ { point(angle), c } });
 
       angle += step;
       num_verts++;
     }
 
-    m_buf.push_back({ point(end_angle), c });
+    appendVertices({ { point(end_angle), c } });
     num_verts++;
   };
 
@@ -398,8 +403,8 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   if(corners & TopLeft) {
     segment({ g.x+radius, g.y+radius }, PI, 3.0f*PI/2.0f);
   } else {
-    m_buf.push_back({ { g.x, g.y }, c });
-    m_buf.push_back({ { g.x+radius, g.y }, c });
+    appendVertices({ { { g.x, g.y }, c } });
+    appendVertices({ { { g.x+radius, g.y }, c } });
 
     num_verts += 2;
   }
@@ -407,9 +412,9 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   if(corners & TopRight) {
     segment({ g.x + (g.w - radius), g.y+radius }, 3.0f*PI/2.0f, PI*2.0f);
   } else {
-    m_buf.push_back({ { g.x + (g.w - radius), g.y }, c });
-    m_buf.push_back({ { g.x + g.w, g.y }, c });
-    m_buf.push_back({ { g.x + g.w, g.y + radius }, c });
+    appendVertices({ { { g.x + (g.w - radius), g.y }, c } });
+    appendVertices({ { { g.x + g.w, g.y }, c } });
+    appendVertices({ { { g.x + g.w, g.y + radius }, c } });
 
     num_verts += 3;
   }
@@ -417,9 +422,9 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   if(corners & BottomRight) {
     segment({ g.x + (g.w - radius), g.y + (g.h - radius) }, 0, PI/2.0f);
   } else {
-    m_buf.push_back({ { g.x + g.w, g.y + (g.h - radius) }, c });
-    m_buf.push_back({ { g.x + g.w, g.y + g.h }, c });
-    m_buf.push_back({ { g.x + (g.w - radius), g.y + g.h }, c });
+    appendVertices({ { { g.x + g.w, g.y + (g.h - radius) }, c } });
+    appendVertices({ { { g.x + g.w, g.y + g.h }, c } });
+    appendVertices({ { { g.x + (g.w - radius), g.y + g.h }, c } });
 
     num_verts += 3;
   }
@@ -427,14 +432,14 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   if(corners & BottomLeft) {
     segment({ g.x+radius, g.y + (g.h - radius) }, PI/2.0f, PI);
   } else {
-    m_buf.push_back({ { g.x + radius, g.y + g.h }, c });
-    m_buf.push_back({ { g.x, g.y + g.h }, c });
-    m_buf.push_back({ { g.x, g.y + (g.h - radius) }, c });
+    appendVertices({ { { g.x + radius, g.y + g.h }, c } });
+    appendVertices({ { { g.x, g.y + g.h }, c } });
+    appendVertices({ { { g.x, g.y + (g.h - radius) }, c } });
 
     num_verts += 3;
   }
 
-  m_commands.push_back(Command::primitive(
+  appendCommand(Command::primitive(
     gx::LineLoop,
     base, num_verts
   ));
@@ -452,7 +457,7 @@ VertexPainter& VertexPainter::text(ft::Font& font, const char *str, vec2 pos, Co
   return *this;
 }
 
-VertexPainter& VertexPainter::text(ft::Font & font, ft::String str, vec2 pos, Color c)
+VertexPainter& VertexPainter::text(ft::Font& font, ft::String str, vec2 pos, Color c)
 {
   m_commands.push_back(Command::text(
     &font, str,
@@ -488,6 +493,53 @@ Vertex *VertexPainter::vertices()
 size_t VertexPainter::numVertices()
 {
   return m_buf.size();
+}
+
+u16 *VertexPainter::indices()
+{
+  return m_ind.data();
+}
+
+size_t VertexPainter::numIndices()
+{
+  return m_ind.size();
+}
+
+void VertexPainter::appendVertices(std::initializer_list<Vertex> verts)
+{
+  unsigned ind = m_buf.size();
+
+  for(const auto& v : verts) {
+    m_buf.push_back(v);
+    m_ind.push_back(ind++);
+  }
+}
+
+void VertexPainter::restartPrimitive()
+{
+  m_ind.push_back(0xFFFF);
+}
+
+void VertexPainter::appendCommand(const Command& c)
+{
+  if(m_commands.empty()) {
+    m_commands.push_back(c);
+    return;
+  }
+
+  Command& last = m_commands.back();
+
+  if(c.type == Primitive && last.type == c.type) {
+    if(c.p == last.p) {
+      last.num += c.num + 1;
+    } else {
+      m_commands.push_back(c);
+    }
+  } else {
+    m_commands.push_back(c);
+  }
+
+  restartPrimitive();
 }
 
 }

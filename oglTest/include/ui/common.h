@@ -39,6 +39,9 @@ struct Color : public Vector4<byte> {
   Color(byte r_, byte g_, byte b_) :
     Vector4<byte>(r_, g_, b_, 255)
   { }
+  Color(Vector4<byte> v) :
+    Vector4<byte>(v)
+  { }
   Color() :
     Vector4<byte>(0, 0, 0, 0)
   { }
@@ -112,3 +115,19 @@ private:
 };
 
 }
+template <>
+inline ui::Color lerp(ui::Color a, ui::Color b, float u)
+{
+  using ui::Color;
+
+  Color m = b-a;
+  Color d = {
+    (byte)((float)m.r*u),
+    (byte)((float)m.g*u),
+    (byte)((float)m.b*u),
+    (byte)((float)m.a*u)
+  };
+  return a + d;
+}
+
+
