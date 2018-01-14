@@ -16,7 +16,7 @@ void init();
 void finalize();
 
 using Position = Vector2<i16>;
-using Uv = Vector2<u16>;
+using UV = Vector2<u16>;
 
 class pFace;
 class pGlyph;
@@ -69,7 +69,7 @@ private:
     int width, height;
     ivec2 advance;
 
-    Uv uvs[4];
+    UV uvs[4];
   };
 
   void populateRenderData(const std::vector<pGlyph>& glyphs);

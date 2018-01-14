@@ -529,6 +529,7 @@ void VertexPainter::appendCommand(const Command& c)
 
   Command& last = m_commands.back();
 
+  // Try to merge command with previous if possible
   if(c.type == Primitive && last.type == c.type) {
     if(c.p == last.p) {
       last.num += c.num + 1;

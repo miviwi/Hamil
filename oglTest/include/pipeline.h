@@ -12,7 +12,7 @@ public:
     Viewport, Scissor, Blend,
     Depth, Stencil, Cull,
     Clear, Wireframe,
-    PrimitiveRestert,
+    PrimitiveRestart,
 
     NumConfigTypes,
   };

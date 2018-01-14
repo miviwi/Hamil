@@ -183,7 +183,7 @@ Pipeline& Pipeline::wireframe()
 
 Pipeline& Pipeline::primitiveRestart(unsigned index)
 {
-  m_enabled[PrimitiveRestert] = true;
+  m_enabled[PrimitiveRestart] = true;
   m_restart.index = index;
 
   return *this;
@@ -200,7 +200,7 @@ void Pipeline::disable(ConfigType config) const
   case Cull:      glDisable(GL_CULL_FACE); break;
   case Clear:     break;
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
-  case PrimitiveRestert: glDisable(GL_PRIMITIVE_RESTART); break;
+  case PrimitiveRestart: glDisable(GL_PRIMITIVE_RESTART); break;
 
   default: break;
   }
@@ -243,7 +243,7 @@ void Pipeline::enable(ConfigType config) const
     glClearStencil(c.stencil);
     break;
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
-  case PrimitiveRestert:
+  case PrimitiveRestart:
     glEnable(GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(m_restart.index);
     break;

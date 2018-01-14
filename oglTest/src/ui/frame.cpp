@@ -134,16 +134,17 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     //.border({ g.x+5.0f, title_pos.y-style.font->ascender()-style.font->descener(),
     //        style.font->width(style.font->string(title)),
     //        style.font->height(style.font->string(title)) }, white())
-    .text(*style.font.get(), std::to_string(m_countrer).c_str(), circle, black())
     //.circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
     .line(c+line_delta, c-line_delta, 16, VertexPainter::CapRound, { 0, 20, 80 }, { 0, 20, 80 })
     .line(c+line_delta, c-line_delta, 8, VertexPainter::CapRound, { 20, 20, 100 }, { 20, 20, 100 })
     .lineBorder(c+line_delta, c-line_delta, 16-1, VertexPainter::CapRound, black(), black())
-    .circle({ c.x-45.0f, c.y }, 13, { 255, 0, 0 }, { 255, 0, 0, 0 })
+    .circle({ c.x-45.0f, c.y }, 13, style.bg.color[0])
+    .circle({ c.x-45.0f, c.y }, 19, transparent(), style.bg.color[1])
     .arcFull({ c.x-45.0f, c.y }, 13, black())
     //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
     //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
     .arcFull(circle, radius, { 0, 128, 0, 255 })
+    .text(*style.font.get(), std::to_string(m_countrer).c_str(), circle, { 0, 255, 0 })
     ;
 }
 

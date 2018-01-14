@@ -25,7 +25,8 @@ namespace ft {
 struct pFt {
 public:
   enum {
-    NumBufferChars = 1024*1024,
+    TexImageUnit = 15,
+    NumBufferChars = 256*1024,
 
     Error = ~0u,
   };
@@ -41,9 +42,6 @@ public:
 
   static const gx::VertexFormat fmt;
 
-  unsigned ptr;
-  std::list<std::pair<unsigned, unsigned>> free_list;
-
   gx::VertexBuffer buf;
   gx::VertexArray vtx;
 
@@ -51,6 +49,10 @@ public:
 
 private:
   unsigned allocAtEnd(unsigned num_chars);
+  void coalesce();
+
+  unsigned ptr;
+  std::list<std::pair<unsigned, unsigned>> free_list;
 };
 
 class pFace {
@@ -100,9 +102,9 @@ public:
 
 struct Vertex {
   Position pos;
-  Uv uv;
+  UV uv;
 
-  Vertex(vec2 pos_, Uv uv_) :
+  Vertex(vec2 pos_, UV uv_) :
     pos((i16)pos_.x, (i16)pos_.y), uv(uv_)
   { }
 };
@@ -185,9 +187,9 @@ void init()
 void finalize()
 {
   auto err = FT_Done_FreeType(ft);
-  ft = nullptr;
-
   assert(!err && "FreeType finalize error!");
+
+  ft = nullptr;
 }
 
 Font::Font(const FontFamily& family, unsigned height) :
@@ -248,8 +250,8 @@ String Font::string(const char *str) const
   std::vector<Vertex> verts;
   std::vector<u16> indices;
 
-  verts.reserve(6*length);
-  indices.reserve(4*length);
+  verts.reserve(4*length);
+  indices.reserve(6*length);
 
   const char *begin = str;
   FT_Vector pen = { 0, 0 };
@@ -273,6 +275,7 @@ String Font::string(const char *str) const
       continue;
     }
 
+#if defined(ENABLE_KERNING)
     if(str != begin && FT_HAS_KERNING(face)) {
       FT_Vector kern = { 0, 0 };
       const auto& a = getGlyphRenderData(*(str - 1));
@@ -282,6 +285,7 @@ String Font::string(const char *str) const
       x += kern.x / (float)(1<<6);
       y += kern.y / (float)(1<<6);
     }
+#endif
 
     auto base = verts.size();
 
@@ -317,7 +321,7 @@ String Font::string(const char *str) const
 
   s->m = face;
 
-  unsigned ptr = p->alloc(length);
+  unsigned ptr = p->alloc(length); // Simple free list alloator
   assert(ptr != pFt::Error && "no more space in string vertex buffer!");
   
   p->buf.upload(verts.data(), ptr*4, verts.size());
@@ -335,10 +339,9 @@ String Font::string(const char *str) const
 void Font::draw(const String& str, vec2 pos, vec4 color) const
 {
   pString *p_str = str.get();
-
   assert(p_str->m == *m && "Drawing string with wrong Font!");
 
-  gx::tex_unit(0, m_atlas, m_sampler);
+  gx::tex_unit(pFt::TexImageUnit, m_atlas, m_sampler);
 
   mat4 mvp = xform::ortho(0.0f, 0.0f, 720.0f, 1280.0f, 0.0f, 1.0f)
     *xform::translate(pos.x, pos.y, 0.0f);
@@ -347,7 +350,7 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
 
   font_program->use()
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
-    .uniformInt(U::font.uAtlas, 0)
+    .uniformInt(U::font.uAtlas, pFt::TexImageUnit)
     .uniformVector4(U::font.uColor, color)
     .drawBaseVertex(gx::Triangles, p->vtx, p->ind, p_str->base, p_str->offset, p_str->num);
 }
@@ -491,18 +494,18 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     y0 = atlas_sz.v - y0;
     y1 = atlas_sz.v - y1;
 
-    Uv uvs[] = {
+    UV uvs[] = {
       { x0, y0 }, { x0, y1 },
       { x1, y0 }, { x1, y1 },
     };
 
     GlyphRenderData rd;
 
-    rd.idx = glyphs[i].m_idx;
-    rd.top = bm->top;
-    rd.left = bm->left;
-    rd.width = bm->bitmap.width;
-    rd.height = bm->bitmap.rows+1;
+    rd.idx     = glyphs[i].m_idx;
+    rd.top     = bm->top;
+    rd.left    = bm->left;
+    rd.width   = bm->bitmap.width;
+    rd.height  = bm->bitmap.rows+1;
     rd.advance = ivec2{ g->advance.x, g->advance.y };
 
     rd.uvs[0] = uvs[0]; rd.uvs[1] = uvs[1];
@@ -532,15 +535,18 @@ const Font::GlyphRenderData& Font::getGlyphRenderData(int ch) const
 
 unsigned pFt::alloc(unsigned num_chars)
 {
-  if(p->free_list.empty()) return allocAtEnd(num_chars);
+  if(free_list.empty()) return allocAtEnd(num_chars);
 
-  for(auto iter = p->free_list.begin(); iter != p->free_list.end(); iter++) {
+  for(auto iter = free_list.begin(); iter != free_list.end(); iter++) {
     if(iter->second < num_chars) continue;
 
-    unsigned ptr = iter->first;
-    p->free_list.erase(iter);
+    unsigned ret = iter->first,
+      leftover = iter->second-num_chars;
+    free_list.erase(iter);
 
-    return ptr;
+    if(leftover) free_list.push_front({ ret+num_chars, leftover });
+
+    return ret;
   }
 
   return allocAtEnd(num_chars);
@@ -548,22 +554,50 @@ unsigned pFt::alloc(unsigned num_chars)
 
 void pFt::dealloc(unsigned offset, unsigned num_chars) 
 {
-  if(p->ptr == offset+num_chars) {
-    p->ptr -= num_chars;
+  if(ptr == offset+num_chars) {
+    ptr -= num_chars;
     return;
   }
 
-  p->free_list.push_front({ offset, num_chars });
+  free_list.push_front({ offset, num_chars });
+  coalesce();
 }
 
 unsigned pFt::allocAtEnd(unsigned num_chars)
 {
-  if(p->ptr+num_chars >= pFt::NumBufferChars) return pFt::Error;
+  if(ptr+num_chars >= pFt::NumBufferChars) return pFt::Error;
 
-  unsigned ptr = p->ptr;
-  p->ptr += num_chars;
+  unsigned ret = ptr;
+  ptr += num_chars;
 
-  return ptr;
+  return ret;
+}
+
+void pFt::coalesce()
+{
+  auto in_range = [](std::pair<int, int> a, std::pair<int, int> b) -> bool
+  {
+    if(a.first < b.first) return a.first+a.second >= b.first;
+    else                  return b.first+b.second >= a.first;
+
+    return false;
+  };
+
+  auto prev = free_list.begin(),
+    iter = ++free_list.begin();
+  while(iter != free_list.end()) {
+    if(in_range(*prev, *iter)) {
+      std::pair<int, int> a = { prev->first, prev->first+prev->second },
+        b = { iter->first, iter->first+iter->second };
+
+      iter->first = std::min(a.first, b.first);
+      iter->second = std::max(a.second, b.second) - iter->first;
+
+      free_list.erase(prev);
+    }
+    prev = iter;
+    iter++;
+  }
 }
 
 pFace::pFace(FT_Face f) :
@@ -600,7 +634,7 @@ pString::pString()
 
 pString::~pString()
 {
-  p->dealloc(offset/6, num);
+  p->dealloc(base/4, num);
 }
 
 static const std::unordered_map<std::string, std::string> family_to_path = {

@@ -248,6 +248,8 @@ void main() {
   int frames = 0;
   auto start_time = GetTickCount();
 
+  float old_fps;
+
   auto hello = small_face.string("gggg Hello, sailor! gggg \nTeraz wchodzimy w nowe millenium"),
     cursor_label = small_face.string("Cursor");
 
