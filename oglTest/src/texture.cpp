@@ -1,9 +1,10 @@
 #include "texture.h"
 
 #include <cassert>
+#include <cstring>
+#include <cstdio>
 
 #include <windows.h>
-#include <cstdio>
 
 namespace gx {
 
@@ -46,6 +47,13 @@ void Texture2D::upload(void *data, unsigned mip, unsigned x, unsigned y, unsigne
 
   glBindTexture(GL_TEXTURE_2D, m);
   glTexSubImage2D(GL_TEXTURE_2D, mip, x, y, w, h, internalformat(format), type(t), data);
+}
+
+void Texture2D::label(const char *lbl)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_TEXTURE, m, strlen(lbl), lbl);
+#endif
 }
 
 GLenum Texture2D::internalformat(Format format)
@@ -136,12 +144,18 @@ GLenum Sampler::param(Param p)
   return table[p];
 }
 
+static struct {
+  GLuint tex, sampler;
+} p_bound_units[256] = { 0u };
+
 void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
 {
-  glBindSampler(idx, sampler.m);
+  if(p_bound_units[idx].sampler != sampler.m) glBindSampler(idx, sampler.m);
 
-  glActiveTexture(GL_TEXTURE0+idx);
-  glBindTexture(GL_TEXTURE_2D, tex.m);
+  if(p_bound_units[idx].tex != tex.m) {
+    glActiveTexture(GL_TEXTURE0+idx);
+    glBindTexture(GL_TEXTURE_2D, tex.m);
+  }
 }
 
 }

@@ -147,7 +147,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   unsigned cp = 0;
 
   const char *vs_src = R"VTX(
-#version 330
 
 uniform mat4 uModelView;
 uniform mat4 uProjection;
@@ -174,7 +173,6 @@ void main() {
 )VTX";
 
   const char *fs_src = R"FG(
-#version 330
 
 in vec3 Color;
 
@@ -186,7 +184,6 @@ void main() {
 )FG";
 
   const char *cursor_vs_src = R"VTX(
-#version 330
 
 uniform mat4 uModelView;
 uniform mat4 uProjection;
@@ -204,7 +201,6 @@ void main() {
 )VTX";
 
   const char *cursor_fs_src = R"FG(
-#version 330
 
 uniform sampler2D uTex;
 

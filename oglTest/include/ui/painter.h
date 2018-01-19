@@ -10,6 +10,7 @@
 #include "font.h"
 #include "ui/common.h"
 
+#include <string>
 #include <vector>
 #include <initializer_list>
 
@@ -17,7 +18,10 @@ namespace ui {
 
 struct Vertex {
   Position pos;
-  Color color;
+  union {
+    Color color;
+    UV uv;
+  };
 
   Vertex();
   Vertex(vec2 pos_, Color color_);
@@ -38,31 +42,34 @@ public:
     CommandType type;
 
     gx::Primitive p;
-    size_t offset, num;
+    size_t base, offset;
+    size_t num;
 
     ft::Font *font;
-    ft::String str;
     vec2 pos; Color color;
 
     gx::Pipeline pipel;
 
-    static Command primitive(gx::Primitive prim, size_t offset, size_t num)
+    static Command primitive(gx::Primitive prim, size_t base, size_t offset, size_t num)
     {
       Command c;
       c.type = Primitive;
       c.p = prim;
-      c.offset = offset;  c.num = num;
+      c.base = base; c.offset = offset;
+      c.num = num;
 
       return c;
    }
 
-    static Command text(ft::Font *font, ft::String str, vec2 pos, Color color)
+    static Command text(ft::Font& font, vec2 pos, Color color, size_t base, size_t offset, size_t num)
     {
       Command c;
       c.type = Text;
-      c.font = font;
-      c.str = str;
+      c.p = gx::TriangleFan;
+      c.base = base; c.offset = offset;
+      c.num = num;
       
+      c.font = &font;
       c.pos = pos; c.color = color;
 
       return c;
@@ -117,9 +124,8 @@ public:
   VertexPainter& roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b);
   VertexPainter& roundedBorder(Geometry g, float radius, unsigned corners, Color c);
 
-  VertexPainter& text(ft::Font& font, const char *str, vec2 pos, Color c);
-  VertexPainter& text(ft::Font& font, ft::String str, vec2 pos, Color c);
-  VertexPainter& textCentered(ft::Font& font, ft::String str, Geometry g, Color c);
+  VertexPainter& text(ft::Font& font, const std::string& str, vec2 pos, Color c);
+  VertexPainter& textCentered(ft::Font& font, const std::string& str, Geometry g, Color c);
 
   VertexPainter& pipeline(const gx::Pipeline& pipeline);
 
@@ -139,6 +145,8 @@ private:
   void appendVertices(std::initializer_list<Vertex> verts);
   void appendCommand(const Command& c);
   void restartPrimitive();
+
+  ft::String appendTextVertices(ft::Font& font, const std::string& str);
 
   std::vector<Vertex> m_buf;
   std::vector<u16> m_ind;

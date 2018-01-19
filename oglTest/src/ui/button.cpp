@@ -79,7 +79,7 @@ void ButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
 ButtonFrame& ButtonFrame::caption(std::string caption)
 {
-  m_caption = m_ui->style().font->string(caption.c_str());
+  m_caption = std::move(caption);
 
   return *this;
 }

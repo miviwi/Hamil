@@ -81,6 +81,11 @@ Color Color::luminance() const
   return Color{ y, y, y, a };
 }
 
+vec4 Color::normalize() const
+{
+  return vec4{ r/255.0f, g/255.0f, b/255.0f, a/255.0f };
+}
+
 Position::Position() :
   Vector2<i16>(~0, ~0)
 {

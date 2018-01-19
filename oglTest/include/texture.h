@@ -36,6 +36,9 @@ public:
   void upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type t);
 
+  // Can only be called after init[Multisample]()
+  void label(const char *lbl);
+
 private:
   friend void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
 

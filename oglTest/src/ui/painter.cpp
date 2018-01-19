@@ -1,6 +1,7 @@
 #include "ui/painter.h"
 
 #include <cmath>
+#include <cstring>
 #include <unordered_map>
 
 namespace ui {
@@ -8,7 +9,9 @@ namespace ui {
 const gx::VertexFormat VertexPainter::Fmt = 
   gx::VertexFormat()
     .attr(gx::VertexFormat::i16, 2, false)
-    .attr(gx::VertexFormat::u8, 4);
+    .attr(gx::VertexFormat::u8, 4)
+    .attrAlias(1, gx::VertexFormat::u16, 2, false)
+  ;
 
 Vertex::Vertex() :
   color(transparent())
@@ -39,7 +42,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
   auto quad = [&,this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    unsigned base = m_ind.size();
+    unsigned offset = m_ind.size();
 
     appendVertices({
      { a, color },
@@ -50,7 +53,8 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
     appendCommand(Command::primitive(
       gx::TriangleFan,
-      base, 4
+      0, offset,
+      4
     ));
   };
 
@@ -66,7 +70,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   case CapButt:   break;
   }
 
-  unsigned base = m_ind.size();
+  unsigned offset = m_ind.size();
 
   appendVertices({
     { a+d, ca },
@@ -77,7 +81,8 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
   appendCommand(Command::primitive(
     gx::TriangleFan,
-    base, 4
+    0, offset,
+    4
   ));
 
   switch(cap) {
@@ -108,7 +113,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   auto square_cap = [&, this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    unsigned base = m_ind.size();
+    unsigned offset = m_ind.size();
 
     appendVertices({
       { a, color },
@@ -119,7 +124,8 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
     appendCommand(Command::primitive(
       gx::TriangleFan,
-      base, 4
+      0, offset,
+      4
     ));
   };
 
@@ -137,7 +143,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
   case CapButt:   break;
   }
 
-  unsigned base = m_ind.size();
+  unsigned offset = m_ind.size();
 
   appendVertices({
     { a+d, ca },
@@ -153,7 +159,8 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   appendCommand(Command::primitive(
     gx::LineStrip,
-    base, 4 + 1
+    0, offset,
+    4 + 1
   ));
 
   switch(cap) {
@@ -172,7 +179,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width, LineCap ca
 
 VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color d)
 {
-  auto base = m_ind.size();
+  auto offset = m_ind.size();
 
   appendVertices({
     { { g.x, g.y, }, a },
@@ -183,7 +190,8 @@ VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color 
 
   appendCommand(Command::primitive(
     gx::TriangleFan,
-    base, 4
+    0, offset,
+    4
   ));
 
   return *this;
@@ -201,7 +209,7 @@ VertexPainter& VertexPainter::rect(Geometry g, Color c)
 
 VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, Color c, Color d)
 {
-  auto base = m_ind.size();
+  auto offset = m_ind.size();
 
   g.x += 0.5f; g.y += 0.5f;
   g.w -= 1.0f; g.h -= 1.0f;
@@ -215,7 +223,8 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, 
 
   appendCommand(Command::primitive(
     gx::LineLoop,
-    base, 4
+    0, offset,
+    4
   ));
 
   return *this;
@@ -234,7 +243,7 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color c)
 VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
                                             float start_angle, float end_angle, Color a, Color b)
 {
-  auto base = m_ind.size();
+  auto offset = m_ind.size();
 
   auto point = [=](float angle) -> vec2
   {
@@ -260,7 +269,8 @@ VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
 
   appendCommand(Command::primitive(
     gx::TriangleFan,
-    base, num_verts + 2
+    0, offset,
+    num_verts + 2
   ));
 
   return *this;
@@ -278,7 +288,7 @@ VertexPainter& VertexPainter::circle(vec2 pos, float radius, Color c)
 
 VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, float end_angle, Color c)
 {
-  auto base = m_ind.size();
+  auto offset = m_ind.size();
 
   auto point = [=](float angle) -> vec2
   {
@@ -302,7 +312,8 @@ VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, flo
 
   appendCommand(Command::primitive(
     gx::LineStrip,
-    base, num_verts+1
+    0, offset,
+    num_verts+1
   ));
 
   return *this;
@@ -319,7 +330,7 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
 
   auto quad = [this](float x, float y, float w, float h, Color a, Color b, Color c, Color d)
   {
-    unsigned base = m_ind.size();
+    unsigned offset = m_ind.size();
 
     appendVertices({
       { { x, y }, a },
@@ -330,7 +341,8 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
 
     appendCommand(Command::primitive(
       gx::TriangleFan,
-      base, 4
+      0, offset,
+      4
     ));
   };
 
@@ -370,7 +382,7 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
 
 VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned corners, Color c)
 {
-  unsigned base = m_ind.size();
+  unsigned offset = m_ind.size();
   unsigned num_verts = 0;
 
   auto segment = [&,this](vec2 pos, float start_angle, float end_angle) {
@@ -441,41 +453,74 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
 
   appendCommand(Command::primitive(
     gx::LineLoop,
-    base, num_verts
+    0, offset,
+    num_verts
   ));
 
   return *this;
 }
 
-VertexPainter& VertexPainter::text(ft::Font& font, const char *str, vec2 pos, Color c)
+ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& str)
 {
+  unsigned base = m_buf.size();
+  unsigned offset = m_ind.size();
+
+  m_buf.resize(m_buf.size() + (str.length()*ft::NumCharVerts));
+  m_ind.resize(m_ind.size() + (str.length()*ft::NumCharIndices));
+
+  Vertex *ptr = m_buf.data() + base;
+
+  StridePtr<ft::Position> pos_ptr((ft::Position *)&ptr->pos, sizeof(Vertex));
+  StridePtr<ft::UV> uv_ptr((ft::UV *)&ptr->uv, sizeof(Vertex));
+
+  auto s = font.writeVertsAndIndices(str.c_str(), pos_ptr, uv_ptr, m_ind.data()+offset);
+
+  unsigned num = font.num(s);
+
+  m_buf.resize(base + (num*ft::NumCharVerts));
+  m_ind.resize(offset + (num*ft::NumCharIndices));
+
+  return s;
+}
+
+VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 pos, Color c)
+{
+  unsigned base = m_buf.size();
+  unsigned offset = m_ind.size();
+
+  auto s = appendTextVertices(font, str);
+
   m_commands.push_back(Command::text(
-    &font, font.string(str),
-    pos, c
+    font,
+    pos, c,
+    base, offset,
+    font.num(s)
   ));
 
   return *this;
 }
 
-VertexPainter& VertexPainter::text(ft::Font& font, ft::String str, vec2 pos, Color c)
+VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& str, Geometry g, Color c)
 {
-  m_commands.push_back(Command::text(
-    &font, str,
-    pos, c
-  ));
+  unsigned base = m_buf.size();
+  unsigned offset = m_ind.size();
 
-  return *this;
-}
+  auto s = appendTextVertices(font, str);
 
-VertexPainter& VertexPainter::textCentered(ft::Font& font, ft::String str, Geometry g, Color c)
-{
   vec2 center = g.center();
   vec2 text_pos = {
-    center.x - floor(font.width(str)/2.0f),
+    center.x - floor(font.width(s)/2.0f),
     center.y + floor(font.bearingY()/2.0f)
   };
 
-  return text(font, str, text_pos, c);
+  m_commands.push_back(Command::text(
+    font,
+    text_pos, c,
+    base, offset,
+    font.num(s)
+  ));
+
+  return *this;
 }
 
 VertexPainter& VertexPainter::pipeline(const gx::Pipeline& pipeline)

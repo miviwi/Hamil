@@ -6,6 +6,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <initializer_list>
 
 namespace gx {
 
@@ -22,6 +23,7 @@ public:
   };
 
   Shader(Type type, const char *source);
+  Shader(Type type, std::initializer_list<const char *> sources);
   Shader(const Shader&) = delete;
   ~Shader();
 
@@ -70,6 +72,7 @@ public:
   Program& uniformVector4(int location, size_t size, const vec4 *v);
   Program& uniformVector4(int location, vec4 v);
   Program& uniformMatrix4x4(int location, const float *mtx);
+  Program& uniformBool(int location, bool v);
 
   void draw(Primitive p, const VertexArray& vtx, unsigned offset, unsigned num);
   void draw(Primitive p, const VertexArray& vtx, unsigned num);
@@ -78,6 +81,8 @@ public:
 
   void drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuffer& idx,
             unsigned base, unsigned offset, unsigned num);
+
+  void label(const char *lbl);
 
 private:
   void link();

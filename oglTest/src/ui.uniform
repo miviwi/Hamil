@@ -1,1 +1,2 @@
-uProjection
+uModelViewProjection, 
+uFontAtlas, uText, uTextColor

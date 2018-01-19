@@ -51,13 +51,16 @@ extern program_klass program;
 
 struct ui_klass {
   union { struct {
-    int uProjection;
+    int uModelViewProjection;
+    int uFontAtlas;
+    int uText;
+    int uTextColor;
     };
 
-    int locations[1];
+    int locations[4];
   };
 
-  static const std::array<Location, 1> offsets;
+  static const std::array<Location, 4> offsets;
 };
 extern ui_klass ui;
 

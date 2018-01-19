@@ -49,6 +49,8 @@ struct Color : public Vector4<byte> {
   Color darken(unsigned factor) const;
   Color lighten(unsigned factor) const;
   Color luminance() const;
+
+  vec4 normalize() const;
 };
 
 static Color transparent() { return Color{ 0, 0, 0, 0 }; }
@@ -59,6 +61,8 @@ struct Position : public Vector2<i16> {
   Position();
   Position(vec2 pos);
 };
+
+using UV = Vector2<u16>;
 
 template <typename... Args>
 class Signal {

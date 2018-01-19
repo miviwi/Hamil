@@ -1,11 +1,38 @@
 #include "buffer.h"
 
+#include <cassert>
+#include <cstring>
+
 namespace gx {
 
 Buffer::Buffer(Usage usage,GLenum target) :
   m_usage(usage), m_target(target)
 {
   glGenBuffers(1, &m);
+}
+
+void *Buffer::map(Access access)
+{
+  glBindBuffer(m_target, m);
+
+  return glMapBuffer(m_target, access);
+}
+
+void Buffer::unmap()
+{
+  glBindBuffer(m_target, m);
+
+  auto result = glUnmapBuffer(m_target);
+  assert(result && "failed to unmap buffer!");
+}
+
+void Buffer::label(const char *lbl)
+{
+#if !defined(NDEBUG)
+  glBindBuffer(m_target, m);
+
+  glObjectLabel(GL_BUFFER, m, strlen(lbl), lbl);
+#endif
 }
 
 Buffer::~Buffer()

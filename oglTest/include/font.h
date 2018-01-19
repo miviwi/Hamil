@@ -18,6 +18,13 @@ void finalize();
 using Position = Vector2<i16>;
 using UV = Vector2<u16>;
 
+enum {
+  TexImageUnit = 15,
+
+  NumCharVerts = 4,
+  NumCharIndices = 5,
+};
+
 class pFace;
 class pGlyph;
 class pString;
@@ -45,6 +52,8 @@ public:
   // Must be drawn with the same Font!
   String string(const char *str) const;
 
+  String writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const;
+
   void draw(const String& str, vec2 pos, vec4 color) const;
   void draw(const char *str, vec2 pos, vec4 color) const;
   void draw(const String& str, vec2 pos, vec3 color) const;
@@ -55,12 +64,17 @@ public:
   float width(const String& str) const;
   float height(const String& str) const;
 
+  // Number of generated indices
+  unsigned num(const String& str) const;
+
   float ascender() const;
   float descender() const;
-
   float height() const;
-
   float bearingY() const;
+
+  static const char *frag_shader;
+
+  void bindFontAltas() const;
 
 private:
   struct GlyphRenderData {

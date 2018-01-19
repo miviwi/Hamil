@@ -21,6 +21,8 @@ public:
   VertexFormat& attr(AttributeType type, unsigned size, bool normalized = true);
   VertexFormat& iattr(AttributeType type, unsigned size);
 
+  VertexFormat& attrAlias(unsigned index, AttributeType type, unsigned size, bool normalized = true);
+
   size_t vertexByteSize() const;
 
   size_t numAttrs() const;
@@ -34,10 +36,19 @@ public:
 private:
   friend class VertexArray;
 
+  enum : unsigned {
+     NextIndex = ~0u,
+
+     Normalize = 1<<0,
+     Integer   = 1<<1,
+     Alias     = 1<<2,
+  };
   struct Desc {
+    unsigned index;
+
     AttributeType type;
     unsigned size;
-    bool integer, normalize;
+    unsigned flags;
   };
 
   static size_t byteSize(Desc desc);
@@ -52,6 +63,10 @@ public:
   ~VertexArray();
 
   unsigned elemSize() const;
+
+  void use() const;
+
+  void label(const char *lbl);
 
 private:
   friend class Program;

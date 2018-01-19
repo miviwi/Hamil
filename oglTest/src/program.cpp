@@ -4,9 +4,12 @@
 
 #include <Windows.h>
 
+#include <cstring>
 #include <vector>
 
 namespace gx {
+
+GLuint p_last_bound = ~0u;
 
 Program::Program(const Shader& vertex, const Shader& fragment)
 {
@@ -48,8 +51,9 @@ GLint Program::getUniformLocation(const char *name)
 
 Program& Program::use()
 {
-  glUseProgram(m);
+  if(p_last_bound == m) return *this;
 
+  glUseProgram(m);
   return *this;
 }
 
@@ -95,9 +99,16 @@ Program& Program::uniformMatrix4x4(int location, const float *mtx)
   return *this;
 }
 
+Program& Program::uniformBool(int location, bool v)
+{
+  glUniform1i(location, v);
+
+  return *this;
+}
+
 void Program::draw(Primitive p, const VertexArray& vtx, unsigned offset, unsigned num)
 {
-  glBindVertexArray(vtx.m);
+  vtx.use();
 
   glDrawArrays(p, offset, num);
 }
@@ -109,7 +120,7 @@ void Program::draw(Primitive p, const VertexArray& vtx, unsigned num)
 
 void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned offset, unsigned num)
 {
-  glBindVertexArray(vtx.m);
+  vtx.use();
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
 
   glDrawElements(p, num, idx.m_type, (void *)(offset * idx.elemSize()));
@@ -123,10 +134,17 @@ void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, 
 void Program::drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuffer& idx,
                              unsigned base, unsigned offset, unsigned num)
 {
-  glBindVertexArray(vtx.m);
+  vtx.use();
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
 
   glDrawElementsBaseVertex(p, num, idx.m_type, (void *)(offset * idx.elemSize()), base);
+}
+
+void Program::label(const char *lbl)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_PROGRAM, m, strlen(lbl), lbl);
+#endif
 }
 
 void Program::link()
@@ -158,11 +176,23 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
   }
 }
 
-Shader::Shader(Type type, const char *source)
+static const char *shader_source[256] = {
+  "#version 330\n\n",
+  nullptr,
+};
+
+Shader::Shader(Type type, const char *source) :
+  Shader(type, { source })
+{
+}
+
+Shader::Shader(Type type, std::initializer_list<const char *> sources)
 {
   m = glCreateShader(type);
 
-  glShaderSource(m, 1, &source, nullptr);
+  memcpy(shader_source+1, sources.begin(), sources.size()*sizeof(const char *));
+
+  glShaderSource(m, sources.size()+1, shader_source, nullptr);
   glCompileShader(m);
 
   GLint success = 0;

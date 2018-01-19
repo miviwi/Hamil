@@ -25,8 +25,10 @@ namespace ft {
 struct pFt {
 public:
   enum {
-    TexImageUnit = 15,
     NumBufferChars = 256*1024,
+
+    NumCharVerts = 4,
+    NumCharIndices = 5,
 
     Error = ~0u,
   };
@@ -104,6 +106,9 @@ struct Vertex {
   Position pos;
   UV uv;
 
+  Vertex() :
+    pos(0, 0), uv(0, 0)
+  { }
   Vertex(vec2 pos_, UV uv_) :
     pos((i16)pos_.x, (i16)pos_.y), uv(uv_)
   { }
@@ -112,7 +117,6 @@ struct Vertex {
 FT_Library ft;
 
 static const char *vs_src = R"VTX(
-#version 330
 
 uniform sampler2D uAtlas;
 uniform mat4 uModelViewProjection;
@@ -125,21 +129,30 @@ out VertexData {
 } output;
 
 void main() {
-  ivec2 atlas_sz = textureSize(uAtlas, 0);
-
-  output.uv = iUV / atlas_sz;
+  output.uv = iUV;
   gl_Position = uModelViewProjection * vec4(iPos, 0.0f, 1.0f);
 }
 
 )VTX";
 
+const char *Font::frag_shader = R"FRAG(
+const float gamma = 1.8f;
+
+vec4 sampleFontAtlas(in sampler2D atlas, vec2 uv)
+{
+  ivec2 atlas_sz = textureSize(atlas, 0);
+  float a = texture(atlas, uv / atlas_sz).r;
+  a = pow(a, 1.0f/gamma);
+
+  return vec4(a, a, a, a);
+}
+
+)FRAG";
+
 static const char *fs_src = R"FRAG(
-#version 330
 
 uniform sampler2D uAtlas;
 uniform vec4 uColor;
-
-const float gamma = 1.8f;
 
 in VertexData {
   vec2 uv;
@@ -148,12 +161,12 @@ in VertexData {
 out vec4 color;
 
 void main() {
-  float a = texture(uAtlas, input.uv).r;
-  
-  color = uColor * pow(a, 1.0/gamma);
+  color = uColor * sampleFontAtlas(uAtlas, input.uv);
 }
 
 )FRAG";
+
+unsigned atlas_id = 0;
 
 std::unique_ptr<pFt> p;
 std::unique_ptr<gx::Program> font_program;
@@ -166,7 +179,8 @@ const gx::VertexFormat pFt::fmt =
 const static auto pipeline =
   gx::Pipeline()
     .currentScissor()
-    .alphaBlend();
+    .alphaBlend()
+    .primitiveRestart(0xFFFF);
 
 void init()
 {
@@ -174,14 +188,22 @@ void init()
   assert(!err && "FreeType init error!");
 
   p = std::make_unique<pFt>();
+
+  p->buf.label("FT_vertex");
+  p->vtx.label("FT_vertex_array");
+
+  p->ind.label("FT_index");
+
   p->buf.init(sizeof(Vertex)*4, pFt::NumBufferChars);
   p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
 
   gx::Shader vtx(gx::Shader::Vertex, vs_src);
-  gx::Shader frag(gx::Shader::Fragment, fs_src);
+  gx::Shader frag(gx::Shader::Fragment, { Font::frag_shader, fs_src });
 
   font_program = std::make_unique<gx::Program>(vtx, frag);
   font_program->getUniformsLocations(U::font);
+  
+  font_program->label("FT_program");
 }
 
 void finalize()
@@ -245,13 +267,35 @@ String Font::string(const char *str) const
 {
   auto length = strlen(str);
 
+  unsigned ptr = p->alloc(length); // Simple free list alloator
+  assert(ptr != pFt::Error && "no more space in string vertex buffer!");
+
+  std::vector<Vertex> vtx(length*NumCharVerts);
+  std::vector<u16> inds(length*NumCharIndices);
+
+  StridePtr<Position> pos(&vtx.data()->pos, sizeof(Vertex));
+  StridePtr<UV> uv(&vtx.data()->uv, sizeof(Vertex));
+
+  auto s = writeVertsAndIndices(str, pos, uv, inds.data());
+
+  s->base = ptr*NumCharVerts; s->offset = ptr*NumCharIndices;
+
+  p->buf.upload(vtx.data(), ptr*NumCharVerts, vtx.size());
+  p->ind.upload(inds.data(), ptr*NumCharIndices, inds.size());
+
+  return s;
+}
+
+String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 * inds) const
+{
+  auto make_pos = [](auto x, auto y) -> Position
+  {
+    return{ (i16)x, (i16)y };
+  };
+
   FT_Face face = *m;
 
-  std::vector<Vertex> verts;
-  std::vector<u16> indices;
-
-  verts.reserve(4*length);
-  indices.reserve(6*length);
+  unsigned num_chars = 0;
 
   const char *begin = str;
   FT_Vector pen = { 0, 0 };
@@ -287,27 +331,22 @@ String Font::string(const char *str) const
     }
 #endif
 
-    auto base = verts.size();
+    unsigned base = num_chars*NumCharVerts;
 
-    verts.push_back({
-      { x, y },
-      g.uvs[0]
-    }); 
-    verts.push_back({
-      { x, y+g.height },
-      g.uvs[1]
-    });
-    verts.push_back({
-      { x+g.width, y },
-      g.uvs[2]
-    });
-    verts.push_back({
-      { x+g.width, y+g.height },
-      g.uvs[3]
-    });
+    *pos++ = make_pos(x, y);
+    *pos++ = make_pos(x, y+g.height);
+    *pos++ = make_pos(x+g.width, y);
+    *pos++ = make_pos(x+g.width, y+g.height);
+    *uv++ = g.uvs[0];
+    *uv++ = g.uvs[1];
+    *uv++ = g.uvs[2];
+    *uv++ = g.uvs[3];
 
-    indices.push_back(base+0); indices.push_back(base+1); indices.push_back(base+2);
-    indices.push_back(base+2); indices.push_back(base+1); indices.push_back(base+3);
+    *inds++ = base+0; *inds++ = base+1;
+    *inds++ = base+3; *inds++ = base+2;
+    *inds++ = 0xFFFF;
+
+    num_chars++;
 
     pen.x += g.advance.x;
     pen.y += g.advance.y;
@@ -321,14 +360,7 @@ String Font::string(const char *str) const
 
   s->m = face;
 
-  unsigned ptr = p->alloc(length); // Simple free list alloator
-  assert(ptr != pFt::Error && "no more space in string vertex buffer!");
-  
-  p->buf.upload(verts.data(), ptr*4, verts.size());
-  p->ind.upload(indices.data(), ptr*6, indices.size());
-
-  s->base = ptr*4; s->offset = ptr*6;
-  s->num = indices.size();
+  s->num = num_chars*NumCharIndices;
 
   s->width = std::max(pen.x / (float)(1<<16), width);
   s->height = (pen.y / (float)(1<<16)) + height();
@@ -341,18 +373,17 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
   pString *p_str = str.get();
   assert(p_str->m == *m && "Drawing string with wrong Font!");
 
-  gx::tex_unit(pFt::TexImageUnit, m_atlas, m_sampler);
-
   mat4 mvp = xform::ortho(0.0f, 0.0f, 720.0f, 1280.0f, 0.0f, 1.0f)
     *xform::translate(pos.x, pos.y, 0.0f);
 
   gx::ScopedPipeline sp(pipeline);
 
+  bindFontAltas();
   font_program->use()
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
-    .uniformInt(U::font.uAtlas, pFt::TexImageUnit)
+    .uniformInt(U::font.uAtlas, TexImageUnit)
     .uniformVector4(U::font.uColor, color)
-    .drawBaseVertex(gx::Triangles, p->vtx, p->ind, p_str->base, p_str->offset, p_str->num);
+    .drawBaseVertex(gx::TriangleFan, p->vtx, p->ind, p_str->base, p_str->offset, p_str->num);
 }
 
 void Font::draw(const char *str, vec2 pos, vec4 color) const
@@ -396,6 +427,11 @@ float Font::height(const String& str) const
   return str->height;
 }
 
+unsigned Font::num(const String& str) const
+{
+  return str->num;
+}
+
 float Font::ascender() const
 {
   return m->get()->size->metrics.ascender >> 6;
@@ -414,6 +450,11 @@ float Font::height() const
 float Font::bearingY() const
 {
   return m_bearing_y;
+}
+
+void Font::bindFontAltas() const
+{
+  gx::tex_unit(TexImageUnit, m_atlas, m_sampler);
 }
 
 void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
@@ -474,7 +515,10 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   }
 
   // Setup atlas texture and sampler
+  std::string atlas_label = "FT_altas";
+
   m_atlas.init(img.data(), 0, atlas_sz.u, atlas_sz.v, gx::Texture2D::r, gx::Texture2D::u8);
+  m_atlas.label((atlas_label + std::to_string(atlas_id++)).c_str());
 
   m_sampler
     .param(gx::Sampler::MinFilter, gx::Sampler::Linear)

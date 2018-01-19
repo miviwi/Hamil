@@ -13,6 +13,9 @@
 
 namespace win32 {
 
+static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
+                                        GLenum severity, GLsizei length, GLchar *msg, const void *user);
+
 Window::Window(int width, int height)
 {
   WNDCLASSEX wndClass;
@@ -139,10 +142,12 @@ HGLRC Window::ogl_create_context(HWND hWnd)
     ExitProcess(-1);
   }
 
+  int flags = WGL_CONTEXT_DEBUG_BIT_ARB;
+
   int attribs[] = {
     WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
     WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-    WGL_CONTEXT_FLAGS_ARB, 0,
+    WGL_CONTEXT_FLAGS_ARB, flags,
     0
   };
 
@@ -164,6 +169,13 @@ HGLRC Window::ogl_create_context(HWND hWnd)
 
   wglSwapIntervalEXT(0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+#if !defined(NDEBUG)
+  if(!glewIsSupported("GL_KHR_debug")) return context;
+
+  glEnable(GL_DEBUG_OUTPUT);
+  glDebugMessageCallback((GLDEBUGPROC)ogl_debug_callback, nullptr);
+#endif
 
   return context;
 }
@@ -205,6 +217,44 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
   }
 
   return 0;
+}
+
+static char dbg_buf[1024];
+
+static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
+                               GLenum severity, GLsizei length, GLchar *msg, const void *user)
+{
+  const char *source_str = "";
+  switch(source) {
+  case GL_DEBUG_SOURCE_API:             source_str = "GL_API"; break;
+  case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   source_str = "GL_WINDOW_SYSTEM"; break;
+  case GL_DEBUG_SOURCE_SHADER_COMPILER: source_str = "GL_SHADER_COMPILER"; break;
+  case GL_DEBUG_SOURCE_APPLICATION:     source_str = "GL_APPLICATION"; break;
+  case GL_DEBUG_SOURCE_THIRD_PARTY:     source_str = "GL_THIRD_PARTY"; break;
+  case GL_DEBUG_SOURCE_OTHER:           source_str = "GL_OTHER"; break;
+  }
+
+  const char *type_str = "";
+  switch(type) {
+  case GL_DEBUG_TYPE_ERROR:               type_str = "error!"; break;
+  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_str = "deprecated"; break;
+  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  type_str = "undefined!"; break;
+  case GL_DEBUG_TYPE_PORTABILITY:         type_str = "portability"; break;
+  case GL_DEBUG_TYPE_PERFORMANCE:         type_str = "performance"; break;
+  case GL_DEBUG_TYPE_OTHER:               type_str = "other"; break;
+  }
+
+  const char *severity_str = "";
+  switch(severity) {
+  case GL_DEBUG_SEVERITY_HIGH:         severity_str = "HIGH"; break;
+  case GL_DEBUG_SEVERITY_MEDIUM:       severity_str = "MEDIUM"; break;
+  case GL_DEBUG_SEVERITY_LOW:          severity_str = "LOW"; break;
+  case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "NOTIFICATION"; break;
+  }
+
+  sprintf_s(dbg_buf, "%s (%s, %s): %s\n", source_str, severity_str, type_str, msg);
+
+  OutputDebugStringA(dbg_buf);
 }
 
 }

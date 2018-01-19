@@ -32,7 +32,7 @@ private:
   };
 
   State m_state = Default;
-  ft::String m_caption;
+  std::string m_caption;
   OnClick m_on_click;
 };
 

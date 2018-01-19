@@ -18,37 +18,56 @@ namespace ui {
 const vec2 Ui::FramebufferSize = { 1280.0f, 720.0f };
 
 static const char *vs_src = R"VTX(
-#version 330
 
-uniform mat4 uProjection;
+uniform mat4 uModelViewProjection;
+
+uniform bool uText;
 
 const float fixed_factor = 1.0 / float(1<<4);
 
 layout(location = 0) in vec2 iPos;
 layout(location = 1) in vec4 iColor;
+layout(location = 2) in vec2 iUV;
 
 out VertexData {
   vec4 color;
+  vec2 uv;
 } output;
 
 void main() {
+  vec2 pos = iPos;
+  if(!uText) pos *= fixed_factor;
+
+  output.uv = iUV;
   output.color = iColor;
-  gl_Position = uProjection * vec4(iPos * fixed_factor, 0.0f, 1.0f);
+
+  gl_Position = uModelViewProjection * vec4(pos, 0, 1);
 }
 
 )VTX";
 
 static const char *fs_src = R"FRAG(
-#version 330
+
+uniform sampler2D uFontAtlas;
+
+uniform bool uText;
+uniform vec4 uTextColor;
 
 in VertexData {
   vec4 color;
+  vec2 uv;
 } input;
 
 out vec4 color;
 
 void main() {
-  color = input.color;
+  vec4 font_sample = sampleFontAtlas(uFontAtlas, input.uv);
+
+  if(uText) {
+    color = uTextColor * font_sample;
+  } else {
+    color = input.color;
+  }
 }
 
 )FRAG";
@@ -58,7 +77,7 @@ std::unique_ptr<gx::Program> ui_program;
 void init()
 {
   gx::Shader vtx(gx::Shader::Vertex, vs_src);
-  gx::Shader frag(gx::Shader::Fragment, fs_src);
+  gx::Shader frag(gx::Shader::Fragment, { ft::Font::frag_shader, fs_src });
 
   ui_program = std::make_unique<gx::Program>(vtx, frag);
   ui_program->getUniformsLocations(U::ui);
@@ -73,6 +92,17 @@ Ui::Ui(Geometry geom, const Style& style) :
   m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx),
   m_ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
 {
+  enum {
+    NumBufferElements = 256*1024
+  };
+
+  m_vtx.label("UI_vertex");
+  m_vtx_array.label("UI_vertex_array");
+
+  m_ind.label("UI_index");
+
+  m_vtx.init(sizeof(Vertex), NumBufferElements);
+  m_ind.init(sizeof(u16), NumBufferElements);
 }
 
 Ui::~Ui()
@@ -133,8 +163,8 @@ void Ui::paint()
     m_painter = VertexPainter();
     for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
 
-    m_vtx.init(m_painter.vertices(), m_painter.numVertices());
-    m_ind.init(m_painter.indices(), m_painter.numIndices());
+    m_vtx.upload(m_painter.vertices(), 0, m_painter.numVertices());
+    m_ind.upload(m_painter.indices(), 0, m_painter.numIndices());
   }
 
   auto projection = xform::ortho(0, 0, Ui::FramebufferSize.y, Ui::FramebufferSize.x, 0.0f, 1.0f);
@@ -144,12 +174,20 @@ void Ui::paint()
     switch(cmd.type) {
     case VertexPainter::Primitive:
       ui_program->use()
-        .uniformMatrix4x4(U::ui.uProjection, projection)
-        .draw(cmd.p, m_vtx_array, m_ind, cmd.offset, cmd.num);
+        .uniformMatrix4x4(U::ui.uModelViewProjection, projection)
+        .uniformBool(U::ui.uText, false)
+        .uniformVector4(U::ui.uTextColor, { 0, 0, 0, 0 })
+        .drawBaseVertex(cmd.p, m_vtx_array, m_ind, cmd.base, cmd.offset, cmd.num);
       break;
 
     case VertexPainter::Text:
-      cmd.font->draw(cmd.str, cmd.pos, cmd.color);
+      cmd.font->bindFontAltas();
+      ui_program->use()
+        .uniformMatrix4x4(U::ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
+        .uniformBool(U::ui.uText, true)
+        .uniformInt(U::ui.uFontAtlas, ft::TexImageUnit)
+        .uniformVector4(U::ui.uTextColor, cmd.color.normalize())
+        .drawBaseVertex(cmd.p, m_vtx_array, m_ind, cmd.base, cmd.offset, cmd.num);
       break;
 
     case VertexPainter::Pipeline:
