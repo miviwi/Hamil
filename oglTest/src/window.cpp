@@ -16,7 +16,8 @@ namespace win32 {
 static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
                                         GLenum severity, GLsizei length, GLchar *msg, const void *user);
 
-Window::Window(int width, int height)
+Window::Window(int width, int height) :
+  m_width(width), m_height(height)
 {
   WNDCLASSEX wndClass;
   auto ptr = (unsigned char *)&wndClass;
@@ -34,7 +35,6 @@ Window::Window(int width, int height)
   wndClass.lpszClassName = wnd_class_name();
 
   ATOM atom = RegisterClassEx(&wndClass);
-
   assert(atom && "failed to register window class!");
 
   RECT rc = { 0, 0, width, height };
@@ -43,7 +43,6 @@ Window::Window(int width, int height)
   m_hwnd = CreateWindow(wnd_class_name(), wnd_name(), WS_CAPTION|WS_SYSMENU,
                       CW_USEDEFAULT, CW_USEDEFAULT, rc.right-rc.left, rc.bottom-rc.top,
                       nullptr, nullptr, hInstance, 0);
-
   assert(m_hwnd && "failed to create window!");
 
   ShowWindow(m_hwnd, SW_SHOW);
@@ -80,31 +79,30 @@ void Window::setMouseSpeed(float speed)
 
 void Window::captureMouse()
 {
-  RECT rc;
-  POINT pt = { 0, 0 };
-
-  ClientToScreen(m_hwnd, &pt);
-  GetClientRect(m_hwnd, &rc);
-
-  SetCursorPos(pt.x, pt.y);
-
-  rc.top += pt.y; rc.bottom += pt.y;
-  rc.left += pt.x; rc.right += pt.x;
-  ClipCursor(&rc);
+  SetCapture(m_hwnd);
+  resetMouse();
 
   while(ShowCursor(FALSE) >= 0);
 }
 
 void Window::releaseMouse()
 {
-  ClipCursor(nullptr);
+  ReleaseCapture();
 
   while(ShowCursor(TRUE) < 0);
 }
 
+void Window::resetMouse()
+{
+  POINT pt = { 0, 0 };
+
+  ClientToScreen(m_hwnd, &pt);
+  SetCursorPos(pt.x + (m_width/2), pt.y + (m_height/2));
+}
+
 void Window::quit()
 {
-  PostQuitMessage(0);
+  PostMessage(m_hwnd, WM_CLOSE, 0, 0);
 }
 
 HGLRC Window::ogl_create_context(HWND hWnd)
@@ -142,6 +140,12 @@ HGLRC Window::ogl_create_context(HWND hWnd)
     ExitProcess(-1);
   }
 
+  auto version_error = []()
+  {
+    MessageBoxA(nullptr, "OpenGL version >= 3.3 required!", "Fatal Error", MB_OK);
+    ExitProcess(-1);
+  };
+
   int flags = WGL_CONTEXT_DEBUG_BIT_ARB;
 
   int attribs[] = {
@@ -151,16 +155,10 @@ HGLRC Window::ogl_create_context(HWND hWnd)
     0
   };
 
-  if(!wglewIsSupported("WGL_ARB_create_context")) {
-    MessageBoxA(nullptr, "OpenGL version >= 3.3 required!", "Fatal Error", MB_OK);
-    ExitProcess(-1);
-  }
+  if(!wglewIsSupported("WGL_ARB_create_context")) version_error();
 
   HGLRC context = wglCreateContextAttribsARB(hdc, nullptr, attribs);
-  if(!context) {
-    MessageBoxA(nullptr, "OpenGL version >= 3.3 required!", "Fatal Error", MB_OK);
-    ExitProcess(-1);
-  }
+  if(!context) version_error();
 
   wglMakeCurrent(nullptr, nullptr);
   wglDeleteContext(temp_context);
@@ -171,7 +169,10 @@ HGLRC Window::ogl_create_context(HWND hWnd)
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 #if !defined(NDEBUG)
-  if(!glewIsSupported("GL_KHR_debug")) return context;
+  if(!glewIsSupported("GL_KHR_debug")) {
+    MessageBoxA(nullptr, "GL_KHR_debug not supported!", "Fatal Error", MB_OK);
+    ExitProcess(-3);
+  }
 
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback((GLDEBUGPROC)ogl_debug_callback, nullptr);
@@ -198,6 +199,7 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 
   case WM_INPUT:
     self->m_input_man.process((void *)lparam);
+    self->resetMouse();
     return 0;
 
   case WM_SETFOCUS:
@@ -210,7 +212,7 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
     return 0;
 
   case WM_DESTROY:
-    self->quit();
+    PostQuitMessage(0);
     return 0;
 
   default: return DefWindowProc(hWnd, uMsg, wparam, lparam);

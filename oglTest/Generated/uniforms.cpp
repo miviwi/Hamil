@@ -30,8 +30,8 @@ const std::array<Location, 3> program_klass::offsets = {
 ui_klass ui;
 const std::array<Location, 4> ui_klass::offsets = {
   Location{ "uModelViewProjection", 0 },
-  Location{ "uFontAtlas", 1 },
-  Location{ "uText", 2 },
+  Location{ "uType", 1 },
+  Location{ "uFontAtlas", 2 },
   Location{ "uTextColor", 3 },
 };
 

@@ -21,6 +21,8 @@ public:
   virtual bool input(ivec2 mouse_pos, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
+  virtual void losingCapture();
+
   ButtonFrame& caption(std::string caption);
   ButtonFrame& onClick(OnClick::Slot on_click);
 

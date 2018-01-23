@@ -28,10 +28,10 @@ public:
   Frame& gravity(Gravity gravity);
   Gravity gravity() const;
 
+  virtual void losingCapture();
+
 protected:
   friend class Ui;
-
-  bool mouseWillLeave(ivec2 mouse_pos, const win32::Mouse *mouse);
 
   Ui *m_ui;
 

@@ -25,6 +25,7 @@ struct Vertex {
 
   Vertex();
   Vertex(vec2 pos_, Color color_);
+  Vertex(Position pos_, Color color_);
 };
 
 // TODO:
@@ -41,14 +42,20 @@ public:
   struct Command {
     CommandType type;
 
-    gx::Primitive p;
-    size_t base, offset;
-    size_t num;
+    union {
+      struct {
+        gx::Primitive p;
+        size_t base, offset;
+        size_t num;
 
-    ft::Font *font;
-    vec2 pos; Color color;
+        ft::Font *font;
+        vec2 pos; Color color;
+      };
 
-    gx::Pipeline pipel;
+      gx::Pipeline pipeline;
+    };
+
+    Command() : pipeline() { }
 
     static Command primitive(gx::Primitive prim, size_t base, size_t offset, size_t num)
     {
@@ -75,11 +82,11 @@ public:
       return c;
     }
 
-    static Command pipeline(const gx::Pipeline& pipeline)
+    static Command switch_pipeline(const gx::Pipeline& pipeline)
     {
       Command c;
       c.type = Pipeline;
-      c.pipel = pipeline;
+      c.pipeline = pipeline;
 
       return c;
     }
@@ -123,6 +130,7 @@ public:
   VertexPainter& arcFull(vec2 pos, float radius, Color c);
   VertexPainter& roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b);
   VertexPainter& roundedBorder(Geometry g, float radius, unsigned corners, Color c);
+  VertexPainter& triangle(vec2 pos, float h, float angle, Color c);
 
   VertexPainter& text(ft::Font& font, const std::string& str, vec2 pos, Color c);
   VertexPainter& textCentered(ft::Font& font, const std::string& str, Geometry g, Color c);

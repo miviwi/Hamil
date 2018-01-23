@@ -8,6 +8,8 @@
 
 namespace gx {
 
+static void setDefaultParameters(GLenum target);
+
 Texture2D::Texture2D(Format format) :
   m_format(format), m_samples(0)
 {
@@ -23,6 +25,8 @@ void Texture2D::init(unsigned w, unsigned h)
 {
   glBindTexture(GL_TEXTURE_2D, m);
   glTexImage2D(GL_TEXTURE_2D, 0, internalformat(m_format), w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+  setDefaultParameters(GL_TEXTURE_2D);
 }
 
 void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
@@ -39,6 +43,8 @@ void Texture2D::init(void *data, unsigned mip, unsigned w, unsigned h, Format fo
 
   glBindTexture(GL_TEXTURE_2D, m);
   glTexImage2D(GL_TEXTURE_2D, mip, internalformat(m_format), w, h, 0, internalformat(format), type(t), data);
+
+  setDefaultParameters(GL_TEXTURE_2D);
 }
 
 void Texture2D::upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h, Format format, Type t)
@@ -144,18 +150,21 @@ GLenum Sampler::param(Param p)
   return table[p];
 }
 
-static struct {
-  GLuint tex, sampler;
-} p_bound_units[256] = { 0u };
-
 void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
 {
-  if(p_bound_units[idx].sampler != sampler.m) glBindSampler(idx, sampler.m);
+  glBindSampler(idx, sampler.m);
 
-  if(p_bound_units[idx].tex != tex.m) {
-    glActiveTexture(GL_TEXTURE0+idx);
-    glBindTexture(GL_TEXTURE_2D, tex.m);
-  }
+  glActiveTexture(GL_TEXTURE0+idx);
+  glBindTexture(GL_TEXTURE_2D, tex.m);
+}
+
+static void setDefaultParameters(GLenum target)
+{
+  glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
 }

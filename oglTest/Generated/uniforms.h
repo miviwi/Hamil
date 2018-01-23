@@ -52,8 +52,8 @@ extern program_klass program;
 struct ui_klass {
   union { struct {
     int uModelViewProjection;
+    int uType;
     int uFontAtlas;
-    int uText;
     int uTextColor;
     };
 

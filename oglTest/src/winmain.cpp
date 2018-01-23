@@ -12,6 +12,7 @@
 #include "ui/frame.h"
 #include "ui/layout.h"
 #include "ui/button.h"
+#include "ui/slider.h"
 
 #include <GL/glew.h>
 
@@ -225,6 +226,8 @@ void main() {
   program.getUniformsLocations(U::program);
   cursor_program.getUniformsLocations(U::cursor);
 
+  cursor_program.label("CURSOR_program");
+
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
     .depthTest(gx::Pipeline::LessEqual)
@@ -313,16 +316,20 @@ void main() {
   style.button.color[0] = color_b; style.button.color[1] = color_b.lighten(10);
   style.button.radius = 3.0f;
   style.button.margin = 1;
+  
+  style.slider.color[0] = color_b; style.slider.color[1] = color_b.lighten(10);
+  style.slider.width = 10.0f;
 
   ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
 
-  auto playout = new ui::StackLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 160.0f, 450.0f });
+  auto playout = new ui::StackLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 160.0f, 490.0f });
   auto& layout = *playout;
   
   layout
     .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, style.font->height()+20 })
     .frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, style.font->height()+20 })
     .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, style.font->height()+20 })
+    .frame<ui::HSliderFrame>(iface, "d", ui::Geometry{ 0, style.font->height()+20 })
     ;
 
   auto btn_a = iface.getFrameByName<ui::ButtonFrame>("a"),
@@ -340,6 +347,13 @@ void main() {
 
   btn_c->click().connect([&](auto target) {
     display_tex_matrix = !display_tex_matrix;
+  });
+
+  float front_cube_y = 3.0f;
+  auto slider = iface.getFrameByName<ui::HSliderFrame>("d");
+
+  slider->range(0.0f, 6.0f).value(front_cube_y).onChange([&](auto target) {
+    front_cube_y = target->value();
   });
 
   iface
@@ -462,7 +476,7 @@ void main() {
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
     //modelview = xform::roty(PI/4.0f);
 
-    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f };
+    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f*zoom };
     /*
     if(anim_factor < 1.0f) {
       eye.x = lerp(-30.0f, 30.0f, anim_factor);
@@ -532,7 +546,11 @@ void main() {
 
     modelview = xform::identity()
       *view
-      *xform::translate(0.0f, sin((float)time/1000.0f * PI)+1.0f, 0.0f)
+      *xform::translate(0.0f, front_cube_y, 0.0f)
+      *xform::translate(0.0f, 0.0f, -1.0f)
+      *xform::rotx(lerp(0.0f, PIf, anim_factor))*0.5f
+      *xform::roty(lerp(0.0f, PIf, anim_factor))
+      *xform::translate(0.0f, 0.0f, 1.0f)
       //*xform::translate(0.0f, 0.0f, -30.0f)
       ;
     drawcube();

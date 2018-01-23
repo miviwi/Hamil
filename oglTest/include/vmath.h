@@ -46,6 +46,13 @@ struct Vector2 {
     return Vector2{ x/l, y/l };
   }
 
+  T distance(Vector2 v) const
+  {
+    Vector2 d = v - *this;
+
+    return sqrt(d.x*d.x + d.y*d.y);
+  };
+
   operator float *() { return (float *)this; }
 };
 

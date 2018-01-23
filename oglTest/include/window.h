@@ -29,6 +29,7 @@ public:
 
   void captureMouse();
   void releaseMouse();
+  void resetMouse();
 
   void quit();
 
@@ -38,6 +39,7 @@ private:
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam);
 
   HWND m_hwnd;
+  int m_width, m_height;
 
   InputDeviceManager m_input_man;
 };

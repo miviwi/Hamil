@@ -15,9 +15,16 @@ ButtonFrame::~ButtonFrame()
 
 bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
 {
-  if(!m_geom.intersect(mouse_pos)) return m_state = Default;
+  bool mouse_inside = m_geom.intersect(mouse_pos);
+  if(!mouse_inside && m_state != Pressed) {
+    m_ui->capture(nullptr);
+    return m_state = Default;
+  }
 
-  if(m_state == Default) m_state = Hover;
+  if(m_state == Default) {
+    m_state = Hover;
+    m_ui->capture(this);
+  }
 
   if(input->getTag() != win32::Mouse::tag()) return false;
 
@@ -26,13 +33,14 @@ bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
   } else if(m_state == Pressed && mouse->buttonUp(Mouse::Left)) {
-    m_state = Hover;
+    if(mouse_inside) {
+      m_state = Hover;
 
-    m_on_click.emit(this);
-  } else if(mouse->event == Mouse::Move) {
-    if(mouseWillLeave(mouse_pos, mouse)) m_state = Default;
-
-    return false;
+      m_on_click.emit(this);
+    } else {
+      m_state = Default;
+      m_ui->capture(nullptr);
+    }
   }
 
   return true;
@@ -41,9 +49,11 @@ bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
 void ButtonFrame::paint(VertexPainter& painter, Geometry parent)
 {
   const Style& style = m_ui->style();
-  Geometry g = parent.clip(m_geom).contract(style.button.margin);
+  const auto& button = style.button;
 
-  auto half_luminance = style.button.color[1].luminance().r / 2;
+  Geometry g = parent.clip(m_geom).contract(button.margin);
+
+  auto half_luminance = button.color[1].luminance().r / 2;
 
   byte factor = 0;
   switch(m_state) {
@@ -53,8 +63,8 @@ void ButtonFrame::paint(VertexPainter& painter, Geometry parent)
   }
 
   Color color[] = {
-    style.button.color[0].lighten(factor),
-    style.button.color[1].lighten(factor),
+    button.color[0].lighten(factor),
+    button.color[1].lighten(factor),
   };
 
   Geometry highlight_g = {
@@ -70,11 +80,16 @@ void ButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .roundedRect(g, style.button.radius, VertexPainter::All, color[0], color[0])
-    .roundedRect(highlight_g, style.button.radius, VertexPainter::All, color[1], color[1])
-    .roundedBorder(g, style.button.radius, VertexPainter::All, black())
+    .roundedRect(g, button.radius, VertexPainter::All, color[0], color[0])
+    .roundedRect(highlight_g, button.radius, VertexPainter::All, color[1], color[1])
+    .roundedBorder(g, button.radius, VertexPainter::All, black())
     .textCentered(*style.font, m_caption, g, white())
     ;
+}
+
+void ButtonFrame::losingCapture()
+{
+  m_state = Default;
 }
 
 ButtonFrame& ButtonFrame::caption(std::string caption)

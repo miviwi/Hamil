@@ -28,6 +28,11 @@ struct Style {
     float margin;
   } button;
 
+  struct {
+    Color color[2];
+    float width;
+  } slider;
+
   Style() { memset(this, 0, sizeof(*this)); }
 };
 

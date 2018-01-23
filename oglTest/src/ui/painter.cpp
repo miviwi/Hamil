@@ -23,6 +23,11 @@ Vertex::Vertex(vec2 pos_, Color color_) :
 {
 }
 
+Vertex::Vertex(Position pos_, Color color_) :
+  pos(pos_), color(color_)
+{
+}
+
 VertexPainter::VertexPainter()
 {
   m_buf.reserve(InitialBufferReserve);
@@ -256,7 +261,7 @@ VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
   appendVertices({ { pos, b } });
 
   float angle = start_angle;
-  float step = (end_angle - start_angle)/radius;
+  float step = (end_angle - start_angle)/(2.0f*radius);
   unsigned num_verts = 0;
   while(angle <= end_angle) {
     appendVertices({ {point(angle), a } });
@@ -460,6 +465,49 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   return *this;
 }
 
+const float sqrt3 = sqrtf(3.0f);
+
+VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color color)
+{
+  unsigned offset = m_ind.size();
+
+  float s = sinf(angle);
+  float c = cosf(angle);
+
+  float a = 2.0f*h/sqrt3;
+  float R = 2.0f*h/3.0f;
+  float dx = a/2.0f;
+
+  // Center at origin
+  vec2 verts[3] = {
+    { 0,   -R     },
+    { dx,  R/2.0f },
+    { -dx, R/2.0f },
+  };
+
+  // Rotate
+  for(auto& v : verts) {
+    v = {
+      v.x*c - v.y*s,
+      v.x*s + v.y*c
+    };
+  }
+
+  appendVertices({
+    { verts[0]+pos, color },
+    { verts[1]+pos, color },
+    { verts[2]+pos, color },
+  });
+
+  appendCommand(Command::primitive(
+    gx::TriangleFan,
+    0, offset,
+    3
+  ));
+
+  return *this;
+}
+
 ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& str)
 {
   unsigned base = m_buf.size();
@@ -525,7 +573,7 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
 
 VertexPainter& VertexPainter::pipeline(const gx::Pipeline& pipeline)
 {
-  m_commands.push_back(Command::pipeline(pipeline));
+  m_commands.push_back(Command::switch_pipeline(pipeline));
 
   return *this;
 }

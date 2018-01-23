@@ -96,8 +96,10 @@ void Framebuffer::blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Par
 
   GLenum f = -1;
   switch(filter) {
-  case Sampler::Nearest: f = GL_NEAREST;
-  case Sampler::Linear:  f = GL_LINEAR;
+  case Sampler::Nearest: f = GL_NEAREST; break;
+  case Sampler::Linear:  f = GL_LINEAR; break;
+
+  default: f = GL_LINEAR; break;
   }
 
   glBlitFramebuffer(src.x, src.y, src.z, src.w, dst.x, dst.y, dst.z, dst.w, mask, f);

@@ -136,15 +136,15 @@ void main() {
 )VTX";
 
 const char *Font::frag_shader = R"FRAG(
-const float gamma = 1.8f;
+const float font_gamma = 1.8f;
 
 vec4 sampleFontAtlas(in sampler2D atlas, vec2 uv)
 {
   ivec2 atlas_sz = textureSize(atlas, 0);
   float a = texture(atlas, uv / atlas_sz).r;
-  a = pow(a, 1.0f/gamma);
+  a = pow(a, 1.0f/font_gamma);
 
-  return vec4(a, a, a, a);
+  return vec4(a);
 }
 
 )FRAG";
@@ -180,7 +180,7 @@ const static auto pipeline =
   gx::Pipeline()
     .currentScissor()
     .alphaBlend()
-    .primitiveRestart(0xFFFF);
+    .primitiveRestart(PrimitiveRestartIndex);
 
 void init()
 {
@@ -286,7 +286,7 @@ String Font::string(const char *str) const
   return s;
 }
 
-String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 * inds) const
+String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const
 {
   auto make_pos = [](auto x, auto y) -> Position
   {
@@ -344,7 +344,7 @@ String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, Stri
 
     *inds++ = base+0; *inds++ = base+1;
     *inds++ = base+3; *inds++ = base+2;
-    *inds++ = 0xFFFF;
+    *inds++ = PrimitiveRestartIndex;
 
     num_chars++;
 
@@ -360,6 +360,7 @@ String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, Stri
 
   s->m = face;
 
+  s->base = s->offset = ~0u;
   s->num = num_chars*NumCharIndices;
 
   s->width = std::max(pen.x / (float)(1<<16), width);
@@ -586,9 +587,9 @@ unsigned pFt::alloc(unsigned num_chars)
 
     unsigned ret = iter->first,
       leftover = iter->second-num_chars;
-    free_list.erase(iter);
 
-    if(leftover) free_list.push_front({ ret+num_chars, leftover });
+    free_list.erase(iter);
+    if(leftover > 0) free_list.push_front({ ret+num_chars, leftover });
 
     return ret;
   }
@@ -678,7 +679,7 @@ pString::pString()
 
 pString::~pString()
 {
-  p->dealloc(base/4, num);
+  if(base != ~0u) p->dealloc(base/4, num);
 }
 
 static const std::unordered_map<std::string, std::string> family_to_path = {

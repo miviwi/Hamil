@@ -17,11 +17,24 @@ namespace ui {
 
 const vec2 Ui::FramebufferSize = { 1280.0f, 720.0f };
 
+static const char *shader_uType_defs = R"DEFS(
+
+const int TypeShape = 0;
+const int TypeText  = 1;
+
+)DEFS";
+
+// Must be kept in sync with GLSL!!
+enum Shader_uType {
+  Shader_TypeShape = 0,
+  Shader_TypeText  = 1,
+};
+
 static const char *vs_src = R"VTX(
 
 uniform mat4 uModelViewProjection;
 
-uniform bool uText;
+uniform int uType;
 
 const float fixed_factor = 1.0 / float(1<<4);
 
@@ -36,7 +49,7 @@ out VertexData {
 
 void main() {
   vec2 pos = iPos;
-  if(!uText) pos *= fixed_factor;
+  if(uType != TypeText) pos *= fixed_factor;
 
   output.uv = iUV;
   output.color = iColor;
@@ -50,7 +63,7 @@ static const char *fs_src = R"FRAG(
 
 uniform sampler2D uFontAtlas;
 
-uniform bool uText;
+uniform int uType;
 uniform vec4 uTextColor;
 
 in VertexData {
@@ -63,10 +76,11 @@ out vec4 color;
 void main() {
   vec4 font_sample = sampleFontAtlas(uFontAtlas, input.uv);
 
-  if(uText) {
-    color = uTextColor * font_sample;
-  } else {
-    color = input.color;
+  switch(uType) {
+    case TypeText:  color = uTextColor * font_sample; break;
+    case TypeShape: color = input.color; break;
+
+    default: break;
   }
 }
 
@@ -76,11 +90,13 @@ std::unique_ptr<gx::Program> ui_program;
 
 void init()
 {
-  gx::Shader vtx(gx::Shader::Vertex, vs_src);
-  gx::Shader frag(gx::Shader::Fragment, { ft::Font::frag_shader, fs_src });
+  gx::Shader vtx(gx::Shader::Vertex, { shader_uType_defs, vs_src });
+  gx::Shader frag(gx::Shader::Fragment, { ft::Font::frag_shader, shader_uType_defs, fs_src });
 
   ui_program = std::make_unique<gx::Program>(vtx, frag);
   ui_program->getUniformsLocations(U::ui);
+  
+  ui_program->label("UI_program");
 }
 
 void finalize()
@@ -89,6 +105,7 @@ void finalize()
 
 Ui::Ui(Geometry geom, const Style& style) :
   m_geom(geom), m_style(style), m_repaint(true),
+  m_capture(nullptr),
   m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx),
   m_ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
 {
@@ -145,6 +162,8 @@ bool Ui::input(ivec2 mouse_pos, const InputPtr& input)
 {
   if(!m_geom.intersect(mouse_pos)) return false;
 
+  if(m_capture) return m_capture->input(mouse_pos, input);
+
   for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
     const auto& frame = *iter;
     if(frame->input(mouse_pos, input)) return true;
@@ -175,7 +194,7 @@ void Ui::paint()
     case VertexPainter::Primitive:
       ui_program->use()
         .uniformMatrix4x4(U::ui.uModelViewProjection, projection)
-        .uniformBool(U::ui.uText, false)
+        .uniformInt(U::ui.uType, Shader_TypeShape)
         .uniformVector4(U::ui.uTextColor, { 0, 0, 0, 0 })
         .drawBaseVertex(cmd.p, m_vtx_array, m_ind, cmd.base, cmd.offset, cmd.num);
       break;
@@ -184,14 +203,14 @@ void Ui::paint()
       cmd.font->bindFontAltas();
       ui_program->use()
         .uniformMatrix4x4(U::ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
-        .uniformBool(U::ui.uText, true)
+        .uniformInt(U::ui.uType, Shader_TypeText)
         .uniformInt(U::ui.uFontAtlas, ft::TexImageUnit)
         .uniformVector4(U::ui.uTextColor, cmd.color.normalize())
         .drawBaseVertex(cmd.p, m_vtx_array, m_ind, cmd.base, cmd.offset, cmd.num);
       break;
 
     case VertexPainter::Pipeline:
-      cmd.pipel.use();
+      cmd.pipeline.use();
 
       break;
 
@@ -200,6 +219,13 @@ void Ui::paint()
   });
 
   pipeline.use();
+}
+
+void Ui::capture(Frame *frame)
+{
+  if(frame && m_capture) m_capture->losingCapture();
+
+  m_capture = frame;
 }
 
 }

@@ -72,10 +72,8 @@ Frame::Gravity Frame::gravity() const
   return m_gravity;
 }
 
-bool Frame::mouseWillLeave(ivec2 mouse_pos, const win32::Mouse *mouse)
+void Frame::losingCapture()
 {
-  mouse_pos += ivec2{ (int)mouse->dx, (int)mouse->dy };
-  return !m_geom.intersect(mouse_pos);
 }
 
 void Frame::paint(VertexPainter& painter, Geometry parent)
@@ -126,6 +124,13 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     .primitiveRestart(0xFFFF)
     ;
 
+  auto alpha = (byte)((sin(angle*2.0f)+1.0f)/2.0f*255.0f);
+
+  vec2 xo = { c.x + sin(angle)*30.0f, c.y };
+  float xr = 10.0f;
+
+  Color slider_color = style.button.color[0].luminance();
+
   painter
     .pipeline(pipeline)
     .rect(g, style.bg.color)
@@ -135,16 +140,20 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     //        style.font->width(style.font->string(title)),
     //        style.font->height(style.font->string(title)) }, white())
     //.circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
-    .line(c+line_delta, c-line_delta, 16, VertexPainter::CapRound, { 0, 20, 80 }, { 0, 20, 80 })
-    .line(c+line_delta, c-line_delta, 8, VertexPainter::CapRound, { 20, 20, 100 }, { 20, 20, 100 })
-    .lineBorder(c+line_delta, c-line_delta, 16-1, VertexPainter::CapRound, black(), black())
-    .circle({ c.x-45.0f, c.y }, 13, style.bg.color[0])
-    .circle({ c.x-45.0f, c.y }, 19, transparent(), style.bg.color[1])
-    .arcFull({ c.x-45.0f, c.y }, 13, black())
+    .line(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10, VertexPainter::CapRound, slider_color, slider_color)
+    .lineBorder(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10-1, VertexPainter::CapRound, black(), black())
+    .circle({ c.x-40.0f, c.y }, 10, style.button.color[0])
+    .circle({ c.x-40.0f, c.y-3.0f }, 6, style.button.color[1])
+    .arcFull({ c.x-40.0f, c.y }, 10, black())
     //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
     //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
-    .arcFull(circle, radius, { 0, 128, 0, 255 })
-    .text(*style.font.get(), std::to_string(m_countrer).c_str(), circle, { 0, 255, 0 })
+    //.arcFull(circle, radius, { 0, 128, 0, 255 })
+    //.triangle({ c.x, c.y }, 70.0f, angle*1.0f, { 255, 0, 0 })
+    //.triangle({ c.x, c.y }, 60.0f, angle*2.0f, { 0, 255, 0 })
+    //.triangle({ c.x, c.y }, 50.0f, angle*3.0f, { 0, 0, 255 })
+    //.circle(xo+vec2{ xr/2.0f, xr/2.0f }, xr, white())
+    //.line(xo, xo+vec2{ xr, xr }, 3, VertexPainter::CapButt, black(), black())
+    //.line(xo+vec2{ 0.0f, xr }, xo+vec2{ xr, 0.0f }, 3, VertexPainter::CapButt, black(), black())
     ;
 }
 

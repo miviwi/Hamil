@@ -134,6 +134,8 @@ unsigned VertexArray::elemSize() const
 void VertexArray::use() const
 {
   if(p_last_array != m) glBindVertexArray(m);
+
+  p_last_array = m;
 }
 
 void VertexArray::label(const char *lbl)

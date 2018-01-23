@@ -23,6 +23,8 @@ enum {
 
   NumCharVerts = 4,
   NumCharIndices = 5,
+
+  PrimitiveRestartIndex = 0xFFFF,
 };
 
 class pFace;
@@ -52,6 +54,14 @@ public:
   // Must be drawn with the same Font!
   String string(const char *str) const;
 
+  // The returned String can be queried for it's:
+  //     width, height, number of generated indices
+  //
+  // The generated vertices must be drawn as TriangleFans
+  //  with a primitive restart index ft::PrimitiveRestartIndex
+  //  the return value of:
+  //     sampleFontAtlas(samper, uv) 
+  //  should be multiplied with the desired font color
   String writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const;
 
   void draw(const String& str, vec2 pos, vec4 color) const;
@@ -72,6 +82,7 @@ public:
   float height() const;
   float bearingY() const;
 
+  // Defaines sampleFontAtlas
   static const char *frag_shader;
 
   void bindFontAltas() const;

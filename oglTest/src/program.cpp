@@ -53,7 +53,9 @@ Program& Program::use()
 {
   if(p_last_bound == m) return *this;
 
+  p_last_bound = m;
   glUseProgram(m);
+
   return *this;
 }
 
@@ -177,7 +179,7 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
 }
 
 static const char *shader_source[256] = {
-  "#version 330\n\n",
+  "#version 330 core\n\n",
   nullptr,
 };
 
