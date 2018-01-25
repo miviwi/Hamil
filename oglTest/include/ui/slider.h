@@ -35,9 +35,9 @@ protected:
   };
 
   constexpr static float Margin = 0.05f;
-  constexpr static float InnerMargin = 0.08f;
+  constexpr static float InnerMargin = 0.06f;
 
-  virtual double pixelStep() const = 0;
+  virtual double step() const = 0;
   virtual vec2 headPos() const = 0;
 
   double clampedValue(double value);
@@ -61,7 +61,7 @@ private:
   float width() const;
   float innerWidth() const;
 
-  virtual double pixelStep() const;
+  virtual double step() const;
   virtual vec2 headPos() const;
 };
 

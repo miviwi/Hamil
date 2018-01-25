@@ -11,11 +11,11 @@ bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
   bool mouse_inside = m_geom.intersect(mouse_pos);
   if(!mouse_inside && m_state != Pressed) {
     m_ui->capture(nullptr);
-    return m_state = Default;
+    return false;
   }
 
   vec2 m_pos = { (float)mouse_pos.x, (float)mouse_pos.y };
-  bool over_head = headPos().distance(m_pos) < m_ui->style().slider.width;
+  bool over_head = headPos().distance(m_pos) < m_ui->style().slider.width*1.05f;
 
   if(m_state != Pressed) m_state = over_head ? Hover : Default;
 
@@ -24,15 +24,21 @@ bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
   using win32::Mouse;
   auto mouse = (win32::Mouse *)input.get();
   if(mouse->buttonDown(Mouse::Left)) {
-    m_state = Pressed;
-    m_ui->capture(this);
+    if(over_head) {
+      m_state = Pressed;
+      m_ui->capture(this);
+    }
   } else if(mouse->buttonUp(Mouse::Left)) {
-    m_state = Hover;
-    if(!mouse_inside) m_ui->capture(nullptr);
+    if(mouse_inside) {
+      m_state = Hover;
+    } else {
+      m_state = Default;
+      m_ui->capture(nullptr);
+    }
   } 
   
   if(m_state == Pressed && mouse->buttons & Mouse::Left) {
-    m_value += pixelStep()*(double)mouse->dx;
+    m_value += step()*(double)mouse->dx;
     m_value = clampedValue(m_value);
 
     m_on_change.emit(this);
@@ -95,7 +101,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = m_ui->style();
   const auto& slider = style.slider;
 
-  Geometry g = parent.clip(m_geom);
+  Geometry g = m_geom;
 
   float w = width();
   vec2 center = g.center();
@@ -109,11 +115,9 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 
   vec2 head_pos = headPos();
   vec2 limit[2] = {
-    { pos[0].x + w*0.08f, center.y },
-    head_pos,
+    { pos[0].x + w*0.08f - slider.width , center.y },
+    head_pos
   };
-
-  Color value_color = slider.color[1].lighten(slider.color[1].luminance().r);
 
   auto half_luminance = slider.color[1].luminance().r / 2;
 
@@ -124,21 +128,32 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   case Pressed: factor = half_luminance; break;
   }
 
-  Color head_color = slider.color[1].lighten(factor);
+  Color head_color[2] = {
+    slider.color[0].lighten(factor),
+    slider.color[1].lighten(factor),
+  };
+
+  const float highlight_r = slider.width/1.5f;
+  vec2 highlight_pos = {
+    head_pos.x + highlight_r/2.3f,
+    head_pos.y - highlight_r/2.3f
+  };
+
+  Color value_color = slider.color[1].lighten(slider.color[1].luminance().r);
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(Ui::scissor_rect(g))
+    .scissor(Ui::scissor_rect(parent.clip(m_geom)))
     .primitiveRestart(0xFFFF)
     ;
 
   painter
     .pipeline(pipeline)
-    .rect(g, { 0, 0, 0, 80 })
-    .line(pos[0], pos[1], slider.width, VertexPainter::CapRound, slider.color[0], slider.color[0])
+    .line(pos[0], pos[1], slider.width*0.9f, VertexPainter::CapRound, slider.color[0], slider.color[0])
     .line(limit[0], limit[1], slider.width*0.4f, VertexPainter::CapRound, value_color, value_color)
-    .lineBorder(pos[0], pos[1], slider.width, VertexPainter::CapRound, black(), black())
-    .circle(head_pos, slider.width, head_color)
+    .lineBorder(pos[0], pos[1], slider.width*0.9f, VertexPainter::CapRound, black(), black())
+    .circle(head_pos, slider.width, head_color[0])
+    .circle(highlight_pos, highlight_r, head_color[1])
     .arcFull(head_pos, slider.width, black())
     ;
 }
@@ -153,7 +168,7 @@ float HSliderFrame::innerWidth() const
   return width() * (1.0f - 2.0f*InnerMargin);
 }
 
-double HSliderFrame::pixelStep() const
+double HSliderFrame::step() const
 {
   return (m_max-m_min)/(width() * (1 - 2.0f*InnerMargin));
 }

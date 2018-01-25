@@ -95,6 +95,7 @@ public:
 
   FT_Face m;
 
+  size_t allocated;
   unsigned base, offset;
   unsigned num;
 
@@ -263,10 +264,8 @@ Font::~Font()
   delete m;
 }
 
-String Font::string(const char *str) const
+String Font::string(const char *str, size_t length) const
 {
-  auto length = strlen(str);
-
   unsigned ptr = p->alloc(length); // Simple free list alloator
   assert(ptr != pFt::Error && "no more space in string vertex buffer!");
 
@@ -278,12 +277,29 @@ String Font::string(const char *str) const
 
   auto s = writeVertsAndIndices(str, pos, uv, inds.data());
 
+  s->allocated = length;
   s->base = ptr*NumCharVerts; s->offset = ptr*NumCharIndices;
 
   p->buf.upload(vtx.data(), ptr*NumCharVerts, vtx.size());
   p->ind.upload(inds.data(), ptr*NumCharIndices, inds.size());
 
   return s;
+}
+
+String Font::string(const std::string& str) const
+{
+  return string(str.c_str(), str.length());
+}
+
+String Font::string(const char *str) const
+{
+  return string(str, strlen(str));
+}
+
+String Font::stringMetrics(const char *str) const
+{
+  assert(0 && "Font::stringMetrics() not implemented!!");
+  return String();
 }
 
 String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const
@@ -679,7 +695,7 @@ pString::pString()
 
 pString::~pString()
 {
-  if(base != ~0u) p->dealloc(base/4, num);
+  if(base != ~0u) p->dealloc(base/4, allocated);
 }
 
 static const std::unordered_map<std::string, std::string> family_to_path = {

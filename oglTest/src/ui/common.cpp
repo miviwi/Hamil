@@ -15,8 +15,8 @@ Geometry Geometry::clip(const Geometry& g) const
   };
 
   vec2 db = {
-    clamp(gb.x, x, b.x),
-    clamp(gb.y, y, b.y),
+    clamp(gb.x, x, da.x+w),
+    clamp(gb.y, y, da.y+h),
   };
 
   return Geometry{ da.x, da.y, db.x-da.x, db.y-da.y };

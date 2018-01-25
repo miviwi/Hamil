@@ -66,6 +66,8 @@ uniform sampler2D uFontAtlas;
 uniform int uType;
 uniform vec4 uTextColor;
 
+const float UiGamma = 1.2f;
+
 in VertexData {
   vec4 color;
   vec2 uv;
@@ -82,6 +84,9 @@ void main() {
 
     default: break;
   }
+
+  vec3 srgb_color = pow(color.rgb, vec3(1.0f/UiGamma));
+  color = vec4(srgb_color, color.a);
 }
 
 )FRAG";
@@ -223,7 +228,7 @@ void Ui::paint()
 
 void Ui::capture(Frame *frame)
 {
-  if(frame && m_capture) m_capture->losingCapture();
+  if(m_capture && frame != m_capture) m_capture->losingCapture();
 
   m_capture = frame;
 }

@@ -4,7 +4,7 @@
 namespace ui {
 
 Frame::Frame(Ui &ui, const char *name, Geometry geom) :
-  m_ui(&ui), m_name(name), m_gravity(Left), m_geom(geom)
+  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom)
 {
   m_ui->registerFrame(this);
 }

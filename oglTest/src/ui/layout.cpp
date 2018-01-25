@@ -2,16 +2,14 @@
 
 namespace ui {
 
-StackLayoutFrame::~StackLayoutFrame()
+LayoutFrame::~LayoutFrame()
 {
   for(const auto& frame : m_frames) delete frame;
 }
 
-bool StackLayoutFrame::input(ivec2 mouse_pos, const InputPtr& input)
+bool LayoutFrame::input(ivec2 mouse_pos, const InputPtr& input)
 {
   if(!m_geom.intersect(mouse_pos)) return false;
-
-  //Frame::input(mouse_pos, input);
 
   for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
     const auto& frame = *iter;
@@ -20,15 +18,7 @@ bool StackLayoutFrame::input(ivec2 mouse_pos, const InputPtr& input)
   return false;
 }
 
-StackLayoutFrame& StackLayoutFrame::frame(Frame *frame)
-{
-  m_frames.push_back(frame);
-  calculateFrameGeometries();
-
-  return *this;
-}
-
-void StackLayoutFrame::paint(VertexPainter& painter, Geometry parent)
+void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = parent.clip(m_geom);
   calculateFrameGeometries();
@@ -36,12 +26,29 @@ void StackLayoutFrame::paint(VertexPainter& painter, Geometry parent)
   for(const auto& frame : m_frames) frame->paint(painter, g);
 }
 
-Frame& StackLayoutFrame::getFrameByIndex(unsigned idx)
+LayoutFrame& LayoutFrame::frame(Frame *frame)
+{
+  m_frames.push_back(frame);
+  calculateFrameGeometries();
+
+  return *this;
+}
+
+LayoutFrame& LayoutFrame::frame(Frame& f)
+{
+  return frame(&f);
+}
+
+Frame& LayoutFrame::getFrameByIndex(unsigned idx)
 {
   return *m_frames[idx];
 }
 
-void StackLayoutFrame::calculateFrameGeometries()
+RowLayoutFrame::~RowLayoutFrame()
+{
+}
+
+void RowLayoutFrame::calculateFrameGeometries()
 {
   vec2 center = m_geom.center();
 
@@ -63,6 +70,35 @@ void StackLayoutFrame::calculateFrameGeometries()
     frame->geometry(g);
 
     y += fg.h;
+  }
+}
+
+ColumnLayoutFrame::~ColumnLayoutFrame()
+{
+}
+
+void ColumnLayoutFrame::calculateFrameGeometries()
+{
+  vec2 center = m_geom.center();
+
+  float x = m_geom.x;
+
+  for(const auto& frame : m_frames) {
+    Geometry fg = frame->geometry();
+    Geometry g = {
+      x, 0,
+      fg.w, fg.h ? fg.h : m_geom.h
+    };
+
+    switch(frame->gravity()) {
+    case Frame::Top:    g.y = m_geom.y; break;
+    case Frame::Center: g.y = center.y - (fg.h/2.0f); break;
+    case Frame::Bottom: g.y = m_geom.y + (m_geom.h-fg.h); break;
+    }
+
+    frame->geometry(g);
+
+    x += fg.w;
   }
 }
 

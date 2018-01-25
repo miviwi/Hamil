@@ -301,8 +301,11 @@ void main() {
     .param(gx::Sampler::Anisotropy, 16.0f);
 
   auto alpha = (byte)(255*0.95);
-  auto color_a = ui::Color{ 45, 45, 150, alpha },
-    color_b = ui::Color{ 20, 20, 66, alpha };
+  //auto color_a = ui::Color{ 45, 45, 150, alpha },
+  //  color_b = ui::Color{ 20, 20, 66, alpha };
+  
+  auto color_a = ui::Color{ 150, 45, 45, alpha },
+    color_b = ui::Color{ 66, 20, 20, alpha };
 
   ui::Style style;
   style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("segoeui"), 12));
@@ -322,24 +325,20 @@ void main() {
 
   ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
 
-  auto playout = new ui::StackLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 160.0f, 490.0f });
+  auto playout = new ui::RowLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 200.0f, 490.0f });
   auto& layout = *playout;
-  
+
   layout
-    .frame<ui::ButtonFrame>(iface, "a", ui::Geometry{ 0, style.font->height()+20 })
-    .frame<ui::ButtonFrame>(iface, "b", ui::Geometry{ 0, style.font->height()+20 })
-    .frame<ui::ButtonFrame>(iface, "c", ui::Geometry{ 0, style.font->height()+20 })
+    .frame(ui::create<ui::ColumnLayoutFrame>(iface, ui::Geometry{ 0, style.font->height()+20 })
+           .frame<ui::PushButtonFrame>(iface, "b", ui::Geometry{ 100, 0 })
+           .frame<ui::PushButtonFrame>(iface, "c", ui::Geometry{ 100, 0 }))
     .frame<ui::HSliderFrame>(iface, "d", ui::Geometry{ 0, style.font->height()+20 })
+    .frame<ui::CheckBoxFrame>(iface, "e", ui::Geometry{ 0, 40 })
     ;
 
-  auto btn_a = iface.getFrameByName<ui::ButtonFrame>("a"),
-    btn_b = iface.getFrameByName<ui::ButtonFrame>("b"),
-    btn_c = iface.getFrameByName<ui::ButtonFrame>("c");
+  auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b"),
+    btn_c = iface.getFrameByName<ui::PushButtonFrame>("c");
 
-  btn_a->caption("Toggle wireframe!").onClick([&](auto target) {
-    if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
-    else pipeline.filledPolys();
-  });
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
@@ -349,12 +348,9 @@ void main() {
     display_tex_matrix = !display_tex_matrix;
   });
 
-  float front_cube_y = 3.0f;
-  auto slider = iface.getFrameByName<ui::HSliderFrame>("d");
+  auto& slider = iface.getFrameByName<ui::HSliderFrame>("d")->range(0.5f, 6.0f).value(3.0f);
 
-  slider->range(0.0f, 6.0f).value(front_cube_y).onChange([&](auto target) {
-    front_cube_y = target->value();
-  });
+  auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
 
   iface
     .frame(playout)
@@ -438,6 +434,12 @@ void main() {
       }
     }
 
+    if(checkbox.value()) {
+      pipeline.wireframe();
+    } else {
+      pipeline.filledPolys();
+    }
+
     fb.use();
     pipeline.use();
 
@@ -476,7 +478,7 @@ void main() {
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
     //modelview = xform::roty(PI/4.0f);
 
-    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f*zoom };
+    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f/zoom };
     /*
     if(anim_factor < 1.0f) {
       eye.x = lerp(-30.0f, 30.0f, anim_factor);
@@ -546,7 +548,7 @@ void main() {
 
     modelview = xform::identity()
       *view
-      *xform::translate(0.0f, front_cube_y, 0.0f)
+      *xform::translate(0.0f, slider.value(), 0.0f)
       *xform::translate(0.0f, 0.0f, -1.0f)
       *xform::rotx(lerp(0.0f, PIf, anim_factor))*0.5f
       *xform::roty(lerp(0.0f, PIf, anim_factor))

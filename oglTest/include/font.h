@@ -8,6 +8,7 @@
 #include "buffer.h"
 
 #include <vector>
+#include <string>
 #include <memory>
 
 namespace ft {
@@ -52,7 +53,12 @@ public:
   ~Font();
 
   // Must be drawn with the same Font!
+  String string(const char *str, size_t length) const;
+  String string(const std::string& str) const;
   String string(const char *str) const;
+
+  // TODO
+  String stringMetrics(const char *str) const;
 
   // The returned String can be queried for it's:
   //     width, height, number of generated indices
@@ -77,12 +83,13 @@ public:
   // Number of generated indices
   unsigned num(const String& str) const;
 
-  float ascender() const;
+  // Returns NEGATIVE value
   float descender() const;
+  float ascender() const;
   float height() const;
   float bearingY() const;
 
-  // Defaines sampleFontAtlas
+  // Defines sampleFontAtlas
   static const char *frag_shader;
 
   void bindFontAltas() const;

@@ -5,12 +5,16 @@
 #include "vmath.h"
 #include "input.h"
 
+#include <utility>
+
 namespace ui {
 
 class Frame {
 public:
   enum Gravity {
-    Left, Center, Right,
+    Left, Right,
+    Top, Bottom,
+    Center,
   };
 
   Frame(Ui& ui, const char *name, Geometry geom);
@@ -40,5 +44,11 @@ protected:
   Geometry m_geom;
   unsigned m_countrer = 0;
 };
+
+template <typename T, typename... Args>
+static T& create(Args&&... args)
+{
+  return *(new T(std::forward<Args>(args)...));
+}
 
 }

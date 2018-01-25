@@ -56,7 +56,7 @@ class Sampler {
 public:
   enum ParamName {
     MinFilter, MagFilter,
-    WrapS, WrapT,
+    WrapS, WrapT, WrapR,
     Anisotropy,
     BorderColor,
   };

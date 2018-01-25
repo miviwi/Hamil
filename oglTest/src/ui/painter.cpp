@@ -216,8 +216,8 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, 
 {
   auto offset = m_ind.size();
 
-  g.x += 0.5f; g.y += 0.5f;
-  g.w -= 1.0f; g.h -= 1.0f;
+  //g.x -= 0.5f; g.y -= 0.5f;
+  //g.w += 0.5f; g.h += 0.5f;
 
   appendVertices({
     { { g.x, g.y, }, a },
@@ -558,7 +558,7 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
   vec2 center = g.center();
   vec2 text_pos = {
     center.x - floor(font.width(s)/2.0f),
-    center.y + floor(font.bearingY()/2.0f)
+    center.y - floor(font.descender())
   };
 
   m_commands.push_back(Command::text(
