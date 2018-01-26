@@ -216,9 +216,6 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, 
 {
   auto offset = m_ind.size();
 
-  //g.x -= 0.5f; g.y -= 0.5f;
-  //g.w += 0.5f; g.h += 0.5f;
-
   appendVertices({
     { { g.x, g.y, }, a },
     { { g.x, g.y+g.h, }, b },

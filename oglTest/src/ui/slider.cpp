@@ -8,7 +8,7 @@ SliderFrame::~SliderFrame()
 
 bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
 {
-  bool mouse_inside = m_geom.intersect(mouse_pos);
+  bool mouse_inside = geometry().intersect(mouse_pos);
   if(!mouse_inside && m_state != Pressed) {
     m_ui->capture(nullptr);
     return false;
@@ -101,7 +101,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = m_ui->style();
   const auto& slider = style.slider;
 
-  Geometry g = m_geom;
+  Geometry g = geometry();
 
   float w = width();
   vec2 center = g.center();
@@ -119,13 +119,12 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
     head_pos
   };
 
-  auto half_luminance = slider.color[1].luminance().r / 2;
-
+  auto luminance = slider.color[1].luminance().r;
   byte factor = 0;
   switch(m_state) {
   case Default: factor = 0; break;
-  case Hover:   factor = half_luminance/4; break;
-  case Pressed: factor = half_luminance; break;
+  case Hover:   factor = luminance/2; break;
+  case Pressed: factor = luminance*2; break;
   }
 
   Color head_color[2] = {
@@ -139,11 +138,11 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
     head_pos.y - highlight_r/2.3f
   };
 
-  Color value_color = slider.color[1].lighten(slider.color[1].luminance().r);
+  Color value_color = slider.color[1].lighten(luminance);
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(Ui::scissor_rect(parent.clip(m_geom)))
+    .scissor(Ui::scissor_rect(parent.clip(g)))
     .primitiveRestart(0xFFFF)
     ;
 
@@ -158,9 +157,16 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
     ;
 }
 
+vec2 HSliderFrame::sizeHint() const
+{
+  const auto& slider = m_ui->style().slider;
+
+  return { 150, slider.width*3 };
+}
+
 float HSliderFrame::width() const
 {
-  return m_geom.w * (1.0f - 2.0f*Margin);
+  return geometry().w * (1.0f - 2.0f*Margin);
 }
 
 float HSliderFrame::innerWidth() const
@@ -175,7 +181,7 @@ double HSliderFrame::step() const
 
 vec2 HSliderFrame::headPos() const
 {
-  Geometry g = m_geom;
+  Geometry g = geometry();
   vec2 center = g.center();
 
   float w = width();

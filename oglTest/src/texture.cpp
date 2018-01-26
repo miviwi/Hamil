@@ -150,11 +150,16 @@ GLenum Sampler::param(Param p)
   return table[p];
 }
 
+unsigned p_active_texture = 0;
+
 void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
 {
   glBindSampler(idx, sampler.m);
 
-  glActiveTexture(GL_TEXTURE0+idx);
+  if(idx != p_active_texture) {
+    glActiveTexture(GL_TEXTURE0+idx);
+    p_active_texture = idx;
+  }
   glBindTexture(GL_TEXTURE_2D, tex.m);
 }
 

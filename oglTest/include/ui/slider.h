@@ -57,6 +57,8 @@ public:
 
   virtual void paint(VertexPainter& painter, Geometry parent);
 
+  virtual vec2 sizeHint() const;
+
 private:
   float width() const;
   float innerWidth() const;

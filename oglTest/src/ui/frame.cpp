@@ -37,7 +37,7 @@ bool Frame::input(ivec2 mouse_pos, const InputPtr& input)
 
     auto mouse = (Mouse *)input.get();
     if(mouse->buttonDown(Mouse::Left)) {
-      m_countrer++;
+      //m_countrer++;
     } else if(mouse->buttons & Mouse::Left) {
       m_geom.x += mouse->dx; m_geom.y += mouse->dy;
     }
@@ -48,16 +48,28 @@ bool Frame::input(ivec2 mouse_pos, const InputPtr& input)
   return false;
 }
 
-Frame& Frame::geometry(Geometry geom)
+Frame& Frame::geometry(Geometry g)
 {
-  m_geom = geom;
+  m_geom = {
+    floor(g.x), floor(g.y),
+    ceil(g.w), ceil(g.h)
+  };
 
   return *this;
 }
 
 Geometry Frame::geometry() const
 {
-  return m_geom;
+  Geometry g = m_geom;
+  if(!g.w && !g.h) {
+    vec2 size = sizeHint();
+    return {
+      g.x, g.y,
+      size.x, size.y
+    };
+  }
+
+  return g;
 }
 
 Frame& Frame::gravity(Gravity gravity)
@@ -74,6 +86,11 @@ Frame::Gravity Frame::gravity() const
 
 void Frame::losingCapture()
 {
+}
+
+vec2 Frame::sizeHint() const
+{
+  return { 0, 0 };
 }
 
 void Frame::paint(VertexPainter& painter, Geometry parent)

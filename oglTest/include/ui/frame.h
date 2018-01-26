@@ -9,6 +9,8 @@
 
 namespace ui {
 
+// TODO:
+//   - Think of a way to eliminate the Ui& argument of constructor
 class Frame {
 public:
   enum Gravity {
@@ -28,21 +30,21 @@ public:
 
   Frame& geometry(Geometry geom);
   Geometry geometry() const;
-
   Frame& gravity(Gravity gravity);
   Gravity gravity() const;
 
   virtual void losingCapture();
 
+  virtual vec2 sizeHint() const;
+
 protected:
   friend class Ui;
-
   Ui *m_ui;
 
+private:
   const char *m_name;
   Gravity m_gravity;
   Geometry m_geom;
-  unsigned m_countrer = 0;
 };
 
 template <typename T, typename... Args>

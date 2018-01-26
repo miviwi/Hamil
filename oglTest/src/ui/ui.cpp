@@ -140,11 +140,31 @@ ivec4 Ui::scissor_rect(Geometry g)
   return ivec4{ (int)g.x, (int)FramebufferSize.y - gb.y, (int)g.w, (int)g.h };
 }
 
-Ui& Ui::frame(Frame *frame)
+Ui& Ui::frame(Frame *f, vec2 pos)
 {
-  m_frames.push_back(frame);
+  if(!pos.x && !pos.y) pos = m_geom.center();
+
+  f->m_geom.x = pos.x; f->m_geom.y = pos.y;
+  m_frames.push_back(f);
 
   return *this;
+}
+
+Ui& Ui::frame(Frame *f)
+{
+  m_frames.push_back(f);
+
+  return *this;
+}
+
+Ui& Ui::frame(Frame& f, vec2 pos)
+{
+  return frame(&f, pos);
+}
+
+Ui& Ui::frame(Frame &f)
+{
+  return frame(&f);
 }
 
 void Ui::registerFrame(Frame *frame)

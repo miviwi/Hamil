@@ -38,7 +38,10 @@ public:
 
   static ivec4 scissor_rect(Geometry g);
 
+  Ui& frame(Frame *frame, vec2 pos);
   Ui& frame(Frame *frame);
+  Ui& frame(Frame& frame, vec2 pos);
+  Ui& frame(Frame& frame);
   template <typename T, typename... Args>
   Ui& frame(Args&&... args)
   {

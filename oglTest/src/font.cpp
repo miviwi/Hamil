@@ -298,8 +298,67 @@ String Font::string(const char *str) const
 
 String Font::stringMetrics(const char *str) const
 {
-  assert(0 && "Font::stringMetrics() not implemented!!");
-  return String();
+  // TODO:
+  //   - Somehow merge this with string() ?
+  FT_Face face = *m;
+
+  const char *begin = str;
+  FT_Vector pen = { 0, 0 };
+  float width = 0.0f;
+  while(*str) {
+    const auto& g = getGlyphRenderData(*str);
+
+    float x = (float)pen.x / (float)(1<<16),
+      y = (float)pen.y / (float)(1<<16);
+
+    x += g.left;
+    y -= g.top;
+
+    if(*str == '\n') {
+      width = std::max(pen.x / (float)(1<<16), width);
+
+      pen.x = 0;
+      pen.y += face->size->metrics.height << 10;
+
+      str++;
+      continue;
+    }
+
+#if defined(ENABLE_KERNING)
+    if(str != begin && FT_HAS_KERNING(face)) {
+      FT_Vector kern = { 0, 0 };
+      const auto& a = getGlyphRenderData(*(str - 1));
+
+      FT_Get_Kerning(face, a.idx, g.idx, FT_KERNING_DEFAULT, &kern);
+
+      x += kern.x / (float)(1<<6);
+      y += kern.y / (float)(1<<6);
+    }
+#endif
+
+    pen.x += g.advance.x;
+    pen.y += g.advance.y;
+
+    str++;
+  }
+
+  auto s = std::shared_ptr<pString>(new pString, [](auto p) {
+    delete p;
+  });
+
+  s->m = nullptr;
+
+  s->base = s->offset = ~0u;
+
+  s->width = std::max(pen.x / (float)(1<<16), width);
+  s->height = (pen.y / (float)(1<<16)) + height();
+
+  return s;
+}
+
+String Font::stringMetrics(const std::string& str) const
+{
+  return stringMetrics(str.c_str());
 }
 
 String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const

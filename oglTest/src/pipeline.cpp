@@ -1,6 +1,7 @@
 #include "pipeline.h"
 
 #include <cassert>
+#include <cstring>
 #include <algorithm>
 
 namespace gx {
@@ -9,20 +10,31 @@ Pipeline p_current;
 
 Pipeline::Pipeline()
 {
+  memset(this, 0xFF, sizeof(*this));
   std::fill(m_enabled, m_enabled+NumConfigTypes, false);
+
+  m_viewport = { 0, 0, 1280, 720 };
+  m_depth.func = GL_LESS;
+  m_cull.front = GL_CCW; m_cull.mode = GL_BACK;
+  m_clear.stencil = ~0;
+  m_restart.index = 0;
 }
 
 void Pipeline::use() const
 {
-  auto last = p_current;
-  p_current = *this;
-
   for(unsigned i = 0; i < NumConfigTypes; i++) {
-    if(!m_enabled[i] && !last.m_enabled[i]) continue;
+    auto config = (ConfigType)i;
 
-    if(!m_enabled[i]) disable((ConfigType)i);
-    else              enable((ConfigType)i);
+    if(!m_enabled[i] && !p_current.m_enabled[i]) {
+      continue;
+    } else if(!m_enabled[i]) {
+      disable(config);
+    } else if(!compare(config)) {
+      enable(config);
+    }
   }
+
+  p_current = *this;
 }
 
 Pipeline& Pipeline::viewport(int x, int y, int w, int h)
@@ -250,6 +262,28 @@ void Pipeline::enable(ConfigType config) const
 
   default: break;
   }
+}
+
+bool Pipeline::compare(ConfigType config) const
+{
+  auto do_compare = [](const auto& a, const auto& b) -> bool
+  {
+    return !memcmp(&a, &b, sizeof(a));
+  };
+
+  switch(config) {
+  case Viewport:         return do_compare(m_viewport, p_current.m_viewport);
+  case Scissor:          return do_compare(m_scissor, p_current.m_scissor);
+  case Blend:            return do_compare(m_blend, p_current.m_blend);
+  case Depth:            return do_compare(m_depth, p_current.m_depth);
+  case Stencil:          break;  //return do_compare(m_stencil, p_current.m_stencil);
+  case Cull:             return do_compare(m_cull, p_current.m_cull);
+  case Clear:            return do_compare(m_clear, p_current.m_clear);
+  case Wireframe:        return false;
+  case PrimitiveRestart: return do_compare(m_restart, p_current.m_restart);
+  }
+
+  return false;
 }
 
 ScopedPipeline::ScopedPipeline(const Pipeline& p)

@@ -5,7 +5,7 @@
 #include "ui/frame.h"
 #include "font.h"
 
-#include <functional>
+#include <string>
 
 namespace ui {
 
@@ -25,7 +25,7 @@ protected:
     Default, Hover, Pressed,
   };
 
-  virtual Geometry getGeometry() const = 0;
+  virtual Geometry getSolidGeometry() const = 0;
   virtual void emitClicked() = 0;
 
   State m_state = Default;
@@ -44,8 +44,10 @@ public:
   PushButtonFrame& onClick(OnClick::Slot on_click);
   OnClick& click();
 
+  virtual vec2 sizeHint() const;
+
 protected:
-  virtual Geometry getGeometry() const;
+  virtual Geometry getSolidGeometry() const;
   virtual void emitClicked();
 
 private:
@@ -67,8 +69,10 @@ public:
   CheckBoxFrame& onClick(OnClick::Slot on_click);
   OnClick& click();
 
+  virtual vec2 sizeHint() const;
+
 protected:
-  virtual Geometry getGeometry() const;
+  virtual Geometry getSolidGeometry() const;
   virtual void emitClicked();
 
 private:

@@ -15,7 +15,7 @@ ButtonFrame::~ButtonFrame()
 
 bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
 {
-  bool mouse_over = getGeometry().intersect(mouse_pos);
+  bool mouse_over = getSolidGeometry().intersect(mouse_pos);
   if(!mouse_over && m_state != Pressed) {
     m_ui->capture(nullptr);
     return false;
@@ -58,15 +58,14 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto margin = button.margin;
 
-  Geometry g = m_geom.contract(margin);
+  Geometry g = geometry().contract(margin);
 
-  auto half_luminance = button.color[1].luminance().r / 2;
-
+  auto luminance = button.color[1].luminance().r;
   byte factor = 0;
   switch(m_state) {
   case Default: factor = 0; break;
-  case Hover:   factor = half_luminance/4; break;
-  case Pressed: factor = half_luminance; break;
+  case Hover:   factor = luminance/4; break;
+  case Pressed: factor = luminance; break;
   }
 
   Color color[] = {
@@ -81,7 +80,7 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(Ui::scissor_rect(parent.clip(m_geom)))
+    .scissor(Ui::scissor_rect(parent.clip({ g.x, g.y, g.w+1, g.h+1 })))
     .primitiveRestart(0xFFFF)
     ;
 
@@ -113,9 +112,19 @@ PushButtonFrame::OnClick& PushButtonFrame::click()
   return m_on_click;
 }
 
-Geometry PushButtonFrame::getGeometry() const
+vec2 PushButtonFrame::sizeHint() const
 {
-  return m_geom;
+  const ft::Font& font = *m_ui->style().font;
+  auto s = font.stringMetrics(m_caption);
+
+  float font_height = font.height();
+
+  return { font.width(s)+20, font.height(s) + font_height*0.8f };
+}
+
+Geometry PushButtonFrame::getSolidGeometry() const
+{
+  return geometry();
 }
 
 void PushButtonFrame::emitClicked()
@@ -128,31 +137,29 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = m_ui->style();
   const auto& button = style.button;
 
-  Geometry g = m_geom;
+  Geometry g = geometry();
+  vec2 center = g.center();
+
+  Geometry box = getSolidGeometry();
+
+  auto luminance = button.color[1].luminance().r;
+  byte factor = 0;
+  switch(m_state) {
+  case Default: factor = 0; break;
+  case Hover:   factor = luminance/2; break;
+  case Pressed: factor = luminance; break;
+  }
+
+  Color color[] = {
+    button.color[0].lighten(factor),
+    button.color[1].lighten(luminance * (m_state == Pressed ? 4 : 2)),
+  };
 
   auto pipeline = gx::Pipeline()
     .scissor(Ui::scissor_rect(parent.clip(g)))
     .alphaBlend()
     .primitiveRestart(0xFFFF)
     ;
-
-  vec2 center = g.center();
-
-  Geometry box = getGeometry();
-
-  auto half_luminance = button.color[1].luminance().r / 2;
-
-  byte factor = 0;
-  switch(m_state) {
-  case Default: factor = 0; break;
-  case Hover:   factor = half_luminance; break;
-  case Pressed: factor = half_luminance*2; break;
-  }
-
-  Color color[] = {
-    button.color[0].lighten(factor),
-    button.color[1].lighten(half_luminance * (m_state == Pressed ? 4 : 2)),
-  };
 
   painter
     .pipeline(pipeline)
@@ -163,8 +170,8 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
     vec2 a = {
       box.x + PixelMargin,
       box.y + PixelMargin
-    };
-    vec2 b = {
+    },
+      b = {
       box.x+box.w - PixelMargin,
       box.y+box.h - PixelMargin
     };
@@ -176,7 +183,6 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
   }
 
   painter.border(box, 1, black());
-
 }
 
 CheckBoxFrame& CheckBoxFrame::value(bool value)
@@ -203,9 +209,14 @@ CheckBoxFrame::OnClick& CheckBoxFrame::click()
   return m_on_click;
 }
 
-Geometry CheckBoxFrame::getGeometry() const
+vec2 CheckBoxFrame::sizeHint() const
 {
-  vec2 center = m_geom.center();
+  return { Dimensions*2, Dimensions*1.2f };
+}
+
+Geometry CheckBoxFrame::getSolidGeometry() const
+{
+  vec2 center = geometry().center();
 
   return Geometry{
     center.x - Dimensions/2.0f, center.y - Dimensions/2.0f,

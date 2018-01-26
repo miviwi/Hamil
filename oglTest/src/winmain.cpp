@@ -13,6 +13,7 @@
 #include "ui/layout.h"
 #include "ui/button.h"
 #include "ui/slider.h"
+#include "ui/label.h"
 
 #include <GL/glew.h>
 
@@ -38,24 +39,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
-
-#if 0
-  auto write = glang::CallableFn<glang::NumberObject, glang::NumberObject, glang::StringObject>(
-    [&](glang::ObjectManager& om, auto args) -> glang::Object *
-  {
-    auto x = std::get<0>(args);
-    auto y = std::get<1>(args);
-    auto str = (glang::StringObject *)std::get<2>(args);
-
-    small_face.draw(str->get(), vec2{ (float)x->toFloat(), (float)y->toFloat() }, vec3{ 0, 0, 0 });
-
-    return om.nil();
-  });
-
-  vm->envSet("write", vm->objMan().fn(&write));
-
-  auto co = glang::compile_string("(write 30 150. \"hello, world!\")", true);
-#endif
 
   struct Triangle {
     vec2 a, b, c;
@@ -111,11 +94,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     0xFF000000, 0xFF000000, 0xFFFFFF00, 0xFFFFFF00,
     0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
     0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
-
-    //0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    //0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-    //0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00,
-    //0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00,
   };
 
   gx::Texture2D tex(gx::Texture2D::rgb);
@@ -273,14 +251,6 @@ void main() {
     { 1.0f, -1.0f },  { 10.0f, 0.0f },
     { 1.0f, 1.0f },   { 10.0f, 10.0f },
     { -1.0f, 1.0f },  { 0.0f,  10.0f },
-
-    //{ -1.0f, 1.0f },  { 0.0f,  10.0f },
-    //{ 1.0f, -1.0f },  { 10.0f, 0.0f },
-    //{ -1.0f, -1.0f }, { 0.0f,  0.0f },
-
-    //{ 1.0f, -1.0f },  { 10.0f, 0.0f },
-    //{ -1.0f, 1.0f },  { 0.0f,  10.0f },
-    //{ 1.0f, 1.0f },   { 10.0f, 10.0f },
   };
 
   gx::VertexBuffer vbuf(gx::Buffer::Static);
@@ -325,15 +295,17 @@ void main() {
 
   ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
 
-  auto playout = new ui::RowLayoutFrame(iface, ui::Geometry{ 30.0f, 500.0f, 200.0f, 490.0f });
-  auto& layout = *playout;
-
-  layout
-    .frame(ui::create<ui::ColumnLayoutFrame>(iface, ui::Geometry{ 0, style.font->height()+20 })
-           .frame<ui::PushButtonFrame>(iface, "b", ui::Geometry{ 100, 0 })
-           .frame<ui::PushButtonFrame>(iface, "c", ui::Geometry{ 100, 0 }))
-    .frame<ui::HSliderFrame>(iface, "d", ui::Geometry{ 0, style.font->height()+20 })
-    .frame<ui::CheckBoxFrame>(iface, "e", ui::Geometry{ 0, 40 })
+  auto& layout = ui::create<ui::RowLayoutFrame>(iface)
+    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
+           .frame<ui::PushButtonFrame>(iface, "b")
+           .frame<ui::PushButtonFrame>(iface, "c"))
+    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle wireframe!"))
+           .frame<ui::HSliderFrame>(iface, "d"))
+    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Cube Y:"))
+           .frame<ui::CheckBoxFrame>(iface, "e")
+           .gravity(ui::Frame::Left))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b"),
@@ -342,18 +314,15 @@ void main() {
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-  btn_c->caption("Toggle texmatrix!");
-
-  btn_c->click().connect([&](auto target) {
+  btn_c->caption("Toggle texmatrix!").onClick([&](auto target) {
     display_tex_matrix = !display_tex_matrix;
   });
 
   auto& slider = iface.getFrameByName<ui::HSliderFrame>("d")->range(0.5f, 6.0f).value(3.0f);
-
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
 
   iface
-    .frame(playout)
+    .frame(layout, { 30.0f, 500.0f })
     .frame<ui::Frame>(iface, ui::Geometry{ 1000.0f, 300.0f, 200.0f, 300.0f })
     ;
 

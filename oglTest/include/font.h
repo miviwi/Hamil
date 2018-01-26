@@ -57,8 +57,11 @@ public:
   String string(const std::string& str) const;
   String string(const char *str) const;
 
-  // TODO
+  // Returns a string which can only be queried for it's:
+  //    width, height
+  // and cannot be drawn
   String stringMetrics(const char *str) const;
+  String stringMetrics(const std::string& str) const;
 
   // The returned String can be queried for it's:
   //     width, height, number of generated indices

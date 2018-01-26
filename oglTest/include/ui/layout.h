@@ -45,6 +45,8 @@ public:
   using LayoutFrame::LayoutFrame;
   virtual ~RowLayoutFrame();
 
+  vec2 sizeHint() const;
+
 protected:
   virtual void calculateFrameGeometries();
 };
@@ -58,6 +60,8 @@ class ColumnLayoutFrame : public LayoutFrame {
 public:
   using LayoutFrame::LayoutFrame;
   virtual ~ColumnLayoutFrame();
+
+  vec2 sizeHint() const;
 
 protected:
   virtual void calculateFrameGeometries();

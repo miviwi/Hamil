@@ -4,19 +4,18 @@ namespace ui {
 
 Geometry Geometry::clip(const Geometry& g) const
 {
-  auto b = vec2{ x+w, w+h },
-    gb = vec2{ g.x+g.w, g.y+g.h };
+  vec2 gb = { g.x+g.w, g.y+g.h };
 
-  if(gb.x > b.x && gb.y > b.y) return Geometry{ 0, 0, 0, 0 };
+  if(gb.x > (x+w) && gb.y > (y+h)) return Geometry{ 0, 0, 0, 0 };
 
   vec2 da = {
-    clamp(g.x, x, b.x),
-    clamp(g.y, y, b.y),
+    clamp(g.x, x, x+w),
+    clamp(g.y, y, y+h),
   };
 
   vec2 db = {
-    clamp(gb.x, x, da.x+w),
-    clamp(gb.y, y, da.y+h),
+    clamp(gb.x, x, x+w),
+    clamp(gb.y, y, y+h),
   };
 
   return Geometry{ da.x, da.y, db.x-da.x, db.y-da.y };

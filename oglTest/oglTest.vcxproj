@@ -186,6 +186,7 @@ move uniforms.* Generated\</Command>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\ui\button.cpp" />
+    <ClCompile Include="src\ui\label.cpp" />
     <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\font.cpp" />
     <ClInclude Include="Generated\uniforms.h" />
@@ -220,6 +221,7 @@ move uniforms.* Generated\</Command>
     <ClInclude Include="include\ui\button.h" />
     <ClInclude Include="include\ui\common.h" />
     <ClInclude Include="include\ui\frame.h" />
+    <ClInclude Include="include\ui\label.h" />
     <ClInclude Include="include\ui\layout.h" />
     <ClInclude Include="include\ui\painter.h" />
     <ClInclude Include="include\ui\slider.h" />

@@ -1,5 +1,7 @@
 #include "ui/layout.h"
 
+#include <algorithm>
+
 namespace ui {
 
 LayoutFrame::~LayoutFrame()
@@ -9,7 +11,7 @@ LayoutFrame::~LayoutFrame()
 
 bool LayoutFrame::input(ivec2 mouse_pos, const InputPtr& input)
 {
-  if(!m_geom.intersect(mouse_pos)) return false;
+  if(!geometry().intersect(mouse_pos)) return false;
 
   for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
     const auto& frame = *iter;
@@ -20,7 +22,7 @@ bool LayoutFrame::input(ivec2 mouse_pos, const InputPtr& input)
 
 void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  Geometry g = parent.clip(m_geom);
+  Geometry g = parent.clip(geometry());
   calculateFrameGeometries();
 
   for(const auto& frame : m_frames) frame->paint(painter, g);
@@ -29,7 +31,6 @@ void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
 LayoutFrame& LayoutFrame::frame(Frame *frame)
 {
   m_frames.push_back(frame);
-  calculateFrameGeometries();
 
   return *this;
 }
@@ -48,26 +49,39 @@ RowLayoutFrame::~RowLayoutFrame()
 {
 }
 
+vec2 RowLayoutFrame::sizeHint() const
+{
+  vec2 size = { -1, 0 };
+  for(const auto& frame : m_frames) {
+    Geometry fg = frame->geometry();
+
+    size.x = std::max(fg.w, size.x);
+    size.y += fg.h;
+  }
+
+  return size;
+}
+
 void RowLayoutFrame::calculateFrameGeometries()
 {
-  vec2 center = m_geom.center();
+  Geometry g = geometry();
+  vec2 center = g.center();
 
-  float y = m_geom.y;
+  float y = g.y;
 
   for(const auto& frame : m_frames) {
     Geometry fg = frame->geometry();
-    Geometry g = {
-      0, y,
-      fg.w ? fg.w : m_geom.w, fg.h
+    Geometry calculated = {
+      g.x, y,
+      fg.w ? fg.w : g.w, fg.h
     };
 
     switch(frame->gravity()) {
-    case Frame::Left:   g.x = m_geom.x; break;
-    case Frame::Center: g.x = center.x - (fg.w/2.0f); break;
-    case Frame::Right:  g.x = m_geom.x + (m_geom.w-fg.w); break;
+    case Frame::Center: calculated.x = center.x - (fg.w/2.0f); break;
+    case Frame::Right:  calculated.x = g.x + (g.w-fg.w); break;
     }
 
-    frame->geometry(g);
+    frame->geometry(calculated);
 
     y += fg.h;
   }
@@ -77,26 +91,39 @@ ColumnLayoutFrame::~ColumnLayoutFrame()
 {
 }
 
+vec2 ColumnLayoutFrame::sizeHint() const
+{
+  vec2 size = { 0, -1 };
+  for(const auto& frame : m_frames) {
+    Geometry fg = frame->geometry();
+
+    size.x += fg.w;
+    size.y = std::max(fg.h, size.y);
+  }
+
+  return size;
+}
+
 void ColumnLayoutFrame::calculateFrameGeometries()
 {
-  vec2 center = m_geom.center();
+  Geometry g = geometry();
+  vec2 center = g.center();
 
-  float x = m_geom.x;
+  float x = g.x;
 
   for(const auto& frame : m_frames) {
     Geometry fg = frame->geometry();
-    Geometry g = {
-      x, 0,
-      fg.w, fg.h ? fg.h : m_geom.h
+    Geometry calculated = {
+      x, g.y,
+      fg.w, fg.h ? fg.h : g.h
     };
 
     switch(frame->gravity()) {
-    case Frame::Top:    g.y = m_geom.y; break;
-    case Frame::Center: g.y = center.y - (fg.h/2.0f); break;
-    case Frame::Bottom: g.y = m_geom.y + (m_geom.h-fg.h); break;
+    case Frame::Center: calculated.y = center.y - (fg.h/2.0f); break;
+    case Frame::Bottom: calculated.y = g.y + (g.h-fg.h); break;
     }
 
-    frame->geometry(g);
+    frame->geometry(calculated);
 
     x += fg.w;
   }
