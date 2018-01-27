@@ -2,7 +2,7 @@
 
 #include <common.h>
 
-#include "ui/common.h"
+#include "ui/uicommon.h"
 #include "ui/style.h"
 #include "vmath.h"
 #include "input.h"

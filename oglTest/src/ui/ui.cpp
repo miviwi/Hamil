@@ -114,17 +114,13 @@ Ui::Ui(Geometry geom, const Style& style) :
   m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx),
   m_ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
 {
-  enum {
-    NumBufferElements = 256*1024
-  };
-
   m_vtx.label("UI_vertex");
   m_vtx_array.label("UI_vertex_array");
 
   m_ind.label("UI_index");
 
-  m_vtx.init(sizeof(Vertex), NumBufferElements);
-  m_ind.init(sizeof(u16), NumBufferElements);
+  m_vtx.init(sizeof(Vertex), VertexPainter::NumBufferElements);
+  m_ind.init(sizeof(u16), VertexPainter::NumBufferElements);
 }
 
 Ui::~Ui()
@@ -204,7 +200,7 @@ void Ui::paint()
   auto pipeline = gx::Pipeline::current();
 
   if(m_repaint) {
-    m_painter = VertexPainter();
+    m_painter.end();
     for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
 
     m_vtx.upload(m_painter.vertices(), 0, m_painter.numVertices());

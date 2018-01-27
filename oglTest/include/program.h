@@ -61,8 +61,9 @@ public:
   {
     getUniforms(T::offsets.data(), T::offsets.size(), klass.locations);
   }
-
   GLint getUniformLocation(const char *name);
+
+  unsigned getUniformBlockIndex(const char *name);
 
   Program& use();
 

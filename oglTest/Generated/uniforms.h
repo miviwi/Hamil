@@ -40,12 +40,13 @@ struct program_klass {
     int uModelView;
     int uProjection;
     int uCol;
+    int uLightPosition;
     };
 
-    int locations[3];
+    int locations[4];
   };
 
-  static const std::array<Location, 3> offsets;
+  static const std::array<Location, 4> offsets;
 };
 extern program_klass program;
 

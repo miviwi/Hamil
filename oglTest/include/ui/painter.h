@@ -2,13 +2,13 @@
 
 #include <common.h>
 
+#include "ui/uicommon.h"
 #include "vmath.h"
 #include "program.h"
 #include "buffer.h"
 #include "vertex.h"
 #include "pipeline.h"
 #include "font.h"
-#include "ui/common.h"
 
 #include <string>
 #include <vector>
@@ -33,7 +33,7 @@ struct Vertex {
 //      when retrieving translate to appropriate place
 class VertexPainter {
 public:
-  enum { InitialBufferReserve = 1024 };
+  enum { NumBufferElements = 256*1024 };
 
   enum CommandType {
     Text, Primitive, Pipeline,
@@ -148,6 +148,8 @@ public:
   {
     for(auto& command : m_commands) fn(command);
   }
+
+  void end();
 
 private:
   void appendVertices(std::initializer_list<Vertex> verts);

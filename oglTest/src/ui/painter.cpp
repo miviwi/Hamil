@@ -30,8 +30,8 @@ Vertex::Vertex(Position pos_, Color color_) :
 
 VertexPainter::VertexPainter()
 {
-  m_buf.reserve(InitialBufferReserve);
-  m_ind.reserve(InitialBufferReserve);
+  m_buf.reserve(NumBufferElements);
+  m_ind.reserve(NumBufferElements);
   m_commands.reserve(32);
 }
 
@@ -593,6 +593,14 @@ u16 *VertexPainter::indices()
 size_t VertexPainter::numIndices()
 {
   return m_ind.size();
+}
+
+void VertexPainter::end()
+{
+  m_buf.clear();
+  m_ind.clear();
+
+  m_commands.clear();
 }
 
 void VertexPainter::appendVertices(std::initializer_list<Vertex> verts)

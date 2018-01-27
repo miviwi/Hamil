@@ -49,6 +49,11 @@ GLint Program::getUniformLocation(const char *name)
   return glGetUniformLocation(m, name);
 }
 
+unsigned Program::getUniformBlockIndex(const char *name)
+{
+  return glGetUniformBlockIndex(m, name);
+}
+
 Program& Program::use()
 {
   if(p_last_bound == m) return *this;
@@ -179,7 +184,8 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
 }
 
 static const char *shader_source[256] = {
-  "#version 330 core\n\n",
+  "#version 330 core\n\n"         // comma omitted
+  "layout(std140) uniform;\n\n",
   nullptr,
 };
 

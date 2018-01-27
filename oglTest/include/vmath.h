@@ -178,6 +178,9 @@ struct Vector4 {
   Vector4(Vector2<T> xy, T z_, T w_) :
     x(xy.x), y(xy.y), z(z_), w(w_)
   { }
+  Vector4(Vector3<T> xyz) :
+    x(xyz.x), y(xyz.y), z(xyz.z), w(1.0f)
+  { }
   Vector4(Vector3<T> xyz, T w_) :
     x(xyz.x), y(xyz.y), z(xyz.z), w(w_)
   { }
@@ -190,6 +193,8 @@ struct Vector4 {
     struct { T r, g, b, a; };
     struct { T u, v; };
   };
+
+  Vector3<T> xyz() const { return Vector3<T>{ x, y, z }; }
 
   T length() const { return (T)sqrt((x*x) + (y*y) + (z*z) + (w*w)); }
   T dot(const Vector4& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z) + (a.w*b.w); }
@@ -391,6 +396,16 @@ static mat4 translate(float x, float y, float z)
       0.0f, 0.0f, 1.0f, z,
       0.0f, 0.0f, 0.0f, 1.0f,
   };
+}
+
+static mat4 translate(vec3 pos)
+{
+  return translate(pos.x, pos.y, pos.z);
+}
+
+static mat4 translate(vec4 pos)
+{
+  return translate(pos.x, pos.y, pos.z);
 }
 
 static mat4 scale(float x, float y, float z)

@@ -94,4 +94,24 @@ unsigned IndexBuffer::elemSize() const
   return 0;
 }
 
+UniformBuffer::UniformBuffer(Usage usage) :
+  Buffer(usage, GL_UNIFORM_BUFFER)
+{
+}
+
+void UniformBuffer::bindToIndex(unsigned idx)
+{
+  glBindBufferBase(m_target, idx, m);
+}
+
+void UniformBuffer::bindToIndex(unsigned idx, size_t offset, size_t size)
+{
+  glBindBufferRange(m_target, idx, m, offset, size);
+}
+
+void UniformBuffer::bindToIndex(unsigned idx, size_t size)
+{
+  bindToIndex(idx, 0, size);
+}
+
 }

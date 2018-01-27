@@ -119,7 +119,10 @@ vec2 PushButtonFrame::sizeHint() const
 
   float font_height = font.height();
 
-  return { font.width(s)+20, font.height(s) + font_height*0.8f };
+  return {
+    std::max(font.width(s)+20, 110.0f),
+    font.height(s) + font_height*0.8f
+  };
 }
 
 Geometry PushButtonFrame::getSolidGeometry() const
@@ -168,8 +171,8 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   if(m_value) {
     vec2 a = {
-      box.x + PixelMargin,
-      box.y + PixelMargin
+      box.x + PixelMargin + 1,
+      box.y + PixelMargin + 1
     },
       b = {
       box.x+box.w - PixelMargin,

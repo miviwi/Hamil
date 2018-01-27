@@ -1,2 +1,3 @@
 // main shader
-uModelView, uProjection, uCol
+uModelView, uProjection, uCol,
+uLightPosition

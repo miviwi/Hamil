@@ -89,4 +89,13 @@ private:
   Type m_type;
 };
 
+class UniformBuffer : public Buffer {
+public:
+  UniformBuffer(Usage usage);
+
+  void bindToIndex(unsigned idx);
+  void bindToIndex(unsigned idx, size_t offset, size_t size);
+  void bindToIndex(unsigned idx, size_t size);
+};
+
 }

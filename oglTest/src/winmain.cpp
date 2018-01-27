@@ -40,37 +40,17 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
-  struct Triangle {
-    vec2 a, b, c;
-
-    Triangle(vec2 a_, vec2 b_, vec2 c_) : a(a_), b(b_), c(c_) {}
-    Triangle(vec2 p[3]) : a(p[0]), b(p[1]), c(p[2]) {}
-  };
-
-  vec2 p[3] = {
-    { 0.0f, 0.0f },
-    { 1280.0f, 720.0f },
-    { 0.0f, 720.0f },
-  };
-
-  std::vector<Triangle> trigs;
-
   int mouse_x = (1280)/2, mouse_y = (720)/2;
   float view_x = 0, view_y = 0;
   float zoom = 1.0f, rot = 0.0f;
-
-  vec3 colors[3] = {
-    {0.0f, 1.0f, 1.0f},
-    {0.6f, 0.0f, 1.0f},
-    {1.0f, 0.5f, 0.0f},
-  };
 
   bool constrained = true;
 
   int animate = -1;
 
   auto fmt = gx::VertexFormat()
-    .attr(gx::VertexFormat::f32, 2);
+    .attr(gx::VertexFormat::f32, 3)
+    .attr(gx::VertexFormat::f32, 3);
   auto cursor_fmt = gx::VertexFormat()
     .attr(gx::VertexFormat::f32, 2)
     .attr(gx::VertexFormat::f32, 2);
@@ -130,35 +110,75 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 uniform mat4 uModelView;
 uniform mat4 uProjection;
 
-uniform vec3 uCol[3];
+layout(location = 0) in vec3 iPosition;
+layout(location = 1) in vec3 iNormal;
 
-layout(location = 0) in vec2 iPosition;
-
-out vec3 Color;
+out VertexData {
+  vec3 position;
+  vec3 normal;
+} output;
 
 void main() {
-/*
-  switch(gl_VertexID % 3) {
-  case 0: Color = vec3(1.0f, 0.5f, 0.0f); break;
-  case 1: Color = vec3(0.0f, 1.0f, 1.0f); break;
-  case 2: Color = vec3(0.6f, 0.0f, 1.0f); break;
-  }
-*/
+  output.position = vec3(uModelView * vec4(iPosition, 1.0));
+  output.normal = mat3(transpose(inverse(uModelView))) * iNormal;
 
-  Color = uCol[gl_VertexID % 3];
-
-  gl_Position = uProjection * uModelView * vec4(iPosition, 0.0f, 1.0f);
+  gl_Position = uProjection * vec4(output.position, 1.0);
 }
 )VTX";
 
   const char *fs_src = R"FG(
 
-in vec3 Color;
+struct Light {
+  vec3 position;
+  vec3 color;
+};
 
-out vec4 oColor;
+uniform LightBlock {
+  Light lights[4];
+  int num_lights;
+};
+
+uniform vec4 uCol;
+
+in VertexData {
+  vec3 position;
+  vec3 normal;
+} input;
+
+out vec3 color;
+
+vec3 phong(Light light, vec3 position, vec3 normal) {
+  vec3 light_direction = normalize(light.position - position);
+
+  float diffuse_strength = max(dot(normal, light_direction), 0.0);
+  
+  vec3 view_direction = normalize(-position);
+  vec3 reflect_direction = reflect(-light_direction, normal);
+
+  float specular_strength = pow(max(dot(view_direction, reflect_direction), 0.0), 64);
+  
+  vec3 ambient = 0.1 * light.color;
+  vec3 diffuse = diffuse_strength * light.color;
+  vec3 specular = 0.5 * specular_strength * light.color;
+
+  return ambient+diffuse+specular;
+} 
 
 void main() {
-  oColor = vec4(Color, 1.0f);
+  vec3 normal = normalize(input.normal);
+
+  vec3 light = vec3(0, 0, 0);
+  for(int i = 0; i < num_lights; i++) {
+    light += phong(lights[i], input.position, normal);
+  }
+
+  if(uCol.a < 0.0) {
+    color = light*uCol.rgb;
+    // color = color / (color + 1.0);
+  } else {
+    int index = int(uCol.a);
+    color = lights[index].color;
+  }
 }
 )FG";
 
@@ -209,6 +229,7 @@ void main() {
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
     .depthTest(gx::Pipeline::LessEqual)
+    .cull(gx::Pipeline::Back)
     .clear(vec4{ 0.2f, 0.2f, 0.2f, 1.0f }, 1.0f);
 
   float r = 1280.0f;
@@ -233,15 +254,94 @@ void main() {
   bool display_tex_matrix = false,
     ortho_projection = false;
 
-  std::vector<vec2> vtxs = {
-    { -1.0f, 1.0f },
-    { 1.0f, -1.0f },
-    { -1.0f, -1.0f },
-
-    { -1.0f, 1.0f },
-    { 1.0f, -1.0f },
-    { 1.0f, 1.0f },
+  struct Vertex {
+    vec3 pos, normal;
   };
+
+  vec3 normals[] = {
+    {0.0f, 0.0f, -1.0f},
+    {0.0f, 0.0f, 1.0f},
+    {0.0f, 1.0f, 0.0f},
+    {0.0f, -1.0f, 0.0f},
+    {-1.0f, 0.0f, 0.0f},
+    {1.0f, 0.0f, 0.0f},
+  };
+
+  std::vector<Vertex> vtxs = {
+    // BACK
+    { { -1.0f, 1.0f, -1.0f }, normals[0] },
+    { { -1.0f, -1.0f, -1.0f }, normals[0] },
+    { { 1.0f, -1.0f, -1.0f }, normals[0] },
+
+    { { 1.0f, -1.0f, -1.0f }, normals[0] },
+    { { 1.0f, 1.0f, -1.0f }, normals[0] },
+    { { -1.0f, 1.0f, -1.0f }, normals[0] },
+
+    // FRONT
+    { { -1.0f, 1.0f, 1.0f }, normals[1] },
+    { { -1.0f, -1.0f, 1.0f }, normals[1] },
+    { { 1.0f, -1.0f, 1.0f }, normals[1] },
+
+    { { 1.0f, -1.0f, 1.0f }, normals[1] },
+    { { 1.0f, 1.0f, 1.0f }, normals[1] },
+    { { -1.0f, 1.0f, 1.0f }, normals[1] },
+    
+    // TOP
+    { { -1.0f, 1.0f, -1.0f }, normals[2] },
+    { { 1.0f, 1.0f, 1.0f }, normals[2] },
+    { { -1.0f, 1.0f, 1.0f }, normals[2] },
+
+    { { 1.0f, 1.0f, 1.0f }, normals[2] },
+    { { -1.0f, 1.0f, -1.0f }, normals[2] },
+    { { 1.0f, 1.0f, -1.0f }, normals[2] },
+    
+    // BOTTOM
+    { { -1.0f, -1.0f, -1.0f }, normals[3] },
+    { { 1.0f, -1.0f, 1.0f }, normals[3] },
+    { { -1.0f, -1.0f, 1.0f }, normals[3] },
+
+    { { 1.0f, -1.0f, 1.0f }, normals[3] },
+    { { -1.0f, -1.0f, -1.0f }, normals[3] },
+    { { 1.0f, -1.0f, -1.0f }, normals[3] },
+
+    // LEFT
+    { { -1.0f, 1.0f, -1.0f }, normals[4] },
+    { { -1.0f, -1.0f, 1.0f }, normals[4] },
+    { { -1.0f, -1.0f, -1.0f }, normals[4] },
+
+    { { -1.0f, -1.0f, 1.0f }, normals[4] },
+    { { -1.0f, 1.0f, -1.0f }, normals[4] },
+    { { -1.0f, 1.0f, 1.0f }, normals[4] },
+
+    // RIGHT
+    { { 1.0f, 1.0f, -1.0f }, normals[5] },
+    { { 1.0f, -1.0f, 1.0f }, normals[5] },
+    { { 1.0f, -1.0f, -1.0f }, normals[5] },
+
+    { { 1.0f, -1.0f, 1.0f }, normals[5] },
+    { { 1.0f, 1.0f, -1.0f }, normals[5] },
+    { { 1.0f, 1.0f, 1.0f }, normals[5] },
+  };
+
+  struct Light {
+    vec4 position, color;
+  };
+
+  struct LightBlock {
+    Light lights[4];
+    int num_lights;
+  };
+
+  LightBlock light_block = {
+    { },
+    1,
+  };
+
+  gx::UniformBuffer light_ubo(gx::Buffer::Dynamic);
+
+  light_ubo.label("UBO_lights");
+  light_ubo.init(sizeof(LightBlock), 1);
+  light_ubo.bindToIndex(program.getUniformBlockIndex("LightBlock"));
 
   std::vector<vec2> floor_vtxs = {
     { -1.0f, 1.0f },  { 0.0f,  10.0f },
@@ -251,6 +351,15 @@ void main() {
     { 1.0f, -1.0f },  { 10.0f, 0.0f },
     { 1.0f, 1.0f },   { 10.0f, 10.0f },
     { -1.0f, 1.0f },  { 0.0f,  10.0f },
+
+    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+    { 1.0f, -1.0f },  { 10.0f, 0.0f },
+    { -1.0f, -1.0f }, { 0.0f,  0.0f },
+
+    { 1.0f, -1.0f },  { 10.0f, 0.0f },
+    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+    { 1.0f, 1.0f },   { 10.0f, 10.0f },
+
   };
 
   gx::VertexBuffer vbuf(gx::Buffer::Static);
@@ -274,8 +383,8 @@ void main() {
   //auto color_a = ui::Color{ 45, 45, 150, alpha },
   //  color_b = ui::Color{ 20, 20, 66, alpha };
   
-  auto color_a = ui::Color{ 150, 45, 45, alpha },
-    color_b = ui::Color{ 66, 20, 20, alpha };
+  auto color_a = ui::Color{ 150, 150, 45, alpha },
+    color_b = ui::Color{ 66, 66, 20, alpha };
 
   ui::Style style;
   style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("segoeui"), 12));
@@ -300,10 +409,16 @@ void main() {
            .frame<ui::PushButtonFrame>(iface, "b")
            .frame<ui::PushButtonFrame>(iface, "c"))
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle wireframe!"))
-           .frame<ui::HSliderFrame>(iface, "d"))
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Light X:"))
+           .frame<ui::HSliderFrame>(iface, "x"))
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Cube Y:"))
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Light Y:"))
+           .frame<ui::HSliderFrame>(iface, "y"))
+    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Light Z:"))
+           .frame<ui::HSliderFrame>(iface, "z"))
+    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle wireframe:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
            .gravity(ui::Frame::Left))
     ;
@@ -314,11 +429,14 @@ void main() {
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-  btn_c->caption("Toggle texmatrix!").onClick([&](auto target) {
+  btn_c->caption("Show texmatrix!").onClick([&](auto target) {
     display_tex_matrix = !display_tex_matrix;
+    target->caption(display_tex_matrix ? "Hide texmatrix!" : "Show texmatrix!");
   });
 
-  auto& slider = iface.getFrameByName<ui::HSliderFrame>("d")->range(0.5f, 6.0f).value(3.0f);
+  auto& slider_x = iface.getFrameByName<ui::HSliderFrame>("x")->range(-5.0f, 5.0f).value(0.0f);
+  auto& slider_y = iface.getFrameByName<ui::HSliderFrame>("y")->range(0.0f, 12.0f).value(6.0f);
+  auto& slider_z = iface.getFrameByName<ui::HSliderFrame>("z")->range(-8.0f, 4.0f).value(-3.0f);
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
 
   iface
@@ -356,7 +474,7 @@ void main() {
         } else if(kb->keyDown('U')) {
           animate = animate < 0 ? time : -1;
         } else if(kb->keyDown('N')) {
-          colors[0] = colors[0]+vec3{ 0.05f, 0.05f, 0.05f };
+          normals[0] = normals[0]+vec3{ 0.05f, 0.05f, 0.05f };
         } else if(kb->keyDown('W')) {
           if(!pipeline.isEnabled(gx::Pipeline::Wireframe)) pipeline.wireframe();
           else pipeline.filledPolys();
@@ -372,20 +490,7 @@ void main() {
         mouse_x += mouse->dx;
         mouse_y += mouse->dy;
 
-        if(mouse->buttonDown(Mouse::Left)) {
-          auto& pp = p[cp];
-
-          pp.x = m.x;
-          pp.y = m.y;
-
-          cp = (cp + 1)%3;
-
-          if(!cp) {
-            trigs.push_back(p);
-
-            buf.init(trigs.data(), trigs.size());
-          }
-        } else if(mouse->buttons & Mouse::Right) {
+        if(mouse->buttons & Mouse::Right) {
           view_x += mouse->dx;
           view_y += mouse->dy;
         } else if(mouse->event == Mouse::Wheel) {
@@ -423,7 +528,7 @@ void main() {
       rot_mtx = xform::identity();
     }
 
-    mat4 modelview =
+    mat4 model =
       xform::translate(view_x, view_y, -50.0f)
       *zoom_mtx
       *rot_mtx
@@ -435,113 +540,78 @@ void main() {
       //*xform::rotz(11*3.1415/6.0f)
       ;
 
-    program.use()
-      .uniformMatrix4x4(U::program.uProjection, projection)
-      .uniformMatrix4x4(U::program.uModelView, modelview)
-      .uniformVector3(U::program.uCol, 3, colors)
-      .draw(gx::Triangles, vtx_array, trigs.size()*3);
-
     float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
 
     auto persp = !ortho_projection ? xform::perspective(70, 16./9., 0.1f, 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
-    //modelview = xform::roty(PI/4.0f);
 
     vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f/zoom };
-    /*
-    if(anim_factor < 1.0f) {
-      eye.x = lerp(-30.0f, 30.0f, anim_factor);
-      //eye.y = eye.x*0.5f;
-    } else {
-      eye.x = lerp(-30.0f, 30.0f, 1.0f - (anim_factor-1.0f));
-      //eye.y = eye.x*0.5f;
-    }
-    */
-
     auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
 
-    auto drawquad = [&]()
-    {
-      program.use()
-        .uniformMatrix4x4(U::program.uProjection, persp)
-        .uniformMatrix4x4(U::program.uModelView, modelview)
-        .uniformVector3(U::program.uCol, 3, colors)
-        .draw(gx::Triangles, arr, vtxs.size());
+    vec3 light_position[] = {
+      { (float)slider_x.value(), (float)slider_y.value(), (float)slider_z.value() },
+      { (float)-slider_x.value(), (float)slider_y.value(), (float)slider_z.value() },
+      { 0, (float)slider_y.value(), (float)slider_z.value() },
     };
+    vec4 color;
+
+    light_block.num_lights = 2;
+
+    light_block.lights[0] = {
+      view*light_position[0],
+      vec3{ 1.0f, 0.0f, 0.0f }
+    };
+    light_block.lights[1] = {
+      view*light_position[1],
+      vec3{ 0.0f, 1.0f, 0.0f }
+    };
+    light_block.lights[2] = {
+      view*light_position[2],
+      vec3{ 1.0f, 1.0f, 1.0f }
+    };
+
+    light_ubo.upload(&light_block, 0, 1);
 
     auto drawcube = [&]()
     {
-      mat4 mv = modelview;
-
-      drawquad();
-
-      modelview = mv
-        *xform::translate(0.0f, 0.0f, -2.0f)
-        ;
-      drawquad();
-
-      modelview = mv
-        *xform::translate(1.0f, 0.0f, -1.0f)
-        *xform::roty(PI/2.0f)
-        *xform::rotz(PI/2.0f)
-        ;
-      drawquad();
-
-      modelview = mv
-        *xform::translate(-1.0f, 0.0f, -1.0f)
-        *xform::roty(PI/2.0f);
-        ;
-      drawquad();
-
-      modelview = mv
-        *xform::translate(0.0f, -1.0f, -1.0f)
-        *xform::rotx(PI/2.0f);
-        ;
-      drawquad();
-
-      modelview = mv
-        *xform::translate(0.0f, 1.0f, -1.0f)
-        *xform::rotx(PI/2.0f);
-        ;
-      drawquad();
-
+      program.use()
+        .uniformMatrix4x4(U::program.uProjection, persp)
+        .uniformMatrix4x4(U::program.uModelView, view*model)
+        .uniformVector4(U::program.uCol, color)
+        .draw(gx::Triangles, arr, vtxs.size());
     };
 
     auto rot = xform::identity()
       //*xform::rotz(lerp(0.0, PI, anim_factor))*0.5f
-      *xform::translate(0.0f, 0.0f, -1.0f)
       *xform::roty(lerp(0.0, PI, anim_factor))
-      *xform::translate(0.0f, 0.0f, 1.0f)
       //*xform::rotz(lerp(0.0, PI, anim_factor))
       ;
 
-    modelview = xform::identity()
-      *view
-      *xform::translate(0.0f, slider.value(), 0.0f)
-      *xform::translate(0.0f, 0.0f, -1.0f)
-      *xform::rotx(lerp(0.0f, PIf, anim_factor))*0.5f
+    color = { 1.0f, 1.0f, 1.0f, -1.0f };
+    model = xform::identity()
+      *xform::translate(0.0f, 3.0f, 0.0f)
+      *xform::rotx(lerp(0.0f, PIf, anim_factor))
       *xform::roty(lerp(0.0f, PIf, anim_factor))
-      *xform::translate(0.0f, 0.0f, 1.0f)
+      *xform::scale(1.5f)
       //*xform::translate(0.0f, 0.0f, -30.0f)
       ;
     drawcube();
 
-    modelview = xform::identity()
-      *view
+    color = { 1.0f, 1.0f, 1.0f, -1.0f };
+    model = xform::identity()
       *xform::translate(3.0f, 0.0f, -6.0f)
       *rot
       ;
     drawcube();
 
-    modelview = xform::identity()
-      *view
+    color = { 1.0f, 0.5f, 1.0f, -1.0f };
+    model = xform::identity()
       *xform::translate(-3.0f, 0.0f, -6.0f)
       *rot
       ;
     drawcube();
 
-    modelview = xform::identity()
-      *view
+    model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
       *xform::scale(10.0f)
       *xform::rotx(PI/2.0f)
@@ -557,10 +627,25 @@ void main() {
     gx::tex_unit(0, tex, floor_sampler);
     cursor_program.use()
       .uniformMatrix4x4(U::cursor.uProjection, persp)
-      .uniformMatrix4x4(U::cursor.uModelView, modelview)
-      .uniformMatrix4x4(U::cursor.uTexMatrix, texmatrix)
+      .uniformMatrix4x4(U::cursor.uModelView, view*model)
+      .uniformMatrix4x4(U::cursor.uTexMatrix, /*texmatrix*/ xform::identity())
       .uniformInt(U::cursor.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
+
+    for(int i = 0; i < light_block.num_lights; i++) {
+      color = { 0, 0, 0, (float)i };
+
+      gx::Pipeline()
+        .additiveBlend()
+        .depthTest(gx::Pipeline::LessEqual)
+        .use();
+
+      model = xform::identity()
+        *xform::translate(light_position[i])
+        *xform::scale(0.2f)
+        ;
+      drawcube();
+    }
 
     int fps = (float)frames / ((float)(time-start_time) / 1000.0f);
 
@@ -585,19 +670,10 @@ void main() {
               texmatrix[8], texmatrix[9], texmatrix[10], texmatrix[11],
               texmatrix[12], texmatrix[13], texmatrix[14], texmatrix[15]);
 
-    //MessageBoxA(nullptr, buf, "zoom_mtx", MB_OK);
     if(display_tex_matrix) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
 
     iface.paint();
     
-    //vm->execute(co);
-
-    //sprintf_s(buf, "vm: %s", o->repr().c_str());
-    //face.draw(buf, vec2{ 30.0f, 180.0f }, vec3{ 0.2f, 0, 0 });
-
-    //face.drawString("ala ma kota a moze i dwa va av Ma Ta Tb Tc", vec2{ 30.0f, 130.0f },
-      //              vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
-
     sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
     small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
 

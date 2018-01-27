@@ -146,11 +146,13 @@ HGLRC Window::ogl_create_context(HWND hWnd)
     ExitProcess(-1);
   };
 
-  int flags = WGL_CONTEXT_DEBUG_BIT_ARB;
+  int flags = WGL_CONTEXT_DEBUG_BIT_ARB,
+    profile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
   int attribs[] = {
     WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
     WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+    WGL_CONTEXT_PROFILE_MASK_ARB, profile,
     WGL_CONTEXT_FLAGS_ARB, flags,
     0
   };

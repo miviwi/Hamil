@@ -20,10 +20,11 @@ const std::array<Location, 3> font_klass::offsets = {
 
 
 program_klass program;
-const std::array<Location, 3> program_klass::offsets = {
+const std::array<Location, 4> program_klass::offsets = {
   Location{ "uModelView", 0 },
   Location{ "uProjection", 1 },
   Location{ "uCol", 2 },
+  Location{ "uLightPosition", 3 },
 };
 
 
