@@ -36,6 +36,8 @@ public:
     depth24_stencil8,
   };
 
+  static Attachment Color(int index);
+
   Framebuffer();
   Framebuffer(const Framebuffer&) = delete;
   ~Framebuffer();
@@ -61,11 +63,13 @@ private:
   void checkIfBound();
 
   // Must be bound already!
-  ivec2 getColorAttachementDimensions();
+  ivec2 getColorAttachement0Dimensions();
+  void setupDrawBuffers();
 
+  GLuint m;
   GLenum m_bound;
   unsigned m_samples;
-  GLuint m;
+  bool m_draw_buffers_setup;
   std::vector<GLuint> m_rb;
 };
 

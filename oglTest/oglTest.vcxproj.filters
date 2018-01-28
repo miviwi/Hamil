@@ -165,9 +165,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\cursor.uniform">
-      <Filter>Uniform Definitions</Filter>
-    </None>
     <None Include="src\font.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
@@ -175,6 +172,9 @@
       <Filter>Uniform Definitions</Filter>
     </None>
     <None Include="src\ui.uniform">
+      <Filter>Uniform Definitions</Filter>
+    </None>
+    <None Include="src\tex.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
   </ItemGroup>

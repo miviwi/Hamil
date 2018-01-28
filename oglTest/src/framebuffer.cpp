@@ -4,7 +4,13 @@
 
 namespace gx {
 
-Framebuffer::Framebuffer()
+Framebuffer::Attachment Framebuffer::Color(int index)
+{
+  return (Attachment)(index < 0 ? ~0 : (Color0+index));
+}
+
+Framebuffer::Framebuffer() :
+  m_draw_buffers_setup(false)
 {
   glGenFramebuffers(1, &m);
 }
@@ -19,6 +25,8 @@ Framebuffer& Framebuffer::use()
 {
   glBindFramebuffer(GL_FRAMEBUFFER, m);
   m_bound = GL_FRAMEBUFFER;
+
+  setupDrawBuffers();
 
   return *this;
 }
@@ -43,7 +51,7 @@ Framebuffer& Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment a
 
 Framebuffer& Framebuffer::renderbuffer(Format fmt, Attachment att)
 {
-  auto dimensions = getColorAttachementDimensions();
+  auto dimensions = getColorAttachement0Dimensions();
 
   return renderbuffer(dimensions.x, dimensions.y, fmt, att);
 }
@@ -66,7 +74,7 @@ Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attac
 
 Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, Attachment att)
 {
-  auto dimensions = getColorAttachementDimensions();
+  auto dimensions = getColorAttachement0Dimensions();
 
   return renderbufferMultisample(samples, dimensions.x, dimensions.y, fmt, att);
 }
@@ -151,10 +159,10 @@ void Framebuffer::checkIfBound()
   default:                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound);
   }
 
-  if(bound != m) assert(0 && "Framebuffer needs to be boun before use");
+  if(bound != m) assert(0 && "Framebuffer needs to be bound before use");
 }
 
-ivec2 Framebuffer::getColorAttachementDimensions()
+ivec2 Framebuffer::getColorAttachement0Dimensions()
 {
   GLint att_type = -1;
   glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,
@@ -196,6 +204,21 @@ ivec2 Framebuffer::getColorAttachementDimensions()
   default: break;
   }
   return dims;
+}
+
+void Framebuffer::setupDrawBuffers()
+{
+  if(m_draw_buffers_setup) return;
+
+  GLenum bufs[] = {
+    GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+    GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+    GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
+    GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7,
+  };
+  glDrawBuffers(8, bufs);
+
+  m_draw_buffers_setup = true;
 }
 
 void clear(int mask)

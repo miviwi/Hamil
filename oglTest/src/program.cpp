@@ -9,7 +9,7 @@
 
 namespace gx {
 
-GLuint p_last_bound = ~0u;
+GLuint p_last_program = ~0u;
 
 Program::Program(const Shader& vertex, const Shader& fragment)
 {
@@ -54,11 +54,26 @@ unsigned Program::getUniformBlockIndex(const char *name)
   return glGetUniformBlockIndex(m, name);
 }
 
+void Program::uniformBlockBinding(unsigned block, unsigned index)
+{
+  glUniformBlockBinding(m, block, index);
+}
+
+void Program::uniformBlockBinding(const char *name, unsigned index)
+{
+  uniformBlockBinding(getUniformBlockIndex(name), index);
+}
+
+int Program::getOutputLocation(const char *name)
+{
+  return glGetFragDataLocation(m, name);
+}
+
 Program& Program::use()
 {
-  if(p_last_bound == m) return *this;
+  if(p_last_program == m) return *this;
 
-  p_last_bound = m;
+  p_last_program = m;
   glUseProgram(m);
 
   return *this;

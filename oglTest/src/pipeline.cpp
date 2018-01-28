@@ -220,6 +220,11 @@ void Pipeline::disable(ConfigType config) const
 
 void Pipeline::enable(ConfigType config) const
 {
+  auto do_enable = [](ConfigType config, GLenum cap)
+  {
+    if(!p_current.isEnabled(config)) glEnable(cap);
+  };
+
   const auto& v = m_viewport;
   const auto& sc = m_scissor;
   const auto& c = m_clear;
@@ -228,16 +233,16 @@ void Pipeline::enable(ConfigType config) const
   case Viewport: glViewport(v.x, v.y, v.width, v.height); break;
   case Scissor:
     if(!sc.current) {
-      glEnable(GL_SCISSOR_TEST);
+      do_enable(Scissor, GL_SCISSOR_TEST);
       glScissor(sc.x, sc.y, sc.width, sc.height);
     }
     break;
   case Blend:
-    glEnable(GL_BLEND);
+    do_enable(Blend, GL_BLEND);
     glBlendFunc(m_blend.sfactor, m_blend.dfactor);
     break;
   case Depth:
-    glEnable(GL_DEPTH_TEST);
+    do_enable(Depth, GL_DEPTH_TEST);
     glDepthFunc(m_depth.func);
     break;
   case Stencil:
@@ -245,7 +250,7 @@ void Pipeline::enable(ConfigType config) const
     // TODO
     break;
   case Cull:
-    glEnable(GL_CULL_FACE);
+    do_enable(Cull, GL_CULL_FACE);
     glFrontFace(m_cull.front);
     glCullFace(m_cull.mode);
     break;
@@ -256,7 +261,7 @@ void Pipeline::enable(ConfigType config) const
     break;
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
   case PrimitiveRestart:
-    glEnable(GL_PRIMITIVE_RESTART);
+    do_enable(PrimitiveRestart, GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(m_restart.index);
     break;
 

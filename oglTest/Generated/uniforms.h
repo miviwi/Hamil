@@ -6,21 +6,6 @@ namespace U {
 
 using Location = std::pair<std::string, unsigned>;
 
-struct cursor_klass {
-  union { struct {
-    int uModelView;
-    int uProjection;
-    int uTexMatrix;
-    int uTex;
-    };
-
-    int locations[4];
-  };
-
-  static const std::array<Location, 4> offsets;
-};
-extern cursor_klass cursor;
-
 struct font_klass {
   union { struct {
     int uModelViewProjection;
@@ -49,6 +34,21 @@ struct program_klass {
   static const std::array<Location, 4> offsets;
 };
 extern program_klass program;
+
+struct tex_klass {
+  union { struct {
+    int uModelView;
+    int uProjection;
+    int uTexMatrix;
+    int uTex;
+    };
+
+    int locations[4];
+  };
+
+  static const std::array<Location, 4> offsets;
+};
+extern tex_klass tex;
 
 struct ui_klass {
   union { struct {

@@ -55,27 +55,33 @@ vec2 Geometry::center() const
 
 Color Color::darken(unsigned factor) const
 {
+  auto f = [=](int v) -> byte
+  {
+    return (byte)clamp((int)(v-factor), 0, 255);
+  };
+
   return Color(
-    (byte)clamp((int)(r-factor), 0, 255),
-    (byte)clamp((int)(g-factor), 0, 255),
-    (byte)clamp((int)(b-factor), 0, 255),
+    f(r), f(g), f(b),
     a
   );
 }
 
 Color Color::lighten(unsigned factor) const
 {
+  auto f = [=](unsigned v) -> byte
+  {
+    return (byte)clamp(v+factor, 0u, 255u);
+  };
+
   return  Color(
-    (byte)clamp(r+factor, 0u, 255u),
-    (byte)clamp(g+factor, 0u, 255u),
-    (byte)clamp(b+factor, 0u, 255u),
+    f(r), f(g), f(b),
     a
   );
 }
 
 Color Color::luminance() const
 {
-  byte y = (r+g+b)/3;
+  byte y = (byte)(r*0.2126 + g*0.7152 + b*0.0722);
 
   return Color{ y, y, y, a };
 }

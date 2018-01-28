@@ -142,7 +142,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\database.cpp" />
     <ClCompile Include="src\uniformgen.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\database.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

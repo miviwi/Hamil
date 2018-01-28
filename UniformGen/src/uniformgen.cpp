@@ -1,7 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS 1
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include "database.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -116,6 +113,33 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
+  Database db("uniformgen.db");
+
+  // Compare against Database
+  bool up_to_date = true;
+  for(int i = 1; i < argc; i++) {
+    auto pattern = argv[i] + std::string("\\*.uniform");
+
+    WIN32_FIND_DATAA find_data;
+    auto handle = FindFirstFileA(pattern.c_str(), &find_data);
+    do {
+      Key key = find_data.cFileName;
+      Record record = find_data.ftLastWriteTime;
+
+      if(!db.compareWithRecord(key, record)) {
+        printf("`%s' not up to date (%llu)...\n\n", find_data.cFileName, get_record(record));
+        up_to_date = false;
+        break;
+      }
+    } while(FindNextFileA(handle, &find_data));
+
+    FindClose(handle);
+
+    if(!up_to_date) break;
+  }
+
+  if(up_to_date) exit(1);
+
   FILE *header = fopen("uniforms.h", "wb"),
     *src = fopen("uniforms.cpp", "wb");
 
@@ -138,16 +162,19 @@ int main(int argc, char *argv[])
     "namespace U {\n"
   );
 
+  // Generate
   for(int i = 1; i < argc; i++) {
     auto pattern = argv[i] + std::string("\\*.uniform");
 
     WIN32_FIND_DATAA find_data;
     auto handle = FindFirstFileA(pattern.c_str(), &find_data);
     do {
-      printf("file: %s\n", find_data.cFileName);
+      Key key = find_data.cFileName;
+      Record record = find_data.ftLastWriteTime;
 
       auto fname = argv[i] + std::string("\\") + find_data.cFileName;
 
+      db.writeRecord(key, record);
       gen(header, src, fname.c_str());
     } while(FindNextFileA(handle, &find_data));
 
@@ -159,4 +186,6 @@ int main(int argc, char *argv[])
 
   fclose(header);
   fclose(src);
+
+  db.serialize();
 }

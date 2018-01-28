@@ -2,15 +2,6 @@
 
 namespace U {
 
-cursor_klass cursor;
-const std::array<Location, 4> cursor_klass::offsets = {
-  Location{ "uModelView", 0 },
-  Location{ "uProjection", 1 },
-  Location{ "uTexMatrix", 2 },
-  Location{ "uTex", 3 },
-};
-
-
 font_klass font;
 const std::array<Location, 3> font_klass::offsets = {
   Location{ "uModelViewProjection", 0 },
@@ -25,6 +16,15 @@ const std::array<Location, 4> program_klass::offsets = {
   Location{ "uProjection", 1 },
   Location{ "uCol", 2 },
   Location{ "uLightPosition", 3 },
+};
+
+
+tex_klass tex;
+const std::array<Location, 4> tex_klass::offsets = {
+  Location{ "uModelView", 0 },
+  Location{ "uProjection", 1 },
+  Location{ "uTexMatrix", 2 },
+  Location{ "uTex", 3 },
 };
 
 

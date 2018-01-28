@@ -57,7 +57,7 @@ void SliderFrame::losingCapture()
 SliderFrame& SliderFrame::range(double min, double max)
 {
   m_min = min; m_max = max;
-  m_value = min;
+  m_value = (max+min)/2.0;
 
   return *this;
 }

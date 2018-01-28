@@ -130,7 +130,10 @@
     <CustomBuildStep>
       <Message>Generate Uniform Location</Message>
       <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"
-move uniforms.* Generated\</Command>
+if not errorlevel 1 (
+  move uniforms.* Generated\
+)
+exit /b 0</Command>
       <Outputs>uniforms.cpp;uniforms.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -238,7 +241,7 @@ move uniforms.* Generated\</Command>
     <ClInclude Include="include\vertex.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\cursor.uniform" />
+    <None Include="src\tex.uniform" />
     <None Include="src\font.uniform" />
     <None Include="src\program.uniform" />
     <None Include="src\ui.uniform" />

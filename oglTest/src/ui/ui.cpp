@@ -73,7 +73,7 @@ in VertexData {
   vec2 uv;
 } input;
 
-out vec4 color;
+layout(location = 0) out vec4 color;
 
 void main() {
   vec4 font_sample = sampleFontAtlas(uFontAtlas, input.uv);

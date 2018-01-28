@@ -15,6 +15,7 @@ public:
     depth, depth_stencil,
 
     r8, r16,
+    rgb8,
     rgb5a1, rgba8,
 
     //i = 0x4000, ui = 0x8000,
