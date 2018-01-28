@@ -34,6 +34,9 @@ static Record put_record(unsigned long long ull)
   return record;
 }
 
+// File format:
+//   '0' '0' 'D' 'B' [u32 num_records]
+//   ( [u16 key_length] [ char key[key_length] ] '\0' [FILETIME record] )... 
 class Database {
 public:
   Database(const char *fname);

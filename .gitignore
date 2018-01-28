@@ -242,5 +242,8 @@ ModelManifest.xml
 .fake/
 
 *.raw
-uniforms.*
 *.lib
+
+Generated/
+uniforms.*
+uniformgen.db

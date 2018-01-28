@@ -1,1 +1,2 @@
-uModelView, uProjection, uTexMatrix, uTex
+uModelView, uProjection, uNormal,
+uTexMatrix, uTex

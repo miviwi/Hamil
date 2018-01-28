@@ -114,11 +114,23 @@ Program& Program::uniformVector4(int location, vec4 v)
   return *this;
 }
 
-Program& Program::uniformMatrix4x4(int location, const float *mtx)
+Program& Program::uniformMatrix4x4(int location, const mat4& mtx)
 {
   glUniformMatrix4fv(location, 1, GL_TRUE, mtx);
 
   return *this;
+}
+
+Program& Program::uniformMatrix3x3(int location, const mat3& mtx)
+{
+  glUniformMatrix3fv(location, 1, GL_TRUE, mtx);
+
+  return *this;
+}
+
+Program& Program::uniformMatrix3x3(int location, const mat4& mtx)
+{
+  return uniformMatrix3x3(location, mtx.toMat3());
 }
 
 Program& Program::uniformBool(int location, bool v)

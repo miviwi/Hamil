@@ -24,14 +24,15 @@ struct program_klass {
   union { struct {
     int uModelView;
     int uProjection;
+    int uNormal;
     int uCol;
     int uLightPosition;
     };
 
-    int locations[4];
+    int locations[5];
   };
 
-  static const std::array<Location, 4> offsets;
+  static const std::array<Location, 5> offsets;
 };
 extern program_klass program;
 
@@ -39,14 +40,15 @@ struct tex_klass {
   union { struct {
     int uModelView;
     int uProjection;
+    int uNormal;
     int uTexMatrix;
     int uTex;
     };
 
-    int locations[4];
+    int locations[5];
   };
 
-  static const std::array<Location, 4> offsets;
+  static const std::array<Location, 5> offsets;
 };
 extern tex_klass tex;
 

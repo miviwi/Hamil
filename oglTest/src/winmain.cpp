@@ -99,6 +99,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   const char *vs_src = R"VTX(
 uniform mat4 uModelView;
 uniform mat4 uProjection;
+uniform mat3 uNormal;
 
 layout(location = 0) in vec3 iPosition;
 layout(location = 1) in vec3 iNormal;
@@ -110,7 +111,7 @@ out VertexData {
 
 void main() {
   output.position = vec3(uModelView * vec4(iPosition, 1.0));
-  output.normal = mat3(transpose(inverse(uModelView))) * iNormal;
+  output.normal = uNormal * iNormal;
 
   gl_Position = uProjection * vec4(output.position, 1.0);
 }
@@ -167,7 +168,7 @@ in VertexData {
   vec3 normal;
 } input;
 
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec3 color;
 
 void main() {
   vec3 normal = normalize(input.normal);
@@ -178,10 +179,10 @@ void main() {
   }
 
   if(uCol.a < 0.0) {
-    color = vec4(toGammaSpace(light*uCol.rgb), 1.0);
+    color = toGammaSpace(light*uCol.rgb);
   } else {
     int index = int(uCol.a);
-    color = vec4(lights[index].color, 1.0);
+    color = lights[index].color;
   }
 }
 )FG";
@@ -189,6 +190,7 @@ void main() {
   const char *tex_vs_src = R"VTX(
 uniform mat4 uModelView;
 uniform mat4 uProjection;
+uniform mat3 uNormal;
 uniform mat4 uTexMatrix;
 
 layout(location = 0) in vec2 iPosition;
@@ -202,7 +204,7 @@ out VertexData {
 
 void main() {
   output.position = vec3(uModelView * vec4(iPosition, 0.0, 1.0));
-  output.normal = mat3(transpose(inverse(uModelView))) * vec3(0.0, 0.0, -1.0);
+  output.normal = uNormal * vec3(0.0, 0.0, -1.0);
   output.tex_coord = (uTexMatrix * vec4(iTexCoord, 0.0f, 1.0f)).st;
 
   gl_Position = uProjection * vec4(output.position, 1.0f);
@@ -218,18 +220,18 @@ in VertexData {
   vec2 tex_coord;
 } input;
 
-layout(location = 0) out vec4 color;
+layout(location = 0) out vec3 color;
 
 void main() {
   vec3 normal = normalize(input.normal); 
-  vec4 albedo = texture(uTex, input.tex_coord);
+  vec4 diffuse = texture(uTex, input.tex_coord);
 
   vec3 light = vec3(0, 0, 0);
   for(int i = 0; i < num_lights; i++) {
     light += phong(lights[i], input.position, normal);
   }
 
-  color = vec4(toGammaSpace(light*albedo.rgb), 1.0);
+  color = toGammaSpace(light*diffuse.rgb);
 }
 )FG";
 
@@ -267,7 +269,7 @@ void main() {
   float r = 1280.0f;
   float b = 720.0f;
 
-  mat4 projection = xform::ortho(0, 0, b, r, 0.1f, 100.0f);
+  mat4 ortho = xform::ortho(0, 0, b, r, 0.1f, 100.0f);
   // xform::perspective(59.0f, 16.0f/9.0f, 0.01f, 100.0f);
 
   mat4 zoom_mtx = xform::identity();
@@ -607,9 +609,11 @@ void main() {
 
     auto drawcube = [&]()
     {
+      mat4 modelview = view*model;
       program.use()
         .uniformMatrix4x4(U::program.uProjection, persp)
-        .uniformMatrix4x4(U::program.uModelView, view*model)
+        .uniformMatrix4x4(U::program.uModelView, modelview)
+        .uniformMatrix3x3(U::program.uNormal, modelview.inverse().transpose())
         .uniformVector4(U::program.uCol, color)
         .draw(gx::Triangles, arr, vtxs.size());
     };
@@ -657,10 +661,13 @@ void main() {
       *xform::translate(-5.0f, -5.0f, 0.0f)
       ;
 
+    mat4 modelview = view*model;
+
     gx::tex_unit(0, tex, floor_sampler);
     tex_program.use()
       .uniformMatrix4x4(U::tex.uProjection, persp)
-      .uniformMatrix4x4(U::tex.uModelView, view*model)
+      .uniformMatrix4x4(U::tex.uModelView, modelview)
+      .uniformMatrix3x3(U::tex.uNormal, modelview.inverse().transpose())
       .uniformMatrix4x4(U::tex.uTexMatrix, /*texmatrix*/ xform::identity())
       .uniformInt(U::tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
@@ -690,6 +697,7 @@ void main() {
     sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_factor, eye.x, eye.y, eye.z);
     small_face.draw(str, vec2{ 30.0f, 100.0f }, vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
 
+    texmatrix = texmatrix.inverse();
     char buf[1024];
     sprintf_s(buf,
               "%f %f %f %f\n"
@@ -712,7 +720,7 @@ void main() {
 
     color = { 0, 0, 0, 1 };
     program.use()
-      .uniformMatrix4x4(U::program.uProjection, projection)
+      .uniformMatrix4x4(U::program.uProjection, ortho)
       .uniformMatrix4x4(U::program.uModelView, cursor_mtx)
       .uniformVector4(U::program.uCol, color)
       .draw(gx::Triangles, cursor, 3);

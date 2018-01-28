@@ -54,6 +54,7 @@ struct Vector2 {
   };
 
   operator float *() { return (float *)this; }
+  operator const float *() const { return (float *)this; }
 };
 
 template <typename T>
@@ -127,6 +128,7 @@ struct Vector3 {
   }
 
   operator float *() { return (float *)this; }
+  operator const float *() const { return (float *)this; }
 };
 
 template <typename T>
@@ -200,6 +202,7 @@ struct Vector4 {
   T dot(const Vector4& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z) + (a.w*b.w); }
 
   operator float *() { return (float *)this; }
+  operator const float *() const { return (float *)this; }
 };
 
 template <typename T>
@@ -250,6 +253,7 @@ struct Matrix2 {
   Matrix2& operator *=(Matrix2& b) { *this = *this * b; return *this; }
 
   operator float *() { return d; }
+  operator const float *() const { return d; }
 };
 
 template <typename T>
@@ -271,6 +275,7 @@ struct Matrix3 {
   Matrix3& operator *=(Matrix3& b) { *this = *this * b; return *this; }
 
   operator float *() { return d; }
+  operator const float *() const { return d; }
 };
 
 template <typename T>
@@ -292,11 +297,34 @@ struct Matrix4 {
 
   Matrix4& operator *=(Matrix4& b) { *this = *this * b; return *this; }
 
+  Matrix4 transpose() const
+  {
+    return Matrix4{
+      d[0], d[4], d[8],  d[12],
+      d[1], d[5], d[9],  d[13],
+      d[2], d[6], d[10], d[14],
+      d[3], d[7], d[11], d[15]
+    };
+  }
+  inline Matrix4 inverse() const;
+
+  Matrix3<T> toMat3() const
+  {
+    return Matrix3<T>{
+      d[0], d[1], d[2],
+      d[4], d[5], d[6],
+      d[8], d[9], d[10]
+    };
+  }
+
   operator float *() { return d; }
+  operator const float *() const { return d; }
 };
 
 namespace intrin {
 void mat4_mult(const float *a, const float *b, float *out);
+void mat4_transpose(const float *a, float *out);
+void mat4_inverse(const float *a, float *out);
 }
 
 template <typename T>
@@ -321,6 +349,37 @@ Matrix4<T> operator*(Matrix4<T> a, T b)
   };
 }
 
+template <typename T>
+inline Matrix4<T> Matrix4<T>::inverse() const
+{
+  Matrix4 x;
+  T det;
+
+  x.d[0]  = +d[5]*d[10]*d[15] - d[5]*d[11]*d[14] - d[9]*d[6]*d[15] + d[9]*d[7]*d[14] + d[13]*d[6]*d[11] - d[13]*d[7]*d[10];
+  x.d[1]  = -d[1]*d[10]*d[15] + d[1]*d[11]*d[14] + d[9]*d[2]*d[15] - d[9]*d[3]*d[14] - d[13]*d[2]*d[11] + d[13]*d[3]*d[10];
+  x.d[2]  = +d[1]*d[6]*d[15] - d[1]*d[7]*d[14] - d[5]*d[2]*d[15] + d[5]*d[3]*d[14] + d[13]*d[2]*d[7] - d[13]*d[3]*d[6];
+  x.d[3]  = -d[1]*d[6]*d[11] + d[1]*d[7]*d[10] + d[5]*d[2]*d[11] - d[5]*d[3]*d[10] - d[9]*d[2]*d[7] + d[9]*d[3]* d[6];
+  x.d[4]  = -d[4]*d[10]*d[15] + d[4]*d[11]*d[14] + d[8]*d[6]*d[15] - d[8]*d[7]*d[14] - d[12]*d[6]*d[11] + d[12]*d[7]*d[10];
+  x.d[5]  = +d[0]*d[10]*d[15] - d[0]*d[11]*d[14] - d[8]*d[2]*d[15] + d[8]*d[3]*d[14] + d[12]*d[2]*d[11] - d[12]*d[3]*d[10];
+  x.d[6]  = -d[0]*d[6]*d[15] + d[0]*d[7]*d[14] + d[4]*d[2]*d[15] - d[4]*d[3]*d[14] - d[12]*d[2]*d[7] + d[12]*d[3]*d[6];
+  x.d[7]  = +d[0]*d[6]*d[11] - d[0]*d[7]*d[10] - d[4]*[2]*d[11] + d[4]* d[3]*d[10] + d[8]*d[2]*d[7] - d[8]*d[3]*d[6];
+  x.d[8]  = +d[4]*d[9]*d[15] - d[4]*d[11]*d[13] - d[8]*d[5]*d[15] + d[8]*d[7]*d[13] + d[12]*d[5]*d[11] - d[12]*d[7]*d[9];
+  x.d[9]  = -d[0]*d[9] *d[15] + d[0]*d[11]*d[13] + d[8]*d[1]*d[15]- d[8]*d[3]*d[13] - d[12]*d[1]*d[11] + d[12]*d[3]*d[9];
+  x.d[10] = +d[0]*d[5]*d[15] - d[0]*d[7]*d[13] - d[4]*d[1]*d[15] + d[4]*d[3]*d[13] + d[12]*d[1]*d[7] - d[12]*d[3]*d[5];
+  x.d[11] = -d[0]*d[5]*d[11] + d[0]*d[7]*d[9] + d[4]*d[1]*d[11] - d[4]*d[3]*d[9] - d[8]*d[1]*d[7] + d[8]*d[3]*d[5];
+  x.d[12] = -d[4]*d[9]*d[14] + d[4]*d[10]*d[13] + d[8]*d[5]*d[14] - d[8]*d[6]*d[13] - d[12]*d[5]*d[10] + d[12]*d[6]*d[9];
+  x.d[13] = +d[0]*d[9]*d[14] - d[0]*d[10]*d[13] - d[8]*d[1]*d[14] + d[8]*d[2]*d[13] + d[12]*d[1]*d[10] - d[12]*d[2]*d[9];
+  x.d[14] = -d[0]*d[5]*d[14] + d[0]*d[6]*d[13] + d[4]*d[1]*d[14] - d[4]*d[2]*d[13] - d[12]*d[1]*d[6] + d[12]*d[2]*d[5];
+  x.d[15] = +d[0]*d[5]*d[10] - d[0]*d[6]*d[9] - d[4]*d[1]*d[10] + d[4]*d[2]*d[9] + d[8]*d[1]*d[6] - d[8]*d[2]*d[5];
+
+  det = d[0]*x.d[0] + d[1]*x.d[4] + d[2]*x.d[8] + d[3]*x.d[12];
+  det = (T)(1.0 / (double)det);
+
+  x *= det;
+
+  return x;
+}
+
 using mat4 = Matrix4<float>;
 using imat4 = Matrix4<int>;
 
@@ -330,6 +389,22 @@ static mat4 operator*(mat4 a, mat4 b)
 
   intrin::mat4_mult(a, b, c);
   return c;
+}
+
+mat4 mat4::transpose() const
+{
+  mat4 b;
+
+  intrin::mat4_transpose(this->d, b);
+  return b;
+}
+
+mat4 mat4::inverse() const
+{
+  mat4 b;
+
+  intrin::mat4_inverse(this->d, b);
+  return b;
 }
 
 template <typename T>
@@ -359,6 +434,29 @@ template <typename T>
 T lerp(T a, T b, float u)
 {
   return a + (b-a)*u;
+}
+
+namespace intrin {
+void vec4_lerp(const float *a, const float *b, float u, float *out);
+}
+
+static vec4 lerp(vec4 a, vec4 b, float u)
+{
+  alignas(16) vec4 c;
+
+  intrin::vec4_lerp(a, b, u, c);
+  return c;
+}
+
+static vec3 lerp(vec3 a, vec3 b, float u)
+{
+  alignas(16) vec4 aa(a);
+  alignas(16) vec4 bb(b);
+
+  alignas(16) vec4 c;
+
+  intrin::vec4_lerp(aa, bb, u, c);
+  return c.xyz();
 }
 
 template <typename T>
