@@ -190,6 +190,8 @@ void Program::drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuf
 void Program::label(const char *lbl)
 {
 #if !defined(NDEBUG)
+  use();
+
   glObjectLabel(GL_PROGRAM, m, strlen(lbl), lbl);
 #endif
 }

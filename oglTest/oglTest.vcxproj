@@ -227,6 +227,7 @@ exit /b 0</Command>
     <ClInclude Include="include\pipeline.h" />
     <ClInclude Include="include\ui\button.h" />
     <ClInclude Include="include\ui\dropdown.h" />
+    <ClInclude Include="include\gx.h" />
     <ClInclude Include="include\ui\uicommon.h" />
     <ClInclude Include="include\ui\frame.h" />
     <ClInclude Include="include\ui\label.h" />

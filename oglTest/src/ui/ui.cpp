@@ -112,7 +112,7 @@ Ui::Ui(Geometry geom, const Style& style) :
   m_geom(geom), m_style(style), m_repaint(true),
   m_capture(nullptr),
   m_vtx(gx::Buffer::Dynamic), m_vtx_array(VertexPainter::Fmt, m_vtx),
-  m_ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
+  m_ind(gx::Buffer::Dynamic, gx::u16)
 {
   m_vtx.label("UI_vertex");
   m_vtx_array.label("UI_vertex_array");

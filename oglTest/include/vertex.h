@@ -1,27 +1,23 @@
 #pragma once
 
-#include <cstdint>
+#include "gx.h"
 
 #include <GL/glew.h>
 
+#include <cstdint>
 #include <vector>
 
 namespace gx {
 
-class Buffer;
+class VertexBuffer;
+class IndexBuffer;
 
 class VertexFormat {
 public:
-  enum AttributeType {
-    i8, u8, i16, u16, i32, u32,
-    f16, f32, f64,
-    fixed,
-  };
+  VertexFormat& attr(Type type, unsigned size, bool normalized = true);
+  VertexFormat& iattr(Type type, unsigned size);
 
-  VertexFormat& attr(AttributeType type, unsigned size, bool normalized = true);
-  VertexFormat& iattr(AttributeType type, unsigned size);
-
-  VertexFormat& attrAlias(unsigned index, AttributeType type, unsigned size, bool normalized = true);
+  VertexFormat& attrAlias(unsigned index, Type type, unsigned size, bool normalized = true);
 
   size_t vertexByteSize() const;
 
@@ -46,7 +42,7 @@ private:
   struct Desc {
     unsigned index;
 
-    AttributeType type;
+    Type type;
     unsigned size;
     unsigned flags;
   };
@@ -58,7 +54,7 @@ private:
 
 class VertexArray {
 public:
-  VertexArray(const VertexFormat& fmt, const Buffer& buf);
+  VertexArray(const VertexFormat& fmt, const VertexBuffer& buf);
   VertexArray(const VertexArray&) = delete;
   ~VertexArray();
 
@@ -70,6 +66,8 @@ public:
 
 private:
   friend class Program;
+
+  void init(const VertexFormat& fmt);
 
   GLuint m;
   unsigned m_elem_size;

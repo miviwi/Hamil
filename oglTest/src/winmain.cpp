@@ -50,14 +50,11 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   int animate = -1;
 
   auto fmt = gx::VertexFormat()
-    .attr(gx::VertexFormat::f32, 3)
-    .attr(gx::VertexFormat::f32, 3);
+    .attr(gx::f32, 3)
+    .attr(gx::f32, 3);
   auto cursor_fmt = gx::VertexFormat()
-    .attr(gx::VertexFormat::f32, 2)
-    .attr(gx::VertexFormat::f32, 2);
-
-  gx::VertexBuffer buf(gx::Buffer::Stream);
-  gx::VertexArray vtx_array(fmt, buf);
+    .attr(gx::f32, 2)
+    .attr(gx::f32, 2);
 
   gx::VertexBuffer cursor_buf(gx::Buffer::Static);
   gx::VertexArray cursor(cursor_fmt, cursor_buf);
@@ -77,14 +74,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
   };
 
-  gx::Texture2D tex(gx::Texture2D::rgb);
+  gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler()
     .param(gx::Sampler::WrapS, gx::Sampler::Repeat)
     .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
     .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
     .param(gx::Sampler::MagFilter, gx::Sampler::Linear);
 
-  tex.init(tex_image, 0, 4, 4, gx::Texture2D::rgba, gx::Texture2D::u32_8888);
+  tex.init(tex_image, 0, 4, 4, gx::rgba, gx::u32_8888);
 
   gx::tex_unit(0, tex, sampler);
 
@@ -251,15 +248,15 @@ void main() {
   program.label("program");
   tex_program.label("TEX_program");
 
-  gx::Texture2D fb_tex(gx::Texture2D::rgb8);
+  gx::Texture2D fb_tex(gx::rgb8);
   gx::Framebuffer fb;
 
-  fb_tex.initMultisample(2, FB_DIMS.x, FB_DIMS.y);
+  fb_tex.initMultisample(4, FB_DIMS.x, FB_DIMS.y);
   fb_tex.label("FB_tex");
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
-    .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::Framebuffer::depth24, gx::Framebuffer::Depth);
+    .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::depth24, gx::Framebuffer::Depth);
 
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)

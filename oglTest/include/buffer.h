@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gx.h"
+
 #include <cstdint>
 
 #include <GL/glew.h>
@@ -73,12 +75,6 @@ public:
 
 class IndexBuffer : public Buffer {
 public:
-  enum Type {
-    u8 = GL_UNSIGNED_BYTE,
-    u16 = GL_UNSIGNED_SHORT,
-    u32 = GL_UNSIGNED_INT,
-  };
-
   IndexBuffer(Usage usage, Type type);
 
   unsigned elemSize() const;

@@ -2,6 +2,7 @@
 
 #include <GL/glew.h>
 
+#include "gx.h"
 #include "vmath.h"
 #include "texture.h"
 
@@ -35,12 +36,6 @@ public:
     StencilBit = GL_STENCIL_BUFFER_BIT,
   };
 
-  enum Format {
-    rgb5a1 , rgba8,
-    depth16, depth24,
-    depth24_stencil8,
-  };
-
   static Attachment Color(int index);
 
   Framebuffer();
@@ -63,7 +58,6 @@ public:
 private:
   static GLenum binding(BindTarget t);
   static GLenum attachement(Attachment att);
-  static GLenum internalformat(Format fmt);
 
   void checkIfBound();
 

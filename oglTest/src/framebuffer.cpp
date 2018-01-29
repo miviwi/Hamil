@@ -62,7 +62,7 @@ Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attac
   glGenRenderbuffers(1, &rb);
 
   glBindRenderbuffer(GL_RENDERBUFFER, rb);
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, internalformat(fmt), w, h);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, fmt, w, h);
 
   checkIfBound();
   glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
@@ -87,7 +87,7 @@ Framebuffer & Framebuffer::renderbufferMultisample(unsigned samples, unsigned w,
   glGenRenderbuffers(1, &rb);
 
   glBindRenderbuffer(GL_RENDERBUFFER, rb);
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, internalformat(fmt), w, h);
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, fmt, w, h);
 
   checkIfBound();
   glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
@@ -138,17 +138,6 @@ GLenum Framebuffer::attachement(Attachment att)
   else if(att == DepthStencil) return GL_DEPTH_STENCIL_ATTACHMENT;
 
   return 0;
-}
-
-GLenum Framebuffer::internalformat(Format fmt)
-{
-  static const GLenum table[] = {
-    GL_RGB5_A1, GL_RGBA8,
-    GL_DEPTH_COMPONENT16,
-    GL_DEPTH_COMPONENT24,
-    GL_DEPTH24_STENCIL8,
-  };
-  return table[fmt];
 }
 
 void Framebuffer::checkIfBound()

@@ -36,7 +36,7 @@ public:
   pFt() :
     ptr(0),
     buf(gx::Buffer::Dynamic), vtx(fmt, buf),
-    ind(gx::Buffer::Dynamic, gx::IndexBuffer::u16)
+    ind(gx::Buffer::Dynamic, gx::u16)
   { }
 
   unsigned alloc(unsigned num_chars);
@@ -174,8 +174,8 @@ std::unique_ptr<gx::Program> font_program;
 
 const gx::VertexFormat pFt::fmt = 
   gx::VertexFormat()
-    .attr(gx::VertexFormat::i16, 2, false)
-    .attr(gx::VertexFormat::u16, 2, false);
+    .attr(gx::i16, 2, false)
+    .attr(gx::u16, 2, false);
 
 const static auto pipeline =
   gx::Pipeline()
@@ -216,7 +216,7 @@ void finalize()
 }
 
 Font::Font(const FontFamily& family, unsigned height) :
-  m_atlas(gx::Texture2D::r8)
+  m_atlas(gx::r8)
 {
   FT_Face face;
   auto err = FT_New_Face(ft, family.getPath(), 0, &face);
@@ -593,7 +593,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   // Setup atlas texture and sampler
   std::string atlas_label = "FT_altas";
 
-  m_atlas.init(img.data(), 0, atlas_sz.u, atlas_sz.v, gx::Texture2D::r, gx::Texture2D::u8);
+  m_atlas.init(img.data(), 0, atlas_sz.u, atlas_sz.v, gx::r, gx::u8);
   m_atlas.label((atlas_label + std::to_string(atlas_id++)).c_str());
 
   m_sampler

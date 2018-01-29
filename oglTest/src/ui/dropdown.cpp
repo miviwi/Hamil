@@ -30,8 +30,8 @@ bool DropDownFrame::input(ivec2 mouse_pos, const InputPtr& input)
     if(inputDropped(mouse_pos, mouse)) return true;
   }
 
-  if(mouse->buttonDown(Mouse::Left)) {
-    if(mouse_over) {
+  if(mouse->event == Mouse::Down) {
+    if(mouse_over && (mouse->buttons & Mouse::Left)) {
       m_state = Pressed;
     } else {
       m_ui->capture(nullptr);
@@ -67,9 +67,8 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
   byte factor = 0;
   switch(m_state) {
   case Default: factor = 0; break;
-  case Hover:   
-  case Pressed:
-    factor = luminance/4; break;
+  case Pressed: factor = luminance; break;
+  case Hover:   factor = luminance/4; break;
   }
 
   Color color[] = {

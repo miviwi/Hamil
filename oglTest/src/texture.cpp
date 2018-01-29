@@ -24,7 +24,7 @@ Texture2D::~Texture2D()
 void Texture2D::init(unsigned w, unsigned h)
 {
   glBindTexture(GL_TEXTURE_2D, m);
-  glTexImage2D(GL_TEXTURE_2D, 0, internalformat(m_format), w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexImage2D(GL_TEXTURE_2D, 0, m_format, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
   setDefaultParameters(GL_TEXTURE_2D);
 }
@@ -34,25 +34,26 @@ void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
   m_samples = samples;
 
   glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m);
-  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalformat(m_format), w, h, GL_TRUE);
+  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, m_format, w, h, GL_TRUE);
 }
 
-void Texture2D::init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t)
+void Texture2D::init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
 {
   assert(format < r8 && "invalid format!");
 
   glBindTexture(GL_TEXTURE_2D, m);
-  glTexImage2D(GL_TEXTURE_2D, mip, internalformat(m_format), w, h, 0, internalformat(format), type(t), data);
+  glTexImage2D(GL_TEXTURE_2D, mip, m_format, w, h, 0, format, type, data);
 
   setDefaultParameters(GL_TEXTURE_2D);
 }
 
-void Texture2D::upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h, Format format, Type t)
+void Texture2D::upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
+                       Format format, Type type)
 {
   assert(format < r8 && "invalid format!");
 
   glBindTexture(GL_TEXTURE_2D, m);
-  glTexSubImage2D(GL_TEXTURE_2D, mip, x, y, w, h, internalformat(format), type(t), data);
+  glTexSubImage2D(GL_TEXTURE_2D, mip, x, y, w, h, format, type, data);
 }
 
 void Texture2D::label(const char *lbl)
@@ -60,31 +61,6 @@ void Texture2D::label(const char *lbl)
 #if !defined(NDEBUG)
   glObjectLabel(GL_TEXTURE, m, strlen(lbl), lbl);
 #endif
-}
-
-GLenum Texture2D::internalformat(Format format)
-{
-  static const GLenum table[] = {
-    GL_RED, GL_RG, GL_RGB, GL_RGBA,
-    GL_DEPTH, GL_DEPTH_STENCIL,
-
-    GL_R8, GL_R16,
-    GL_RGB8,
-    GL_RGB5_A1, GL_RGBA8,
-  };
-  return table[format];
-}
-
-GLenum Texture2D::type(Type t)
-{
-  static const GLenum table[] = {
-    GL_BYTE, GL_UNSIGNED_BYTE,
-    GL_SHORT, GL_UNSIGNED_SHORT,
-    GL_INT, GL_UNSIGNED_INT,
-    GL_UNSIGNED_SHORT_5_6_5, GL_UNSIGNED_SHORT_5_5_5_1,
-    GL_UNSIGNED_INT_8_8_8_8,
-  };
-  return table[t];
 }
 
 Sampler::Sampler() :

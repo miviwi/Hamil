@@ -170,8 +170,8 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   if(m_value) {
     vec2 a = {
-      box.x + PixelMargin + 1,
-      box.y + PixelMargin + 1
+      box.x + PixelMargin,
+      box.y + PixelMargin
     },
       b = {
       box.x+box.w - PixelMargin,
@@ -180,7 +180,7 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
     painter
       .line(a, b, 3, VertexPainter::CapButt, color[1], color[1])
-      .line({ b.x, a.y }, { a.x, b.y }, 3, VertexPainter::CapButt, color[1], color[1])
+      .line({ b.x, a.y }, { a.x, b.y }, 3.5, VertexPainter::CapButt, color[1], color[1])
       ;
   }
 

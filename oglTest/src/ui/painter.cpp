@@ -8,9 +8,9 @@ namespace ui {
 
 const gx::VertexFormat VertexPainter::Fmt = 
   gx::VertexFormat()
-    .attr(gx::VertexFormat::i16, 2, false)
-    .attr(gx::VertexFormat::u8, 4)
-    .attrAlias(1, gx::VertexFormat::u16, 2, false)
+    .attr(gx::i16, 2, false)
+    .attr(gx::u8, 4)
+    .attrAlias(1, gx::u16, 2, false)
   ;
 
 Vertex::Vertex() :

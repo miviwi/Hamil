@@ -7,21 +7,21 @@ namespace gx {
 
 GLuint p_last_array = ~0u;
 
-VertexFormat& VertexFormat::attr(AttributeType type, unsigned size, bool normalized)
+VertexFormat& VertexFormat::attr(Type type, unsigned size, bool normalized)
 {
   m_descs.push_back({ NextIndex, type, size, normalized ? Normalize : 0 });
 
   return *this;
 }
 
-VertexFormat& VertexFormat::iattr(AttributeType type, unsigned size)
+VertexFormat& VertexFormat::iattr(Type type, unsigned size)
 {
   m_descs.push_back({ NextIndex, type, size, Integer });
 
   return *this;
 }
 
-VertexFormat & VertexFormat::attrAlias(unsigned index, AttributeType type, unsigned size, bool normalized)
+VertexFormat& VertexFormat::attrAlias(unsigned index, Type type, unsigned size, bool normalized)
 {
   unsigned flags = normalized ? Normalize : 0;
   m_descs.push_back({ index, type, size,  flags | Alias });
@@ -67,14 +67,7 @@ GLint VertexFormat::attrSize(unsigned idx) const
 
 GLenum VertexFormat::attrType(unsigned idx) const
 {
-  static const GLenum table[] = {
-    GL_BYTE, GL_UNSIGNED_BYTE,
-    GL_SHORT, GL_UNSIGNED_SHORT,
-    GL_INT, GL_UNSIGNED_INT,
-    GL_HALF_FLOAT, GL_FLOAT, GL_DOUBLE,
-    GL_FIXED,
-  };
-  return table[m_descs[idx].type];
+  return m_descs[idx].type;
 }
 
 GLboolean VertexFormat::attrNormalized(unsigned idx) const
@@ -89,15 +82,24 @@ bool VertexFormat::attrInteger(unsigned idx) const
 
 size_t VertexFormat::byteSize(Desc desc)
 {
-  static const size_t table[] = {
-    1, 1, 2, 2, 4, 4,
-    2, 4, 8,
-    4,
-  };
-  return table[desc.type]*desc.size;
+  size_t size = desc.size;
+  switch(desc.type) {
+  case i8:
+  case u8:  size *= 1; break;
+  case f16:
+  case i16:
+  case u16: size *= 2; break;
+  case f32:
+  case i32:
+  case u32: size *= 4; break;
+  case f64: size *= 8; break;
+
+  case fixed: size *= 4; break;
+  }
+  return size;
 }
 
-VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf) :
+VertexArray::VertexArray(const VertexFormat& fmt, const VertexBuffer& buf) :
   m_elem_size(fmt.vertexByteSize())
 {
   glGenVertexArrays(1, &m);
@@ -105,20 +107,7 @@ VertexArray::VertexArray(const VertexFormat& fmt, const Buffer& buf) :
   glBindBuffer(GL_ARRAY_BUFFER, buf.m);
   glBindVertexArray(m);
 
-  for(unsigned i = 0; i < fmt.numAttrs(); i++) {
-    GLint size = fmt.attrSize(i);
-    GLenum type = fmt.attrType(i);
-    GLboolean normalized = fmt.attrNormalized(i);
-    void *offset = fmt.attrOffset(i);
-
-    glEnableVertexAttribArray(i);
-
-    if(fmt.attrInteger(i)) {
-      glVertexAttribIPointer(i, size, type, m_elem_size, offset);
-    } else {
-      glVertexAttribPointer(i, size, type, normalized, m_elem_size, offset);
-    }
-  }
+  init(fmt);
 }
 
 VertexArray::~VertexArray()
@@ -141,8 +130,28 @@ void VertexArray::use() const
 void VertexArray::label(const char *lbl)
 {
 #if !defined(NDEBUG)
+  use();
+
   glObjectLabel(GL_VERTEX_ARRAY, m, strlen(lbl), lbl);
 #endif
+}
+
+void VertexArray::init(const VertexFormat& fmt)
+{
+  for(unsigned i = 0; i < fmt.numAttrs(); i++) {
+    GLint size = fmt.attrSize(i);
+    GLenum type = fmt.attrType(i);
+    GLboolean normalized = fmt.attrNormalized(i);
+    void *offset = fmt.attrOffset(i);
+
+    glEnableVertexAttribArray(i);
+
+    if(fmt.attrInteger(i)) {
+      glVertexAttribIPointer(i, size, type, m_elem_size, offset);
+    } else {
+      glVertexAttribPointer(i, size, type, normalized, m_elem_size, offset);
+    }
+  }
 }
 
 }
