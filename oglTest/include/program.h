@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 
 #include <string>
+#include <vector>
 #include <unordered_map>
 #include <initializer_list>
 
@@ -47,6 +48,8 @@ enum Primitive {
 
 class Program {
 public:
+  using OffsetMap = std::unordered_map<std::string, size_t>;
+
   Program(const Shader& vertex, const Shader& fragment);
   Program(const Shader& vertex, const Shader& geometry, const Shader& fragment);
   Program(const Program&) = delete;
@@ -66,6 +69,7 @@ public:
   unsigned getUniformBlockIndex(const char *name);
   void uniformBlockBinding(unsigned block, unsigned index);
   void uniformBlockBinding(const char *name, unsigned index);
+  const OffsetMap& uniformBlockOffsets(unsigned block);
 
   int getOutputLocation(const char *name);
 
@@ -93,10 +97,12 @@ public:
 
 private:
   void link();
-
   void getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[]);
+  void getUniformBlockOffsets();
 
   GLuint m;
+  static const OffsetMap m_null_offsets;
+  std::vector<OffsetMap> m_ubo_offsets;
 };
 
 }

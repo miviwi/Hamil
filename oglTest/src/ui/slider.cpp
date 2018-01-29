@@ -65,6 +65,7 @@ SliderFrame& SliderFrame::range(double min, double max)
 SliderFrame& SliderFrame::value(double value)
 {
   m_value = clampedValue(value);
+  m_on_change.emit(this);
 
   return *this;
 }

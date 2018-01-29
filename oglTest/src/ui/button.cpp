@@ -38,7 +38,6 @@ bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
 
       emitClicked();
     } else {
-      m_state = Default;
       m_ui->capture(nullptr);
     }
   }
@@ -86,8 +85,8 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .roundedRect(g, button.radius, VertexPainter::All, color[0], color[0])
-    .roundedRect(highlight_g, button.radius, VertexPainter::All, color[1], color[1])
+    .roundedRect(g, button.radius, VertexPainter::All, color[0])
+    .roundedRect(highlight_g, button.radius, VertexPainter::All, color[1])
     .roundedBorder(g, button.radius, VertexPainter::All, black())
     .textCentered(*style.font, m_caption, g, white())
     ;

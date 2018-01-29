@@ -11,6 +11,11 @@ namespace gx {
 
 class Renderbuffer;
 
+// Direct mapping from Frag outputs to ColorAttachements
+//   - layout(location = 0) == Color(0)
+//   - layout(location = 1) == Color(1)
+//   - layout(location = 5) == Color(5)
+//   - etc... up to Color(7)
 class Framebuffer {
 public:
   enum class BindTarget {
@@ -73,6 +78,6 @@ private:
   std::vector<GLuint> m_rb;
 };
 
-void clear(int mask);
+void clear(unsigned mask);
 
 }

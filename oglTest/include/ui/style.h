@@ -33,6 +33,11 @@ struct Style {
     float width;
   } slider;
 
+  struct {
+    Color color[2];
+    float radius;
+  } combobox;
+
   Style() { memset(this, 0, sizeof(*this)); }
 };
 

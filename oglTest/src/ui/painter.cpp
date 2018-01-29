@@ -28,7 +28,8 @@ Vertex::Vertex(Position pos_, Color color_) :
 {
 }
 
-VertexPainter::VertexPainter()
+VertexPainter::VertexPainter() :
+  m_overlay(false)
 {
   m_buf.reserve(NumBufferElements);
   m_ind.reserve(NumBufferElements);
@@ -41,6 +42,8 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
     std::swap(a, b);
     std::swap(ca, cb);
   }
+
+  a.x += 0.5f; b.x += 0.5f;
 
   float r = width/2.0f;
   auto n = vec2{ -(b.y - a.y), b.x - a.x }.normalize();
@@ -382,6 +385,11 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
   return *this;
 }
 
+VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned corners, Color c)
+{
+  return roundedRect(g, radius, corners, c, c);
+}
+
 VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned corners, Color c)
 {
   unsigned offset = m_ind.size();
@@ -468,6 +476,8 @@ VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color col
 {
   unsigned offset = m_ind.size();
 
+  pos.x += 0.5f; pos.y += 0.5f;
+
   float s = sinf(angle);
   float c = cosf(angle);
 
@@ -536,7 +546,7 @@ VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 
   auto s = appendTextVertices(font, str);
 
 
-  m_commands.push_back(Command::text(
+  appendCommand(Command::text(
     font,
     { floor(pos.x), floor(pos.y) }, c,
     base, offset,
@@ -559,7 +569,30 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
     floor(center.y - font.descender())
   };
 
-  m_commands.push_back(Command::text(
+  appendCommand(Command::text(
+    font,
+    text_pos, c,
+    base, offset,
+    font.num(s)
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, Geometry g, Color c)
+{
+  unsigned base = m_buf.size();
+  unsigned offset = m_ind.size();
+
+  auto s = appendTextVertices(font, str);
+
+  vec2 center = g.center();
+  vec2 text_pos = {
+    g.x,
+    floor(center.y - font.descender())
+  };
+
+  appendCommand(Command::text(
     font,
     text_pos, c,
     base, offset,
@@ -571,7 +604,21 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
 
 VertexPainter& VertexPainter::pipeline(const gx::Pipeline& pipeline)
 {
-  m_commands.push_back(Command::switch_pipeline(pipeline));
+  appendCommand(Command::switch_pipeline(pipeline));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::beginOverlay()
+{
+  m_overlay = true;
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::endOverlay()
+{
+  m_overlay = false;
 
   return *this;
 }
@@ -598,10 +645,13 @@ size_t VertexPainter::numIndices()
 
 void VertexPainter::end()
 {
+  endOverlay();
+
   m_buf.clear();
   m_ind.clear();
 
   m_commands.clear();
+  m_overlay_commands.clear();
 }
 
 void VertexPainter::appendVertices(std::initializer_list<Vertex> verts)
@@ -621,22 +671,31 @@ void VertexPainter::restartPrimitive()
 
 void VertexPainter::appendCommand(const Command& c)
 {
-  if(m_commands.empty()) {
-    m_commands.push_back(c);
+  if(m_overlay) {
+    doAppendCommand(c, m_overlay_commands);
+  } else {
+    doAppendCommand(c, m_commands);
+  }
+}
+
+void VertexPainter::doAppendCommand(const Command& c, std::vector<Command>& commands)
+{
+  if(commands.empty()) {
+    commands.push_back(c);
     return;
   }
 
-  Command& last = m_commands.back();
+  Command& last = commands.back();
 
   // Try to merge command with previous if possible
   if(c.type == Primitive && last.type == c.type) {
     if(c.p == last.p) {
       last.num += c.num + 1;
     } else {
-      m_commands.push_back(c);
+      commands.push_back(c);
     }
   } else {
-    m_commands.push_back(c);
+    commands.push_back(c);
   }
 
   restartPrimitive();

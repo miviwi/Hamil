@@ -2,6 +2,19 @@
 
 namespace ui {
 
+vec2 Geometry::pos() const
+{
+  return { x, y };
+}
+
+Geometry Geometry::translate(vec2 t) const
+{
+  return {
+    x+t.x, y+t.y,
+    w, h
+  };
+}
+
 Geometry Geometry::clip(const Geometry& g) const
 {
   vec2 gb = { g.x+g.w, g.y+g.h };
@@ -84,6 +97,11 @@ Color Color::luminance() const
   byte y = (byte)(r*0.2126 + g*0.7152 + b*0.0722);
 
   return Color{ y, y, y, a };
+}
+
+Color Color::opacity(double factor) const
+{
+  return Color{ r, g, b, (byte)(a*factor) };
 }
 
 vec4 Color::normalize() const

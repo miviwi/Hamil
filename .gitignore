@@ -244,6 +244,6 @@ ModelManifest.xml
 *.raw
 *.lib
 
-Generated/
+oglTest/Generated/
 uniforms.*
 uniformgen.db

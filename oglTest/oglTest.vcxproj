@@ -180,7 +180,10 @@ exit /b 0</Command>
       <Message>Generate Uniform Location</Message>
       <Outputs>uniforms.cpp;uniforms.h;%(Outputs)</Outputs>
       <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"
-move uniforms.* Generated\</Command>
+if not errorlevel 1 (
+  move uniforms.* Generated\
+)
+exit /b 0</Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -189,6 +192,7 @@ move uniforms.* Generated\</Command>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\ui\button.cpp" />
+    <ClCompile Include="src\ui\dropdown.cpp" />
     <ClCompile Include="src\ui\label.cpp" />
     <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\font.cpp" />
@@ -222,6 +226,7 @@ move uniforms.* Generated\</Command>
     <ClInclude Include="extern\GL\wglew.h" />
     <ClInclude Include="include\pipeline.h" />
     <ClInclude Include="include\ui\button.h" />
+    <ClInclude Include="include\ui\dropdown.h" />
     <ClInclude Include="include\ui\uicommon.h" />
     <ClInclude Include="include\ui\frame.h" />
     <ClInclude Include="include\ui\label.h" />

@@ -14,6 +14,7 @@
 #include "ui/button.h"
 #include "ui/slider.h"
 #include "ui/label.h"
+#include "ui/dropdown.h"
 
 #include <GL/glew.h>
 
@@ -282,9 +283,6 @@ void main() {
 
   float old_fps;
 
-  auto hello = small_face.string("gggg Hello, sailor! gggg \nTeraz wchodzimy w nowe millenium"),
-    cursor_label = small_face.string("Cursor");
-
   bool display_tex_matrix = false,
     ortho_projection = false;
 
@@ -378,6 +376,12 @@ void main() {
   program.uniformBlockBinding("LightBlock", 0);
   tex_program.uniformBlockBinding("LightBlock", 0);
 
+  vec3 light_position[] = {
+    { 0, 6, 0 },
+    { -5, 6, 0 },
+    { 5, 6, 0 },
+  };
+
   std::vector<vec2> floor_vtxs = {
     { -1.0f, 1.0f },  { 0.0f,  10.0f },
     { -1.0f, -1.0f }, { 0.0f,  0.0f },
@@ -437,12 +441,20 @@ void main() {
   style.slider.color[0] = color_b; style.slider.color[1] = color_b.lighten(10);
   style.slider.width = 10.0f;
 
+  style.combobox.color[0] = color_b; style.combobox.color[1] = color_b.lighten(10);
+  style.combobox.radius = 3.0f;
+
   ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
            .frame<ui::PushButtonFrame>(iface, "b")
            .frame<ui::PushButtonFrame>(iface, "c"))
+    .frame(ui::create<ui::DropDownFrame>(iface, "light_no")
+           .item({ "Light 1" })
+           .item({ "Light 2" })
+           .item({ "Light 3" })
+           .selected(0))
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
            .frame(ui::create<ui::LabelFrame>(iface).caption("Light X:"))
            .frame<ui::HSliderFrame>(iface, "x"))
@@ -469,10 +481,45 @@ void main() {
     target->caption(display_tex_matrix ? "Hide texmatrix!" : "Show texmatrix!");
   });
 
-  auto& slider_x = iface.getFrameByName<ui::HSliderFrame>("x")->range(-5.0f, 5.0f);
-  auto& slider_y = iface.getFrameByName<ui::HSliderFrame>("y")->range(0.0f, 12.0f);
-  auto& slider_z = iface.getFrameByName<ui::HSliderFrame>("z")->range(-8.0f, 4.0f);
+  auto& light_no = *iface.getFrameByName<ui::DropDownFrame>("light_no");
+
+  auto& slider_x = iface.getFrameByName<ui::HSliderFrame>("x")->range(-5.0f, 5.0f)
+    .onChange([&](auto target) {
+    auto light_id = light_no.selected();
+    auto pos = light_position[light_id];
+
+    light_position[light_id] = {
+      (float)target->value(), pos.y, pos.z
+    };
+  });
+  auto& slider_y = iface.getFrameByName<ui::HSliderFrame>("y")->range(0.0f, 12.0f)
+    .onChange([&](auto target) {
+    auto light_id = light_no.selected();
+    auto pos = light_position[light_id];
+
+    light_position[light_id] = {
+      pos.x, (float)target->value(), pos.z
+    };
+  });
+  auto& slider_z = iface.getFrameByName<ui::HSliderFrame>("z")->range(-8.0f, 4.0f)
+    .onChange([&](auto target) {
+    auto light_id = light_no.selected();
+    auto pos = light_position[light_id];
+
+    light_position[light_id] = {
+      pos.x, pos.y, (float)target->value()
+    };
+  });
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
+
+  light_no.onChange([&](auto target) {
+    auto light_id = target->selected();
+    auto pos = light_position[light_id];
+
+    slider_x.value(pos.x);
+    slider_y.value(pos.y);
+    slider_z.value(pos.z);
+  });
 
   iface
     .frame(layout, { 30.0f, 500.0f })
@@ -583,14 +630,9 @@ void main() {
     vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f/zoom };
     auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
 
-    vec3 light_position[] = {
-      { (float)slider_x.value(), (float)slider_y.value(), (float)slider_z.value() },
-      { (float)-slider_x.value(), (float)slider_y.value(), (float)slider_z.value() },
-      { 0, (float)slider_y.value(), (float)slider_z.value() },
-    };
     vec4 color;
 
-    light_block.num_lights = 2;
+    light_block.num_lights = 3;
 
     light_block.lights[0] = {
       view*light_position[0],

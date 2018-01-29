@@ -4,6 +4,7 @@
 
 #include <Windows.h>
 
+#include <cassert>
 #include <cstring>
 #include <vector>
 
@@ -22,6 +23,8 @@ Program::Program(const Shader& vertex, const Shader& fragment)
  
   glDetachShader(m, vertex.m);
   glDetachShader(m, fragment.m);
+
+  getUniformBlockOffsets();
 }
 
 Program::Program(const Shader& vertex, const Shader& geometry, const Shader& fragment)
@@ -37,6 +40,8 @@ Program::Program(const Shader& vertex, const Shader& geometry, const Shader& fra
   glDetachShader(m, vertex.m);
   glDetachShader(m, geometry.m);
   glDetachShader(m, fragment.m);
+
+  getUniformBlockOffsets();
 }
 
 Program::~Program()
@@ -62,6 +67,14 @@ void Program::uniformBlockBinding(unsigned block, unsigned index)
 void Program::uniformBlockBinding(const char *name, unsigned index)
 {
   uniformBlockBinding(getUniformBlockIndex(name), index);
+}
+
+const Program::OffsetMap Program::m_null_offsets;
+const Program::OffsetMap& Program::uniformBlockOffsets(unsigned block)
+{
+  if(block >= m_ubo_offsets.size()) return m_null_offsets;
+
+  return m_ubo_offsets[block];
 }
 
 int Program::getOutputLocation(const char *name)
@@ -130,7 +143,7 @@ Program& Program::uniformMatrix3x3(int location, const mat3& mtx)
 
 Program& Program::uniformMatrix3x3(int location, const mat4& mtx)
 {
-  return uniformMatrix3x3(location, mtx.toMat3());
+  return uniformMatrix3x3(location, mtx.xyz());
 }
 
 Program& Program::uniformBool(int location, bool v)
@@ -210,7 +223,44 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
   }
 }
 
-static const char *shader_source[256] = {
+static char p_uniform_name[256];
+
+void Program::getUniformBlockOffsets()
+{
+  enum { InitalNumIndicesAndOffsets = 64 };
+
+  std::vector<unsigned> indices(InitalNumIndicesAndOffsets);
+  std::vector<int> offsets(InitalNumIndicesAndOffsets);
+
+  int num_blocks = 0;
+  glGetProgramiv(m, GL_ACTIVE_UNIFORM_BLOCKS, &num_blocks);
+
+  m_ubo_offsets.resize(num_blocks);
+
+  for(int block = 0; block < num_blocks; block++) {
+    OffsetMap& offset_map = m_ubo_offsets[block];
+
+    int num_uniforms = 0;
+    glGetActiveUniformBlockiv(m, block, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &num_uniforms);
+    if(num_uniforms > indices.size()) {
+      indices.resize(num_uniforms);
+      offsets.resize(num_uniforms);
+    }
+
+    glGetActiveUniformBlockiv(m, block, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, (int *)indices.data());
+    glGetActiveUniformsiv(m, num_uniforms, indices.data(), GL_UNIFORM_OFFSET, offsets.data());
+    for(int i = 0; i < num_uniforms; i++) {
+      auto uniform = (unsigned)indices[i];
+      auto offset = (size_t)offsets[i];
+
+      glGetActiveUniformName(m, uniform, sizeof(p_uniform_name), nullptr, p_uniform_name);
+
+      offset_map.insert({ p_uniform_name, offset });
+    }
+  }
+}
+
+static const char *p_shader_source[256] = {
   "#version 330 core\n\n"         // comma omitted
   "layout(std140) uniform;\n\n",
   nullptr,
@@ -225,9 +275,9 @@ Shader::Shader(Type type, std::initializer_list<const char *> sources)
 {
   m = glCreateShader(type);
 
-  memcpy(shader_source+1, sources.begin(), sources.size()*sizeof(const char *));
+  memcpy(p_shader_source+1, sources.begin(), sources.size()*sizeof(const char *));
 
-  glShaderSource(m, sources.size()+1, shader_source, nullptr);
+  glShaderSource(m, sources.size()+1, p_shader_source, nullptr);
   glCompileShader(m);
 
   GLint success = 0;

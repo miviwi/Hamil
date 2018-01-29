@@ -23,6 +23,10 @@ struct Geometry {
     x(0), y(0), w(w_), h(h_)
   { }
 
+  vec2 pos() const;
+
+  Geometry translate(vec2 t) const;
+
   Geometry clip(const Geometry& g) const;
   Geometry contract(float factor) const;
 
@@ -49,6 +53,8 @@ struct Color : public Vector4<byte> {
   Color darken(unsigned factor) const;
   Color lighten(unsigned factor) const;
   Color luminance() const;
+
+  Color opacity(double factor) const;
 
   vec4 normalize() const;
 };

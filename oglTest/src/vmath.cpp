@@ -55,9 +55,10 @@ void mat4_inverse(const float *a, float *out)
   __m128 x[4];
   __m128 minor[4];
   __m128 det, tmp;
-  
+
   det = tmp = _mm_set1_ps(0.0f);
 
+  tmp = _mm_loadh_pi(_mm_loadl_pi(tmp, (__m64 *)(a+0)), (__m64 *)(a+4));
   x[1] = _mm_loadh_pi(_mm_loadl_pi(x[1], (__m64 *)(a+8)), (__m64 *)(a+12));
   x[0] = _mm_shuffle_ps(tmp, x[1], 0x88);
   x[1] = _mm_shuffle_ps(x[1], tmp, 0xDD);

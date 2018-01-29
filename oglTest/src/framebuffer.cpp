@@ -196,7 +196,7 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
     glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,
                                           GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &level);
 
-    glGetTexLevelParameteriv(target, level , GL_TEXTURE_WIDTH, &dims.x);
+    glGetTexLevelParameteriv(target, level, GL_TEXTURE_WIDTH, &dims.x);
     glGetTexLevelParameteriv(target, level, GL_TEXTURE_HEIGHT, &dims.y);
     break;
   }
@@ -221,7 +221,7 @@ void Framebuffer::setupDrawBuffers()
   m_draw_buffers_setup = true;
 }
 
-void clear(int mask)
+void clear(unsigned mask)
 {
   glClear(mask);
 }

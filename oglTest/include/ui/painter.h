@@ -129,13 +129,18 @@ public:
   VertexPainter& arc(vec2 pos, float radius, float start_angle, float end_angle, Color c);
   VertexPainter& arcFull(vec2 pos, float radius, Color c);
   VertexPainter& roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b);
+  VertexPainter& roundedRect(Geometry g, float radius, unsigned corners, Color c);
   VertexPainter& roundedBorder(Geometry g, float radius, unsigned corners, Color c);
   VertexPainter& triangle(vec2 pos, float h, float angle, Color c);
 
   VertexPainter& text(ft::Font& font, const std::string& str, vec2 pos, Color c);
   VertexPainter& textCentered(ft::Font& font, const std::string& str, Geometry g, Color c);
+  VertexPainter& textLeft(ft::Font& font, const std::string& str, Geometry g, Color c);
 
   VertexPainter& pipeline(const gx::Pipeline& pipeline);
+
+  VertexPainter& beginOverlay();
+  VertexPainter& endOverlay();
 
   Vertex *vertices();
   size_t numVertices();
@@ -147,6 +152,7 @@ public:
   void doCommands(Fn fn)
   {
     for(auto& command : m_commands) fn(command);
+    for(auto& command : m_overlay_commands) fn(command);
   }
 
   void end();
@@ -154,14 +160,18 @@ public:
 private:
   void appendVertices(std::initializer_list<Vertex> verts);
   void appendCommand(const Command& c);
+  void doAppendCommand(const Command& c, std::vector<Command>& commands);
   void restartPrimitive();
 
   ft::String appendTextVertices(ft::Font& font, const std::string& str);
+
+  bool m_overlay;
 
   std::vector<Vertex> m_buf;
   std::vector<u16> m_ind;
 
   std::vector<Command> m_commands;
+  std::vector<Command> m_overlay_commands;
 };
 
 }
