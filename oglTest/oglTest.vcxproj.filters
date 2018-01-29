@@ -20,9 +20,6 @@
     <ClCompile Include="extern\GL\glew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\vmath.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\ui\ui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -86,6 +83,9 @@
     <ClCompile Include="src\ft\font.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\intrin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -107,9 +107,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\common.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\vmath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ui\painter.h">
@@ -172,18 +169,21 @@
     <ClInclude Include="include\ft\font.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\math\geometry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\program.uniform">
-      <Filter>Uniform Definitions</Filter>
-    </None>
-    <None Include="src\ui.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
     <None Include="src\tex.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
     <None Include="src\ft\font.uniform">
+      <Filter>Uniform Definitions</Filter>
+    </None>
+    <None Include="src\ui\ui.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
   </ItemGroup>

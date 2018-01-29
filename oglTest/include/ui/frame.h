@@ -2,7 +2,7 @@
 
 #include <ui/uicommon.h>
 #include <ui/ui.h>
-#include <vmath.h>
+#include <math/geometry.h>
 #include <win32/input.h>
 
 #include <utility>

@@ -4,8 +4,7 @@
 #include <ui/ui.h>
 #include <ui/frame.h>
 #include <win32/input.h>
-
-#include <vmath.h>
+#include <math/geometry.h>
 
 namespace ui {
 

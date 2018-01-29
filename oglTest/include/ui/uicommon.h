@@ -2,7 +2,7 @@
 
 #include <common.h>
 
-#include <vmath.h>
+#include <math/geometry.h>
 
 #include <map>
 #include <utility>

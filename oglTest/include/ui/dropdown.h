@@ -3,7 +3,7 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/frame.h>
-#include <vmath.h>
+#include <math/geometry.h>
 
 #include <string>
 #include <vector>

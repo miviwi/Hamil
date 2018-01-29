@@ -3,7 +3,7 @@
 #include <common.h>
 
 #include <ui/uicommon.h>
-#include <vmath.h>
+#include <math/geometry.h>
 #include <gx/program.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>

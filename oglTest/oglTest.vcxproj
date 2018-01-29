@@ -210,7 +210,7 @@ exit /b 0</Command>
     <ClCompile Include="src\gx\buffer.cpp" />
     <ClCompile Include="src\gx\framebuffer.cpp" />
     <ClCompile Include="src\win32\input.cpp" />
-    <ClCompile Include="src\vmath.cpp" />
+    <ClCompile Include="src\math\intrin.cpp" />
     <ClCompile Include="src\gx\program.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
@@ -241,7 +241,7 @@ exit /b 0</Command>
     <ClInclude Include="include\common.h" />
     <ClInclude Include="include\gx\framebuffer.h" />
     <ClInclude Include="include\win32\input.h" />
-    <ClInclude Include="include\vmath.h" />
+    <ClInclude Include="include\math\geometry.h" />
     <ClInclude Include="include\gx\program.h" />
     <ClInclude Include="include\gx\texture.h" />
     <ClInclude Include="include\gx\vertex.h" />
@@ -250,7 +250,7 @@ exit /b 0</Command>
     <None Include="src\tex.uniform" />
     <None Include="src\ft\font.uniform" />
     <None Include="src\program.uniform" />
-    <None Include="src\ui.uniform" />
+    <None Include="src\ui\ui.uniform" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

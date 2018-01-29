@@ -2,7 +2,7 @@
 
 #include <common.h>
 
-#include <vmath.h>
+#include <math/geometry.h>
 #include <gx/texture.h>
 #include <gx/vertex.h>
 #include <gx/buffer.h>

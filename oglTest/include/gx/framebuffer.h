@@ -4,7 +4,7 @@
 
 #include <gx/gx.h>
 #include <gx/texture.h>
-#include <vmath.h>
+#include <math/geometry.h>
 
 #include <vector>
 

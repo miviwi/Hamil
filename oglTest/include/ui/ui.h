@@ -4,7 +4,7 @@
 
 #include <ui/uicommon.h>
 #include <ui/style.h>
-#include <vmath.h>
+#include <math/geometry.h>
 #include <win32/input.h>
 #include <win32/window.h>
 #include <gx/buffer.h>
