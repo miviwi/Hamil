@@ -1,5 +1,5 @@
-#include "vertex.h"
-#include "buffer.h"
+#include <gx/vertex.h>
+#include <gx/buffer.h>
 
 #include <cstring>
 

@@ -2,9 +2,9 @@
 
 #include <GL/glew.h>
 
-#include "gx.h"
-#include "vmath.h"
-#include "texture.h"
+#include <gx/gx.h>
+#include <gx/texture.h>
+#include <vmath.h>
 
 #include <vector>
 

@@ -1,4 +1,4 @@
-#include "pipeline.h"
+#include <gx/pipeline.h>
 
 #include <cassert>
 #include <cstring>

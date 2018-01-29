@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ui/uicommon.h"
-#include "ui/ui.h"
-#include "vmath.h"
-#include "input.h"
+#include <ui/uicommon.h>
+#include <ui/ui.h>
+#include <vmath.h>
+#include <win32/input.h>
 
 #include <utility>
 

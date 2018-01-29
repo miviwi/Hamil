@@ -1,7 +1,7 @@
 #pragma once
 
-#include "input.h"
-#include "vmath.h"
+#include <win32/input.h>
+#include <vmath.h>
 
 #include <utility>
 #include <functional>

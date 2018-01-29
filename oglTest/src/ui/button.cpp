@@ -1,7 +1,7 @@
-#include "ui/button.h"
-#include "ui/style.h"
-#include "ui/painter.h"
-#include "pipeline.h"
+#include <ui/button.h>
+#include <ui/style.h>
+#include <ui/painter.h>
+#include <gx/pipeline.h>
 
 #include <cmath>
 

@@ -1,4 +1,4 @@
-#include "ui/slider.h"
+#include <ui/slider.h>
 
 namespace ui {
 

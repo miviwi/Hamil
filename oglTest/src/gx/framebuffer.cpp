@@ -1,4 +1,4 @@
-#include "framebuffer.h"
+#include <gx/framebuffer.h>
 
 #include <cassert>
 

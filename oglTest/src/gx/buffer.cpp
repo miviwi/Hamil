@@ -1,4 +1,4 @@
-#include "buffer.h"
+#include <gx/buffer.h>
 
 #include <cassert>
 #include <cstring>
@@ -86,9 +86,9 @@ IndexBuffer::IndexBuffer(Usage usage, Type type) :
 unsigned IndexBuffer::elemSize() const
 {
   switch(m_type) {
-  case u8: return 1;
+  case u8:  return 1;
   case u16: return 2;
-  case u32: return 3;
+  case u32: return 4;
   }
 
   return 0;

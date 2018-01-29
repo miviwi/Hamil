@@ -1,4 +1,4 @@
-#include "texture.h"
+#include <gx/texture.h>
 
 #include <cassert>
 #include <cstring>

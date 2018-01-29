@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ui/uicommon.h"
-#include "ui/painter.h"
-#include "font.h"
+#include <ui/uicommon.h>
+#include <ui/painter.h>
+#include <ft/font.h>
 
 #include <cstring>
 

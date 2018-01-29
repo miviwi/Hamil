@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ui/uicommon.h"
-#include "ui/ui.h"
-#include "ui/frame.h"
-#include "font.h"
+#include <ui/uicommon.h>
+#include <ui/ui.h>
+#include <ui/frame.h>
+#include <ft/font.h>
 
 #include <string>
 

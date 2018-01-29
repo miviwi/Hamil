@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vmath.h"
+#include <vmath.h>
 
 #include <GL/glew.h>
 

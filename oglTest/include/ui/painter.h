@@ -2,13 +2,13 @@
 
 #include <common.h>
 
-#include "ui/uicommon.h"
-#include "vmath.h"
-#include "program.h"
-#include "buffer.h"
-#include "vertex.h"
-#include "pipeline.h"
-#include "font.h"
+#include <ui/uicommon.h>
+#include <vmath.h>
+#include <gx/program.h>
+#include <gx/buffer.h>
+#include <gx/vertex.h>
+#include <gx/pipeline.h>
+#include <ft/font.h>
 
 #include <string>
 #include <vector>

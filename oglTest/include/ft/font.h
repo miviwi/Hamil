@@ -2,10 +2,10 @@
 
 #include <common.h>
 
-#include "vmath.h"
-#include "texture.h"
-#include "vertex.h"
-#include "buffer.h"
+#include <vmath.h>
+#include <gx/texture.h>
+#include <gx/vertex.h>
+#include <gx/buffer.h>
 
 #include <vector>
 #include <string>

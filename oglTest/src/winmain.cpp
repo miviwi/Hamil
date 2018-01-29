@@ -1,29 +1,26 @@
-#include "window.h"
-#include "buffer.h"
-#include "vertex.h"
-#include "program.h"
+#include <win32/window.h>
+#include <gx/buffer.h>
+#include <gx/vertex.h>
+#include <gx/program.h>
 #include "uniforms.h"
-#include "pipeline.h"
-#include "texture.h"
-#include "framebuffer.h"
-#include "font.h"
+#include <gx/pipeline.h>
+#include <gx/texture.h>
+#include <gx/framebuffer.h>
+#include <ft/font.h>
 
-#include "ui/ui.h"
-#include "ui/frame.h"
-#include "ui/layout.h"
-#include "ui/button.h"
-#include "ui/slider.h"
-#include "ui/label.h"
-#include "ui/dropdown.h"
+#include <ui/ui.h>
+#include <ui/frame.h>
+#include <ui/layout.h>
+#include <ui/button.h>
+#include <ui/slider.h>
+#include <ui/label.h>
+#include <ui/dropdown.h>
 
 #include <GL/glew.h>
 
 #include <vector>
 #include <array>
 #include <utility>
-
-#include <fcntl.h>
-#include <io.h>
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {

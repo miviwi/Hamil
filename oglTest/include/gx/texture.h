@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gx.h"
-#include "vmath.h"
+#include <gx/gx.h>
+#include <vmath.h>
 
 #include <GL/glew.h>
 

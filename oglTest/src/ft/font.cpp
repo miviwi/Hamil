@@ -1,8 +1,8 @@
-#include "common.h"
-#include "font.h"
-#include "pipeline.h"
-#include "program.h"
-#include "uniforms.h"
+#include <common.h>
+#include <ft/font.h>
+#include <gx/pipeline.h>
+#include <gx/program.h>
+#include <uniforms.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H

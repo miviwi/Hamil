@@ -1,4 +1,4 @@
-#include "ui/label.h"
+#include <ui/label.h>
 
 namespace ui {
 

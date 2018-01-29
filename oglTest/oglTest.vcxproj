@@ -195,10 +195,10 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\dropdown.cpp" />
     <ClCompile Include="src\ui\label.cpp" />
     <ClCompile Include="src\ui\layout.cpp" />
-    <ClCompile Include="src\font.cpp" />
+    <ClCompile Include="src\ft\font.cpp" />
     <ClInclude Include="Generated\uniforms.h" />
-    <ClInclude Include="include\font.h" />
-    <ClCompile Include="src\pipeline.cpp" />
+    <ClInclude Include="include\ft\font.h" />
+    <ClCompile Include="src\gx\pipeline.cpp" />
     <ClCompile Include="extern\stb_rect_pack\rectpack.c" />
     <ClCompile Include="src\ui\uicommon.cpp" />
     <ClCompile Include="src\ui\frame.cpp" />
@@ -206,16 +206,16 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\slider.cpp" />
     <ClCompile Include="src\ui\style.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
-    <ClCompile Include="src\window.cpp" />
-    <ClCompile Include="src\buffer.cpp" />
-    <ClCompile Include="src\framebuffer.cpp" />
-    <ClCompile Include="src\input.cpp" />
+    <ClCompile Include="src\win32\window.cpp" />
+    <ClCompile Include="src\gx\buffer.cpp" />
+    <ClCompile Include="src\gx\framebuffer.cpp" />
+    <ClCompile Include="src\win32\input.cpp" />
     <ClCompile Include="src\vmath.cpp" />
-    <ClCompile Include="src\program.cpp">
+    <ClCompile Include="src\gx\program.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="src\texture.cpp" />
-    <ClCompile Include="src\vertex.cpp" />
+    <ClCompile Include="src\gx\texture.cpp" />
+    <ClCompile Include="src\gx\vertex.cpp" />
     <ClCompile Include="src\winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -224,10 +224,10 @@ exit /b 0</Command>
     <ClInclude Include="extern\GL\glew.h" />
     <ClInclude Include="extern\GL\glxew.h" />
     <ClInclude Include="extern\GL\wglew.h" />
-    <ClInclude Include="include\pipeline.h" />
+    <ClInclude Include="include\gx\pipeline.h" />
     <ClInclude Include="include\ui\button.h" />
     <ClInclude Include="include\ui\dropdown.h" />
-    <ClInclude Include="include\gx.h" />
+    <ClInclude Include="include\gx\gx.h" />
     <ClInclude Include="include\ui\uicommon.h" />
     <ClInclude Include="include\ui\frame.h" />
     <ClInclude Include="include\ui\label.h" />
@@ -236,19 +236,19 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\slider.h" />
     <ClInclude Include="include\ui\style.h" />
     <ClInclude Include="include\ui\ui.h" />
-    <ClInclude Include="include\window.h" />
-    <ClInclude Include="include\buffer.h" />
+    <ClInclude Include="include\win32\window.h" />
+    <ClInclude Include="include\gx\buffer.h" />
     <ClInclude Include="include\common.h" />
-    <ClInclude Include="include\framebuffer.h" />
-    <ClInclude Include="include\input.h" />
+    <ClInclude Include="include\gx\framebuffer.h" />
+    <ClInclude Include="include\win32\input.h" />
     <ClInclude Include="include\vmath.h" />
-    <ClInclude Include="include\program.h" />
-    <ClInclude Include="include\texture.h" />
-    <ClInclude Include="include\vertex.h" />
+    <ClInclude Include="include\gx\program.h" />
+    <ClInclude Include="include\gx\texture.h" />
+    <ClInclude Include="include\gx\vertex.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\tex.uniform" />
-    <None Include="src\font.uniform" />
+    <None Include="src\ft\font.uniform" />
     <None Include="src\program.uniform" />
     <None Include="src\ui.uniform" />
   </ItemGroup>

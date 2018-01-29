@@ -1,12 +1,12 @@
-#include "ui/ui.h"
-#include "ui/frame.h"
-#include "ui/painter.h"
+#include <ui/ui.h>
+#include <ui/frame.h>
+#include <ui/painter.h>
 
-#include "pipeline.h"
-#include "buffer.h"
-#include "vertex.h"
-#include "program.h"
-#include "uniforms.h"
+#include <gx/pipeline.h>
+#include <gx/buffer.h>
+#include <gx/vertex.h>
+#include <gx/program.h>
+#include <uniforms.h>
 
 #include <algorithm>
 #include <memory>
