@@ -14,6 +14,7 @@ namespace win32 {
 class Window {
 public:
   Window(int width, int height);
+  ~Window();
 
   static LPWSTR wnd_class_name() { return L"Appliaction"; }
   static LPWSTR wnd_name() { return L"Application"; }
@@ -23,6 +24,7 @@ public:
   bool processMessages();
 
   void swapBuffers();
+  void swapInterval(unsigned interval);
 
   Input::Ptr getInput();
   void setMouseSpeed(float speed);
@@ -35,8 +37,10 @@ public:
 
 private:
   static HGLRC ogl_create_context(HWND hWnd);
-
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam);
+
+  ATOM register_class(HINSTANCE hInstance);
+  HWND create_window(HINSTANCE hInstance, int width, int height);
 
   HWND m_hwnd;
   int m_width, m_height;

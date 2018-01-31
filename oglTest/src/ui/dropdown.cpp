@@ -123,7 +123,12 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
       const auto& item = m_items[i];
       Geometry item_g = itemGeometry(i);
 
-      if(item.id == m_highlighted) painter.rect(item_g, dropdown_color.lighten(80));
+      if(&item == m_selected) {
+        Color c = color[1].lighten(item.id == m_highlighted ? 50 : 0).opacity(1);
+        painter.rect(item_g, c);
+      } else if(item.id == m_highlighted) {
+        painter.rect(item_g, dropdown_color.lighten(80));
+      }
       painter.textLeft(*style.font, item.caption, item_g.translate({ 10, 0 }), white());
     }
 

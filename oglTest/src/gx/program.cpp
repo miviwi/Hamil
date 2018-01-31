@@ -165,26 +165,24 @@ void Program::draw(Primitive p, const VertexArray& vtx, unsigned num)
   draw(p, vtx, 0, num);
 }
 
-void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned offset, unsigned num)
+void Program::draw(Primitive p, const IndexedVertexArray& vtx, unsigned offset, unsigned num)
 {
   vtx.use();
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
 
-  glDrawElements(p, num, idx.m_type, (void *)(offset * idx.elemSize()));
+  glDrawElements(p, num, vtx.indexType(), (void *)(offset * vtx.indexSize()));
 }
 
-void Program::draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned num)
+void Program::draw(Primitive p, const IndexedVertexArray& vtx, unsigned num)
 {
-  draw(p, vtx, idx, 0, num);
+  draw(p, vtx, 0, num);
 }
 
-void Program::drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuffer& idx,
+void Program::drawBaseVertex(Primitive p, const IndexedVertexArray& vtx,
                              unsigned base, unsigned offset, unsigned num)
 {
   vtx.use();
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, idx.m);
 
-  glDrawElementsBaseVertex(p, num, idx.m_type, (void *)(offset * idx.elemSize()), base);
+  glDrawElementsBaseVertex(p, num, vtx.indexType(), (void *)(offset * vtx.indexSize()), base);
 }
 
 void Program::label(const char *lbl)

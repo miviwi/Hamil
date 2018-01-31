@@ -24,6 +24,8 @@ public:
   Buffer(const Buffer&) = delete;
   ~Buffer();
 
+  virtual void use() const;
+
   template <typename T>
   void init(T data[], size_t count) { init(data, sizeof(T), count); }
   template <typename T>
@@ -40,9 +42,6 @@ public:
 
 protected:
   Buffer(Usage usage, GLenum target);
-
-  friend class VertexArray;
-  friend class Program;
 
   GLenum usage() const;
 
@@ -77,11 +76,12 @@ class IndexBuffer : public Buffer {
 public:
   IndexBuffer(Usage usage, Type type);
 
+  virtual void use() const;
+
+  Type elemType() const;
   unsigned elemSize() const;
 
 private:
-  friend class Program;
-
   Type m_type;
 };
 

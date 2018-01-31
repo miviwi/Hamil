@@ -113,6 +113,8 @@ struct Vector3 {
     struct { T u, v; };
   };
 
+  Vector2<T> xy() const { return Vector2<T>{ x, y }; }
+
   T length() const { return (T)sqrt((x*x) + (y*y) + (z*z)); }
   T dot(const Vector3& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z); }
 
@@ -160,6 +162,12 @@ Vector3<T>& operator+=(Vector3<T>& a, Vector3<T> b)
 {
   a = a+b;
   return a;
+}
+
+template <typename T>
+Vector3<T> operator-(Vector3<T> v)
+{
+  return Vector3<T>{ -v.x, -v.y, -v.z };
 }
 
 template <typename T>
@@ -245,6 +253,18 @@ Vector4<T>& operator*=(Vector4<T>& a, T u)
 
 using vec4 = Vector4<float>;
 using ivec4 = Vector4<int>;
+
+namespace intrin {
+void vec4_const_mult(const float *a, float u, float *out);
+}
+
+inline vec4 operator*(vec4 a, float u)
+{
+  alignas(16) vec4 b;
+
+  intrin::vec4_const_mult(a, u, b);
+  return b;
+}
 
 template <typename T>
 struct Matrix2 {
@@ -384,7 +404,7 @@ inline Matrix4<T> Matrix4<T>::inverse() const
 using mat4 = Matrix4<float>;
 using imat4 = Matrix4<int>;
 
-static mat4 operator*(mat4 a, mat4 b)
+inline mat4 operator*(mat4 a, mat4 b)
 {
   mat4 c;
 
@@ -424,7 +444,7 @@ namespace intrin {
 void mat4_vec4_mult(const float *a, const float *b, float *out);
 }
 
-static vec4 operator*(mat4 a, vec4 b)
+inline vec4 operator*(mat4 a, vec4 b)
 {
   alignas(16) vec4 c;
 
@@ -603,6 +623,19 @@ static mat4 look_at(vec3 eye, vec3 target, vec3 up)
     0.0f,      0.0f,      0.0f,      1.0f,
   };
 
+}
+
+static vec2 project(vec4 v, mat4 modelviewprojection, ivec2 screen)
+{
+  v = modelviewprojection * v;
+  v *= 1.0f/v.w;
+
+  vec2 screenf = { (float)screen.x, (float)screen.y };
+
+  return {
+    (v.x+1)/2 * screenf.x,
+    screenf.y - ((v.y+1)/2 * screenf.y)
+  };
 }
 
 }

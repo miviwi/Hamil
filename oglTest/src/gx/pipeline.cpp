@@ -244,7 +244,7 @@ void Pipeline::enable(ConfigType config) const
     break;
   case Depth:
     do_enable(Depth, GL_DEPTH_TEST);
-    glDepthFunc(m_depth.func);
+    if(p_current.m_depth.func != m_depth.func) glDepthFunc(m_depth.func);
     break;
   case Stencil:
     assert(0 && "StencilConfig unimpleneted!");

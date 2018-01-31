@@ -28,4 +28,10 @@ enum Type {
   u32_8888 = GL_UNSIGNED_INT_8_8_8_8,
 };
 
+void init();
+void finalize();
+
+void p_bind_VertexArray(unsigned array);
+unsigned p_unbind_VertexArray();
+
 }

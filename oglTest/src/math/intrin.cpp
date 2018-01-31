@@ -160,6 +160,14 @@ void mat4_vec4_mult(const float *a, const float *b, float *out)
   _mm_store_ps(out, z);
 }
 
+void vec4_const_mult(const float *a, float u, float *out)
+{
+  __m128 x = _mm_load_ps(a);
+  __m128 y = _mm_load_ps1(&u);
+
+  _mm_store_ps(out, _mm_mul_ps(x, y));
+}
+
 void vec4_lerp(const float *a, const float *b, float u, float *out)
 {
   __m128 x = _mm_load_ps(a);

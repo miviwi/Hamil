@@ -5,8 +5,6 @@
 
 namespace gx {
 
-GLuint p_last_array = ~0u;
-
 VertexFormat& VertexFormat::attr(Type type, unsigned size, bool normalized)
 {
   m_descs.push_back({ NextIndex, type, size, normalized ? Normalize : 0 });
@@ -102,12 +100,13 @@ size_t VertexFormat::byteSize(Desc desc)
 VertexArray::VertexArray(const VertexFormat& fmt, const VertexBuffer& buf) :
   m_elem_size(fmt.vertexByteSize())
 {
-  glGenVertexArrays(1, &m);
+  create();
 
-  glBindBuffer(GL_ARRAY_BUFFER, buf.m);
-  glBindVertexArray(m);
-
+  use();
+  buf.use();
   init(fmt);
+
+  unbind();
 }
 
 VertexArray::~VertexArray()
@@ -122,9 +121,12 @@ unsigned VertexArray::elemSize() const
 
 void VertexArray::use() const
 {
-  if(p_last_array != m) glBindVertexArray(m);
+  p_bind_VertexArray(m);
+}
 
-  p_last_array = m;
+void VertexArray::end() const
+{
+  unbind();
 }
 
 void VertexArray::label(const char *lbl)
@@ -134,6 +136,21 @@ void VertexArray::label(const char *lbl)
 
   glObjectLabel(GL_VERTEX_ARRAY, m, strlen(lbl), lbl);
 #endif
+}
+
+void VertexArray::unbind()
+{
+  p_unbind_VertexArray();
+}
+
+VertexArray::VertexArray()
+{
+}
+
+void VertexArray::create()
+{
+  unbind();
+  glGenVertexArrays(1, &m);
 }
 
 void VertexArray::init(const VertexFormat& fmt)
@@ -152,6 +169,32 @@ void VertexArray::init(const VertexFormat& fmt)
       glVertexAttribPointer(i, size, type, normalized, m_elem_size, offset);
     }
   }
+}
+
+IndexedVertexArray::IndexedVertexArray(const VertexFormat& fmt,
+                                       const VertexBuffer& buf, const IndexBuffer& ind) :
+  m_index_type(ind.elemType()), m_index_size(ind.elemSize())
+{
+  m_elem_size = fmt.vertexByteSize();
+
+  create();
+
+  use();
+  buf.use();
+  ind.use();
+  init(fmt);
+
+  unbind();
+}
+
+Type IndexedVertexArray::indexType() const
+{
+  return m_index_type;
+}
+
+unsigned IndexedVertexArray::indexSize() const
+{
+  return m_index_size;
 }
 
 }

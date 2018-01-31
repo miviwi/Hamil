@@ -19,34 +19,15 @@ static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
 Window::Window(int width, int height) :
   m_width(width), m_height(height)
 {
-  WNDCLASSEX wndClass;
-  auto ptr = (unsigned char *)&wndClass;
-
   HINSTANCE hInstance = GetModuleHandle(nullptr);
 
-  std::fill(ptr, ptr+sizeof(WNDCLASSEX), 0);
+  register_class(hInstance);
+  m_hwnd = create_window(hInstance, width, height);
+}
 
-  wndClass.cbSize        = sizeof(WNDCLASSEX);
-  wndClass.style         = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
-  wndClass.lpfnWndProc   = &Window::WindowProc;
-  wndClass.cbWndExtra    = sizeof(this);
-  wndClass.hInstance     = hInstance;
-  wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
-  wndClass.lpszClassName = wnd_class_name();
-
-  ATOM atom = RegisterClassEx(&wndClass);
-  assert(atom && "failed to register window class!");
-
-  RECT rc = { 0, 0, width, height };
-  AdjustWindowRect(&rc, WS_CAPTION|WS_SYSMENU, false);
-
-  m_hwnd = CreateWindow(wnd_class_name(), wnd_name(), WS_CAPTION|WS_SYSMENU,
-                      CW_USEDEFAULT, CW_USEDEFAULT, rc.right-rc.left, rc.bottom-rc.top,
-                      nullptr, nullptr, hInstance, 0);
-  assert(m_hwnd && "failed to create window!");
-
-  ShowWindow(m_hwnd, SW_SHOW);
-  SetWindowLongPtr(m_hwnd, GWLP_USERDATA, (LONG_PTR)this);
+Window::~Window()
+{
+  DestroyWindow(m_hwnd);
 }
 
 bool Window::processMessages()
@@ -65,6 +46,11 @@ bool Window::processMessages()
 void Window::swapBuffers()
 {
   wglSwapLayerBuffers(GetDC(m_hwnd), WGL_SWAP_MAIN_PLANE);
+}
+
+void Window::swapInterval(unsigned interval)
+{
+  wglSwapIntervalEXT(interval);
 }
 
 Input::Ptr Window::getInput()
@@ -103,6 +89,43 @@ void Window::resetMouse()
 void Window::quit()
 {
   PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+}
+
+ATOM Window::register_class(HINSTANCE hInstance)
+{
+  WNDCLASSEX wndClass;
+  auto ptr = (unsigned char *)&wndClass;
+
+  std::fill(ptr, ptr+sizeof(WNDCLASSEX), 0);
+
+  wndClass.cbSize = sizeof(WNDCLASSEX);
+  wndClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
+  wndClass.lpfnWndProc = &Window::WindowProc;
+  wndClass.cbWndExtra = sizeof(this);
+  wndClass.hInstance = hInstance;
+  wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+  wndClass.lpszClassName = wnd_class_name();
+
+  ATOM atom = RegisterClassEx(&wndClass);
+  assert(atom && "failed to register window class!");
+
+  return atom;
+}
+
+HWND Window::create_window(HINSTANCE hInstance, int width, int height)
+{
+  RECT rc = { 0, 0, width, height };
+  AdjustWindowRect(&rc, WS_CAPTION|WS_SYSMENU, false);
+
+  HWND hwnd = CreateWindow(wnd_class_name(), wnd_name(), WS_CAPTION|WS_SYSMENU,
+                      CW_USEDEFAULT, CW_USEDEFAULT, rc.right-rc.left, rc.bottom-rc.top,
+                      nullptr, nullptr, hInstance, 0);
+  assert(hwnd && "failed to create window!");
+
+  ShowWindow(hwnd, SW_SHOW);
+  SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
+
+  return hwnd;
 }
 
 HGLRC Window::ogl_create_context(HWND hWnd)

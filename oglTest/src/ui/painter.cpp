@@ -564,14 +564,14 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
   auto s = appendTextVertices(font, str);
 
   vec2 center = g.center();
-  vec2 text_pos = {
+  vec2 pos = {
     floor(center.x - font.width(s)/2.0f),
     floor(center.y - font.descender())
   };
 
   appendCommand(Command::text(
     font,
-    text_pos, c,
+    { floor(pos.x), floor(pos.y) }, c,
     base, offset,
     font.num(s)
   ));
@@ -587,14 +587,14 @@ VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, G
   auto s = appendTextVertices(font, str);
 
   vec2 center = g.center();
-  vec2 text_pos = {
+  vec2 pos = {
     g.x,
     floor(center.y - font.descender())
   };
 
   appendCommand(Command::text(
     font,
-    text_pos, c,
+    { floor(pos.x), floor(pos.y) }, c,
     base, offset,
     font.num(s)
   ));

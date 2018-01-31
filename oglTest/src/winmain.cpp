@@ -2,7 +2,7 @@
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
-#include "uniforms.h"
+#include <uniforms.h>
 #include <gx/pipeline.h>
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
@@ -32,6 +32,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   //auto map = (glang::MapObject *)o;
   //auto map_b = map->seqget(vm->objMan().kw(":b"));
 
+  gx::init();
   ft::init();
   ui::init();
 
@@ -39,7 +40,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
   int mouse_x = (1280)/2, mouse_y = (720)/2;
-  float view_x = 0, view_y = 0;
+  float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
 
   bool constrained = true;
@@ -102,13 +103,13 @@ layout(location = 1) in vec3 iNormal;
 out VertexData {
   vec3 position;
   vec3 normal;
-} output;
+} vertex;
 
 void main() {
-  output.position = vec3(uModelView * vec4(iPosition, 1.0));
-  output.normal = uNormal * iNormal;
+  vertex.position = vec3(uModelView * vec4(iPosition, 1.0));
+  vertex.normal = uNormal * iNormal;
 
-  gl_Position = uProjection * vec4(output.position, 1.0);
+  gl_Position = uProjection * vec4(vertex.position, 1.0);
 }
 )VTX";
 
@@ -161,16 +162,16 @@ uniform vec4 uCol;
 in VertexData {
   vec3 position;
   vec3 normal;
-} input;
+} fragment;
 
 layout(location = 0) out vec3 color;
 
 void main() {
-  vec3 normal = normalize(input.normal);
+  vec3 normal = normalize(fragment.normal);
 
   vec3 light = vec3(0, 0, 0);
   for(int i = 0; i < num_lights; i++) {
-    light += phong(lights[i], input.position, normal);
+    light += phong(lights[i], fragment.position, normal);
   }
 
   if(uCol.a < 0.0) {
@@ -195,14 +196,14 @@ out VertexData {
   vec3 position;
   vec3 normal;
   vec2 tex_coord;
-} output;
+} vertex;
 
 void main() {
-  output.position = vec3(uModelView * vec4(iPosition, 0.0, 1.0));
-  output.normal = uNormal * vec3(0.0, 0.0, -1.0);
-  output.tex_coord = (uTexMatrix * vec4(iTexCoord, 0.0f, 1.0f)).st;
+  vertex.position = vec3(uModelView * vec4(iPosition, 0.0, 1.0));
+  vertex.normal = uNormal * vec3(0.0, 0.0, -1.0);
+  vertex.tex_coord = (uTexMatrix * vec4(iTexCoord, 0.0f, 1.0f)).st;
 
-  gl_Position = uProjection * vec4(output.position, 1.0f);
+  gl_Position = uProjection * vec4(vertex.position, 1.0f);
 }
 )VTX";
 
@@ -213,17 +214,17 @@ in VertexData {
   vec3 position;
   vec3 normal;
   vec2 tex_coord;
-} input;
+} fragment;
 
 layout(location = 0) out vec3 color;
 
 void main() {
-  vec3 normal = normalize(input.normal); 
-  vec4 diffuse = texture(uTex, input.tex_coord);
+  vec3 normal = normalize(fragment.normal); 
+  vec4 diffuse = texture(uTex, fragment.tex_coord);
 
   vec3 light = vec3(0, 0, 0);
   for(int i = 0; i < num_lights; i++) {
-    light += phong(lights[i], input.position, normal);
+    light += phong(lights[i], fragment.position, normal);
   }
 
   color = toGammaSpace(light*diffuse.rgb);
@@ -248,7 +249,7 @@ void main() {
   gx::Texture2D fb_tex(gx::rgb8);
   gx::Framebuffer fb;
 
-  fb_tex.initMultisample(4, FB_DIMS.x, FB_DIMS.y);
+  fb_tex.initMultisample(2, FB_DIMS.x, FB_DIMS.y);
   fb_tex.label("FB_tex");
 
   fb.use()
@@ -520,16 +521,9 @@ void main() {
     .frame<ui::Frame>(iface, ui::Geometry{ 1000.0f, 300.0f, 200.0f, 300.0f })
     ;
 
+  char str[256];
+
   while(window.processMessages()) {
-    mat4 imtx = mat4{
-      1.0f/zoom, 0.0f, 0.0f, -zoom_mtx.d[3]/zoom,
-      0.0f, 1.0f/zoom, 0.0f, -zoom_mtx.d[7]/zoom,
-      0.0f, 0.0f,            1.0f, 0.0f,
-      0.0f,                  0.0f, 1.0f,
-    }*xform::translate(-view_x, -view_y, 0);
-
-    vec4 m = imtx * vec4{ (float)mouse_x, (float)mouse_y, 0, 1 };
-
     constexpr auto anim_time = 10000.0f;
     auto time = GetTickCount();
 
@@ -565,15 +559,14 @@ void main() {
         if(mouse_y < 0) mouse_y = 0;
 
         if(mouse->buttons & Mouse::Right) {
-          view_x += mouse->dx;
-          view_y += mouse->dy;
+          constexpr float factor = PIf/1024.0f;
+
+          pitch += mouse->dy * factor;
+          yaw += mouse->dx * factor;
+
+          pitch = clamp(pitch, (-PIf/2.0f) + 0.001f, (PIf/2.0f) - 0.001f);
         } else if(mouse->event == Mouse::Wheel) {
           zoom += (mouse->ev_data/120)*0.05f;
-
-          zoom_mtx =
-            xform::translate(m.x, m.y, 0)
-            *xform::scale(zoom, zoom, 1)
-            *xform::translate(-m.x, -m.y, 0);
         } else if(mouse->buttonDown(Mouse::Middle)) {
           zoom = 1.0f;
 
@@ -605,7 +598,7 @@ void main() {
     }
 
     mat4 model =
-      xform::translate(view_x, view_y, -50.0f)
+      xform::translate(pitch, yaw, -50.0f)
       *zoom_mtx
       *rot_mtx
       ;
@@ -621,7 +614,14 @@ void main() {
     auto persp = !ortho_projection ? xform::perspective(70, 16./9., 0.1f, 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
 
-    vec3 eye{ (float)view_x/1280.0f*150.0f, (float)view_y/720.0f*150.0f, 60.0f/zoom };
+    //yaw = lerp(0.0f, 2.0f*PIf, anim_factor);
+    //pitch = sin(2.0f*PIf * anim_factor) * PIf/2.0f;
+
+    //vec3 eye{ (float)pitch/1280.0f*150.0f, (float)yaw/720.0f*150.0f, 60.0f/zoom };
+    vec3 eye{ 0, 0, 60.0f/zoom };
+
+    eye = (xform::roty(yaw)*xform::rotx(-pitch)*eye).xyz();
+
     auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
 
     vec4 color;
@@ -713,17 +713,23 @@ void main() {
       .depthTest(gx::Pipeline::LessEqual)
       .use();
     for(int i = 0; i < light_block.num_lights; i++) {
+      vec4 pos = light_position[i];
       color = { 0, 0, 0, (float)i };
       model = xform::identity()
-        *xform::translate(light_position[i])
+        *xform::translate(pos)
         *xform::scale(0.2f)
         ;
       drawcube();
+
+      vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FB_DIMS);
+      screen.y -= 10;
+
+      sprintf_s(str, "Light %d", i+1);
+      small_face.draw(str, screen, { 1, 1, 1 });
     }
 
     int fps = (float)frames / ((float)(time-start_time) / 1000.0f);
 
-    char str[256];
     sprintf_s(str, "FPS: %d", fps);
 
     face.draw(str, vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
@@ -731,7 +737,7 @@ void main() {
     face.draw(vram_size_str, vec2{ FB_DIMS.x - 300.0f, 70.0f }, vec3{ 0.8f, 0.0f, 0.0f });
 
     sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_factor, eye.x, eye.y, eye.z);
-    small_face.draw(str, vec2{ 30.0f, 100.0f }, vec4{ 0.0f, 0.0f, 0.0f, 1.0f });
+    small_face.draw(str, { 30.0f, 100.0f }, { 1.0f, 1.0f, 1.0f });
 
     texmatrix = texmatrix.inverse();
     char buf[1024];
@@ -769,7 +775,9 @@ void main() {
     frames++;
   }
 
+  ui::finalize();
   ft::finalize();
+  gx::finalize();
 
   return 0;
 }

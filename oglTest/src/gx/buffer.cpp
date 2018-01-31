@@ -11,16 +11,21 @@ Buffer::Buffer(Usage usage,GLenum target) :
   glGenBuffers(1, &m);
 }
 
+Buffer::~Buffer()
+{
+  glDeleteBuffers(1, &m);
+}
+
 void *Buffer::map(Access access)
 {
-  glBindBuffer(m_target, m);
+  use();
 
   return glMapBuffer(m_target, access);
 }
 
 void Buffer::unmap()
 {
-  glBindBuffer(m_target, m);
+  use();
 
   auto result = glUnmapBuffer(m_target);
   assert(result && "failed to unmap buffer!");
@@ -29,22 +34,22 @@ void Buffer::unmap()
 void Buffer::label(const char *lbl)
 {
 #if !defined(NDEBUG)
-  glBindBuffer(m_target, m);
+  use();
 
   glObjectLabel(GL_BUFFER, m, strlen(lbl), lbl);
 #endif
 }
 
-Buffer::~Buffer()
+void Buffer::use() const
 {
-  glDeleteBuffers(1, &m);
+  glBindBuffer(m_target, m);
 }
 
 void Buffer::init(size_t elem_sz, size_t elem_count)
 {
   size_t sz = elem_sz*elem_count;
 
-  glBindBuffer(m_target, m);
+  use();
   glBufferData(m_target, sz, nullptr, usage());
 }
 
@@ -52,7 +57,7 @@ void Buffer::init(void *data, size_t elem_sz, size_t elem_count)
 {
   size_t sz = elem_sz*elem_count;
 
-  glBindBuffer(m_target, m);
+  use();
   glBufferData(m_target, sz, data, usage());
 }
 
@@ -60,7 +65,7 @@ void Buffer::upload(void *data, size_t offset, size_t elem_sz, size_t elem_count
 {
   size_t sz = elem_sz*elem_count;
 
-  glBindBuffer(m_target, m);
+  use();
   glBufferSubData(m_target, offset*elem_sz, sz, data);
 }
 
@@ -81,6 +86,16 @@ VertexBuffer::VertexBuffer(Usage usage) :
 IndexBuffer::IndexBuffer(Usage usage, Type type) :
   Buffer(usage, GL_ELEMENT_ARRAY_BUFFER), m_type(type)
 {
+}
+
+void IndexBuffer::use() const
+{
+  Buffer::use();
+}
+
+Type IndexBuffer::elemType() const
+{
+  return m_type;
 }
 
 unsigned IndexBuffer::elemSize() const

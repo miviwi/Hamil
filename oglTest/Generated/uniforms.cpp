@@ -2,14 +2,6 @@
 
 namespace U {
 
-font_klass font;
-const std::array<Location, 3> font_klass::offsets = {
-  Location{ "uModelViewProjection", 0 },
-  Location{ "uAtlas", 1 },
-  Location{ "uColor", 2 },
-};
-
-
 program_klass program;
 const std::array<Location, 5> program_klass::offsets = {
   Location{ "uModelView", 0 },
@@ -27,6 +19,14 @@ const std::array<Location, 5> tex_klass::offsets = {
   Location{ "uNormal", 2 },
   Location{ "uTexMatrix", 3 },
   Location{ "uTex", 4 },
+};
+
+
+font_klass font;
+const std::array<Location, 3> font_klass::offsets = {
+  Location{ "uModelViewProjection", 0 },
+  Location{ "uAtlas", 1 },
+  Location{ "uColor", 2 },
 };
 
 

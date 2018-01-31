@@ -35,8 +35,9 @@ public:
 
   pFt() :
     ptr(0),
-    buf(gx::Buffer::Dynamic), vtx(fmt, buf),
-    ind(gx::Buffer::Dynamic, gx::u16)
+    buf(gx::Buffer::Dynamic), 
+    ind(gx::Buffer::Dynamic, gx::u16),
+    vtx(fmt, buf, ind)
   { }
 
   unsigned alloc(unsigned num_chars);
@@ -45,9 +46,9 @@ public:
   static const gx::VertexFormat fmt;
 
   gx::VertexBuffer buf;
-  gx::VertexArray vtx;
-
   gx::IndexBuffer ind;
+
+  gx::IndexedVertexArray vtx;
 
 private:
   unsigned allocAtEnd(unsigned num_chars);
@@ -127,11 +128,13 @@ layout(location = 1) in vec2 iUV;
 
 out VertexData {
   vec2 uv;
-} output;
+} vertex;
 
 void main() {
-  output.uv = iUV;
-  gl_Position = uModelViewProjection * vec4(iPos, 0.0f, 1.0f);
+  vec4 pos = vec4(floor(iPos), 0, 1);
+
+  vertex.uv = iUV;
+  gl_Position = uModelViewProjection * pos;
 }
 
 )VTX";
@@ -157,12 +160,12 @@ uniform vec4 uColor;
 
 in VertexData {
   vec2 uv;
-} input;
+} fragment;
 
 layout(location = 0) out vec4 color;
 
 void main() {
-  color = uColor * sampleFontAtlas(uAtlas, input.uv);
+  color = uColor * sampleFontAtlas(uAtlas, fragment.uv);
 }
 
 )FRAG";
@@ -191,9 +194,9 @@ void init()
   p = std::make_unique<pFt>();
 
   p->buf.label("FT_vertex");
-  p->vtx.label("FT_vertex_array");
-
   p->ind.label("FT_index");
+
+  p->vtx.label("FT_vertex_array");
 
   p->buf.init(sizeof(Vertex)*4, pFt::NumBufferChars);
   p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
@@ -450,16 +453,18 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
   assert(p_str->m == *m && "Drawing string with wrong Font!");
 
   mat4 mvp = xform::ortho(0.0f, 0.0f, 720.0f, 1280.0f, 0.0f, 1.0f)
-    *xform::translate(pos.x, pos.y, 0.0f);
+    *xform::translate(floor(pos.x), floor(pos.y), 0.0f);
 
   gx::ScopedPipeline sp(pipeline);
 
   bindFontAltas();
+
   font_program->use()
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
     .uniformInt(U::font.uAtlas, TexImageUnit)
     .uniformVector4(U::font.uColor, color)
-    .drawBaseVertex(gx::TriangleFan, p->vtx, p->ind, p_str->base, p_str->offset, p_str->num);
+    .drawBaseVertex(gx::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
+  p->vtx.end();
 }
 
 void Font::draw(const char *str, vec2 pos, vec4 color) const

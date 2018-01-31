@@ -74,9 +74,10 @@ private:
   VertexPainter m_painter;
   bool m_repaint;
 
-  gx::VertexBuffer m_vtx;
-  gx::VertexArray m_vtx_array;
+  gx::VertexBuffer m_buf;
   gx::IndexBuffer m_ind;
+
+  gx::IndexedVertexArray m_vtx;
 };
 
 }

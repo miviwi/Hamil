@@ -61,16 +61,34 @@ public:
   unsigned elemSize() const;
 
   void use() const;
+  // Needs to be called after indexed drawing!
+  // (Could be done implicitly but is not for efficiency reasons)
+  void end() const;
 
   void label(const char *lbl);
 
-private:
-  friend class Program;
+protected:
+  static void unbind();
 
+  VertexArray();
+
+  void create();
   void init(const VertexFormat& fmt);
 
   GLuint m;
   unsigned m_elem_size;
+};
+
+class IndexedVertexArray : public VertexArray {
+public:
+  IndexedVertexArray(const VertexFormat& fmt, const VertexBuffer& buf, const IndexBuffer& ind);
+
+  Type indexType() const;
+  unsigned indexSize() const;
+
+private:
+  Type m_index_type;
+  unsigned m_index_size;
 };
 
 }

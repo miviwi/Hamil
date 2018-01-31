@@ -12,6 +12,7 @@
 namespace gx {
 
 class VertexArray;
+class IndexedVertexArray;
 class IndexBuffer;
 
 class Shader {
@@ -87,11 +88,11 @@ public:
 
   void draw(Primitive p, const VertexArray& vtx, unsigned offset, unsigned num);
   void draw(Primitive p, const VertexArray& vtx, unsigned num);
-  void draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned offset, unsigned num);
-  void draw(Primitive p, const VertexArray& vtx, const IndexBuffer& idx, unsigned num);
+  void draw(Primitive p, const IndexedVertexArray& vtx, unsigned offset, unsigned num);
+  void draw(Primitive p, const IndexedVertexArray& vtx, unsigned num);
 
-  void drawBaseVertex(Primitive p, const VertexArray& vtx, const IndexBuffer& idx,
-            unsigned base, unsigned offset, unsigned num);
+  void drawBaseVertex(Primitive p, const IndexedVertexArray& vtx,
+                      unsigned base, unsigned offset, unsigned num);
 
   void label(const char *lbl);
 

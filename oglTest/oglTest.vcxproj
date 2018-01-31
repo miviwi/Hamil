@@ -129,7 +129,7 @@
     </Bscmake>
     <CustomBuildStep>
       <Message>Generate Uniform Location</Message>
-      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"
+      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui"
 if not errorlevel 1 (
   move uniforms.* Generated\
 )
@@ -179,7 +179,7 @@ exit /b 0</Command>
     <CustomBuildStep>
       <Message>Generate Uniform Location</Message>
       <Outputs>uniforms.cpp;uniforms.h;%(Outputs)</Outputs>
-      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"
+      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui"
 if not errorlevel 1 (
   move uniforms.* Generated\
 )
@@ -191,6 +191,7 @@ exit /b 0</Command>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="src\gx\gx.cpp" />
     <ClCompile Include="src\ui\button.cpp" />
     <ClCompile Include="src\ui\dropdown.cpp" />
     <ClCompile Include="src\ui\label.cpp" />
