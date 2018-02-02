@@ -27,13 +27,13 @@ public:
   virtual void use() const;
 
   template <typename T>
-  void init(T data[], size_t count) { init(data, sizeof(T), count); }
+  void init(const T data[], size_t count) { init(data, sizeof(T), count); }
   template <typename T>
-  void upload(T data[], size_t offset, size_t count) { upload(data, offset, sizeof(T), count); }
+  void upload(const T data[], size_t offset, size_t count) { upload(data, offset, sizeof(T), count); }
 
   void init(size_t elem_sz, size_t elem_count);
-  void init(void *data, size_t elem_sz, size_t elem_count);
-  void upload(void *data, size_t offset, size_t elem_sz, size_t elem_count);
+  void init(const void *data, size_t elem_sz, size_t elem_count);
+  void upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count);
 
   void *map(Access access);
   void unmap();

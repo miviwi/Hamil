@@ -17,8 +17,8 @@ public:
 
   void init(unsigned w, unsigned h);
   void initMultisample(unsigned samples, unsigned w, unsigned h);
-  void init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t);
-  void upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
+  void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t);
+  void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type t);
 
   // Can only be called after init[Multisample]()

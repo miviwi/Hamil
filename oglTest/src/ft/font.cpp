@@ -555,9 +555,9 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   };
 
   stbrp_context ctx;
-  std::vector<stbrp_node> nodes(atlas_sz.u);
+  std::vector<stbrp_node> nodes(atlas_sz.s);
 
-  stbrp_init_target(&ctx, atlas_sz.u, atlas_sz.v, nodes.data(), nodes.size());
+  stbrp_init_target(&ctx, atlas_sz.s, atlas_sz.t, nodes.data(), nodes.size());
 
   std::vector<stbrp_rect> rects;
   rects.reserve(glyphs.size());
@@ -576,7 +576,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
 
   stbrp_pack_rects(&ctx, rects.data(), rects.size());
 
-  std::vector<unsigned char> img(atlas_sz.u*atlas_sz.v);
+  std::vector<unsigned char> img(atlas_sz.s*atlas_sz.t);
 
   // Blit glyphs to atlas
   for(auto& r : rects) {
@@ -586,10 +586,10 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     assert(r.was_packed && "not all glyphs packed into atlas!!!");
 
     for(unsigned y = 0; y < bm.rows; y++) {
-      auto dsty = (atlas_sz.v - (r.y+y))-2;
+      auto dsty = (atlas_sz.t - (r.y+y))-2;
 
       auto src = bm.buffer + (y*bm.pitch);
-      auto dst = img.data() + (dsty*atlas_sz.u) + r.x + 1;
+      auto dst = img.data() + (dsty*atlas_sz.s) + r.x + 1;
 
       for(unsigned x = 0; x < bm.width; x++) *dst++ = *src++;
     }
@@ -598,7 +598,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   // Setup atlas texture and sampler
   std::string atlas_label = "FT_altas";
 
-  m_atlas.init(img.data(), 0, atlas_sz.u, atlas_sz.v, gx::r, gx::u8);
+  m_atlas.init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::u8);
   m_atlas.label((atlas_label + std::to_string(atlas_id++)).c_str());
 
   m_sampler
@@ -616,8 +616,8 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     u16 x0 = r.x+1, y0 = r.y,
       x1 = r.x+r.w-1, y1 = r.y+bm->bitmap.rows+1;
 
-    y0 = atlas_sz.v - y0;
-    y1 = atlas_sz.v - y1;
+    y0 = atlas_sz.t - y0;
+    y1 = atlas_sz.t - y1;
 
     UV uvs[] = {
       { x0, y0 }, { x0, y1 },

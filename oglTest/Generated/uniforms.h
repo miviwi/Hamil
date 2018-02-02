@@ -67,4 +67,17 @@ struct ui_klass {
 };
 extern ui_klass ui;
 
+struct cursor_klass {
+  union { struct {
+    int uModelViewProjection;
+    int uTex;
+    };
+
+    int locations[2];
+  };
+
+  static const std::array<Location, 2> offsets;
+};
+extern cursor_klass cursor;
+
 }

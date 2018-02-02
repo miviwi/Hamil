@@ -38,4 +38,11 @@ const std::array<Location, 4> ui_klass::offsets = {
   Location{ "uTextColor", 3 },
 };
 
+
+cursor_klass cursor;
+const std::array<Location, 2> cursor_klass::offsets = {
+  Location{ "uModelViewProjection", 0 },
+  Location{ "uTex", 1 },
+};
+
 }

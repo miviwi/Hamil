@@ -1,8 +1,9 @@
 #pragma once
 
+#include <math/intrin.h>
+
 #include <cmath>
 #include <algorithm>
-
 #include <type_traits>
 
 static unsigned pow2_round(unsigned v)
@@ -34,7 +35,7 @@ struct Vector2 {
 
   union {
     struct { T x, y; };
-    struct { T u, v; };
+    struct { T s, t; };
   };
 
   T length() const { return (T)sqrt((x*x) + (y*y)); }
@@ -110,7 +111,7 @@ struct Vector3 {
   union {
     struct { T x, y, z; };
     struct { T r, g, b; };
-    struct { T u, v; };
+    struct { T s, t, p; };
   };
 
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
@@ -187,10 +188,6 @@ Vector3<T>& operator*=(Vector3<T>& a, T u)
 using vec3 = Vector3<float>;
 using ivec3 = Vector3<int>;
 
-namespace intrin {
-void vec3_cross(const float *a, const float *b, float *out);
-}
-
 inline vec3 vec3::cross(const vec3& v) const
 {
   alignas(16) float a[4] = { x, y, z, 0 };
@@ -209,6 +206,12 @@ struct Vector4 {
   Vector4(Vector2<T> xy, T z_, T w_) :
     x(xy.x), y(xy.y), z(z_), w(w_)
   { }
+  Vector4(Vector2<T> xy, T z_) :
+    x(xy.x), y(xy.y), z(z_), w(1)
+  { }
+  Vector4(Vector2<T> xy) :
+    x(xy.x), y(xy.y), z(0), w(1)
+  { }
   Vector4(Vector3<T> xyz) :
     x(xyz.x), y(xyz.y), z(xyz.z), w(1.0f)
   { }
@@ -222,7 +225,7 @@ struct Vector4 {
   union {
     struct { T x, y, z, w; };
     struct { T r, g, b, a; };
-    struct { T u, v; };
+    struct { T s, t, p, q; };
   };
 
   Vector3<T> xyz() const { return Vector3<T>{ x, y, z }; }
@@ -274,10 +277,6 @@ Vector4<T>& operator*=(Vector4<T>& a, T u)
 
 using vec4 = Vector4<float>;
 using ivec4 = Vector4<int>;
-
-namespace intrin {
-void vec4_const_mult(const float *a, float u, float *out);
-}
 
 inline vec4 operator*(vec4 a, float u)
 {
@@ -362,12 +361,6 @@ struct Matrix4 {
   operator float *() { return d; }
   operator const float *() const { return d; }
 };
-
-namespace intrin {
-void mat4_mult(const float *a, const float *b, float *out);
-void mat4_transpose(const float *a, float *out);
-void mat4_inverse(const float *a, float *out);
-}
 
 template <typename T>
 Matrix4<T> operator*(Matrix4<T> a, Matrix4<T> b)
@@ -461,10 +454,6 @@ Vector4<T> operator*(Matrix4<T> a, Vector4<T> b)
   };
 }
 
-namespace intrin {
-void mat4_vec4_mult(const float *a, const float *b, float *out);
-}
-
 inline vec4 operator*(mat4 a, vec4 b)
 {
   alignas(16) vec4 c;
@@ -477,10 +466,6 @@ template <typename T>
 T lerp(T a, T b, float u)
 {
   return a + (b-a)*u;
-}
-
-namespace intrin {
-void vec4_lerp(const float *a, const float *b, float u, float *out);
 }
 
 static vec4 lerp(vec4 a, vec4 b, float u)

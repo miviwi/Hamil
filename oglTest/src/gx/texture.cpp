@@ -37,7 +37,7 @@ void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
   glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, m_format, w, h, GL_TRUE);
 }
 
-void Texture2D::init(void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
+void Texture2D::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
 {
   assert(format < r8 && "invalid format!");
 
@@ -47,7 +47,7 @@ void Texture2D::init(void *data, unsigned mip, unsigned w, unsigned h, Format fo
   setDefaultParameters(GL_TEXTURE_2D);
 }
 
-void Texture2D::upload(void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
+void Texture2D::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
                        Format format, Type type)
 {
   assert(format < r8 && "invalid format!");

@@ -53,7 +53,7 @@ void Buffer::init(size_t elem_sz, size_t elem_count)
   glBufferData(m_target, sz, nullptr, usage());
 }
 
-void Buffer::init(void *data, size_t elem_sz, size_t elem_count)
+void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
 {
   size_t sz = elem_sz*elem_count;
 
@@ -61,7 +61,7 @@ void Buffer::init(void *data, size_t elem_sz, size_t elem_count)
   glBufferData(m_target, sz, data, usage());
 }
 
-void Buffer::upload(void *data, size_t offset, size_t elem_sz, size_t elem_count)
+void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count)
 {
   size_t sz = elem_sz*elem_count;
 

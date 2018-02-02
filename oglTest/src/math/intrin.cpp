@@ -1,3 +1,4 @@
+#include <math/intrin.h>
 #include <math/geometry.h>
 
 #include <xmmintrin.h>
@@ -149,10 +150,10 @@ void mat4_vec4_mult(const float *a, const float *b, float *out)
   __m128 y;
   __m128 z;
 
-  z = _mm_mul_ps(_mm_load1_ps(b), xb[0]);
+  z = _mm_mul_ps(_mm_load_ps1(b), xb[0]);
 
   for(int i = 1; i < 4; i++) {
-    y = _mm_mul_ps(_mm_load1_ps(b+i), xb[i]);
+    y = _mm_mul_ps(_mm_load_ps1(b+i), xb[i]);
 
     z = _mm_add_ps(y, z);
   }
@@ -173,12 +174,9 @@ void vec4_lerp(const float *a, const float *b, float u, float *out)
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps(b);
 
-  __m128 d = _mm_sub_ps(y, x);
+  __m128 d = _mm_mul_ps(_mm_sub_ps(y, x), _mm_load_ps1(&u));
 
-  d = _mm_mul_ps(d, _mm_load_ps1(&u));
-  d = _mm_add_ps(x, d);
-
-  _mm_store_ps(out, d);
+  _mm_store_ps(out, _mm_add_ps(x, d));
 }
 
 void vec3_cross(const float *a, const float *b, float *out)

@@ -129,7 +129,7 @@
     </Bscmake>
     <CustomBuildStep>
       <Message>Generate Uniform Location</Message>
-      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui"
+      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui" "$(ProjectDir)src\game"
 if not errorlevel 1 (
   move uniforms.* Generated\
 )
@@ -191,6 +191,8 @@ exit /b 0</Command>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="src\game\cursor.cpp" />
+    <ClCompile Include="src\game\game.cpp" />
     <ClCompile Include="src\gx\gx.cpp" />
     <ClCompile Include="src\ui\button.cpp" />
     <ClCompile Include="src\ui\dropdown.cpp" />
@@ -227,7 +229,10 @@ exit /b 0</Command>
     <ClInclude Include="extern\GL\glew.h" />
     <ClInclude Include="extern\GL\glxew.h" />
     <ClInclude Include="extern\GL\wglew.h" />
+    <ClInclude Include="include\game\cursor.h" />
+    <ClInclude Include="include\game\game.h" />
     <ClInclude Include="include\gx\pipeline.h" />
+    <ClInclude Include="include\math\intrin.h" />
     <ClInclude Include="include\ui\button.h" />
     <ClInclude Include="include\ui\dropdown.h" />
     <ClInclude Include="include\gx\gx.h" />
@@ -252,6 +257,7 @@ exit /b 0</Command>
     <ClInclude Include="include\gx\vertex.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\game\cursor.uniform" />
     <None Include="src\tex.uniform" />
     <None Include="src\ft\font.uniform" />
     <None Include="src\program.uniform" />

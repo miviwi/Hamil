@@ -19,6 +19,9 @@
 #include <ui/label.h>
 #include <ui/dropdown.h>
 
+#include <game/game.h>
+#include <game/cursor.h>
+
 #include <GL/glew.h>
 
 #include <vector>
@@ -40,11 +43,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   gx::init();
   ft::init();
   ui::init();
+  game::init();
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
-  int mouse_x = (1280)/2, mouse_y = (720)/2;
+  game::CursorDriver cursor(1280/2, 720/2);
   vec3 pos{ 0, 0, 0 };
   float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
@@ -56,20 +60,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   auto fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
-  auto cursor_fmt = gx::VertexFormat()
-    .attr(gx::f32, 2)
-    .attr(gx::f32, 2);
-
-  gx::VertexBuffer cursor_buf(gx::Buffer::Static);
-  gx::VertexArray cursor(cursor_fmt, cursor_buf);
-
-  vec2 cursor_vtx[6] = {
-    { 0.0f, 0.0f }, { 0.0f, 2.0f },
-    { 0.0f, 0.8f }, { 0.0f, 0.0f },
-    { 0.7f, 0.5f }, { 2.0f, 0.0f },
-  };
-
-  cursor_buf.init(cursor_vtx, 6);
 
   u32 tex_image[] = {
     0xFF000000, 0xFF000000, 0xFFFFFF00, 0xFFFFFF00,
@@ -406,10 +396,14 @@ void main() {
 
   gx::VertexArray arr(fmt, vbuf);
 
+  auto floor_fmt = gx::VertexFormat()
+    .attr(gx::f32, 2)
+    .attr(gx::f32, 2);
+
   gx::VertexBuffer floor_vbuf(gx::Buffer::Static);
   floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
 
-  gx::VertexArray floor_arr(cursor_fmt, floor_vbuf);
+  gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
 
   auto floor_sampler = gx::Sampler()
     .param(gx::Sampler::MinFilter, gx::Sampler::Nearest)
@@ -528,19 +522,14 @@ void main() {
 
   char str[256];
 
-  bool show_cursor = true;
-
   while(window.processMessages()) {
     constexpr auto anim_time = 10000.0f;
     auto time = GetTickCount();
 
     while(auto input = window.getInput()) {
-      if(iface.input({ mouse_x, mouse_y }, input)) {
-        auto mouse = (win32::Mouse *)input.get();
-        mouse_x += mouse->dx; mouse_y += mouse->dy;
+      cursor.input(input);
 
-        continue;
-      }
+      if(iface.input(cursor.ipos(), input)) continue;
 
       if(input->getTag() == win32::Keyboard::tag()) {
         using win32::Keyboard;
@@ -559,13 +548,7 @@ void main() {
         using win32::Mouse;
         auto mouse = (Mouse *)input.get();
 
-        mouse_x += mouse->dx;
-        mouse_y += mouse->dy;
-
-        if(mouse_x < 0) mouse_x = 0;
-        if(mouse_y < 0) mouse_y = 0;
-
-        show_cursor = !(mouse->buttons & (Mouse::Left|Mouse::Right));
+        cursor.visible(!(mouse->buttons & (Mouse::Left|Mouse::Right)));
 
         if(mouse->buttons & Mouse::Left) {
           vec3 d = { mouse->dx, -mouse->dy, 0 };
@@ -613,12 +596,6 @@ void main() {
       xform::translate(pitch, yaw, -50.0f)
       *zoom_mtx
       *rot_mtx
-      ;
-
-    mat4 cursor_mtx =
-      xform::translate(mouse_x, mouse_y, -1.0f)
-      *xform::scale(16.0f, 16.0f, 1.0f)
-      //*xform::rotz(11*3.1415/6.0f)
       ;
 
     float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
@@ -772,15 +749,7 @@ void main() {
     if(display_tex_matrix) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
 
     iface.paint();
-
-    if(show_cursor) {
-      color = { 0, 0, 0, 1 };
-      program.use()
-        .uniformMatrix4x4(U::program.uProjection, ortho)
-        .uniformMatrix4x4(U::program.uModelView, cursor_mtx)
-        .uniformVector4(U::program.uCol, color)
-        .draw(gx::Triangles, cursor, 3);
-    }
+    cursor.paint();
 
     fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, 1280, 720 },
                     gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
@@ -790,6 +759,7 @@ void main() {
     frames++;
   }
 
+  game::finalize();
   ui::finalize();
   ft::finalize();
   gx::finalize();
