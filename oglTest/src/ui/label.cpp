@@ -6,9 +6,9 @@ LabelFrame::~LabelFrame()
 {
 }
 
-bool LabelFrame::input(ivec2 mouse_pos, const InputPtr& input)
+bool LabelFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(geometry().intersect(mouse_pos)) return true;
+  if(geometry().intersect(cursor.pos())) return true;
 
   return false;
 }

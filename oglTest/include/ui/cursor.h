@@ -4,7 +4,7 @@
 #include <math/geometry.h>
 #include <win32/input.h>
 
-namespace game {
+namespace ui {
 
 using InputPtr = win32::Input::Ptr;
 

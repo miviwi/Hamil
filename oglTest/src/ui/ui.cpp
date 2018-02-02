@@ -95,6 +95,8 @@ std::unique_ptr<gx::Program> ui_program;
 
 void init()
 {
+  CursorDriver::init();
+
   gx::Shader vtx(gx::Shader::Vertex, { shader_uType_defs, vs_src });
   gx::Shader frag(gx::Shader::Fragment, { ft::Font::frag_shader, shader_uType_defs, fs_src });
 
@@ -180,15 +182,15 @@ const Style& Ui::style() const
   return m_style;
 }
 
-bool Ui::input(ivec2 mouse_pos, const InputPtr& input)
+bool Ui::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(!m_geom.intersect(mouse_pos)) return false;
+  if(!m_geom.intersect(cursor.pos())) return false;
 
-  if(m_capture) return m_capture->input(mouse_pos, input);
+  if(m_capture) return m_capture->input(cursor, input);
 
   for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
     const auto& frame = *iter;
-    if(frame->input(mouse_pos, input)) return true;
+    if(frame->input(cursor, input)) return true;
   }
 
   return false;

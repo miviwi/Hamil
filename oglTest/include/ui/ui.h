@@ -3,6 +3,7 @@
 #include <common.h>
 
 #include <ui/uicommon.h>
+#include <ui/cursor.h>
 #include <ui/style.h>
 #include <math/geometry.h>
 #include <win32/input.h>
@@ -59,7 +60,7 @@ public:
 
   const Style& style() const;
 
-  bool input(ivec2 mouse_pos, const InputPtr& input);
+  bool input(CursorDriver& cursor, const InputPtr& input);
   void paint();
 
   void capture(Frame *frame);

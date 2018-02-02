@@ -12,6 +12,7 @@
 #include <ft/font.h>
 
 #include <ui/ui.h>
+#include <ui/cursor.h>
 #include <ui/frame.h>
 #include <ui/layout.h>
 #include <ui/button.h>
@@ -20,7 +21,6 @@
 #include <ui/dropdown.h>
 
 #include <game/game.h>
-#include <game/cursor.h>
 
 #include <GL/glew.h>
 
@@ -48,7 +48,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
-  game::CursorDriver cursor(1280/2, 720/2);
+  ui::CursorDriver cursor(1280/2, 720/2);
   vec3 pos{ 0, 0, 0 };
   float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
@@ -526,10 +526,20 @@ void main() {
     constexpr auto anim_time = 10000.0f;
     auto time = GetTickCount();
 
+    vec4 eye{ 0, 0, 60.0f/zoom, 1 };
+
+    mat4 eye_mtx = xform::identity()
+      *xform::translate(pos*2.0f)
+      *xform::roty(yaw)
+      *xform::rotx(-pitch)
+      *xform::translate(-pos)
+      ;
+    eye = eye_mtx*eye;
+
     while(auto input = window.getInput()) {
       cursor.input(input);
 
-      if(iface.input(cursor.ipos(), input)) continue;
+      if(iface.input(cursor, input)) continue;
 
       if(input->getTag() == win32::Keyboard::tag()) {
         using win32::Keyboard;
@@ -551,15 +561,20 @@ void main() {
         cursor.visible(!(mouse->buttons & (Mouse::Left|Mouse::Right)));
 
         if(mouse->buttons & Mouse::Left) {
-          vec3 d = { mouse->dx, -mouse->dy, 0 };
-          pos -= d * (0.01f/zoom);
+          mat4 d_mtx = xform::identity()
+            *xform::roty(yaw)
+            *xform::rotx(-pitch)
+            ;
+          vec4 d = d_mtx*vec4{ mouse->dx, -mouse->dy, 0, 1 };
+
+          pos -= d.xyz() * (0.01f/zoom);
         } else if(mouse->buttons & Mouse::Right) {
           constexpr float factor = PIf/1024.0f;
 
           pitch += mouse->dy * factor;
           yaw += mouse->dx * factor;
 
-          pitch = clamp(pitch, (-PIf/2.0f) + 0.01f, (PIf/2.0f) - 0.01f);
+          pitch = clamp(pitch, (-PIf/3.0f) + 0.01f, (PIf/3.0f) - 0.01f);
         } else if(mouse->event == Mouse::Wheel) {
           zoom += (mouse->ev_data/120)*0.05f;
         } else if(mouse->buttonDown(Mouse::Middle)) {
@@ -607,16 +622,6 @@ void main() {
     //pitch = sin(2.0f*PIf * anim_factor) * PIf/2.0f;
 
     //vec3 eye{ (float)pitch/1280.0f*150.0f, (float)yaw/720.0f*150.0f, 60.0f/zoom };
-    vec4 eye{ 0, 0, 60.0f/zoom, 1 };
-
-    mat4 eye_mtx = xform::identity()
-      *xform::translate(pos*2.0f)
-      *xform::roty(yaw)
-      *xform::rotx(-pitch)
-      *xform::translate(-pos)
-      ;
-    eye = eye_mtx*eye;
-
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
     vec4 color;

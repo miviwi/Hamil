@@ -1,11 +1,6 @@
 #include <ui/button.h>
-#include <ui/style.h>
-#include <ui/painter.h>
-#include <gx/pipeline.h>
 
 #include <cmath>
-
-#include <Windows.h>
 
 namespace ui {
 
@@ -13,9 +8,9 @@ ButtonFrame::~ButtonFrame()
 {
 }
 
-bool ButtonFrame::input(ivec2 mouse_pos, const InputPtr& input)
+bool ButtonFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  bool mouse_over = getSolidGeometry().intersect(mouse_pos);
+  bool mouse_over = getSolidGeometry().intersect(cursor.pos());
   if(!mouse_over && m_state != Pressed) {
     m_ui->capture(nullptr);
     return false;

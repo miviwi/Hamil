@@ -9,13 +9,13 @@ LayoutFrame::~LayoutFrame()
   for(const auto& frame : m_frames) delete frame;
 }
 
-bool LayoutFrame::input(ivec2 mouse_pos, const InputPtr& input)
+bool LayoutFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(!geometry().intersect(mouse_pos)) return false;
+  if(!geometry().intersect(cursor.pos())) return false;
 
   for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
     const auto& frame = *iter;
-    if(frame->input(mouse_pos, input)) return true;
+    if(frame->input(cursor, input)) return true;
   }
   return false;
 }

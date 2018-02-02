@@ -28,9 +28,9 @@ Frame::~Frame()
 {
 }
 
-bool Frame::input(ivec2 mouse_pos, const InputPtr& input)
+bool Frame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(!m_geom.intersect(mouse_pos)) return false;
+  if(!m_geom.intersect(cursor.pos())) return false;
 
   if(input->getTag() == win32::Mouse::tag()) {
     using win32::Mouse;

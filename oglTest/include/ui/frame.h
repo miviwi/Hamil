@@ -2,6 +2,7 @@
 
 #include <ui/uicommon.h>
 #include <ui/ui.h>
+#include <ui/cursor.h>
 #include <math/geometry.h>
 #include <win32/input.h>
 
@@ -25,7 +26,7 @@ public:
   Frame(Ui& ui);
   virtual ~Frame();
 
-  virtual bool input(ivec2 mouse_pos, const InputPtr& input);
+  virtual bool input(CursorDriver& cursor, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   Frame& geometry(Geometry geom);

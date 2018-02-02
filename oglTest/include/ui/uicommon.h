@@ -31,7 +31,6 @@ struct Geometry {
   Geometry contract(float factor) const;
 
   bool intersect(vec2 p) const;
-  bool intersect(ivec2 p) const;
 
   vec2 center() const;
 };

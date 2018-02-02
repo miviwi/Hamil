@@ -15,7 +15,7 @@ public:
   using Frame::Frame;
   virtual ~SliderFrame();
 
-  virtual bool input(ivec2 mouse_pos, const InputPtr& input);
+  virtual bool input(CursorDriver& cursor, const InputPtr& input);
 
   virtual void losingCapture();
 

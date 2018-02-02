@@ -15,7 +15,7 @@ public:
   using Frame::Frame;
   virtual ~LayoutFrame();
 
-  virtual bool input(ivec2 mouse_pos, const InputPtr& input);
+  virtual bool input(CursorDriver& cursor, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   LayoutFrame& frame(Frame *frame);

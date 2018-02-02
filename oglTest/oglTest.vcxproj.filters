@@ -95,10 +95,10 @@
     <ClCompile Include="src\win32\panic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\cursor.cpp">
+    <ClCompile Include="src\game\game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\game.cpp">
+    <ClCompile Include="src\ui\cursor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -196,10 +196,10 @@
     <ClInclude Include="include\math\intrin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\game\cursor.h">
+    <ClInclude Include="include\game\game.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\game\game.h">
+    <ClInclude Include="include\ui\cursor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -216,6 +216,6 @@
     <None Include="src\ui\ui.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
-    <None Include="src\game\cursor.uniform" />
+    <None Include="src\ui\cursor.uniform" />
   </ItemGroup>
 </Project>

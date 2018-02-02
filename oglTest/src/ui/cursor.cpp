@@ -1,4 +1,5 @@
-#include <game/cursor.h>
+#include <ui/cursor.h>
+
 #include <gx/gx.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
@@ -10,7 +11,7 @@
 #include <array>
 #include <memory>
 
-namespace game {
+namespace ui {
 
 class pCursorDriver { 
 public:

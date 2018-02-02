@@ -123,8 +123,8 @@ int main(int argc, char *argv[])
     WIN32_FIND_DATAA find_data;
     auto handle = FindFirstFileA(pattern.c_str(), &find_data);
     if(handle == INVALID_HANDLE_VALUE) {
-      printf("\ncouldn't open directory %s, aborting...\n", argv[i]);
-      return -2;
+      printf("\ncouldn't open directory %s (or no .uniform files found in it)...\n", argv[i]);
+      continue;
     }
 
     do {

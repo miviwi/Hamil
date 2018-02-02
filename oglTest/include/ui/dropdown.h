@@ -34,7 +34,7 @@ public:
   using Frame::Frame;
   virtual ~DropDownFrame();
 
-  virtual bool input(ivec2 mouse_pos, const InputPtr& input);
+  virtual bool input(CursorDriver& cursor, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   DropDownFrame& item(DropDownItem item);
@@ -59,7 +59,7 @@ private:
   Geometry buttonGeometry() const;
   Geometry itemGeometry(unsigned idx) const;
 
-  bool inputDropped(ivec2 mouse_pos, win32::Mouse *mouse);
+  bool inputDropped(vec2 mouse_pos, win32::Mouse *mouse);
 
   State m_state = Default;
   bool m_dropped = false;

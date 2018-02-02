@@ -6,16 +6,15 @@ SliderFrame::~SliderFrame()
 {
 }
 
-bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
+bool SliderFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  bool mouse_inside = geometry().intersect(mouse_pos);
+  bool mouse_inside = geometry().intersect(cursor.pos());
   if(!mouse_inside && m_state != Pressed) {
     m_ui->capture(nullptr);
     return false;
   }
 
-  vec2 m_pos = { (float)mouse_pos.x, (float)mouse_pos.y };
-  bool over_head = headPos().distance(m_pos) < m_ui->style().slider.width*1.05f;
+  bool over_head = headPos().distance(cursor.pos()) < m_ui->style().slider.width*1.05f;
 
   if(m_state != Pressed) m_state = over_head ? Hover : Default;
 
@@ -36,7 +35,7 @@ bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
   } 
   
   if(m_state == Pressed && mouse->buttons & Mouse::Left) {
-    m_value = clickedValue(m_pos + vec2{ mouse->dx, mouse->dy });
+    m_value = clickedValue(cursor.pos() + vec2{ mouse->dx, mouse->dy });
     m_on_change.emit(this);
 
     return true;

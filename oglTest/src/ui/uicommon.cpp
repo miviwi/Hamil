@@ -50,11 +50,6 @@ bool Geometry::intersect(vec2 p) const
   return (p.x > a.x && p.x < b.x) && (p.y > a.y && p.y < b.y);
 }
 
-bool Geometry::intersect(ivec2 p) const
-{
-  return intersect(vec2{ (float)p.x, (float)p.y });
-}
-
 vec2 Geometry::center() const
 {
   vec2 a = { x, y },

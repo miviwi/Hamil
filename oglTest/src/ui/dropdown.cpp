@@ -9,9 +9,9 @@ DropDownFrame::~DropDownFrame()
 {
 }
 
-bool DropDownFrame::input(ivec2 mouse_pos, const InputPtr& input)
+bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  bool mouse_over = geometry().intersect(mouse_pos);
+  bool mouse_over = geometry().intersect(cursor.pos());
   if(!mouse_over && !m_dropped && m_state != Pressed) {
     m_ui->capture(nullptr);
     return false;
@@ -27,7 +27,7 @@ bool DropDownFrame::input(ivec2 mouse_pos, const InputPtr& input)
   using win32::Mouse;
   auto mouse = (win32::Mouse *)input.get();
   if(m_dropped) {
-    if(inputDropped(mouse_pos, mouse)) return true;
+    if(inputDropped(cursor.pos(), mouse)) return true;
   }
 
   if(mouse->event == Mouse::Down) {
@@ -213,7 +213,7 @@ Geometry DropDownFrame::itemGeometry(unsigned idx) const
   };
 }
 
-bool DropDownFrame::inputDropped(ivec2 mouse_pos, win32::Mouse *mouse)
+bool DropDownFrame::inputDropped(vec2 mouse_pos, win32::Mouse *mouse)
 {
   using win32::Mouse;
 
