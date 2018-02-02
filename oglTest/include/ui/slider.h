@@ -39,7 +39,8 @@ protected:
   virtual double step() const = 0;
   virtual vec2 headPos() const = 0;
 
-  double clampedValue(double value);
+  double clampedValue(double value) const;
+  virtual double clickedValue(vec2 pos) const = 0;
 
   State m_state = Default;
 
@@ -58,12 +59,15 @@ public:
 
   virtual vec2 sizeHint() const;
 
+protected:
+  virtual double step() const;
+  virtual vec2 headPos() const;
+
+  virtual double clickedValue(vec2 pos) const;
+
 private:
   float width() const;
   float innerWidth() const;
-
-  virtual double step() const;
-  virtual vec2 headPos() const;
 };
 
 

@@ -1,4 +1,5 @@
 #include <win32/window.h>
+#include <win32/panic.h>
 
 #include <cassert>
 #include <algorithm>
@@ -147,7 +148,6 @@ HGLRC Window::ogl_create_context(HWND hWnd)
 
   HDC hdc = GetDC(hWnd);
   int pixel_format = ChoosePixelFormat(hdc, &pfd);
-
   assert(pixel_format && "cannot choose pixel format!");
   
   SetPixelFormat(hdc, pixel_format, &pfd);
@@ -158,15 +158,11 @@ HGLRC Window::ogl_create_context(HWND hWnd)
   wglMakeCurrent(hdc, temp_context);
   
   GLenum err = glewInit();
-  if(err != GLEW_OK) {
-    MessageBoxA(nullptr, "Failed to initialize GLEW!", "Fatal Error", MB_OK);
-    ExitProcess(-1);
-  }
+  if(err != GLEW_OK) panic("Failed to initialize GLEW!", -2);
 
   auto version_error = []()
   {
-    MessageBoxA(nullptr, "OpenGL version >= 3.3 required!", "Fatal Error", MB_OK);
-    ExitProcess(-1);
+    panic("OpenGL version >= 3.3 required!", -3);
   };
 
   int flags = WGL_CONTEXT_DEBUG_BIT_ARB,
@@ -194,10 +190,7 @@ HGLRC Window::ogl_create_context(HWND hWnd)
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 #if !defined(NDEBUG)
-  if(!glewIsSupported("GL_KHR_debug")) {
-    MessageBoxA(nullptr, "GL_KHR_debug not supported!", "Fatal Error", MB_OK);
-    ExitProcess(-3);
-  }
+  if(!glewIsSupported("GL_KHR_debug")) panic("GL_KHR_debug not supported!", -4);
 
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback((GLDEBUGPROC)ogl_debug_callback, nullptr);

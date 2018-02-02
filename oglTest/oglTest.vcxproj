@@ -207,6 +207,8 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\slider.cpp" />
     <ClCompile Include="src\ui\style.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
+    <ClCompile Include="src\win32\cpuid.cpp" />
+    <ClCompile Include="src\win32\panic.cpp" />
     <ClCompile Include="src\win32\window.cpp" />
     <ClCompile Include="src\gx\buffer.cpp" />
     <ClCompile Include="src\gx\framebuffer.cpp" />
@@ -237,6 +239,8 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\slider.h" />
     <ClInclude Include="include\ui\style.h" />
     <ClInclude Include="include\ui\ui.h" />
+    <ClInclude Include="include\win32\cpuid.h" />
+    <ClInclude Include="include\win32\panic.h" />
     <ClInclude Include="include\win32\window.h" />
     <ClInclude Include="include\gx\buffer.h" />
     <ClInclude Include="include\common.h" />

@@ -165,6 +165,13 @@ Vector3<T>& operator+=(Vector3<T>& a, Vector3<T> b)
 }
 
 template <typename T>
+Vector3<T>& operator-=(Vector3<T>& a, Vector3<T> b)
+{
+  a = a-b;
+  return a;
+}
+
+template <typename T>
 Vector3<T> operator-(Vector3<T> v)
 {
   return Vector3<T>{ -v.x, -v.y, -v.z };
@@ -180,9 +187,23 @@ Vector3<T>& operator*=(Vector3<T>& a, T u)
 using vec3 = Vector3<float>;
 using ivec3 = Vector3<int>;
 
+namespace intrin {
+void vec3_cross(const float *a, const float *b, float *out);
+}
+
+inline vec3 vec3::cross(const vec3& v) const
+{
+  alignas(16) float a[4] = { x, y, z, 0 };
+  alignas(16) float b[4] = { v.x, v.y, v.z, 0 };
+  alignas(16) float c[4];
+
+  intrin::vec3_cross(a, b, c);
+  return vec3{ c[0], c[1], c[2] };
+}
+
 template <typename T>
 struct Vector4 {
-  constexpr Vector4( T x_, T y_, T z_, T w_) :
+  constexpr Vector4(T x_, T y_, T z_, T w_) :
     x(x_), y(y_), z(z_), w(w_)
   { }
   Vector4(Vector2<T> xy, T z_, T w_) :

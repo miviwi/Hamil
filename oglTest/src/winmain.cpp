@@ -1,11 +1,14 @@
+#include <win32/cpuid.h>
 #include <win32/window.h>
+
+#include <uniforms.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
-#include <uniforms.h>
 #include <gx/pipeline.h>
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
+
 #include <ft/font.h>
 
 #include <ui/ui.h>
@@ -24,6 +27,8 @@
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+  win32::check_sse_sse2_support();
+
   using win32::Window;
   Window window(1280, 720);
 
@@ -40,6 +45,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
   int mouse_x = (1280)/2, mouse_y = (720)/2;
+  vec3 pos{ 0, 0, 0 };
   float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
 
@@ -266,7 +272,6 @@ void main() {
   float b = 720.0f;
 
   mat4 ortho = xform::ortho(0, 0, b, r, 0.1f, 100.0f);
-  // xform::perspective(59.0f, 16.0f/9.0f, 0.01f, 100.0f);
 
   mat4 zoom_mtx = xform::identity();
   mat4 rot_mtx = xform::identity();
@@ -523,6 +528,8 @@ void main() {
 
   char str[256];
 
+  bool show_cursor = true;
+
   while(window.processMessages()) {
     constexpr auto anim_time = 10000.0f;
     auto time = GetTickCount();
@@ -558,13 +565,18 @@ void main() {
         if(mouse_x < 0) mouse_x = 0;
         if(mouse_y < 0) mouse_y = 0;
 
-        if(mouse->buttons & Mouse::Right) {
+        show_cursor = !(mouse->buttons & (Mouse::Left|Mouse::Right));
+
+        if(mouse->buttons & Mouse::Left) {
+          vec3 d = { mouse->dx, -mouse->dy, 0 };
+          pos -= d * (0.01f/zoom);
+        } else if(mouse->buttons & Mouse::Right) {
           constexpr float factor = PIf/1024.0f;
 
           pitch += mouse->dy * factor;
           yaw += mouse->dx * factor;
 
-          pitch = clamp(pitch, (-PIf/2.0f) + 0.001f, (PIf/2.0f) - 0.001f);
+          pitch = clamp(pitch, (-PIf/2.0f) + 0.01f, (PIf/2.0f) - 0.01f);
         } else if(mouse->event == Mouse::Wheel) {
           zoom += (mouse->ev_data/120)*0.05f;
         } else if(mouse->buttonDown(Mouse::Middle)) {
@@ -612,17 +624,23 @@ void main() {
     float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
 
     auto persp = !ortho_projection ? xform::perspective(70, 16./9., 0.1f, 1000.0f) :
-      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f);
+      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f)*xform::scale(zoom*2.0f);
 
     //yaw = lerp(0.0f, 2.0f*PIf, anim_factor);
     //pitch = sin(2.0f*PIf * anim_factor) * PIf/2.0f;
 
     //vec3 eye{ (float)pitch/1280.0f*150.0f, (float)yaw/720.0f*150.0f, 60.0f/zoom };
-    vec3 eye{ 0, 0, 60.0f/zoom };
+    vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
-    eye = (xform::roty(yaw)*xform::rotx(-pitch)*eye).xyz();
+    mat4 eye_mtx = xform::identity()
+      *xform::translate(pos*2.0f)
+      *xform::roty(yaw)
+      *xform::rotx(-pitch)
+      *xform::translate(-pos)
+      ;
+    eye = eye_mtx*eye;
 
-    auto view = xform::look_at(eye, vec3{ 0.0f, 0.0f, 0.0f }, vec3{ 0, 1, 0 });
+    auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
     vec4 color;
 
@@ -754,18 +772,15 @@ void main() {
     if(display_tex_matrix) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
 
     iface.paint();
-    
-    sprintf_s(str, "(%d, %d)", mouse_x, mouse_y);
-    small_face.draw(str, vec2{ (float)mouse_x, (float)mouse_y }, vec4{ 0, 0, 0, 1 });
 
-    //gx::Pipeline().alphaBlend().use();
-
-    color = { 0, 0, 0, 1 };
-    program.use()
-      .uniformMatrix4x4(U::program.uProjection, ortho)
-      .uniformMatrix4x4(U::program.uModelView, cursor_mtx)
-      .uniformVector4(U::program.uCol, color)
-      .draw(gx::Triangles, cursor, 3);
+    if(show_cursor) {
+      color = { 0, 0, 0, 1 };
+      program.use()
+        .uniformMatrix4x4(U::program.uProjection, ortho)
+        .uniformMatrix4x4(U::program.uModelView, cursor_mtx)
+        .uniformVector4(U::program.uCol, color)
+        .draw(gx::Triangles, cursor, 3);
+    }
 
     fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, 1280, 720 },
                     gx::Framebuffer::ColorBit, gx::Sampler::Nearest);

@@ -24,10 +24,8 @@ bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
   using win32::Mouse;
   auto mouse = (win32::Mouse *)input.get();
   if(mouse->buttonDown(Mouse::Left)) {
-    if(over_head) {
-      m_state = Pressed;
-      m_ui->capture(this);
-    }
+    m_state = Pressed;
+    m_ui->capture(this);
   } else if(mouse->buttonUp(Mouse::Left)) {
     if(mouse_inside) {
       m_state = Hover;
@@ -38,9 +36,7 @@ bool SliderFrame::input(ivec2 mouse_pos, const InputPtr& input)
   } 
   
   if(m_state == Pressed && mouse->buttons & Mouse::Left) {
-    m_value += step()*(double)mouse->dx;
-    m_value = clampedValue(m_value);
-
+    m_value = clickedValue(m_pos + vec2{ mouse->dx, mouse->dy });
     m_on_change.emit(this);
 
     return true;
@@ -92,7 +88,7 @@ SliderFrame::OnChange& SliderFrame::change()
   return m_on_change;
 }
 
-double SliderFrame::clampedValue(double value)
+double SliderFrame::clampedValue(double value) const
 {
   return clamp(value, m_min, m_max);
 }
@@ -192,6 +188,16 @@ vec2 HSliderFrame::headPos() const
     (g.x + g.w*Margin) + w*InnerMargin + value_factor*innerWidth(),
     center.y
   };
+}
+
+double HSliderFrame::clickedValue(vec2 pos) const
+{
+  Geometry g = geometry();
+  float x = pos.x - (g.x + g.w*(Margin+InnerMargin));
+
+  double value = lerp(m_min, m_max, x/innerWidth());
+
+  return clampedValue(value);
 }
 
 }

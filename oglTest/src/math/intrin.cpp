@@ -181,4 +181,15 @@ void vec4_lerp(const float *a, const float *b, float u, float *out)
   _mm_store_ps(out, d);
 }
 
+void vec3_cross(const float *a, const float *b, float *out)
+{
+  __m128 x = _mm_load_ps(a);
+  __m128 y = _mm_load_ps(b);
+  
+  __m128 z = _mm_mul_ps(_mm_shuffle_ps(x, x, 0x09), _mm_shuffle_ps(y, y, 0x12));
+  __m128 w = _mm_mul_ps(_mm_shuffle_ps(x, x, 0x12), _mm_shuffle_ps(y, y, 0x09));
+
+  _mm_store_ps(out, _mm_sub_ps(z, w));
+}
+
 }
