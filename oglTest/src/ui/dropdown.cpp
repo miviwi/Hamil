@@ -22,10 +22,10 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
     m_ui->capture(this);
   }
 
-  if(input->getTag() != win32::Mouse::tag()) return false;
+  auto mouse = input->get<win32::Mouse>();
+  if(!mouse) return false;
 
   using win32::Mouse;
-  auto mouse = (win32::Mouse *)input.get();
   if(m_dropped) {
     if(inputDropped(cursor.pos(), mouse)) return true;
   }

@@ -228,15 +228,14 @@ CursorDriver::CursorDriver(float x, float y) :
 
 void CursorDriver::input(const InputPtr& input)
 {
-  if(input->getTag() != win32::Mouse::tag()) return;
+  if(auto mouse = input->get<win32::Mouse>()) {
+    m_pos += { mouse->dx, mouse->dy };
 
-  auto mouse = (win32::Mouse *)input.get();
-  m_pos += { mouse->dx, mouse->dy };
-
-  m_pos = {
-    std::max(0.0f, m_pos.x),
-    std::max(0.0f, m_pos.y),
-  };
+    m_pos = {
+      std::max(0.0f, m_pos.x),
+      std::max(0.0f, m_pos.y),
+    };
+  }
 }
 
 void CursorDriver::paint()

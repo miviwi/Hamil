@@ -21,10 +21,10 @@ bool ButtonFrame::input(CursorDriver& cursor, const InputPtr& input)
     m_ui->capture(this);
   }
 
-  if(input->getTag() != win32::Mouse::tag()) return false;
+  auto mouse = input->get<win32::Mouse>();
+  if(!mouse) return false;
 
   using win32::Mouse;
-  auto mouse = (win32::Mouse *)input.get();
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
   } else if(m_state == Pressed && mouse->buttonUp(Mouse::Left)) {

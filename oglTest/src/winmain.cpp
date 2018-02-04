@@ -1,5 +1,6 @@
 #include <win32/cpuid.h>
 #include <win32/window.h>
+#include <win32/time.h>
 
 #include <uniforms.h>
 #include <gx/buffer.h>
@@ -31,6 +32,7 @@
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
   win32::check_sse_sse2_support();
+  win32::Timers::init();
 
   using win32::Window;
   Window window(1280, 720);
@@ -522,9 +524,13 @@ void main() {
 
   char str[256];
 
+  auto fps_timer = win32::DeltaTimer();
+
+  constexpr auto anim_time = 10000.0f;
+  auto anim_timer = win32::LoopTimer().durationMilliseconds(anim_time / 2.0f);
+
   while(window.processMessages()) {
-    constexpr auto anim_time = 10000.0f;
-    auto time = GetTickCount();
+    win32::Timers::tick();
 
     vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
@@ -541,12 +547,11 @@ void main() {
 
       if(iface.input(cursor, input)) continue;
 
-      if(input->getTag() == win32::Keyboard::tag()) {
+      if(auto kb = input->get<win32::Keyboard>()) {
         using win32::Keyboard;
-        auto kb = (Keyboard *)input.get();
 
         if(kb->keyDown('U')) {
-          animate = animate < 0 ? time : -1;
+          animate = animate < 0 ? win32::Timers::time_ms() : -1;
         } else if(kb->keyDown('N')) {
           normals[0] = normals[0]+vec3{ 0.05f, 0.05f, 0.05f };
         } else if(kb->keyDown('Q')) {
@@ -554,9 +559,8 @@ void main() {
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
         }
-      } else {
+      } else if(auto mouse = input->get<win32::Mouse>()) {
         using win32::Mouse;
-        auto mouse = (Mouse *)input.get();
 
         cursor.visible(!(mouse->buttons & (Mouse::Left|Mouse::Right)));
 
@@ -600,7 +604,7 @@ void main() {
 
     if(animate > 0) {
       rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
-        *xform::rotz(lerp(0.0f, 3.1415f, (float)((time-animate)%(int)anim_time)/(anim_time/2.0f)))
+        *xform::rotz(lerp(0.0f, 3.1415f, anim_timer.elapsedf()))
         *xform::translate(-1280.0f/2.0f, -720.0f/2.0f, 0)
         ;
     } else {
@@ -612,8 +616,6 @@ void main() {
       *zoom_mtx
       *rot_mtx
       ;
-
-    float anim_factor = ((time-animate)%(int)anim_time)/(anim_time/2.0f);
 
     auto persp = !ortho_projection ? xform::perspective(70, 16./9., 0.1f, 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f)*xform::scale(zoom*2.0f);
@@ -656,7 +658,7 @@ void main() {
 
     auto rot = xform::identity()
       //*xform::rotz(lerp(0.0, PI, anim_factor))*0.5f
-      *xform::roty(lerp(0.0, PI, anim_factor))
+      *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
       //*xform::rotz(lerp(0.0, PI, anim_factor))
       ;
 
@@ -692,8 +694,8 @@ void main() {
 
     mat4 texmatrix = xform::identity()
       *xform::translate(5.0f, 5.0f, 0.0f)
-      *xform::rotz(lerp(0.0f, PIf, anim_factor))
-      *xform::scale(1.0f/(sin((float)time/1000.0f * PI/2.0f) + 2.0f))
+      *xform::rotz(lerp(0.0f, PIf, anim_timer.elapsedf()))
+      *xform::scale(1.0f/(sin((float)win32::Timers::time_s() * PI/2.0f) + 2.0f))
       *xform::translate(-5.0f, -5.0f, 0.0f)
       ;
 
@@ -728,7 +730,7 @@ void main() {
       small_face.draw(str, screen, { 1, 1, 1 });
     }
 
-    int fps = (float)frames / ((float)(time-start_time) / 1000.0f);
+    int fps = (float)frames / fps_timer.elapsedSecondsf();
 
     sprintf_s(str, "FPS: %d", fps);
 
@@ -736,7 +738,7 @@ void main() {
 
     face.draw(vram_size_str, vec2{ FB_DIMS.x - 300.0f, 70.0f }, vec3{ 0.8f, 0.0f, 0.0f });
 
-    sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_factor, eye.x, eye.y, eye.z);
+    sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_timer.elapsedf(), eye.x, eye.y, eye.z);
     small_face.draw(str, { 30.0f, 100.0f }, { 1.0f, 1.0f, 1.0f });
 
     texmatrix = texmatrix.inverse();

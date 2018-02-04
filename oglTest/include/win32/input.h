@@ -11,6 +11,13 @@ struct Input {
   using Ptr = std::unique_ptr<Input>;
   using Tag = const char *;
 
+  template <typename T>
+  T *get()
+  {
+    return getTag() == T::tag() ? (T *)this : nullptr;
+  }
+
+protected:
   virtual Tag getTag() const = 0;
 };
 
@@ -35,10 +42,12 @@ struct Mouse : public Input {
   float dx, dy;
 
   static Tag tag() { return "mouse"; }
-  virtual Tag getTag() const { return tag(); }
 
   bool buttonDown(Button btn) const;
   bool buttonUp(Button btn) const;
+
+protected:
+  virtual Tag getTag() const { return tag(); }
 };
 
 struct Keyboard : public Input {
@@ -52,10 +61,12 @@ struct Keyboard : public Input {
   unsigned key;
 
   static Tag tag() { return "kb"; }
-  virtual Tag getTag() const { return tag(); }
 
   bool keyDown(unsigned k) const;
   bool keyUp(unsigned k) const;
+
+protected:
+  virtual Tag getTag() const { return tag(); }
 };
 
 struct InputDeviceManager {

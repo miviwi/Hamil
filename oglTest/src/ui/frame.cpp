@@ -32,10 +32,9 @@ bool Frame::input(CursorDriver& cursor, const InputPtr& input)
 {
   if(!m_geom.intersect(cursor.pos())) return false;
 
-  if(input->getTag() == win32::Mouse::tag()) {
+  if(auto mouse = input->get<win32::Mouse>()) {
     using win32::Mouse;
 
-    auto mouse = (Mouse *)input.get();
     if(mouse->buttonDown(Mouse::Left)) {
       //m_countrer++;
     } else if(mouse->buttons & Mouse::Left) {

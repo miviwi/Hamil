@@ -345,7 +345,7 @@ String Font::stringMetrics(const char *str) const
     str++;
   }
 
-  auto s = std::shared_ptr<pString>(new pString, [](auto p) {
+  auto s = std::shared_ptr<pString>(new pString, [](auto *p) {
     delete p;
   });
 
@@ -432,7 +432,7 @@ String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, Stri
     str++;
   }
 
-  auto s = std::shared_ptr<pString>(new pString, [](auto p) {
+  auto s = std::shared_ptr<pString>(new pString, [](auto *p) {
     delete p;
   });
 
