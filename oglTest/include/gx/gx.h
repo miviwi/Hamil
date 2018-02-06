@@ -4,6 +4,11 @@
 
 namespace gx {
 
+enum Component {
+  Zero = GL_ZERO, One = GL_ONE,
+  Red = GL_RED, Green = GL_GREEN, Blue  = GL_BLUE, Alpha = GL_ALPHA,
+};
+
 enum Format {
   r = GL_RED, rg = GL_RG, rgb = GL_RGB, rgba = GL_RGBA,
   depth = GL_DEPTH, depth_stencil = GL_DEPTH_STENCIL,

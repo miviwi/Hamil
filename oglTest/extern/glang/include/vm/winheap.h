@@ -11,6 +11,8 @@ namespace glang {
 
 class __declspec(dllexport) WinHeap : public IHeap {
 public:
+  enum { InitialSize = 1024*1024 };
+
   WinHeap();
 
   virtual byte *base() const;

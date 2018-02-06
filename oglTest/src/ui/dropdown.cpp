@@ -138,7 +138,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
 
 DropDownFrame& DropDownFrame::item(DropDownItem item)
 {
-  if(item.id == DropDownItem::Invalid) item.id = m_items.size();
+  if(item.id == DropDownItem::Invalid) item.id = (DropDownItem::Id)m_items.size();
 
   m_items.push_back(std::move(item));
 

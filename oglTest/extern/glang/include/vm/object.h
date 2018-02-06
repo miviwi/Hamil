@@ -17,6 +17,8 @@ class IHeap;
 class Vm;
 class ObjectManager;
 
+class NumberObject;
+
 template <typename T>
 struct Rational {
   T num, denom;
@@ -24,7 +26,7 @@ struct Rational {
 
 using rational = Rational<long long>;
 
-struct __declspec(dllexport) ObjectRef {
+struct ObjectRef {
   typedef unsigned long id;
 
   enum : id {
@@ -100,9 +102,9 @@ private:
   id m_id;
 };
 
-class __declspec(dllexport) Object {
+class Object {
 public:
-  enum Type {
+  enum Type  : unsigned {
     Invalid,
     Nil,
     Int, Float, Ratio, Char, String, Symbol, Keyword,
@@ -112,8 +114,14 @@ public:
     Handle,
   };
 
-  Object(Type type_) : header({ type_ }) {}
+  enum DebugFlags {
+    NoFlags   = 0,
 
+    Temporary = (1<<0),
+  };
+
+  Object(Type type_) : Object(type_, NoFlags) { }
+  Object(Type type_, DebugFlags flags);
   virtual ~Object() { }
 
   Type type() const { return header.m_type; }
@@ -132,17 +140,31 @@ public:
     return lits[header.m_type];
   }
 
+  Object *ref() const;
+  bool deref() const;
+
   virtual std::string repr() const = 0;
   virtual bool compare(int cond, const Object& other) const = 0;
   virtual size_t hash() const = 0;
-  virtual void finalize(IHeap *heap) = 0;
+  virtual void finalize(ObjectManager& om) = 0;
 
-  struct __declspec(dllexport) Hash { size_t operator()(const Object *o) const { return o->hash(); } };
-  struct __declspec(dllexport) Compare { bool operator()(const Object *a, const Object *b) const; };
+  template <typename T>
+  T *as() const
+  {
+    return type() == T::Type ? (T *)this : nullptr;
+  }
+  template <>
+  NumberObject *as() const
+  {
+    return isNumber() ? (NumberObject *)this : nullptr;
+  }
+
+  struct Hash { size_t operator()(const Object *o) const { return o->hash(); } };
+  struct Compare { bool operator()(const Object *a, const Object *b) const; };
 
   virtual bool isNumber() const { return false; }
 
-  struct __declspec(dllexport) ArtmResult {
+  struct ArtmResult {
     enum Tag { Invalid, Int, Float, Ratio, } tag;
 
     union {
@@ -173,11 +195,12 @@ protected:
 
       struct {
         Type m_type;
+        mutable unsigned m_ref;
       };
   } header;
 };
 
-class alignas(32) __declspec(dllexport) NilObject : public Object {
+class alignas(32) NilObject : public Object {
 public:
   static constexpr Object::Type Type = Object::Nil;
 
@@ -186,16 +209,16 @@ public:
   virtual std::string repr() const { return "nil"; }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
   
 private:
   friend class Vm;
   friend class ObjectManager;
 };
 
-class __declspec(dllexport) NumberObject : public Object {
+class NumberObject : public Object {
 public:
-  NumberObject(Object::Type type) : Object(type) { }
+  using Object::Object;
 
   virtual bool isNumber() const { return true; }
 
@@ -204,16 +227,17 @@ public:
   virtual rational toRatio() const = 0;
 };
 
-class alignas(32) __declspec(dllexport) IntObject : public NumberObject {
+class alignas(32) IntObject : public NumberObject {
 public:
   static constexpr Object::Type Type = Object::Int;
 
   IntObject(long long data) : NumberObject(Type), m_data(data) { }
+  IntObject(long long data, DebugFlags flags) : NumberObject(Type, flags), m_data(data) { }
 
   virtual std::string repr() const { return std::to_string(m_data); }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   virtual ArtmResult add(const Object& o) const;
   virtual ArtmResult sub(const Object& o) const;
@@ -235,16 +259,17 @@ private:
   long long m_data;
 };
 
-class alignas(32) __declspec(dllexport) FloatObject : public NumberObject {
+class alignas(32) FloatObject : public NumberObject {
 public:
   static constexpr Object::Type Type = Object::Float;
 
   FloatObject(double data) : NumberObject(Type), m_data(data) {}
+  FloatObject(double data, DebugFlags flags) : NumberObject(Type, flags), m_data(data) {}
 
   virtual std::string repr() const { return std::to_string(m_data); }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   virtual ArtmResult add(const Object& o) const;
   virtual ArtmResult sub(const Object& o) const;
@@ -266,12 +291,14 @@ private:
   double m_data;
 };
 
-class alignas(32) __declspec(dllexport) RatioObject : public NumberObject {
+class alignas(32) RatioObject : public NumberObject {
 public:
   static constexpr Object::Type Type = Object::Ratio;
 
   RatioObject(long long num, long long denom) :
     NumberObject(Type), m_num(num), m_denom(denom) { }
+  RatioObject(long long num, long long denom, DebugFlags flags) :
+    NumberObject(Type, flags), m_num(num), m_denom(denom) { }
 
   virtual std::string repr() const
   {
@@ -279,7 +306,7 @@ public:
   }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   virtual long long toInt() const { return m_num/m_denom; }
   virtual double toFloat() const { return (double)m_num/(double)m_denom; }
@@ -294,16 +321,17 @@ private:
   long long m_num, m_denom;
 };
 
-class alignas(32) __declspec(dllexport) CharObject : public Object {
+class alignas(32) CharObject : public Object {
 public:
   static constexpr Object::Type Type = Object::Char;
 
   CharObject(char data) : Object(Type), m_data(data) {}
+  CharObject(char data, DebugFlags flags) : Object(Type, flags), m_data(data) {}
 
   virtual std::string repr() const { return "\\"+std::string(1, m_data); }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
 private:
   friend class Vm;
@@ -315,32 +343,31 @@ private:
   };
 };
 
-class alignas(32) __declspec(dllexport) StringObject : public Object {
+class alignas(32) StringObject : public Object {
 public:
   static constexpr Object::Type Type = Object::String;
 
-  StringObject(void *p) : Object(Type), m_p((pStr *)p) { }
+  StringObject(size_t size, const char *data) : Object(Type), m_size(size), m_data(data) { }
 
-  virtual std::string repr() const { return "\"" + std::string(m_p->data) + "\""; }
+  virtual std::string repr() const { return "\"" + std::string(m_data) + "\""; }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
-  const char *get() const { return m_p->data; }
+  const char *get() const { return m_data; }
 
 private:
   friend class Vm;
   friend class ObjectManager;
 
-  struct alignas(32) pStr {
-    size_t size;
-    const char *data;
-  };
-
-  pStr *m_p;
+  size_t m_size;
+  const char *m_data;
 };
 
-class __declspec(dllexport) SymbolKeywordBase : public Object {
+constexpr auto x = sizeof(CharObject);
+
+
+class SymbolKeywordBase : public Object {
 public:
   SymbolKeywordBase(Object::Type type, InternedString str) : Object(type), m_str(str) {}
 
@@ -351,7 +378,7 @@ public:
   }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   const char *name() const { return m_str.ptr(); }
 
@@ -362,17 +389,17 @@ protected:
   InternedString m_str;
 };
 
-class alignas(32) __declspec(dllexport) SymbolObject : public SymbolKeywordBase {
+class alignas(32) SymbolObject : public SymbolKeywordBase {
 public:
   SymbolObject(InternedString str) : SymbolKeywordBase(Object::Symbol, str) {}
 };
 
-class alignas(32) __declspec(dllexport) KeywordObject : public SymbolKeywordBase {
+class alignas(32) KeywordObject : public SymbolKeywordBase {
 public:
   KeywordObject(InternedString str) : SymbolKeywordBase(Object::Keyword, str) {}
 };
 
-class alignas(32) __declspec(dllexport) ConsCellObject : public Object {
+class alignas(32) ConsCellObject : public Object {
 public:
   static constexpr Object::Type Type = Object::ConsCell;
 
@@ -382,7 +409,7 @@ public:
   virtual std::string repr() const { return "(" + car->repr() + " " + cdr->repr() + ")"; }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
 private:
   friend class Vm;
@@ -392,14 +419,28 @@ private:
   Object *cdr;
 };
 
-class __declspec(dllexport) SequenceObject : public Object {
+class SequenceObject : public Object {
 public:
   SequenceObject(Object::Type type) : Object(type) { }
 
   virtual Object *seqget(Object *key) const = 0;
+  template <typename T>
+  T *get(long long key) const
+  {
+    auto key_obj = IntObject(key);
+    auto ptr = seqget(&key_obj);
+    return ptr ? ptr->as<T>() : nullptr;
+  }
+  template <typename T>
+  T *get(const char *key) const
+  {
+    auto key_obj = KeywordObject(key);
+    auto ptr = seqget(&key_obj);
+    return ptr ? ptr->as<T>() : nullptr;
+  }
 };
 
-class alignas(32) __declspec(dllexport) VectorObject : public SequenceObject {
+class alignas(32) VectorObject : public SequenceObject {
 public:
   static constexpr Object::Type Type = Object::Vector;
 
@@ -416,7 +457,7 @@ public:
   }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   virtual Object *seqget(Object *key) const;
 
@@ -426,7 +467,7 @@ private:
   Vec *m_vec;
 };
 
-class alignas(32) __declspec(dllexport) MapObject : public SequenceObject {
+class alignas(32) MapObject : public SequenceObject {
 public:
   static constexpr Object::Type Type = Object::Map;
 
@@ -442,7 +483,7 @@ public:
   }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   virtual Object *seqget(Object *key) const;
 
@@ -452,7 +493,7 @@ private:
   Map *m_map;
 };
 
-class alignas(32) __declspec(dllexport) SetObject : public SequenceObject {
+class alignas(32) SetObject : public SequenceObject {
 public:
   static constexpr Object::Type Type = Object::Set;
 
@@ -468,7 +509,7 @@ public:
   }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
   virtual Object *seqget(Object *key) const;
 
@@ -478,7 +519,7 @@ private:
   Set *m_set;
 };
 
-class alignas(32) __declspec(dllexport) FunctionObject : public Object {
+class alignas(32) FunctionObject : public Object {
 public:
   static constexpr Object::Type Type = Object::Function;
 
@@ -487,7 +528,7 @@ public:
   virtual std::string repr() const { return fmt("#<fn@0x%x>", (long long)m_p->code); }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
 private:
   friend class Vm;
@@ -508,7 +549,7 @@ public:
   virtual Object *call(ObjectManager& om, Object *args[], size_t num_args) = 0;
 };
 
-class alignas(32) __declspec(dllexport) HandleObject : public Object {
+class alignas(32) HandleObject : public Object {
 public:
   enum Tag {
     Invalid,
@@ -517,34 +558,30 @@ public:
 
   static constexpr Object::Type Type = Object::Handle;
 
-  HandleObject(void *p) : Object(Type), m_p((pHandle *)p) { }
+  HandleObject(Tag tag, void *ptr) : Object(Type), m_tag(tag), m_ptr(ptr) { }
 
-  virtual std::string repr() const { return fmt("#<handle@0x%x>", (long long)m_p->ptr); }
+  virtual std::string repr() const { return fmt("#<handle@0x%x>", (long long)m_ptr); }
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
-  virtual void finalize(IHeap *heap);
+  virtual void finalize(ObjectManager& om);
 
-  static HandleObject *create(IHeap *heap, Tag tag, void *ptr);
-  static void destroy(IHeap *heap, HandleObject *handle);
+  static HandleObject *create(ObjectManager& om, Tag tag, void *ptr);
+  static void destroy(ObjectManager& om, HandleObject *handle);
 
-  unsigned tag() const { return m_p->tag; }
+  unsigned tag() const { return m_tag; }
 
-  void *get() const { return m_p->ptr; }
+  void *get() const { return m_ptr; }
 
 private:
   friend class Vm;
   friend class ObjectManager;
 
-  struct alignas(32) pHandle {
-    Tag tag;
+  Tag m_tag;
 
-    union {
-      ICallable *fn;
-      void *ptr;
-    };
+  union {
+    ICallable *m_fn;
+    void *m_ptr;
   };
-
-  pHandle *m_p;
 };
 
 }

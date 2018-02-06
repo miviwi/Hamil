@@ -101,7 +101,7 @@ Program& Program::uniformInt(int location, int i)
 
 Program& Program::uniformVector3(int location, size_t size, const vec3 *v)
 {
-  glUniform3fv(location, size, (const float *)v);
+  glUniform3fv(location, (GLsizei)size, (const float *)v);
 
   return *this;
 }
@@ -115,7 +115,7 @@ Program& Program::uniformVector3(int location, vec3 v)
 
 Program& Program::uniformVector4(int location, size_t size, const vec4 *v)
 {
-  glUniform4fv(location, size, (const float *)v);
+  glUniform4fv(location, (GLsizei)size, (const float *)v);
 
   return *this;
 }
@@ -153,36 +153,36 @@ Program& Program::uniformBool(int location, bool v)
   return *this;
 }
 
-void Program::draw(Primitive p, const VertexArray& vtx, unsigned offset, unsigned num)
+void Program::draw(Primitive p, const VertexArray& vtx, size_t offset, size_t num)
 {
   vtx.use();
 
-  glDrawArrays(p, offset, num);
+  glDrawArrays(p, (int)offset, (GLsizei)num);
 }
 
-void Program::draw(Primitive p, const VertexArray& vtx, unsigned num)
+void Program::draw(Primitive p, const VertexArray& vtx, size_t num)
 {
   draw(p, vtx, 0, num);
 }
 
-void Program::draw(Primitive p, const IndexedVertexArray& vtx, unsigned offset, unsigned num)
+void Program::draw(Primitive p, const IndexedVertexArray& vtx, size_t offset, size_t num)
 {
   vtx.use();
 
-  glDrawElements(p, num, vtx.indexType(), (void *)(offset * vtx.indexSize()));
+  glDrawElements(p, (GLsizei)num, vtx.indexType(), (void *)(offset * vtx.indexSize()));
 }
 
-void Program::draw(Primitive p, const IndexedVertexArray& vtx, unsigned num)
+void Program::draw(Primitive p, const IndexedVertexArray& vtx, size_t num)
 {
   draw(p, vtx, 0, num);
 }
 
-void Program::drawBaseVertex(Primitive p, const IndexedVertexArray& vtx,
-                             unsigned base, unsigned offset, unsigned num)
+void Program::drawBaseVertex(Primitive p,
+ const IndexedVertexArray& vtx, size_t base, size_t offset, size_t num)
 {
   vtx.use();
 
-  glDrawElementsBaseVertex(p, num, vtx.indexType(), (void *)(offset * vtx.indexSize()), base);
+  glDrawElementsBaseVertex(p, (GLsizei)num, vtx.indexType(), (void *)(offset * vtx.indexSize()), (int)base);
 }
 
 void Program::label(const char *lbl)
@@ -190,7 +190,7 @@ void Program::label(const char *lbl)
 #if !defined(NDEBUG)
   use();
 
-  glObjectLabel(GL_PROGRAM, m, strlen(lbl), lbl);
+  glObjectLabel(GL_PROGRAM, m, -1, lbl);
 #endif
 }
 
@@ -277,7 +277,7 @@ Shader::Shader(Type type, std::initializer_list<const char *> sources)
 
   memcpy(p_shader_source+1, sources.begin(), sources.size()*sizeof(const char *));
 
-  glShaderSource(m, sources.size()+1, p_shader_source, nullptr);
+  glShaderSource(m, (GLsizei)sources.size()+1, p_shader_source, nullptr);
   glCompileShader(m);
 
   GLint success = 0;

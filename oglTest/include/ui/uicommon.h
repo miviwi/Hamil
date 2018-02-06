@@ -10,6 +10,8 @@
 
 namespace ui {
 
+static constexpr vec2 FramebufferSize = { 1280, 720 };
+
 struct Geometry {
   float x, y, w, h;
 
@@ -64,6 +66,7 @@ static Color white() { return Color{ 255, 255, 255, 255 }; }
 
 struct Position : public Vector2<i16> {
   Position();
+  Position(Vector2<i16> pos);
   Position(vec2 pos);
 };
 

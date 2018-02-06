@@ -69,9 +69,10 @@ public:
     const T& pop(int n = 1)
     {
       boundsCheck();
-
       T *p = ptr-1;
       ptr -= n;
+      boundsCheck();
+
       return *p;
     }
 
@@ -93,6 +94,8 @@ public:
   public:
     ObjectRef get(long long val);
     void set(long long key, ObjectRef val);
+
+    void finalize(ObjectManager& om);
 
   private:
     std::unordered_map<std::string, ObjectRef> m_store;
@@ -213,39 +216,28 @@ public:
   };
 
   Vm(IHeap *heap);
+  ~Vm();
 
-  bool isRunning() { return m_running; }
-  void run() { m_running = true; }
-
-  void load(const CodeObject& co);
-  void unload(const CodeObject& co);
-
-  void exInstrution();
-  unsigned nextInstrution() { return (*m_pc)>>OpShift; }
-
-  const Object *stackGet(unsigned n)
+  Object *stackTop()
   {
-    if(n >= m_stack.size()) return nil;
+    ObjectRef ref = m_stack.size() ? m_stack.pop() : ObjectRef::nil();
 
-    ObjectRef ref = *(m_stack.top()-n-1);
-    if(ref.isInline()) return ref.type() == ObjectRef::Nil ? nil : m_man.createInt(ref.val());
-    if((long long)(ref.val()) < 0 || ref.val() % sizeof(Instruction)) return nil;
+    if(ref.isInline()) return ref.type() == ObjectRef::Nil ? nil->ref() : m_man.createInt(ref.val());
+    if((long long)(ref.val()) < 0 || ref.val() % sizeof(Instruction)) return nil->ref();
 
     Object *o = m_man.box(ref);
     if(o->header.raw_header <= Object::Handle && o->type() != Object::Invalid) return o;
 
-    return nil;
+    return nil->ref();
   }
-  const Object *stackTop() { return stackGet(0); }
-  const Object *stackPop()
+  Object *stackPop()
   {
-    auto o = stackGet(0);
-    pop(1);
+    auto o = stackTop();
 
-    return o;
+    return (Object *)o;
   }
 
-  const Object *envGet(const char *name)
+  Object *envGet(const char *name)
   {
     ObjectRef o = m_env.get((long long)name);
 
@@ -253,15 +245,23 @@ public:
   }
   void envSet(const char *name, Object *o)
   {
-    m_env.set((long long)name, m_man.ref(o));
+    m_env.set((long long)name, m_man.toRef(o));
   }
 
   ObjectManager& objMan() { return m_man; }
 
-  const Object *operator()(const CodeObject& co);
-  const Object *execute(const CodeObject& co) { return (*this)(co); }
+  Object *execute(const CodeObject& co);
 
 private:
+  bool isRunning() { return m_running; }
+  void run() { m_running = true; }
+
+  void exInstrution();
+  unsigned nextInstrution() { return (*m_pc)>>OpShift; }
+
+  void load(const CodeObject& co);
+  void unload(const CodeObject& co);
+
   ObjectRef *arg(unsigned n);
   ObjectRef *local(unsigned n);
   ObjectRef *upvalue(unsigned n);

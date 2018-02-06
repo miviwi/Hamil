@@ -8,9 +8,9 @@ namespace ui {
 
 const gx::VertexFormat VertexPainter::Fmt = 
   gx::VertexFormat()
-    .attr(gx::i16, 2, false)
+    .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
     .attr(gx::u8, 4)
-    .attrAlias(1, gx::u16, 2, false)
+    .attrAlias(1, gx::u16, 2, gx::VertexFormat::UnNormalized)
   ;
 
 Vertex::Vertex() :
@@ -50,7 +50,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
   auto quad = [&,this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    unsigned offset = m_ind.size();
+    auto offset = m_ind.size();
 
     appendVertices({
      { a, color },
@@ -73,12 +73,12 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
   cap_r = cap_r > 0 ? cap_r : r;
   switch(cap) {
-  case CapRound:  circleSegment(a, cap_r, alpha, alpha+PI, ca, ca); break;
+  case CapRound:  circleSegment(a, cap_r, alpha, alpha+PIf, ca, ca); break;
   case CapSquare: quad(a-u+d, a-u-d, a-d, a+d, ca); break;
   case CapButt:   break;
   }
 
-  unsigned offset = m_ind.size();
+  auto offset = m_ind.size();
 
   appendVertices({
     { a+d, ca },
@@ -94,7 +94,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   ));
 
   switch(cap) {
-  case CapRound:  circleSegment(b, cap_r, alpha+PI, alpha + 2.0f*PI, cb, cb); break;
+  case CapRound:  circleSegment(b, cap_r, alpha+PIf, alpha + 2.0f*PIf, cb, cb); break;
   case CapSquare: quad(b+d, b-d, b+u-d, b+u+d, cb); break;
   case CapButt:   break;
   }
@@ -121,7 +121,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   auto square_cap = [&, this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    unsigned offset = m_ind.size();
+    auto offset = m_ind.size();
 
     appendVertices({
       { a, color },
@@ -146,12 +146,12 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   cap_r = cap_r > 0 ? cap_r : r;
   switch(cap) {
-  case CapRound:  arc(a, cap_r, alpha, alpha+PI, ca); break;
+  case CapRound:  arc(a, cap_r, alpha, alpha+PIf, ca); break;
   case CapSquare: square_cap(a-d, a-u-d, a-u+d, a+d, ca); break;
   case CapButt:   break;
   }
 
-  unsigned offset = m_ind.size();
+  auto offset = m_ind.size();
 
   appendVertices({
     { a+d, ca },
@@ -172,7 +172,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
   ));
 
   switch(cap) {
-  case CapRound:  arc(b, cap_r, alpha+PI, alpha + 2.0f*PI, cb); break;
+  case CapRound:  arc(b, cap_r, alpha+PIf, alpha + 2.0f*PIf, cb); break;
   case CapSquare: square_cap(b+d, b+u+d, b+u-d, b-d, cb); break;
   case CapButt:   break;
   }
@@ -283,7 +283,7 @@ VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
 
 VertexPainter& VertexPainter::circle(vec2 pos, float radius, Color a, Color b)
 {
-  return circleSegment(pos, radius, 0, 2.0*PI + 0.001, a, b);
+  return circleSegment(pos, radius, 0, 2.0f*PIf + 0.001f, a, b);
 }
 
 VertexPainter& VertexPainter::circle(vec2 pos, float radius, Color c)
@@ -304,7 +304,7 @@ VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, flo
   };
 
   float angle = start_angle;
-  float step = radius < 100.0f ? PI/16.0f : PI/32.0f;
+  float step = radius < 100.0f ? PIf/16.0f : PIf/32.0f;
   unsigned num_verts = 0;
   while(angle <= end_angle) {
     appendVertices({ { point(angle), c } });
@@ -326,16 +326,16 @@ VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, flo
 
 VertexPainter& VertexPainter::arcFull(vec2 pos, float radius, Color c)
 {
-  return arc(pos, radius, 0, 2.0*PI, c);
+  return arc(pos, radius, 0, 2.0*PIf, c);
 }
 
 VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b)
 {
-  unsigned base = m_ind.size();
+  auto base = m_ind.size();
 
   auto quad = [this](float x, float y, float w, float h, Color a, Color b, Color c, Color d)
   {
-    unsigned offset = m_ind.size();
+    auto offset = m_ind.size();
 
     appendVertices({
       { { x, y }, a },
@@ -374,13 +374,13 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
   }
 
   if(corners & TopLeft)
-    circleSegment({ g.x+radius, g.y+radius }, radius, PI, 3.0f*PI/2.0f, b, a);
+    circleSegment({ g.x+radius, g.y+radius }, radius, PIf, 3.0f*PIf/2.0f, b, a);
   if(corners & BottomLeft)
-    circleSegment({ g.x+radius, g.y+radius + (g.h - d) }, radius, PI/2.0f, PI, b, a);
+    circleSegment({ g.x+radius, g.y+radius + (g.h - d) }, radius, PIf/2.0f, PIf, b, a);
   if(corners & BottomRight)
-    circleSegment({ g.x+radius + (g.w - d), g.y+radius + (g.h - d) }, radius, 0, PI/2.0f, b, a);
+    circleSegment({ g.x+radius + (g.w - d), g.y+radius + (g.h - d) }, radius, 0, PIf/2.0f, b, a);
   if(corners & TopRight)
-    circleSegment({ g.x+radius + (g.w - d), g.y+radius }, radius, 3.0f*PI/2.0f, 2.0f*PI, b, a);
+    circleSegment({ g.x+radius + (g.w - d), g.y+radius }, radius, 3.0f*PIf/2.0f, 2.0f*PIf, b, a);
 
   return *this;
 }
@@ -392,7 +392,7 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
 
 VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned corners, Color c)
 {
-  unsigned offset = m_ind.size();
+  auto offset = m_ind.size();
   unsigned num_verts = 0;
 
   auto segment = [&,this](vec2 pos, float start_angle, float end_angle) {
@@ -405,7 +405,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
     };
 
     float angle = start_angle;
-    float step = radius < 100.0f ? PI/16.0f : PI/32.0f;
+    float step = radius < 100.0f ? PIf/16.0f : PIf/32.0f;
     while(angle <= end_angle) {
       appendVertices({ { point(angle), c } });
 
@@ -423,7 +423,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   g.w -= 1.0f; g.h -= 1.0f;
 
   if(corners & TopLeft) {
-    segment({ g.x+radius, g.y+radius }, PI, 3.0f*PI/2.0f);
+    segment({ g.x+radius, g.y+radius }, PIf, 3.0f*PIf/2.0f);
   } else {
     appendVertices({ { { g.x, g.y }, c } });
     appendVertices({ { { g.x+radius, g.y }, c } });
@@ -432,7 +432,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   }
 
   if(corners & TopRight) {
-    segment({ g.x + (g.w - radius), g.y+radius }, 3.0f*PI/2.0f, PI*2.0f);
+    segment({ g.x + (g.w - radius), g.y+radius }, 3.0f*PIf/2.0f, PIf*2.0f);
   } else {
     appendVertices({ { { g.x + (g.w - radius), g.y }, c } });
     appendVertices({ { { g.x + g.w, g.y }, c } });
@@ -442,7 +442,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   }
 
   if(corners & BottomRight) {
-    segment({ g.x + (g.w - radius), g.y + (g.h - radius) }, 0, PI/2.0f);
+    segment({ g.x + (g.w - radius), g.y + (g.h - radius) }, 0, PIf/2.0f);
   } else {
     appendVertices({ { { g.x + g.w, g.y + (g.h - radius) }, c } });
     appendVertices({ { { g.x + g.w, g.y + g.h }, c } });
@@ -452,7 +452,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   }
 
   if(corners & BottomLeft) {
-    segment({ g.x+radius, g.y + (g.h - radius) }, PI/2.0f, PI);
+    segment({ g.x+radius, g.y + (g.h - radius) }, PIf/2.0f, PIf);
   } else {
     appendVertices({ { { g.x + radius, g.y + g.h }, c } });
     appendVertices({ { { g.x, g.y + g.h }, c } });
@@ -474,7 +474,7 @@ const float sqrt3 = sqrtf(3.0f);
 
 VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color color)
 {
-  unsigned offset = m_ind.size();
+  auto offset = m_ind.size();
 
   pos.x += 0.5f; pos.y += 0.5f;
 
@@ -517,8 +517,8 @@ VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color col
 
 ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& str)
 {
-  unsigned base = m_buf.size();
-  unsigned offset = m_ind.size();
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
 
   m_buf.resize(m_buf.size() + (str.length()*ft::NumCharVerts));
   m_ind.resize(m_ind.size() + (str.length()*ft::NumCharIndices));
@@ -540,8 +540,8 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
 
 VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 pos, Color c)
 {
-  unsigned base = m_buf.size();
-  unsigned offset = m_ind.size();
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
 
   auto s = appendTextVertices(font, str);
 
@@ -558,8 +558,8 @@ VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 
 
 VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& str, Geometry g, Color c)
 {
-  unsigned base = m_buf.size();
-  unsigned offset = m_ind.size();
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
 
   auto s = appendTextVertices(font, str);
 
@@ -581,8 +581,8 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
 
 VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, Geometry g, Color c)
 {
-  unsigned base = m_buf.size();
-  unsigned offset = m_ind.size();
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
 
   auto s = appendTextVertices(font, str);
 
@@ -656,11 +656,11 @@ void VertexPainter::end()
 
 void VertexPainter::appendVertices(std::initializer_list<Vertex> verts)
 {
-  unsigned ind = m_buf.size();
+  auto ind = m_buf.size();
 
   for(const auto& v : verts) {
     m_buf.push_back(v);
-    m_ind.push_back(ind++);
+    m_ind.push_back((u16)ind++);
   }
 }
 

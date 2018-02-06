@@ -36,7 +36,7 @@ void Buffer::label(const char *lbl)
 #if !defined(NDEBUG)
   use();
 
-  glObjectLabel(GL_BUFFER, m, strlen(lbl), lbl);
+  glObjectLabel(GL_BUFFER, m, -1, lbl);
 #endif
 }
 

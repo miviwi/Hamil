@@ -4,8 +4,6 @@
 
 #include <cstdint>
 
-#include <GL/glew.h>
-
 namespace gx {
 
 class Buffer {

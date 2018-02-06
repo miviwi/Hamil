@@ -18,7 +18,7 @@ Framebuffer::Framebuffer() :
 Framebuffer::~Framebuffer()
 {
   glDeleteFramebuffers(1, &m);
-  glDeleteRenderbuffers(m_rb.size(), m_rb.data());
+  glDeleteRenderbuffers((GLsizei)m_rb.size(), m_rb.data());
 }
 
 Framebuffer& Framebuffer::use()
@@ -173,13 +173,8 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
     break;
 
   case GL_TEXTURE: {
-    GLenum target = GL_TEXTURE_2D;
-
+    GLenum target = m_samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
     glBindTexture(target, name);
-    if(glGetError() == GL_INVALID_OPERATION) {
-      target = GL_TEXTURE_2D_MULTISAMPLE;
-      glBindTexture(target, name);
-    }
 
     int level = -1;
     glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,

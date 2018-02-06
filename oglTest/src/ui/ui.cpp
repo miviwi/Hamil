@@ -15,8 +15,6 @@
 
 namespace ui {
 
-const vec2 Ui::FramebufferSize = { 1280.0f, 720.0f };
-
 static const char *shader_uType_defs = R"DEFS(
 
 const int TypeShape = 0;
@@ -82,7 +80,7 @@ void main() {
     case TypeText:  color = uTextColor * font_sample; break;
     case TypeShape: color = fragment.color; break;
 
-    default: break;
+    default: color = vec4(0); break;
   }
 
   vec3 srgb_color = pow(color.rgb, vec3(1.0f/UiGamma));
@@ -210,7 +208,7 @@ void Ui::paint()
     m_ind.upload(m_painter.indices(), 0, m_painter.numIndices());
   }
 
-  auto projection = xform::ortho(0, 0, Ui::FramebufferSize.y, Ui::FramebufferSize.x, 0.0f, 1.0f);
+  auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
   style().font->bindFontAltas();
 

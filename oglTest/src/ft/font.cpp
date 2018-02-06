@@ -40,8 +40,8 @@ public:
     vtx(fmt, buf, ind)
   { }
 
-  unsigned alloc(unsigned num_chars);
-  void dealloc(unsigned offset, unsigned num_chars);
+  unsigned alloc(size_t num_chars);
+  void dealloc(size_t offset, size_t num_chars);
 
   static const gx::VertexFormat fmt;
 
@@ -51,11 +51,11 @@ public:
   gx::IndexedVertexArray vtx;
 
 private:
-  unsigned allocAtEnd(unsigned num_chars);
+  unsigned allocAtEnd(size_t num_chars);
   void coalesce();
 
-  unsigned ptr;
-  std::list<std::pair<unsigned, unsigned>> free_list;
+  size_t ptr;
+  std::list<std::pair<size_t, size_t>> free_list;
 };
 
 class pFace {
@@ -177,8 +177,8 @@ std::unique_ptr<gx::Program> font_program;
 
 const gx::VertexFormat pFt::fmt = 
   gx::VertexFormat()
-    .attr(gx::i16, 2, false)
-    .attr(gx::u16, 2, false);
+    .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
+    .attr(gx::u16, 2, gx::VertexFormat::UnNormalized);
 
 const static auto pipeline =
   gx::Pipeline()
@@ -557,7 +557,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   stbrp_context ctx;
   std::vector<stbrp_node> nodes(atlas_sz.s);
 
-  stbrp_init_target(&ctx, atlas_sz.s, atlas_sz.t, nodes.data(), nodes.size());
+  stbrp_init_target(&ctx, atlas_sz.s, atlas_sz.t, nodes.data(), (int)nodes.size());
 
   std::vector<stbrp_rect> rects;
   rects.reserve(glyphs.size());
@@ -574,7 +574,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     });
   }
 
-  stbrp_pack_rects(&ctx, rects.data(), rects.size());
+  stbrp_pack_rects(&ctx, rects.data(), (int)rects.size());
 
   std::vector<unsigned char> img(atlas_sz.s*atlas_sz.t);
 
@@ -658,26 +658,26 @@ const Font::GlyphRenderData& Font::getGlyphRenderData(int ch) const
   return m_render_data[glyphIndex(ch)];
 }
 
-unsigned pFt::alloc(unsigned num_chars)
+unsigned pFt::alloc(size_t num_chars)
 {
   if(free_list.empty()) return allocAtEnd(num_chars);
 
   for(auto iter = free_list.begin(); iter != free_list.end(); iter++) {
     if(iter->second < num_chars) continue;
 
-    unsigned ret = iter->first,
+    auto ret = iter->first,
       leftover = iter->second-num_chars;
 
     free_list.erase(iter);
     if(leftover > 0) free_list.push_front({ ret+num_chars, leftover });
 
-    return ret;
+    return (unsigned)ret;
   }
 
-  return allocAtEnd(num_chars);
+  return (unsigned)allocAtEnd(num_chars);
 }
 
-void pFt::dealloc(unsigned offset, unsigned num_chars) 
+void pFt::dealloc(size_t offset, size_t num_chars) 
 {
   if(ptr == offset+num_chars) {
     ptr -= num_chars;
@@ -688,19 +688,20 @@ void pFt::dealloc(unsigned offset, unsigned num_chars)
   coalesce();
 }
 
-unsigned pFt::allocAtEnd(unsigned num_chars)
+unsigned pFt::allocAtEnd(size_t num_chars)
 {
   if(ptr+num_chars >= pFt::NumBufferChars) return pFt::Error;
 
-  unsigned ret = ptr;
+  auto ret = ptr;
   ptr += num_chars;
 
-  return ret;
+  return (unsigned)ret;
 }
 
 void pFt::coalesce()
 {
-  auto in_range = [](std::pair<int, int> a, std::pair<int, int> b) -> bool
+  using Range = std::pair<size_t, size_t>;
+  auto in_range = [](Range a, Range b) -> bool
   {
     if(a.first < b.first) return a.first+a.second >= b.first;
     else                  return b.first+b.second >= a.first;
@@ -712,7 +713,7 @@ void pFt::coalesce()
     iter = ++free_list.begin();
   while(iter != free_list.end()) {
     if(in_range(*prev, *iter)) {
-      std::pair<int, int> a = { prev->first, prev->first+prev->second },
+      Range a = { prev->first, prev->first+prev->second },
         b = { iter->first, iter->first+iter->second };
 
       iter->first = std::min(a.first, b.first);

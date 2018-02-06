@@ -16,7 +16,7 @@ Pipeline::Pipeline()
   m_viewport = { 0, 0, 1280, 720 };
   m_scissor.current = false;
   m_depth.func = GL_LESS;
-  m_cull.front = GL_CCW; m_cull.mode = GL_BACK;
+  m_cull.front = GL_CCW;
   m_clear.stencil = ~0;
   m_restart.index = 0;
 }

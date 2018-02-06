@@ -2,8 +2,6 @@
 
 #include <gx/gx.h>
 
-#include <GL/glew.h>
-
 #include <cstdint>
 #include <vector>
 
@@ -14,10 +12,14 @@ class IndexBuffer;
 
 class VertexFormat {
 public:
-  VertexFormat& attr(Type type, unsigned size, bool normalized = true);
+  enum IsNormalized {
+    UnNormalized = false, Normalized = true,
+  };
+
+  VertexFormat& attr(Type type, unsigned size, IsNormalized normalized = Normalized);
   VertexFormat& iattr(Type type, unsigned size);
 
-  VertexFormat& attrAlias(unsigned index, Type type, unsigned size, bool normalized = true);
+  VertexFormat& attrAlias(unsigned index, Type type, unsigned size, IsNormalized normalized = Normalized);
 
   size_t vertexByteSize() const;
 
@@ -58,7 +60,7 @@ public:
   VertexArray(const VertexArray&) = delete;
   ~VertexArray();
 
-  unsigned elemSize() const;
+  size_t elemSize() const;
 
   void use() const;
   // Needs to be called after indexed drawing!
@@ -76,7 +78,7 @@ protected:
   void init(const VertexFormat& fmt);
 
   GLuint m;
-  unsigned m_elem_size;
+  size_t m_elem_size;
 };
 
 class IndexedVertexArray : public VertexArray {

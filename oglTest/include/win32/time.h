@@ -20,6 +20,8 @@ public:
   static Time time_ms();
   static Time time_us();
 
+  static Time ticks_per_s();
+
   static Time ticks_to_s(Time ticks);
   static Time ticks_to_ms(Time ticks);
   static Time ticks_to_us(Time ticks);
@@ -58,6 +60,8 @@ public:
   DurationTimer& durationMilliseconds(Time duration);
   DurationTimer& durationUseconds(Time duration);
 
+  DurationTimer& durationSeconds(double duration);
+
   bool elapsed();
   float elapsedf();
 
@@ -74,6 +78,8 @@ public:
   LoopTimer& durationSeconds(Time duration);
   LoopTimer& durationMilliseconds(Time duration);
   LoopTimer& durationUseconds(Time duration);
+
+  LoopTimer& durationSeconds(double duration);
 
   u64 loops();
   float elapsedf();

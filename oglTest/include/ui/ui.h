@@ -29,8 +29,6 @@ using InputPtr = win32::Input::Ptr;
 
 class Ui {
 public:
-  static const vec2 FramebufferSize;
-
   Ui(Geometry geom, const Style& style);
   Ui(const Ui& other) = delete;
   ~Ui();

@@ -54,6 +54,12 @@ struct Vector2 {
     return sqrt(d.x*d.x + d.y*d.y);
   };
 
+  template <typename U>
+  Vector2<U> cast() const
+  {
+    return Vector2<U>{ (U)x, (U)y };
+  }
+
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }
 };

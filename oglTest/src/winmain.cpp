@@ -1,8 +1,9 @@
-#include <win32/cpuid.h>
+#include <win32/win32.h>
 #include <win32/window.h>
 #include <win32/time.h>
 
 #include <uniforms.h>
+#include <gx/gx.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
@@ -23,7 +24,9 @@
 
 #include <game/game.h>
 
-#include <GL/glew.h>
+#include <glang/glang.h>
+#include <glang/heap.h>
+#include <glang/import.h>
 
 #include <vector>
 #include <array>
@@ -31,21 +34,36 @@
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-  win32::check_sse_sse2_support();
-  win32::Timers::init();
+  win32::init();
 
   using win32::Window;
   Window window(1280, 720);
 
   constexpr ivec2 FB_DIMS{ 1280, 720 };
 
-  //auto map = (glang::MapObject *)o;
-  //auto map_b = map->seqget(vm->objMan().kw(":b"));
-
   gx::init();
   ft::init();
   ui::init();
   game::init();
+
+  auto heap = glang::WinHeap();
+  auto *vm = new glang::Vm(&heap);
+
+  auto& om = vm->objMan();
+
+  auto vm_messagebox = glang::CallableFn<StringObject, StringObject>(
+    [](glang::ObjectManager& om, auto args) -> Object *
+  {
+    StringObject *title = std::get<0>(args),
+      *text = std::get<1>(args);
+
+    MessageBoxA(nullptr, text->get(), title->get(), MB_OK);
+
+    return nullptr;
+  });
+  vm->envSet("messagebox", om.fn(&vm_messagebox));
+
+  auto vm_codeobject = glang::compile_string("[:a :b :c :d]");
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -294,12 +312,12 @@ void main() {
   std::vector<Vertex> vtxs = {
     // BACK
     { { -1.0f, 1.0f, -1.0f }, normals[0] },
-    { { -1.0f, -1.0f, -1.0f }, normals[0] },
     { { 1.0f, -1.0f, -1.0f }, normals[0] },
+    { { -1.0f, -1.0f, -1.0f }, normals[0] },
 
     { { 1.0f, -1.0f, -1.0f }, normals[0] },
-    { { 1.0f, 1.0f, -1.0f }, normals[0] },
     { { -1.0f, 1.0f, -1.0f }, normals[0] },
+    { { 1.0f, 1.0f, -1.0f }, normals[0] },
 
     // FRONT
     { { -1.0f, 1.0f, 1.0f }, normals[1] },
@@ -312,12 +330,12 @@ void main() {
     
     // TOP
     { { -1.0f, 1.0f, -1.0f }, normals[2] },
-    { { 1.0f, 1.0f, 1.0f }, normals[2] },
     { { -1.0f, 1.0f, 1.0f }, normals[2] },
+    { { 1.0f, 1.0f, 1.0f }, normals[2] },
 
     { { 1.0f, 1.0f, 1.0f }, normals[2] },
-    { { -1.0f, 1.0f, -1.0f }, normals[2] },
     { { 1.0f, 1.0f, -1.0f }, normals[2] },
+    { { -1.0f, 1.0f, -1.0f }, normals[2] },
     
     // BOTTOM
     { { -1.0f, -1.0f, -1.0f }, normals[3] },
@@ -330,12 +348,12 @@ void main() {
 
     // LEFT
     { { -1.0f, 1.0f, -1.0f }, normals[4] },
-    { { -1.0f, -1.0f, 1.0f }, normals[4] },
     { { -1.0f, -1.0f, -1.0f }, normals[4] },
+    { { -1.0f, -1.0f, 1.0f }, normals[4] },
 
     { { -1.0f, -1.0f, 1.0f }, normals[4] },
-    { { -1.0f, 1.0f, -1.0f }, normals[4] },
     { { -1.0f, 1.0f, 1.0f }, normals[4] },
+    { { -1.0f, 1.0f, -1.0f }, normals[4] },
 
     // RIGHT
     { { 1.0f, 1.0f, -1.0f }, normals[5] },
@@ -472,9 +490,11 @@ void main() {
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-  btn_c->caption("Show texmatrix!").onClick([&](auto target) {
-    display_tex_matrix = !display_tex_matrix;
-    target->caption(display_tex_matrix ? "Hide texmatrix!" : "Show texmatrix!");
+  btn_c->caption("Call vm!").onClick([&](auto target) {
+    auto code = glang::compile_string("(messagebox \"VM MessageBox!\" \"some text\")");
+
+    auto obj = vm->execute(code);
+    om.deref(obj);
   });
 
   auto& light_no = *iface.getFrameByName<ui::DropDownFrame>("light_no");
@@ -527,7 +547,7 @@ void main() {
   auto fps_timer = win32::DeltaTimer();
 
   constexpr auto anim_time = 10000.0f;
-  auto anim_timer = win32::LoopTimer().durationMilliseconds(anim_time / 2.0f);
+  auto anim_timer = win32::LoopTimer().durationSeconds(2.5);
 
   while(window.processMessages()) {
     win32::Timers::tick();
@@ -617,7 +637,7 @@ void main() {
       *rot_mtx
       ;
 
-    auto persp = !ortho_projection ? xform::perspective(70, 16./9., 0.1f, 1000.0f) :
+    auto persp = !ortho_projection ? xform::perspective(70, 16.0f/9.0f, 0.1f, 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f)*xform::scale(zoom*2.0f);
 
     //yaw = lerp(0.0f, 2.0f*PIf, anim_factor);
@@ -689,7 +709,7 @@ void main() {
     model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
       *xform::scale(10.0f)
-      *xform::rotx(PI/2.0f)
+      *xform::rotx(PIf/2.0f)
       ;
 
     mat4 texmatrix = xform::identity()
@@ -741,6 +761,9 @@ void main() {
     sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_timer.elapsedf(), eye.x, eye.y, eye.z);
     small_face.draw(str, { 30.0f, 100.0f }, { 1.0f, 1.0f, 1.0f });
 
+    sprintf_s(str, "time: %.8lfs", fps_timer.elapsedSecondsf());
+    small_face.draw(str, { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+
     texmatrix = texmatrix.inverse();
     char buf[1024];
     sprintf_s(buf,
@@ -770,6 +793,8 @@ void main() {
   ui::finalize();
   ft::finalize();
   gx::finalize();
+
+  win32::finalize();
 
   return 0;
 }

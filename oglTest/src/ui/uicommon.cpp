@@ -109,6 +109,11 @@ Position::Position() :
 {
 }
 
+Position::Position(Vector2<i16> pos) :
+  Vector2<i16>(pos)
+{
+}
+
 Position::Position(vec2 pos)
 {
   float fx = pos.x * (float)(1<<4),

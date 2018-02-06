@@ -1,4 +1,5 @@
 #include <ui/cursor.h>
+#include <ui/uicommon.h>
 
 #include <gx/gx.h>
 #include <gx/buffer.h>
@@ -36,9 +37,6 @@ public:
   gx::Sampler sampler;
   gx::Texture2D tex;
 };
-
-using Position = Vector2<u16>;
-using UV = Vector2<u16>;
 
 struct Vertex {
   Position pos;
@@ -121,9 +119,7 @@ in VertexData {
 layout(location = 0) out vec4 color;
 
 void main() {
-  vec2 tex = vec3(texture(uTex, fs_in.uv)).rg;
-
-  color = vec4(vec3(tex.r), tex.g);
+  color = texture(uTex, fs_in.uv);
 }
 )FRAG";
 
@@ -132,8 +128,8 @@ std::unique_ptr<gx::Program> cursor_program;
 
 const gx::VertexFormat pCursorDriver::Fmt =
   gx::VertexFormat()
-    .attr(gx::u16, 2, false)
-    .attr(gx::u16, 2, false);
+    .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
+    .attr(gx::u16, 2, gx::VertexFormat::UnNormalized);
 
 const static auto pipeline =
   gx::Pipeline()
@@ -143,7 +139,7 @@ static std::vector<Vertex> generate_verts(const Cursor *cursors)
 {
   auto make_vertex = [](ivec2 pos, ivec2 uv) -> Vertex
   {
-    return Vertex{ { (u16)pos.x, (u16)pos.y }, { (u16)uv.s, (u16)uv.t } };
+    return Vertex{ pos.cast<i16>(), uv.cast<u16>() };
   };
 
   std::vector<Vertex> verts;
@@ -205,6 +201,7 @@ void CursorDriver::init()
 
   auto tex = decode_texture(p_tex);
   p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::u8);
+  p->tex.swizzle(gx::Red, gx::Red, gx::Red, gx::Green);
 
   p->tex.label("CURSOR_tex");
 
@@ -243,8 +240,9 @@ void CursorDriver::paint()
   if(!m_shown) return;
 
   mat4 modelviewprojection = xform::identity()
-    *xform::ortho(0, 0, 720, 1280, 0.0f, 1.0f)
-    *xform::translate(m_pos);
+    *xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f)
+    *xform::translate(m_pos)
+    *xform::scale(1.0f);
 
   gx::ScopedPipeline sp(pipeline);
 

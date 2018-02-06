@@ -1,8 +1,7 @@
 #pragma once
 
+#include <gx/gx.h>
 #include <math/geometry.h>
-
-#include <GL/glew.h>
 
 #include <string>
 #include <vector>
@@ -86,13 +85,13 @@ public:
   Program& uniformMatrix3x3(int location, const mat4& mtx);
   Program& uniformBool(int location, bool v);
 
-  void draw(Primitive p, const VertexArray& vtx, unsigned offset, unsigned num);
-  void draw(Primitive p, const VertexArray& vtx, unsigned num);
-  void draw(Primitive p, const IndexedVertexArray& vtx, unsigned offset, unsigned num);
-  void draw(Primitive p, const IndexedVertexArray& vtx, unsigned num);
+  void draw(Primitive p, const VertexArray& vtx, size_t offset, size_t num);
+  void draw(Primitive p, const VertexArray& vtx, size_t num);
+  void draw(Primitive p, const IndexedVertexArray& vtx, size_t offset, size_t num);
+  void draw(Primitive p, const IndexedVertexArray& vtx, size_t num);
 
-  void drawBaseVertex(Primitive p, const IndexedVertexArray& vtx,
-                      unsigned base, unsigned offset, unsigned num);
+  void drawBaseVertex(Primitive p,
+ const IndexedVertexArray& vtx, size_t base, size_t offset, size_t num);
 
   void label(const char *lbl);
 

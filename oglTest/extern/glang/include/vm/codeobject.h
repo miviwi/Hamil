@@ -17,6 +17,8 @@ public:
 
   ~CodeObject();
 
+  void ref();
+
   void push(const void *data, size_t sz);
   void *data() const { return m_code; }
 

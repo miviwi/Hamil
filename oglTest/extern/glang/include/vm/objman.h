@@ -16,45 +16,12 @@ public:
     m_nil = create<NilObject>();
   }
 
-  Object *nil() const { return m_nil; }
+  Object *nil() const { return m_nil->ref(); }
 
-  void *heapAlloc(size_t sz);
-  template <typename T> T *heapAlloc() { return (T *)heapAlloc(sizeof(T)); }
-
-  template <typename T, typename... Args>
-  T *create(Args... args)
-  {
-    auto obj = (T *)heapAlloc(sizeof(T));
-    new(obj) T(std::forward<Args>(args)...);
-
-    return obj;
-  }
-
-  Object *ptr(ObjectRef r);
-  ObjectRef ref(Object *o);
-
-  template <typename T>
-  T *obj(ObjectRef ref)
-  {
-    return (T *)ptr(ref);
-  }
-
-  Object *box(ObjectRef ref);
-
-  IntObject asInt(ObjectRef r);
-  RatioObject asRatio(ObjectRef r);
-  CharObject asChar(ObjectRef r);
-
-  bool compareType(ObjectRef a, const Object& b);
-  bool compareType(const Object& a, ObjectRef b) { return compareType(b, a); }
-
-  bool compare(int cond, ObjectRef a, ObjectRef b);
-
-  ObjectRef resultObj(Object::ArtmResult result);
-
-  ObjectRef artm(long op, ObjectRef a, ObjectRef b);
-  ObjectRef neg(ObjectRef o);
-
+  ObjectRef ref(ObjectRef r);
+  void deref(Object *obj);
+  void deref(ObjectRef obj);
+ 
   IntObject *createInt(long long x);
   FloatObject *createFloat(double x);
   RatioObject *createRatio(rational x);
@@ -77,6 +44,48 @@ public:
   HandleObject *fn(ICallable *fn) { return createFunction(fn); }
 
 private:
+  friend class Vm;
+  friend class FunctionObject;
+  friend class HandleObject;
+
+  void *heapAlloc(size_t sz);
+  template <typename T> T *heapAlloc() { return (T *)heapAlloc(sizeof(T)); }
+
+  template <typename T, typename... Args>
+  T *create(Args... args)
+  {
+    auto obj = (T *)heapAlloc(sizeof(T));
+    new(obj) T(std::forward<Args>(args)...);
+
+    return obj;
+  }
+
+  Object *ptr(ObjectRef r);
+  ObjectRef toRef(Object *o);
+
+  template <typename T>
+  T *obj(ObjectRef ref)
+  {
+    return (T *)ptr(ref);
+  }
+
+  Object *box(ObjectRef ref);
+  Object *move(ObjectRef ref);
+
+  IntObject asInt(ObjectRef r);
+  RatioObject asRatio(ObjectRef r);
+  CharObject asChar(ObjectRef r);
+
+  bool compareType(ObjectRef a, const Object& b);
+  bool compareType(const Object& a, ObjectRef b) { return compareType(b, a); }
+
+  bool compare(int cond, ObjectRef a, ObjectRef b);
+
+  ObjectRef resultObj(Object::ArtmResult result);
+
+  ObjectRef artm(long op, ObjectRef a, ObjectRef b);
+  ObjectRef neg(ObjectRef o);
+
   ObjectRef doOp(long op, const Object& a, const Object& b);
 
   IHeap *m_heap;

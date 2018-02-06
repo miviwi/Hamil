@@ -1,4 +1,5 @@
 #include <win32/time.h>
+#include <win32/panic.h>
 #include <math/geometry.h>
 
 #include <Windows.h>
@@ -10,7 +11,8 @@ static LARGE_INTEGER p_perf_counter = { 0 };
 
 void Timers::init()
 {
-  QueryPerformanceFrequency(&p_perf_freq);
+  auto result = QueryPerformanceFrequency(&p_perf_freq);
+  if(!result) panic("QueryPerformanceCounter() failed!", -5);
 
   tick();
 }
@@ -42,6 +44,11 @@ Time Timers::time_ms()
 Time Timers::time_us()
 {
   return ticks_to_us(ticks());
+}
+
+Time Timers::ticks_per_s()
+{
+  return (Time)p_perf_freq.QuadPart;
 }
 
 Time Timers::ticks_to_s(Time ticks)
@@ -107,8 +114,8 @@ Time DeltaTimer::elapsedUseconds()
 
 double DeltaTimer::elapsedSecondsf()
 {
-  auto dt = (double)Timers::ticks_to_us(delta());
-  return dt/1000000.0;
+  auto dt = (double)delta();
+  return dt/(double)Timers::ticks_per_s();
 }
 
 
@@ -134,6 +141,14 @@ DurationTimer& DurationTimer::durationMilliseconds(Time duration)
 DurationTimer& DurationTimer::durationUseconds(Time duration)
 {
   m_duration = Timers::us_to_ticks(duration);
+
+  return *this;
+}
+
+DurationTimer& DurationTimer::durationSeconds(double duration)
+{
+  double ticks_per_s = Timers::ticks_per_s();
+  m_duration = (Time)(duration * ticks_per_s);
 
   return *this;
 }
@@ -176,6 +191,13 @@ LoopTimer & LoopTimer::durationMilliseconds(Time duration)
 LoopTimer & LoopTimer::durationUseconds(Time duration)
 {
   DurationTimer::durationUseconds(duration);
+
+  return *this;
+}
+
+LoopTimer& LoopTimer::durationSeconds(double duration)
+{
+  DurationTimer::durationSeconds(duration);
 
   return *this;
 }

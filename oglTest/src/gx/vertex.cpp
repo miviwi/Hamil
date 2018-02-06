@@ -5,7 +5,7 @@
 
 namespace gx {
 
-VertexFormat& VertexFormat::attr(Type type, unsigned size, bool normalized)
+VertexFormat& VertexFormat::attr(Type type, unsigned size, IsNormalized normalized)
 {
   m_descs.push_back({ NextIndex, type, size, normalized ? Normalize : 0 });
 
@@ -19,7 +19,7 @@ VertexFormat& VertexFormat::iattr(Type type, unsigned size)
   return *this;
 }
 
-VertexFormat& VertexFormat::attrAlias(unsigned index, Type type, unsigned size, bool normalized)
+VertexFormat& VertexFormat::attrAlias(unsigned index, Type type, unsigned size, IsNormalized normalized)
 {
   unsigned flags = normalized ? Normalize : 0;
   m_descs.push_back({ index, type, size,  flags | Alias });
@@ -114,7 +114,7 @@ VertexArray::~VertexArray()
   glDeleteVertexArrays(1, &m);
 }
 
-unsigned VertexArray::elemSize() const
+size_t VertexArray::elemSize() const
 {
   return m_elem_size;
 }
@@ -134,7 +134,7 @@ void VertexArray::label(const char *lbl)
 #if !defined(NDEBUG)
   use();
 
-  glObjectLabel(GL_VERTEX_ARRAY, m, strlen(lbl), lbl);
+  glObjectLabel(GL_VERTEX_ARRAY, m, -1, lbl);
 #endif
 }
 
@@ -164,9 +164,9 @@ void VertexArray::init(const VertexFormat& fmt)
     glEnableVertexAttribArray(i);
 
     if(fmt.attrInteger(i)) {
-      glVertexAttribIPointer(i, size, type, m_elem_size, offset);
+      glVertexAttribIPointer(i, size, type, (GLsizei)m_elem_size, offset);
     } else {
-      glVertexAttribPointer(i, size, type, normalized, m_elem_size, offset);
+      glVertexAttribPointer(i, size, type, normalized, (GLsizei)m_elem_size, offset);
     }
   }
 }

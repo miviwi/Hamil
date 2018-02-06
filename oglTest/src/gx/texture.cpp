@@ -10,58 +10,92 @@ namespace gx {
 
 static void setDefaultParameters(GLenum target);
 
-Texture2D::Texture2D(Format format) :
-  m_format(format), m_samples(0)
+Texture::Texture(GLenum target, Format format) :
+  m_target(target), m_format(format)
 {
   glGenTextures(1, &m);
 }
 
-Texture2D::~Texture2D()
+Texture::~Texture()
 {
   glDeleteTextures(1, &m);
 }
 
-void Texture2D::init(unsigned w, unsigned h)
+void Texture::use()
 {
-  glBindTexture(GL_TEXTURE_2D, m);
-  glTexImage2D(GL_TEXTURE_2D, 0, m_format, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glBindTexture(m_target, m);
+}
 
-  setDefaultParameters(GL_TEXTURE_2D);
+
+void Texture::init(unsigned w, unsigned h)
+{
+  use();
+  glTexImage2D(m_target, 0, m_format, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
+{
+  assert(format < r8 && "invalid format!");
+
+  use();
+  glTexImage2D(m_target, mip, m_format, w, h, 0, format, type, data);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
+                       Format format, Type type)
+{
+  assert(format < r8 && "invalid format!");
+
+  use();
+  glTexSubImage2D(m_target, mip, x, y, w, h, format, type, data);
+}
+
+void Texture::swizzle(Component r, Component g, Component b, Component a)
+{
+  int params[] = {
+    r, g, b, a,
+  };
+
+  use();
+  glTexParameteriv(m_target, GL_TEXTURE_SWIZZLE_RGBA, params);
+}
+
+void Texture::label(const char *lbl)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_TEXTURE, m, -1, lbl);
+#endif
+}
+
+Texture2D::Texture2D(Format format) :
+  Texture(GL_TEXTURE_2D, format), m_samples(0)
+{
+}
+
+Texture2D::~Texture2D()
+{
 }
 
 void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
 {
   m_samples = samples;
+  switch(m_target) {
+  case GL_TEXTURE_2D: m_target = GL_TEXTURE_2D_MULTISAMPLE; break;
+  case GL_TEXTURE_2D_ARRAY: m_target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+
+  case GL_TEXTURE_2D_MULTISAMPLE: break;
+  case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: break;
+  }
 
   glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m);
   glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, m_format, w, h, GL_TRUE);
 }
 
-void Texture2D::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
-{
-  assert(format < r8 && "invalid format!");
 
-  glBindTexture(GL_TEXTURE_2D, m);
-  glTexImage2D(GL_TEXTURE_2D, mip, m_format, w, h, 0, format, type, data);
-
-  setDefaultParameters(GL_TEXTURE_2D);
-}
-
-void Texture2D::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
-                       Format format, Type type)
-{
-  assert(format < r8 && "invalid format!");
-
-  glBindTexture(GL_TEXTURE_2D, m);
-  glTexSubImage2D(GL_TEXTURE_2D, mip, x, y, w, h, format, type, data);
-}
-
-void Texture2D::label(const char *lbl)
-{
-#if !defined(NDEBUG)
-  glObjectLabel(GL_TEXTURE, m, strlen(lbl), lbl);
-#endif
-}
 
 Sampler::Sampler() :
   m_ref(new unsigned(1))
@@ -83,6 +117,16 @@ Sampler::~Sampler()
     glDeleteSamplers(1, &m);
     delete m_ref;
   }
+}
+
+Sampler& Sampler::operator=(const Sampler& other)
+{
+  m = other.m;
+  m_ref = other.m_ref;
+
+  *m_ref++;
+
+  return *this;
 }
 
 Sampler& Sampler::param(ParamName name, Param p)
@@ -127,17 +171,17 @@ GLenum Sampler::param(Param p)
   return table[p];
 }
 
-unsigned p_active_texture = 0;
+unsigned p_active_texture = ~0u;
 
 void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
 {
-  glBindSampler(idx, sampler.m);
-
   if(idx != p_active_texture) {
     glActiveTexture(GL_TEXTURE0+idx);
     p_active_texture = idx;
   }
-  glBindTexture(GL_TEXTURE_2D, tex.m);
+
+  glBindSampler(idx, sampler.m);
+  glBindTexture(tex.m_samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, tex.m);
 }
 
 static void setDefaultParameters(GLenum target)
