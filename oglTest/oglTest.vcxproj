@@ -216,6 +216,7 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\style.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
     <ClCompile Include="src\win32\cpuid.cpp" />
+    <ClCompile Include="src\win32\file.cpp" />
     <ClCompile Include="src\win32\panic.cpp" />
     <ClCompile Include="src\win32\time.cpp" />
     <ClCompile Include="src\win32\win32.cpp" />
@@ -253,6 +254,7 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\style.h" />
     <ClInclude Include="include\ui\ui.h" />
     <ClInclude Include="include\win32\cpuid.h" />
+    <ClInclude Include="include\win32\file.h" />
     <ClInclude Include="include\win32\panic.h" />
     <ClInclude Include="include\win32\time.h" />
     <ClInclude Include="include\win32\win32.h" />

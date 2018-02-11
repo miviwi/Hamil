@@ -66,9 +66,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     return nullptr;
   });
-  vm->envSet("messagebox", om.fn(&vm_messagebox));
-
-  auto vm_codeobject = glang::compile_string("[:a :b :c :d]");
+  auto vm_messagebox_fn = om.fn(&vm_messagebox);
+  vm->envSet("messagebox", vm_messagebox_fn);
 
   vm->eval("(def v [:a :b :c :d])");
 
