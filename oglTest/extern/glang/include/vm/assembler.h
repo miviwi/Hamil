@@ -1,9 +1,10 @@
 #pragma once
 
-#include "util/stream.h"
-#include "util/istring.h"
-#include "vm/vm.h"
-#include "vm/codeobject.h"
+#include <util/stream.h>
+#include <util/istring.h>
+#include <vm/vm.h>
+#include <vm/codeobject.h>
+#include <debug/table.h>
 
 #include <string>
 #include <sstream>
@@ -246,6 +247,7 @@ public:
   long long intVal() const { return m_val.i; }
   char charVal() const { return m_val.ch; }
   std::pair<long long, long long> ratioVal() const { return std::make_pair(m_val.r.num, m_val.r.denom); }
+  std::pair<long long, long long> pairVal() const { return ratioVal(); }
   unsigned slot() const { return m_val.slot; }
 
   long long offset() const { return m_val.offset; }
@@ -290,6 +292,8 @@ public:
     DirectiveInvalid,
     DirectiveFunction, DirectiveString, DirectiveKeyword,
     DirectiveSymbol, DirectiveInt, DirectiveFloat, DirectiveRatio,
+
+    DirectiveDebugInfo,
   };
 
   Statement(Tag tag_) : m_tag(tag_) { }
@@ -340,9 +344,7 @@ public:
 
 private:
   Tag m_tag;
-
   InternedString m_str;
-
   StatementArg m_arg;
 };
 
@@ -358,7 +360,13 @@ public:
   struct LabelUndefinedError { };
 
   Assembler(AsmTokenizer& tokenizer) :
-    m_pc(0), m_tokenizer(tokenizer) { }
+    m_pc(0), m_tokenizer(tokenizer), m_locs(nullptr)
+  { }
+  Assembler(AsmTokenizer& tokenizer, Table_Location *locs) :
+    Assembler(tokenizer)
+  {
+    m_locs = locs;
+  }
 
   CodeObject assemble();
 
@@ -406,6 +414,11 @@ private:
   void emitFunction(const Statement& statement);
   void emitStrSymKw(const Statement& statement);
 
+  void emitLocation(const Statement& statement);
+  void emitProc(const Statement& statement);
+  void emitProcArg(const Statement& statement);
+  void emitEndp(const Statement& statement);
+
   CodeObject m_co;
 
   unsigned long long m_pc;
@@ -415,6 +428,8 @@ private:
   Constants m_consts;
 
   AsmTokenizer& m_tokenizer;
+
+  Table_Location *m_locs;
 };
 
 }

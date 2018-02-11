@@ -1,13 +1,15 @@
 #pragma once
 
-#include "vm/vm.h"
-#include "vm/assembler.h"
+#include <vm/vm.h>
+#include <vm/assembler.h>
+#include <debug/database.h>
 
 #include <vector>
 
 namespace glang {
 
-__declspec(dllexport) assembler::CodeObject compile_string(const char *src, bool output_assembly = false);
+assembler::CodeObject compile_string(const char *src, DebugDatabase::Ptr debug, bool output_assembly = false);
+assembler::CodeObject compile_string(const char *src, bool output_assembly = false);
 
 /*
   BINARY FORMAT:

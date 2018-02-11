@@ -16,6 +16,8 @@ public:
 
   static Time ticks();
 
+  static double timef_s();
+
   static Time time_s();
   static Time time_ms();
   static Time time_us();

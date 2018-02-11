@@ -1,9 +1,11 @@
 #pragma once
 
-#include "object.h"
-#include "objman.h"
-#include "codeobject.h"
-#include "heap.h"
+#include <vm/object.h>
+#include <vm/objman.h>
+#include <vm/codeobject.h>
+#include <vm/heap.h>
+#include <debug/table.h>
+#include <debug/database.h>
 
 #include <cassert>
 #include <cstdint>
@@ -14,10 +16,16 @@
 
 namespace glang {
 
+// TODO:
+//  - stack unwinding on exception (error recovery)
+//    (all throw's will have to be replaced with helper method)
+//  - think of a better place for eval()
 class __declspec(dllexport) Vm {
 public:
   typedef unsigned __int32 Instruction;
   typedef          __int32 StackOffset;
+
+  typedef intptr_t Address;
 
   using CodeObject = assembler::CodeObject;
 
@@ -53,6 +61,13 @@ public:
     RuntimeError(ErrorCode what_) : what(what_) { }
 
     const char *toString() const;
+  };
+  struct RedefinitionError : public Error {
+    const Address first_defined;
+
+    RedefinitionError(Address first_defined_) :
+      first_defined(first_defined_)
+    { }
   };
 
   template <typename T, size_t N>
@@ -93,12 +108,16 @@ public:
   struct __declspec(dllexport) Environment {
   public:
     ObjectRef get(long long val);
-    void set(long long key, ObjectRef val);
+    bool set(long long key, ObjectRef val);
+ 
+    Address getLocation(long long val);
+    bool setLocation(long long key, Address loc);
 
     void finalize(ObjectManager& om);
 
   private:
     std::unordered_map<std::string, ObjectRef> m_store;
+    std::unordered_map<std::string, Address> m_where;
   };
 
   struct FnDesc {
@@ -110,6 +129,7 @@ public:
 
   enum : unsigned long long {
     InstructionBits = sizeof(Instruction)*8,
+    InstructionAlignment = 2,
 
     OpMask  = 0xF8000000,
     OpShift = InstructionBits-5,
@@ -248,9 +268,29 @@ public:
     m_env.set((long long)name, m_man.toRef(o));
   }
 
+  Object *call(Object *fn, Object *args[], size_t num_args);
+  template <typename... Args>
+  Object *call(Object *fn, Args... args)
+  {
+    Object *args_array[] = { args... };
+
+    return call(fn, args_array, sizeof...(args));
+  }
+
   ObjectManager& objMan() { return m_man; }
 
   Object *execute(const CodeObject& co);
+  Object *execute(const CodeObject& co, DebugDatabase::Ptr debug);
+
+  Object *eval(const char *src);
+
+  Address pc() const;
+  Address debugPc(const DebugDatabase *debug) const;
+  const DebugDatabase *debug() const;
+  const DebugDatabase *debug(Address pc) const;
+
+  std::string locationInfo(const DebugDatabase *dbg, Address debug_pc) const;
+  std::string locationInfo() const;
 
 private:
   bool isRunning() { return m_running; }
@@ -306,6 +346,8 @@ private:
 
   void syscall(int what);
 
+  void redefinitionError(long long key);
+
   struct CallFrame {
     FunctionObject *self;
 
@@ -314,7 +356,10 @@ private:
     ObjectRef *sp;
   };
 
+  using AddressRange = std::pair<Address, Address>;
+
   std::unordered_set<CodeObject> m_loaded;
+  std::vector<std::pair<AddressRange, DebugDatabase::Ptr>> m_debug;
 
   bool m_running;
 

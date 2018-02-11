@@ -20,7 +20,8 @@ class Renderbuffer;
 class Framebuffer {
 public:
   enum class BindTarget {
-    Framebuffer, Read, Draw,
+    Framebuffer = GL_FRAMEBUFFER,
+    Read = GL_READ_FRAMEBUFFER, Draw = GL_DRAW_FRAMEBUFFER,
   };
 
   enum Attachment {
@@ -56,19 +57,29 @@ public:
   static void bind_window(BindTarget target);
 
 private:
-  static GLenum binding(BindTarget t);
+  enum {
+    NumDrawBuffers = 8,
+    DrawBuffersNeedSetup = 1<<(sizeof(unsigned)*8 - 1),
+  };
+
   static GLenum attachement(Attachment att);
+
+  GLuint create_rendebuffer();
+  void framebufferRenderbuffer(GLuint rb, Attachment att);
 
   void checkIfBound();
 
-  // Must be bound already!
+  // Framebuffer must be bound already!
+  // Supports only 2D[Multisample] textures!
   ivec2 getColorAttachement0Dimensions();
+
+  void drawBuffer(Attachment att);
   void setupDrawBuffers();
 
   GLuint m;
   GLenum m_bound;
   unsigned m_samples;
-  bool m_draw_buffers_setup;
+  unsigned m_draw_buffers;
   std::vector<GLuint> m_rb;
 };
 

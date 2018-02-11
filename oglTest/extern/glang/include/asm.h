@@ -1,8 +1,8 @@
 #pragma once
 
-#include "util/stream.h"
-#include "util/istring.h"
-#include "vm/vm.h"
+#include <util/stream.h>
+#include <util/istring.h>
+#include <vm/vm.h>
 
 #include <cassert>
 #include <cstring>
@@ -283,6 +283,11 @@ public:
 
   void label(const char *lbl, bool leading_newline = true);
   void localLabel();
+
+  void location(unsigned line, unsigned column);
+  void proc(const char *name);
+  void arg(const char *name);
+  void endp(const char *name);
 
   void indent() { m_indent++; }
   void unindent(bool leading_newline = true) { if(leading_newline) newline(); m_indent--; }

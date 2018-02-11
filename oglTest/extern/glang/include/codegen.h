@@ -270,13 +270,15 @@ private:
 
   void formArgCountError(const AST_Form& form, unsigned expected);
 
+  void location(const SyntaxTree& s);
+
   AsmGen m_gen;
   AsmConstTable m_consts;
 
   std::stack<Scope::Ptr> m_scope_stack;
   std::stack<SymbolTable::Ptr> m_sym_stack;
 
-  unsigned m_lambda_id, m_if_no;
+  unsigned m_lambda_id, m_if_no, m_cond_no;
 };
 
 }

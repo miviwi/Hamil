@@ -74,10 +74,13 @@ public:
   String writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const;
 
   void draw(const String& str, vec2 pos, vec4 color) const;
+  void draw(const std::string& str, vec2 pos, vec4 color) const;
   void draw(const char *str, vec2 pos, vec4 color) const;
   void draw(const String& str, vec2 pos, vec3 color) const;
+  void draw(const std::string& str, vec2 pos, vec3 color) const;
   void draw(const char *str, vec2 pos, vec3 color) const;
   void draw(const String& str, vec2 pos, Vector4<byte> color) const;
+  void draw(const std::string& str, vec2 pos, Vector4<byte> color) const;
   void draw(const char *str, vec2 pos, Vector4<byte> color) const;
 
   float width(const String& str) const;
@@ -95,7 +98,7 @@ public:
   // Defines sampleFontAtlas
   static const char *frag_shader;
 
-  void bindFontAltas() const;
+  void bindFontAltas(int unit = TexImageUnit) const;
 
 private:
   struct GlyphRenderData {

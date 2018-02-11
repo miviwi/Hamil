@@ -1,6 +1,7 @@
 #pragma once
 
-#include "util/stream.h"
+#include <util/stream.h>
+#include <debug/table.h>
 
 #include <cassert>
 #include <string>

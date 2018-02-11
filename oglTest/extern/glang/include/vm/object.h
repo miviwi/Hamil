@@ -1,8 +1,9 @@
 #pragma once
 
-#include "util/signextend.h"
-#include "util/istring.h"
-#include "util/stream.h"
+#include <vm/heap.h>
+#include <util/signextend.h>
+#include <util/istring.h>
+#include <util/stream.h>
 
 #include <cassert>
 #include <cstdint>
@@ -10,14 +11,20 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 namespace glang {
 
-class IHeap;
+#define GLANG_OBJECT alignas(IHeap::BlockSize)
+#define GLANG_ASSERT_OBJECT_SIZE(object) \
+ static_assert(sizeof(object) == IHeap::BlockSize, #object " has incorrect size!");
+#define GLANG_PAD_OBJECT(num_bytes) char m_pad_[num_bytes];
+
 class Vm;
 class ObjectManager;
 
 class NumberObject;
+class SequenceObject;
 
 template <typename T>
 struct Rational {
@@ -158,11 +165,17 @@ public:
   {
     return isNumber() ? (NumberObject *)this : nullptr;
   }
+  template <>
+  SequenceObject *as() const
+  {
+    return isSequence() ? (SequenceObject *)this : nullptr;
+  }
 
   struct Hash { size_t operator()(const Object *o) const { return o->hash(); } };
   struct Compare { bool operator()(const Object *a, const Object *b) const; };
 
   virtual bool isNumber() const { return false; }
+  virtual bool isSequence() const { return false; }
 
   struct ArtmResult {
     enum Tag { Invalid, Int, Float, Ratio, } tag;
@@ -200,7 +213,7 @@ protected:
   } header;
 };
 
-class alignas(32) NilObject : public Object {
+class GLANG_OBJECT NilObject : public Object {
 public:
   static constexpr Object::Type Type = Object::Nil;
 
@@ -214,7 +227,10 @@ public:
 private:
   friend class Vm;
   friend class ObjectManager;
+
+  GLANG_PAD_OBJECT(16);
 };
+GLANG_ASSERT_OBJECT_SIZE(NilObject);
 
 class NumberObject : public Object {
 public:
@@ -227,7 +243,7 @@ public:
   virtual rational toRatio() const = 0;
 };
 
-class alignas(32) IntObject : public NumberObject {
+class GLANG_OBJECT IntObject : public NumberObject {
 public:
   static constexpr Object::Type Type = Object::Int;
 
@@ -257,9 +273,12 @@ private:
   friend class ObjectManager;
 
   long long m_data;
-};
 
-class alignas(32) FloatObject : public NumberObject {
+  GLANG_PAD_OBJECT(8);
+};
+GLANG_ASSERT_OBJECT_SIZE(IntObject);
+
+class GLANG_OBJECT FloatObject : public NumberObject {
 public:
   static constexpr Object::Type Type = Object::Float;
 
@@ -289,9 +308,12 @@ private:
   friend class ObjectManager;
 
   double m_data;
-};
 
-class alignas(32) RatioObject : public NumberObject {
+  GLANG_PAD_OBJECT(8);
+};
+GLANG_ASSERT_OBJECT_SIZE(FloatObject);
+
+class GLANG_OBJECT RatioObject : public NumberObject {
 public:
   static constexpr Object::Type Type = Object::Ratio;
 
@@ -320,8 +342,9 @@ private:
 
   long long m_num, m_denom;
 };
+GLANG_ASSERT_OBJECT_SIZE(RatioObject);
 
-class alignas(32) CharObject : public Object {
+class GLANG_OBJECT CharObject : public Object {
 public:
   static constexpr Object::Type Type = Object::Char;
 
@@ -341,9 +364,12 @@ private:
     char m_data;
     long long m_pad;
   };
-};
 
-class alignas(32) StringObject : public Object {
+  GLANG_PAD_OBJECT(8);
+};
+GLANG_ASSERT_OBJECT_SIZE(CharObject);
+
+class GLANG_OBJECT StringObject : public Object {
 public:
   static constexpr Object::Type Type = Object::String;
 
@@ -363,9 +389,7 @@ private:
   size_t m_size;
   const char *m_data;
 };
-
-constexpr auto x = sizeof(CharObject);
-
+GLANG_ASSERT_OBJECT_SIZE(StringObject);
 
 class SymbolKeywordBase : public Object {
 public:
@@ -387,19 +411,27 @@ protected:
   friend class ObjectManager;
 
   InternedString m_str;
+
+  GLANG_PAD_OBJECT(8);
 };
 
-class alignas(32) SymbolObject : public SymbolKeywordBase {
+class GLANG_OBJECT SymbolObject : public SymbolKeywordBase {
 public:
+  static constexpr Object::Type Type = Object::Symbol;
+
   SymbolObject(InternedString str) : SymbolKeywordBase(Object::Symbol, str) {}
 };
+GLANG_ASSERT_OBJECT_SIZE(SymbolObject);
 
-class alignas(32) KeywordObject : public SymbolKeywordBase {
+class GLANG_OBJECT KeywordObject : public SymbolKeywordBase {
 public:
+  static constexpr Object::Type Type = Object::Keyword;
+
   KeywordObject(InternedString str) : SymbolKeywordBase(Object::Keyword, str) {}
 };
+GLANG_ASSERT_OBJECT_SIZE(KeywordObject);
 
-class alignas(32) ConsCellObject : public Object {
+class GLANG_OBJECT ConsCellObject : public Object {
 public:
   static constexpr Object::Type Type = Object::ConsCell;
 
@@ -418,10 +450,16 @@ private:
   Object *car;
   Object *cdr;
 };
+GLANG_ASSERT_OBJECT_SIZE(ConsCellObject);
 
 class SequenceObject : public Object {
 public:
+  using Iterator = std::function<void(Object *)>;
+  using KeyValueIterator = std::function<void(Object *, Object *)>;
+
   SequenceObject(Object::Type type) : Object(type) { }
+
+  virtual bool isSequence() const { return true; }
 
   virtual Object *seqget(Object *key) const = 0;
   template <typename T>
@@ -438,9 +476,12 @@ public:
     auto ptr = seqget(&key_obj);
     return ptr ? ptr->as<T>() : nullptr;
   }
+ 
+  virtual void foreach(Iterator iterator) const = 0;
+  virtual void foreachkv(KeyValueIterator iterator) const = 0;
 };
 
-class alignas(32) VectorObject : public SequenceObject {
+class GLANG_OBJECT VectorObject : public SequenceObject {
 public:
   static constexpr Object::Type Type = Object::Vector;
 
@@ -460,14 +501,19 @@ public:
   virtual void finalize(ObjectManager& om);
 
   virtual Object *seqget(Object *key) const;
+  virtual void foreach(Iterator iterator) const;
+  virtual void foreachkv(KeyValueIterator iterator) const;
 
 private:
   friend class Vm;
 
   Vec *m_vec;
-};
 
-class alignas(32) MapObject : public SequenceObject {
+  GLANG_PAD_OBJECT(8);
+};
+GLANG_ASSERT_OBJECT_SIZE(VectorObject);
+
+class GLANG_OBJECT MapObject : public SequenceObject {
 public:
   static constexpr Object::Type Type = Object::Map;
 
@@ -486,14 +532,21 @@ public:
   virtual void finalize(ObjectManager& om);
 
   virtual Object *seqget(Object *key) const;
+  // Iterates over values
+  virtual void foreach(Iterator iterator) const;
+  virtual void foreachkv(KeyValueIterator iterator) const;
+  void foreachk(Iterator iterator) const;
 
 private:
   friend class Vm;
 
   Map *m_map;
-};
 
-class alignas(32) SetObject : public SequenceObject {
+  GLANG_PAD_OBJECT(8);
+};
+GLANG_ASSERT_OBJECT_SIZE(MapObject);
+
+class GLANG_OBJECT SetObject : public SequenceObject {
 public:
   static constexpr Object::Type Type = Object::Set;
 
@@ -512,14 +565,19 @@ public:
   virtual void finalize(ObjectManager& om);
 
   virtual Object *seqget(Object *key) const;
+  virtual void foreach(Iterator iterator) const;
+  virtual void foreachkv(KeyValueIterator iterator) const;
 
 private:
   friend class Vm;
 
   Set *m_set;
-};
 
-class alignas(32) FunctionObject : public Object {
+  GLANG_PAD_OBJECT(8);
+};
+GLANG_ASSERT_OBJECT_SIZE(SetObject);
+
+class GLANG_OBJECT FunctionObject : public Object {
 public:
   static constexpr Object::Type Type = Object::Function;
 
@@ -534,7 +592,7 @@ private:
   friend class Vm;
   friend class ObjectManager;
 
-  struct alignas(32) pFn {
+  struct pFn {
     unsigned char num_args, num_locals, num_upvalues, var_args;
 
     ObjectRef *upvalues;
@@ -542,14 +600,17 @@ private:
   };
 
   pFn *m_p;
+
+  GLANG_PAD_OBJECT(8);
 };
+GLANG_ASSERT_OBJECT_SIZE(FunctionObject);
 
 class ICallable {
 public:
   virtual Object *call(ObjectManager& om, Object *args[], size_t num_args) = 0;
 };
 
-class alignas(32) HandleObject : public Object {
+class GLANG_OBJECT HandleObject : public Object {
 public:
   enum Tag {
     Invalid,
@@ -583,5 +644,6 @@ private:
     void *m_ptr;
   };
 };
+GLANG_ASSERT_OBJECT_SIZE(HandleObject);
 
 }

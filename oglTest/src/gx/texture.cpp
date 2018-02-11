@@ -37,8 +37,6 @@ void Texture::init(unsigned w, unsigned h)
 
 void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
 {
-  assert(format < r8 && "invalid format!");
-
   use();
   glTexImage2D(m_target, mip, m_format, w, h, 0, format, type, data);
 
@@ -48,10 +46,31 @@ void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Forma
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
                        Format format, Type type)
 {
-  assert(format < r8 && "invalid format!");
-
   use();
   glTexSubImage2D(m_target, mip, x, y, w, h, format, type, data);
+}
+
+void Texture::init(unsigned w, unsigned h, unsigned d)
+{
+  use();
+  glTexImage3D(m_target, 0, m_format, w, h, d, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d, Format format, Type type)
+{
+  use();
+  glTexImage3D(m_target, 0, m_format, w, h, d, 0, format, type, data);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
+                     unsigned w, unsigned h, unsigned d, Format format, Type type)
+{
+  use();
+  glTexSubImage3D(m_target, mip, x, y, z, w, h, d, format, type, data);
 }
 
 void Texture::swizzle(Component r, Component g, Component b, Component a)
@@ -83,19 +102,11 @@ Texture2D::~Texture2D()
 void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
 {
   m_samples = samples;
-  switch(m_target) {
-  case GL_TEXTURE_2D: m_target = GL_TEXTURE_2D_MULTISAMPLE; break;
-  case GL_TEXTURE_2D_ARRAY: m_target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+  if(m_target == GL_TEXTURE_2D) m_target = GL_TEXTURE_2D_MULTISAMPLE;
 
-  case GL_TEXTURE_2D_MULTISAMPLE: break;
-  case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: break;
-  }
-
-  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m);
-  glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, m_format, w, h, GL_TRUE);
+  use();
+  glTexImage2DMultisample(m_target, m_samples, m_format, w, h, GL_TRUE);
 }
-
-
 
 Sampler::Sampler() :
   m_ref(new unsigned(1))
@@ -173,7 +184,7 @@ GLenum Sampler::param(Param p)
 
 unsigned p_active_texture = ~0u;
 
-void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
+void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler)
 {
   if(idx != p_active_texture) {
     glActiveTexture(GL_TEXTURE0+idx);
@@ -181,7 +192,7 @@ void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler)
   }
 
   glBindSampler(idx, sampler.m);
-  glBindTexture(tex.m_samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, tex.m);
+  glBindTexture(tex.m_target, tex.m);
 }
 
 static void setDefaultParameters(GLenum target)
@@ -191,6 +202,24 @@ static void setDefaultParameters(GLenum target)
 
   glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
+
+Texture2DArray::Texture2DArray(Format format) :
+  Texture(GL_TEXTURE_2D_ARRAY, format), m_samples(0)
+{
+}
+
+Texture2DArray::~Texture2DArray()
+{
+}
+
+void Texture2DArray::initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers)
+{
+  m_samples = samples;
+  if(m_target == GL_TEXTURE_2D_ARRAY) m_target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+
+  use();
+  glTexImage3DMultisample(m_target, m_samples, m_format, w, h, layers, GL_TRUE);
 }
 
 }

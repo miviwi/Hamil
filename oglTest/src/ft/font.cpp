@@ -461,10 +461,15 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
 
   font_program->use()
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
-    .uniformInt(U::font.uAtlas, TexImageUnit)
+    .uniformSampler(U::font.uAtlas, TexImageUnit)
     .uniformVector4(U::font.uColor, color)
     .drawBaseVertex(gx::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
   p->vtx.end();
+}
+
+void Font::draw(const std::string& str, vec2 pos, vec4 color) const
+{
+  draw(string(str), pos, color);
 }
 
 void Font::draw(const char *str, vec2 pos, vec4 color) const
@@ -475,6 +480,11 @@ void Font::draw(const char *str, vec2 pos, vec4 color) const
 void Font::draw(const String& str, vec2 pos, vec3 color) const
 {
   draw(str, pos, vec4{ color.r, color.g, color.b, 1.0f });
+}
+
+void Font::draw(const std::string& str, vec2 pos, vec3 color) const
+{
+  draw(string(str), pos, color);
 }
 
 void Font::draw(const char *str, vec2 pos, vec3 color) const
@@ -491,6 +501,11 @@ void Font::draw(const String& str, vec2 pos, Vector4<byte> color) const
     color.a / 255.0f,
   };
   draw(str, pos, normalized);
+}
+
+void Font::draw(const std::string& str, vec2 pos, Vector4<byte> color) const
+{
+  draw(string(str), pos, color);
 }
 
 void Font::draw(const char *str, vec2 pos, Vector4<byte> color) const
@@ -533,9 +548,9 @@ float Font::bearingY() const
   return m_bearing_y;
 }
 
-void Font::bindFontAltas() const
+void Font::bindFontAltas(int unit) const
 {
-  gx::tex_unit(TexImageUnit, m_atlas, m_sampler);
+  gx::tex_unit(unit, m_atlas, m_sampler);
 }
 
 void Font::populateRenderData(const std::vector<pGlyph>& glyphs)

@@ -217,6 +217,8 @@ private:
 
   typedef SyntaxTree::Ptr (Parser::*MacroFn)(const Token&);
   SyntaxTree::Ptr setMacro(const Token& tok);
+  SyntaxTree::Ptr trueMacro(const Token& tok);
+  SyntaxTree::Ptr falseMacro(const Token& tok);
 
   void expectSeparator(const Token& tok);
   bool expectTerminatorOrSeparator(const Token& tok, Token::Tag tag);

@@ -31,6 +31,11 @@ Time Timers::ticks()
   return (Time)p_perf_counter.QuadPart;
 }
 
+double Timers::timef_s()
+{
+  return (double)ticks() / (double)ticks_per_s();
+}
+
 Time Timers::time_s()
 {
   return ticks_to_s(ticks());

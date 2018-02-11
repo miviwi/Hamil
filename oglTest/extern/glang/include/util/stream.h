@@ -1,5 +1,7 @@
 #pragma once
 
+#include <debug/table.h>
+
 #include <cstdio>
 #include <string>
 
@@ -21,30 +23,49 @@ public:
 class ConstInputStream : public InputStream {
 public:
   ConstInputStream(const char *str_) :
-    m_str(str_), m_line(1), m_column(1)
+    m_str(str_), m_line(1), m_column(1),
+    m_dbg(nullptr)
   { }
+  ConstInputStream(const char *src_, Table_Source *dbg) :
+    ConstInputStream(src_)
+  {
+    m_dbg = dbg;
+  }
 
   virtual char peek() { return *m_str; }
-  virtual char next() { updateLine(); return !eof() ? *m_str++ : '\0'; }
+  virtual char next() { updateLineDebugTable(); return !eof() ? *m_str++ : '\0'; }
 
-  virtual bool eof() { return *m_str == '\0'; }
+  virtual bool eof()
+  {
+    if(*m_str != '\0') return false;
+
+    m_dbg->line();
+    return true;
+  }
 
   virtual unsigned line() { return m_line; }
   virtual unsigned column() { return m_column; }
 
 private:
-  void updateLine()
+  void updateLineDebugTable()
   {
-    if(*m_str == '\n') {
+    char ch = *m_str;
+    if(ch == '\n') {
       m_column = 1;
       m_line++;
+
+      if(m_dbg) m_dbg->line();
     } else {
       m_column++;
+
+      if(m_dbg) m_dbg->text(ch);
     }
   }
 
   const char *m_str;
   unsigned m_line, m_column;
+
+  Table_Source *m_dbg;
 };
 
 class OutputStream {

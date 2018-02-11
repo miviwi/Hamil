@@ -12,7 +12,7 @@ public:
 
   virtual byte *base() const;
 
-  virtual long long alloc(size_t sz);
+  virtual long long allocBlock();
   virtual void free(void *p);
 
   virtual ~FastHeap();

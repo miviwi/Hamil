@@ -48,13 +48,13 @@ private:
   friend class FunctionObject;
   friend class HandleObject;
 
-  void *heapAlloc(size_t sz);
-  template <typename T> T *heapAlloc() { return (T *)heapAlloc(sizeof(T)); }
+  void *heapAlloc();
+  template <typename T> T *heapAlloc() { return (T *)heapAlloc(); }
 
   template <typename T, typename... Args>
   T *create(Args... args)
   {
-    auto obj = (T *)heapAlloc(sizeof(T));
+    auto obj = (T *)heapAlloc();
     new(obj) T(std::forward<Args>(args)...);
 
     return obj;

@@ -1,3 +1,8 @@
+#include <util/format.h>
+
+#include <math/geometry.h>
+#include <math/transform.h>
+
 #include <win32/win32.h>
 #include <win32/window.h>
 #include <win32/time.h>
@@ -64,6 +69,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   vm->envSet("messagebox", om.fn(&vm_messagebox));
 
   auto vm_codeobject = glang::compile_string("[:a :b :c :d]");
+
+  vm->eval("(def v [:a :b :c :d])");
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -479,7 +486,7 @@ void main() {
            .frame(ui::create<ui::LabelFrame>(iface).caption("Light Z:"))
            .frame<ui::HSliderFrame>(iface, "z"))
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle wireframe:"))
+           .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
            .gravity(ui::Frame::Left))
     ;
@@ -491,9 +498,7 @@ void main() {
     window.quit();
   });
   btn_c->caption("Call vm!").onClick([&](auto target) {
-    auto code = glang::compile_string("(messagebox \"VM MessageBox!\" \"some text\")");
-
-    auto obj = vm->execute(code);
+    auto obj = vm->eval("(messagebox \"VM MessageBox!\" (repr (2 v)))");
     om.deref(obj);
   });
 
@@ -541,8 +546,6 @@ void main() {
     .frame(layout, { 30.0f, 500.0f })
     .frame<ui::Frame>(iface, ui::Geometry{ 1000.0f, 300.0f, 200.0f, 300.0f })
     ;
-
-  char str[256];
 
   auto fps_timer = win32::DeltaTimer();
 
@@ -609,11 +612,7 @@ void main() {
       }
     }
 
-    if(checkbox.value()) {
-      pipeline.wireframe();
-    } else {
-      pipeline.filledPolys();
-    }
+    display_tex_matrix = checkbox.value();
 
     gx::tex_unit(0, tex, sampler);
 
@@ -712,11 +711,12 @@ void main() {
       *xform::rotx(PIf/2.0f)
       ;
 
-    mat4 texmatrix = xform::identity()
-      *xform::translate(5.0f, 5.0f, 0.0f)
-      *xform::rotz(lerp(0.0f, PIf, anim_timer.elapsedf()))
-      *xform::scale(1.0f/(sin((float)win32::Timers::time_s() * PI/2.0f) + 2.0f))
-      *xform::translate(-5.0f, -5.0f, 0.0f)
+    auto texmatrix = xform::Transform()
+      .translate(-5.0f, -5.0f, 0.0f)
+      .scale(1.0f/(sin((float)win32::Timers::timef_s() * PI/2.0f) + 2.0f))
+      .rotz(lerp(0.0f, PIf, anim_timer.elapsedf()))
+      .translate(5.0f, 5.0f, 0.0f)
+      .matrix()
       ;
 
     mat4 modelview = view*model;
@@ -726,8 +726,8 @@ void main() {
       .uniformMatrix4x4(U::tex.uProjection, persp)
       .uniformMatrix4x4(U::tex.uModelView, modelview)
       .uniformMatrix3x3(U::tex.uNormal, modelview.inverse().transpose())
-      .uniformMatrix4x4(U::tex.uTexMatrix, /*texmatrix*/ xform::identity())
-      .uniformInt(U::tex.uTex, 0)
+      .uniformMatrix4x4(U::tex.uTexMatrix, display_tex_matrix ? texmatrix : xform::identity())
+      .uniformSampler(U::tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
     gx::Pipeline()
@@ -737,36 +737,39 @@ void main() {
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
       color = { 0, 0, 0, (float)i };
-      model = xform::identity()
-        *xform::translate(pos)
-        *xform::scale(0.2f)
+      model = xform::Transform()
+        .scale(0.2f)
+        .translate(pos)
+        .matrix()
         ;
       drawcube();
 
       vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FB_DIMS);
       screen.y -= 10;
 
-      sprintf_s(str, "Light %d", i+1);
-      small_face.draw(str, screen, { 1, 1, 1 });
+      small_face.draw(util::fmt("Light %d", i+1), screen, { 1, 1, 1 });
     }
 
     int fps = (float)frames / fps_timer.elapsedSecondsf();
 
-    sprintf_s(str, "FPS: %d", fps);
+    constexpr float smoothing = 0.9f;
+    old_fps = fps;
+    fps = (float)old_fps*smoothing + (float)fps*(1.0f-smoothing);
 
-    face.draw(str, vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
+    face.draw(util::fmt("FPS: %d", fps), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
 
     face.draw(vram_size_str, vec2{ FB_DIMS.x - 300.0f, 70.0f }, vec3{ 0.8f, 0.0f, 0.0f });
 
-    sprintf_s(str, "anim_factor: %.2f eye: (%.2f, %.2f, %.2f)", anim_timer.elapsedf(), eye.x, eye.y, eye.z);
-    small_face.draw(str, { 30.0f, 100.0f }, { 1.0f, 1.0f, 1.0f });
+    small_face.draw(util::fmt("anim_factor: %.2f eye: (%.2f, %.2f, %.2f)",
+                              anim_timer.elapsedf(), eye.x, eye.y, eye.z),
+                    { 30.0f, 100.0f }, { 1.0f, 1.0f, 1.0f });
 
-    sprintf_s(str, "time: %.8lfs", fps_timer.elapsedSecondsf());
-    small_face.draw(str, { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+    small_face.draw(util::fmt("time: %.8lfs", fps_timer.elapsedSecondsf()),
+                    { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
-    texmatrix = texmatrix.inverse();
-    char buf[1024];
-    sprintf_s(buf,
+    //texmatrix = texmatrix.inverse();
+    std::string texmatrix_str =
+      util::fmt(
               "%f %f %f %f\n"
               "%f %f %f %f\n"
               "%f %f %f %f\n"
@@ -776,7 +779,7 @@ void main() {
               texmatrix[8], texmatrix[9], texmatrix[10], texmatrix[11],
               texmatrix[12], texmatrix[13], texmatrix[14], texmatrix[15]);
 
-    if(display_tex_matrix) small_face.draw(buf, vec2{ 30.0f, 150.0f }, vec3{ 0, 0, 0 });
+    if(display_tex_matrix) small_face.draw(texmatrix_str, vec2{ 30.0f, 150.0f }, vec3{ 1, 1, 1 });
 
     iface.paint();
     cursor.paint();

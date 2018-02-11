@@ -1,6 +1,7 @@
 #include <gx/framebuffer.h>
 
 #include <cassert>
+#include <algorithm>
 
 namespace gx {
 
@@ -10,7 +11,7 @@ Framebuffer::Attachment Framebuffer::Color(int index)
 }
 
 Framebuffer::Framebuffer() :
-  m_draw_buffers_setup(false)
+  m_draw_buffers(DrawBuffersNeedSetup)
 {
   glGenFramebuffers(1, &m);
 }
@@ -33,18 +34,21 @@ Framebuffer& Framebuffer::use()
 
 Framebuffer& Framebuffer::use(BindTarget target)
 {
-  m_bound = binding(target);
   glBindFramebuffer(m_bound, m);
+  m_bound = (GLenum)target;
+
+  setupDrawBuffers();
 
   return *this;
 }
 
 Framebuffer& Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment att)
 {
-  checkIfBound();
-
-  glFramebufferTexture(m_bound, attachement(att), tex.m, level);
   m_samples = tex.m_samples;
+
+  checkIfBound();
+  glFramebufferTexture(m_bound, attachement(att), tex.m, level);
+  drawBuffer(att);
 
   return *this;
 }
@@ -58,16 +62,12 @@ Framebuffer& Framebuffer::renderbuffer(Format fmt, Attachment att)
 
 Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att)
 {
-  GLuint rb;
-  glGenRenderbuffers(1, &rb);
-
-  glBindRenderbuffer(GL_RENDERBUFFER, rb);
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, fmt, w, h);
-
-  checkIfBound();
-  glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
-
+  auto rb = create_rendebuffer();
   m_rb.push_back(rb);
+
+  glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, fmt, w, h);
+  framebufferRenderbuffer(rb, att);
+  drawBuffer(att);
 
   return *this;
 }
@@ -81,18 +81,14 @@ Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, 
 
 Framebuffer & Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att)
 {
+  auto rb = create_rendebuffer();
+  m_rb.push_back(rb);
+
   m_samples = samples;
 
-  GLuint rb;
-  glGenRenderbuffers(1, &rb);
-
-  glBindRenderbuffer(GL_RENDERBUFFER, rb);
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, samples, fmt, w, h);
-
-  checkIfBound();
-  glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
-
-  m_rb.push_back(rb);
+  framebufferRenderbuffer(rb, att);
+  drawBuffer(att);
 
   return *this;
 }
@@ -117,18 +113,7 @@ void Framebuffer::blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Par
 
 void Framebuffer::bind_window(BindTarget target)
 {
-  glBindFramebuffer(binding(target), 0);
-}
-
-GLenum Framebuffer::binding(BindTarget t)
-{
-  switch(t) {
-  case BindTarget::Read: return GL_READ_FRAMEBUFFER;
-  case BindTarget::Draw: return GL_DRAW_FRAMEBUFFER;
-  case BindTarget::Framebuffer: return GL_FRAMEBUFFER;
-  }
-
-  return 0;
+  glBindFramebuffer((GLenum)target, 0);
 }
 
 GLenum Framebuffer::attachement(Attachment att)
@@ -138,6 +123,21 @@ GLenum Framebuffer::attachement(Attachment att)
   else if(att == DepthStencil) return GL_DEPTH_STENCIL_ATTACHMENT;
 
   return 0;
+}
+
+GLuint Framebuffer::create_rendebuffer()
+{
+  GLuint rb;
+  glGenRenderbuffers(1, &rb);
+
+  glBindRenderbuffer(GL_RENDERBUFFER, rb);
+  return rb;
+}
+
+void Framebuffer::framebufferRenderbuffer(GLuint rb, Attachment att)
+{
+  checkIfBound();
+  glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
 }
 
 void Framebuffer::checkIfBound()
@@ -156,6 +156,7 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
   GLint att_type = -1;
   glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,
                                         GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &att_type);
+  assert(att_type != GL_NONE && "INAVLID_OPERATION no Color0 attachment!");
 
   GLint name = -1;
   glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,
@@ -163,8 +164,6 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
 
   ivec2 dims{ -1, -1 };
   switch(att_type) {
-  case GL_NONE: throw "INVALID OPERATION! No color attachement";
-
   case GL_RENDERBUFFER:
     glBindRenderbuffer(GL_RENDERBUFFER, name);
 
@@ -190,19 +189,30 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
   return dims;
 }
 
+void Framebuffer::drawBuffer(Attachment att)
+{
+  if(att < Color0) return;
+
+  unsigned idx = att - Color0;
+  m_draw_buffers |= DrawBuffersNeedSetup | (1<<idx);
+}
+
 void Framebuffer::setupDrawBuffers()
 {
-  if(m_draw_buffers_setup) return;
+  if(!(m_draw_buffers & DrawBuffersNeedSetup)) return;
 
-  GLenum bufs[] = {
-    GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
-    GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
-    GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5,
-    GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7,
-  };
-  glDrawBuffers(8, bufs);
+  GLenum bufs[NumDrawBuffers];
+  std::fill(bufs, bufs+NumDrawBuffers, GL_NONE);
 
-  m_draw_buffers_setup = true;
+  for(unsigned i = 0; i < NumDrawBuffers; i++) {
+    bool enabled = (m_draw_buffers>>i) & 1;
+    if(!enabled) continue;
+
+    bufs[i] = GL_COLOR_ATTACHMENT0 + i;
+  }
+
+  glDrawBuffers(NumDrawBuffers, bufs);
+  m_draw_buffers &= ~DrawBuffersNeedSetup;
 }
 
 void clear(unsigned mask)

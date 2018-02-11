@@ -15,9 +15,14 @@ public:
   void use();
 
   void init(unsigned w, unsigned h);
-  void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t);
+  void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
-              Format format, Type t);
+              Format format, Type type);
+
+  void init(unsigned w, unsigned h, unsigned d /* num_layers */);
+  void init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d, Format format, Type type);
+  void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
+              unsigned w, unsigned h, unsigned d, Format format, Type type);
 
   void swizzle(Component r, Component g, Component b, Component a);
 
@@ -27,6 +32,7 @@ public:
 protected:
   Texture(GLenum target, Format format);
 
+  friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
   friend class Framebuffer;
 
   GLenum m_target;
@@ -43,10 +49,20 @@ public:
   void initMultisample(unsigned samples, unsigned w, unsigned h);
 
 private:
-  friend void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
-
   friend class Framebuffer;
 
+  unsigned m_samples;
+};
+
+class Texture2DArray : public Texture {
+public:
+  Texture2DArray(Format format);
+  Texture2DArray(const Texture2DArray& other) = delete;
+  virtual ~Texture2DArray();
+
+  void initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers);
+
+private:
   unsigned m_samples;
 };
 
@@ -75,7 +91,7 @@ public:
   Sampler& param(ParamName name, vec4 value);
 
 private:
-  friend void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
+  friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
 
   static GLenum pname(ParamName name);
   static GLenum param(Param p);
@@ -84,6 +100,6 @@ private:
   unsigned *m_ref;
 };
 
-void tex_unit(unsigned idx, const Texture2D& tex, const Sampler& sampler);
+void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
 
 }
