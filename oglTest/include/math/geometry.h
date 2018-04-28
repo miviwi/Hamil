@@ -47,11 +47,15 @@ struct Vector2 {
     return Vector2{ x/l, y/l };
   }
 
-  T distance(Vector2 v) const
+  T distance2(const Vector2& v) const
   {
     Vector2 d = v - *this;
 
-    return sqrt(d.x*d.x + d.y*d.y);
+    return d.x*d.x + d.y*d.y;
+  }
+  T distance(const Vector2& v) const
+  {
+    return sqrt(distance2(v));
   };
 
   template <typename U>
@@ -134,6 +138,17 @@ struct Vector3 {
   Vector3 cross(const Vector3& b) const
   {
     return Vector3{ y*b.z - z*b.y, z*b.x - x*b.z, x*b.y - y*b.x };
+  }
+
+  Vector3 distance2(const Vector3& v) const
+  {
+    Vector3 d = v - *this;
+
+    return d.x*d.x + d.y*d.y + d.z*d.z;
+  }
+  Vector3 distance(const Vector3& v) const
+  {
+    return sqrt(distance2(v));
   }
 
   operator float *() { return (float *)this; }

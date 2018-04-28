@@ -40,7 +40,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 
     switch(gravity()) {
     case Left:   painter.text(font, m_caption, { g.x, center.y }, white()); break;
-    case Right:  painter.text(font, m_caption, { g.x + (g.w-font.width(s)), center.y }, white()); break;
+    case Right:  painter.text(font, m_caption, { g.x + (g.w-s.width()), center.y }, white()); break;
     }
   }
 }
@@ -62,7 +62,7 @@ vec2 LabelFrame::sizeHint() const
   const ft::Font& font = *m_ui->style().font;
   auto s = font.stringMetrics(m_caption);
 
-  return { font.width(s), font.height(s) };
+  return { s.width(), s.height() };
 }
 
 }

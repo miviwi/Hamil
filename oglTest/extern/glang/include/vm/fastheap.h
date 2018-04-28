@@ -1,10 +1,12 @@
 #pragma once
 
-#include "vm/heap.h"
+#include <vm/heap.h>
+
+#include <cstdint>
 
 namespace glang {
 
-class __declspec(dllexport) FastHeap : public IHeap {
+class FastHeap : public IHeap {
 public:
   enum { Size = 1024*1024 };
 
@@ -18,6 +20,9 @@ public:
   virtual ~FastHeap();
 
 private:
+  void *m_mem;
+  uint64_t *m_free;
+
   void *m_base;
   byte *m_ptr;
 };

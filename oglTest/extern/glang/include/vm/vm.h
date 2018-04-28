@@ -20,7 +20,7 @@ namespace glang {
 //  - stack unwinding on exception (error recovery)
 //    (all throw's will have to be replaced with helper method)
 //  - think of a better place for eval()
-class __declspec(dllexport) Vm {
+class Vm {
 public:
   typedef unsigned __int32 Instruction;
   typedef          __int32 StackOffset;
@@ -43,6 +43,7 @@ public:
     ConjError,
     AssocNonMapError,
     DissocNonMapError,
+    ArgTypeError,
   };
 
   struct Error { };
@@ -71,7 +72,7 @@ public:
   };
 
   template <typename T, size_t N>
-  struct __declspec(dllexport) Stack {
+  struct Stack {
   public:
     Stack() : ptr(data) {}
 
@@ -105,19 +106,19 @@ public:
     }
   };
 
-  struct __declspec(dllexport) Environment {
+  struct Environment {
   public:
     ObjectRef get(long long val);
-    bool set(long long key, ObjectRef val);
- 
-    Address getLocation(long long val);
-    bool setLocation(long long key, Address loc);
+    bool set(long long key, ObjectRef val, Address addr = 0);
 
+    Address getLocation(long long val);
+ 
     void finalize(ObjectManager& om);
 
   private:
-    std::unordered_map<std::string, ObjectRef> m_store;
-    std::unordered_map<std::string, Address> m_where;
+    using EnvEntry = std::pair<ObjectRef, Address>;
+
+    std::unordered_map<std::string, EnvEntry> m_store;
   };
 
   struct FnDesc {
@@ -222,12 +223,14 @@ public:
 
   enum {
     S_REPR,
+    S_STR,
+    S_INT, S_FLOAT, S_RATIO,
     S_MOD,
     S_CONJ, S_ASSOC, S_DISSOC,
     S_ATOMp, S_NILp,
     S_INTp, S_FLOATp, S_RATIOp,
     S_STRp, S_SYMp, S_KWp,
-    S_SEQp,
+    S_NUMp, S_SEQp,
     S_CONSp, S_VECp, S_MAPp, S_SETp,
     S_FNp,
     S_HANDLEp,

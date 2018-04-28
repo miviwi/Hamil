@@ -114,8 +114,8 @@ vec2 PushButtonFrame::sizeHint() const
   float font_height = font.height();
 
   return {
-    std::max(font.width(s)+20, 110.0f),
-    font.height(s) + font_height*0.8f
+    std::max(s.width()+20, 110.0f),
+    s.height() + font_height*0.8f
   };
 }
 

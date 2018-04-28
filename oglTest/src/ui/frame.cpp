@@ -4,9 +4,23 @@
 namespace ui {
 
 Frame::Frame(Ui &ui, const char *name, Geometry geom) :
-  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom)
+  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom),
+  m_animation({
+      make_animation_channel({
+            keyframe(Color(255, 0, 0), 2.0f),
+            keyframe(Color(0, 255, 0), 2.0f),
+            keyframe(Color(0, 0, 255), 2.0f),
+            keyframe(Color(0, 255, 0), 2.0f),
+      }, EaseQuinticOut, RepeatLoop),
+
+      make_animation_channel({
+            keyframe(0.0f, 3.0f),
+            keyframe(-150.0f, 3.0f),
+      }, EaseBounce, RepeatLoop)
+  })
 {
   m_ui->registerFrame(this);
+  m_animation.start();
 }
 
 Frame::Frame(Ui& ui, Geometry geom) :
@@ -158,18 +172,8 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     //.circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
     .line(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10, VertexPainter::CapRound, slider_color, slider_color)
     .lineBorder(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10-1, VertexPainter::CapRound, black(), black())
-    .circle({ c.x-40.0f, c.y }, 10, style.button.color[0])
-    .circle({ c.x-40.0f, c.y-3.0f }, 6, style.button.color[1])
-    .arcFull({ c.x-40.0f, c.y }, 10, black())
-    //.roundedRect(round_rect, radius, VertexPainter::All & ~VertexPainter::BottomRight, gray)
-    //.roundedRect(round_rect.contract(1), radius, VertexPainter::All & ~VertexPainter::BottomRight, dark_gray)
-    //.arcFull(circle, radius, { 0, 128, 0, 255 })
-    //.triangle({ c.x, c.y }, 70.0f, angle*1.0f, { 255, 0, 0 })
-    //.triangle({ c.x, c.y }, 60.0f, angle*2.0f, { 0, 255, 0 })
-    //.triangle({ c.x, c.y }, 50.0f, angle*3.0f, { 0, 0, 255 })
-    //.circle(xo+vec2{ xr/2.0f, xr/2.0f }, xr, white())
-    //.line(xo, xo+vec2{ xr, xr }, 3, VertexPainter::CapButt, black(), black())
-    //.line(xo+vec2{ 0.0f, xr }, xo+vec2{ xr, 0.0f }, 3, VertexPainter::CapButt, black(), black())
+    //.rect({ c.x, c.y+m_animation.channel<float>(0), 50.0f, 50.0f }, Color(255, 0, 0))
+    .rect({ c.x, c.y+m_animation.channel<float>(1), 50.0f, 50.0f }, m_animation.channel<Color>(0))
     ;
 }
 

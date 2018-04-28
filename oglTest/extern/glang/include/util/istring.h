@@ -8,7 +8,7 @@
 
 namespace glang {
 
-class __declspec(dllexport) InternedString {
+class InternedString {
 public:
   using Str = std::pair<std::string, size_t>;
 
@@ -27,7 +27,7 @@ public:
 
   operator const std::string&() { return str(); }
 
-  struct __declspec(dllexport) HashStr {
+  struct HashStr {
     size_t operator()(Str const& s) const { return s.second; }
   };
   using Store = std::unordered_set<Str, HashStr>;
@@ -43,7 +43,7 @@ private:
 namespace std {
 
 template <>
-struct __declspec(dllexport) hash<glang::InternedString> {
+struct hash<glang::InternedString> {
   typedef glang::InternedString argument_type;
   typedef size_t result_type;
 

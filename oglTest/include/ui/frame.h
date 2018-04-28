@@ -3,6 +3,7 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/cursor.h>
+#include <ui/animation.h>
 #include <math/geometry.h>
 #include <win32/input.h>
 
@@ -46,6 +47,8 @@ private:
   const char *m_name;
   Gravity m_gravity;
   Geometry m_geom;
+
+  Animation m_animation;
 };
 
 template <typename T, typename... Args>

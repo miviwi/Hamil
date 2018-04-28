@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gx/gx.h>
+#include <util/ref.h>
 #include <math/geometry.h>
 
 namespace gx {
@@ -66,7 +67,7 @@ private:
   unsigned m_samples;
 };
 
-class Sampler {
+class Sampler : public Ref {
 public:
   enum ParamName {
     MinFilter, MagFilter,
@@ -81,10 +82,7 @@ public:
   };
 
   Sampler();
-  Sampler(const Sampler& other);
   ~Sampler();
-
-  Sampler& operator=(const Sampler& other);
 
   Sampler& param(ParamName name, Param p);
   Sampler& param(ParamName name, float value);
@@ -97,7 +95,6 @@ private:
   static GLenum param(Param p);
 
   GLuint m;
-  unsigned *m_ref;
 };
 
 void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);

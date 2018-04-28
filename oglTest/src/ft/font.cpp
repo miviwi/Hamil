@@ -1,5 +1,6 @@
 #include <common.h>
 #include <ft/font.h>
+#include <util/allocator.h>
 #include <gx/pipeline.h>
 #include <gx/program.h>
 #include <uniforms.h>
@@ -29,19 +30,16 @@ public:
 
     NumCharVerts = 4,
     NumCharIndices = 5,
-
-    Error = ~0u,
   };
 
   pFt() :
-    ptr(0),
+    allocator(NumBufferChars),
     buf(gx::Buffer::Dynamic), 
     ind(gx::Buffer::Dynamic, gx::u16),
     vtx(fmt, buf, ind)
   { }
 
-  unsigned alloc(size_t num_chars);
-  void dealloc(size_t offset, size_t num_chars);
+  FreeListAllocator allocator;
 
   static const gx::VertexFormat fmt;
 
@@ -49,13 +47,6 @@ public:
   gx::IndexBuffer ind;
 
   gx::IndexedVertexArray vtx;
-
-private:
-  unsigned allocAtEnd(size_t num_chars);
-  void coalesce();
-
-  size_t ptr;
-  std::list<std::pair<size_t, size_t>> free_list;
 };
 
 class pFace {
@@ -208,6 +199,9 @@ void init()
   font_program->getUniformsLocations(U::font);
   
   font_program->label("FT_program");
+
+  font_program->use()
+    .uniformSampler(U::font.uAtlas, TexImageUnit);
 }
 
 void finalize()
@@ -269,8 +263,8 @@ Font::~Font()
 
 String Font::string(const char *str, size_t length) const
 {
-  unsigned ptr = p->alloc(length); // Simple free list alloator
-  assert(ptr != pFt::Error && "no more space in string vertex buffer!");
+  auto ptr = (unsigned)p->allocator.alloc(length); // Simple free list alloator
+  assert(ptr != FreeListAllocator::Error && "no more space in string vertex buffer!");
 
   std::vector<Vertex> vtx(length*NumCharVerts);
   std::vector<u16> inds(length*NumCharIndices);
@@ -345,9 +339,7 @@ String Font::stringMetrics(const char *str) const
     str++;
   }
 
-  auto s = std::shared_ptr<pString>(new pString, [](auto *p) {
-    delete p;
-  });
+  auto s = String(new pString);
 
   s->m = nullptr;
 
@@ -432,9 +424,7 @@ String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, Stri
     str++;
   }
 
-  auto s = std::shared_ptr<pString>(new pString, [](auto *p) {
-    delete p;
-  });
+  auto s = String(new pString);
 
   s->m = face;
 
@@ -461,7 +451,6 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
 
   font_program->use()
     .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
-    .uniformSampler(U::font.uAtlas, TexImageUnit)
     .uniformVector4(U::font.uColor, color)
     .drawBaseVertex(gx::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
   p->vtx.end();
@@ -511,21 +500,6 @@ void Font::draw(const std::string& str, vec2 pos, Vector4<byte> color) const
 void Font::draw(const char *str, vec2 pos, Vector4<byte> color) const
 {
   draw(string(str), pos, color);
-}
-
-float Font::width(const String& str) const
-{
-  return str->width;
-}
-
-float Font::height(const String& str) const
-{
-  return str->height;
-}
-
-unsigned Font::num(const String& str) const
-{
-  return str->num;
 }
 
 float Font::ascender() const
@@ -673,74 +647,6 @@ const Font::GlyphRenderData& Font::getGlyphRenderData(int ch) const
   return m_render_data[glyphIndex(ch)];
 }
 
-unsigned pFt::alloc(size_t num_chars)
-{
-  if(free_list.empty()) return allocAtEnd(num_chars);
-
-  for(auto iter = free_list.begin(); iter != free_list.end(); iter++) {
-    if(iter->second < num_chars) continue;
-
-    auto ret = iter->first,
-      leftover = iter->second-num_chars;
-
-    free_list.erase(iter);
-    if(leftover > 0) free_list.push_front({ ret+num_chars, leftover });
-
-    return (unsigned)ret;
-  }
-
-  return (unsigned)allocAtEnd(num_chars);
-}
-
-void pFt::dealloc(size_t offset, size_t num_chars) 
-{
-  if(ptr == offset+num_chars) {
-    ptr -= num_chars;
-    return;
-  }
-
-  free_list.push_front({ offset, num_chars });
-  coalesce();
-}
-
-unsigned pFt::allocAtEnd(size_t num_chars)
-{
-  if(ptr+num_chars >= pFt::NumBufferChars) return pFt::Error;
-
-  auto ret = ptr;
-  ptr += num_chars;
-
-  return (unsigned)ret;
-}
-
-void pFt::coalesce()
-{
-  using Range = std::pair<size_t, size_t>;
-  auto in_range = [](Range a, Range b) -> bool
-  {
-    if(a.first < b.first) return a.first+a.second >= b.first;
-    else                  return b.first+b.second >= a.first;
-
-    return false;
-  };
-
-  auto prev = free_list.begin(),
-    iter = ++free_list.begin();
-  while(iter != free_list.end()) {
-    if(in_range(*prev, *iter)) {
-      Range a = { prev->first, prev->first+prev->second },
-        b = { iter->first, iter->first+iter->second };
-
-      iter->first = std::min(a.first, b.first);
-      iter->second = std::max(a.second, b.second) - iter->first;
-
-      free_list.erase(prev);
-    }
-    prev = iter;
-    iter++;
-  }
-}
-
 pFace::pFace(FT_Face f) :
   m(f)
 {
@@ -775,7 +681,32 @@ pString::pString()
 
 pString::~pString()
 {
-  if(base != ~0u) p->dealloc(base/4, allocated);
+  if(base != ~0u) p->allocator.dealloc(base/4, allocated);
+}
+
+String::~String()
+{
+  if(!deref()) delete m;
+}
+
+float String::width() const
+{
+  return m->width;
+}
+
+float String::height() const
+{
+  return m->height;
+}
+
+unsigned String::num() const
+{
+  return m->num;
+}
+
+pString *String::get() const
+{
+  return m;
 }
 
 static const std::unordered_map<std::string, std::string> family_to_path = {

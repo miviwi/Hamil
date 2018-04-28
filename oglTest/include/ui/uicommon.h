@@ -132,14 +132,18 @@ inline ui::Color lerp(ui::Color a, ui::Color b, float u)
 {
   using ui::Color;
 
-  Color m = b-a;
-  Color d = {
-    (byte)((float)m.r*u),
-    (byte)((float)m.g*u),
-    (byte)((float)m.b*u),
-    (byte)((float)m.a*u)
+  int red = a.r + (b.r-a.r)*u,
+    green = a.g + (b.g-a.g)*u,
+    blue = a.b + (b.b-a.b)*u,
+    alpha = a.a + (b.a-a.a)*u;
+
+  Color r = {
+    (byte)clamp(red, 0, 255),
+    (byte)clamp(green, 0, 255),
+    (byte)clamp(blue, 0, 255),
+    (byte)clamp(alpha, 0, 255)
   };
-  return a + d;
+  return r;
 }
 
 

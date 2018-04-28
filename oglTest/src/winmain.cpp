@@ -6,6 +6,7 @@
 #include <win32/win32.h>
 #include <win32/window.h>
 #include <win32/time.h>
+#include <win32/file.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -51,7 +52,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   ui::init();
   game::init();
 
-  auto heap = glang::WinHeap();
+  auto heap = glang::FastHeap();
   auto *vm = new glang::Vm(&heap);
 
   auto& om = vm->objMan();
@@ -70,6 +71,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   vm->envSet("messagebox", vm_messagebox_fn);
 
   vm->eval("(def v [:a :b :c :d])");
+
+  win32::File f("test.txt", win32::File::ReadWrite);
+
+  auto map = f.map(win32::File::ProtectReadWrite);
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);

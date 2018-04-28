@@ -48,7 +48,7 @@ struct ObjectRef {
     MaxValue    = 0x1FFFFFFF,
     ValueShift  = 3,
     ValueBits   = sizeof(id)*8 - ValueShift,
-    HiValShift  = (ValueBits/2)+1,
+    HiValShift  = (ValueBits/2)+1 + ValueShift,
     HiValBits   = ValueBits/2,
     RatioValMax = 0x00003FFF,
 
@@ -80,14 +80,14 @@ struct ObjectRef {
     assert(abs(num) <= RatioValMax && abs(denom) <= RatioValMax && "num or denom exceed max value!");
 
     num &= RatioValMax; denom &= RatioValMax;
-    return ObjectRef{ Inline|(Ratio<<TypeShift) | (num<<HiValShift) | (denom<<(ValueShift+1)) };
+    return ObjectRef{ Inline|(Ratio<<TypeShift) | (num<<HiValShift) | (denom<<(ValueShift)) };
   }
 
   static ObjectRef heap_object(id ptr)
   {
     assert(ptr <= MaxPtr && "ptr exceeds max value!");
 
-    return ObjectRef{ (ptr<<PtrShift) };
+    return ObjectRef{ (ptr>>IHeap::BlockBits) << PtrShift };
   }
 
   id raw() const { return m_id; }
@@ -96,10 +96,10 @@ struct ObjectRef {
   id type() const { return (m_id&TypeMask)>>TypeShift; }
 
   long long val() const { return sign_extend<long long, ValueBits>((m_id&ValueMask)>>ValueShift); }
-  long long hival() const { return sign_extend<long long, HiValBits>(val()>>HiValShift); }
-  long long loval() const { return sign_extend<long long, HiValBits>(val()>>1); }
+  long long hival() const { return sign_extend<long long, HiValBits>((raw()>>HiValShift) & RatioValMax); }
+  long long loval() const { return sign_extend<long long, HiValBits>((raw()>>ValueShift) & RatioValMax); }
 
-  id ptr() const { return (m_id&PtrMask)>>PtrShift; }
+  id ptr() const { return ((m_id&PtrMask)>>PtrShift) << IHeap::BlockBits; }
 
   ObjectRef() { *this = nil(); }
 
@@ -197,7 +197,8 @@ public:
   virtual ArtmResult mul(const Object& o) const { return ArtmResult(); }
   virtual ArtmResult div(const Object& o) const { return ArtmResult(); }
 
-  virtual ArtmResult neg() { return ArtmResult(); }
+  virtual ArtmResult neg() const { return ArtmResult(); }
+  virtual ArtmResult abs() const { return ArtmResult(); }
 
 protected:
   friend class Vm;
@@ -260,7 +261,8 @@ public:
   virtual ArtmResult mul(const Object& o) const;
   virtual ArtmResult div(const Object& o) const;
 
-  virtual ArtmResult neg();
+  virtual ArtmResult neg() const;
+  virtual ArtmResult abs() const;
 
   virtual long long toInt() const { return m_data; }
   virtual double toFloat() const { return (double)m_data; }
@@ -295,7 +297,8 @@ public:
   virtual ArtmResult mul(const Object& o) const;
   virtual ArtmResult div(const Object& o) const;
 
-  virtual ArtmResult neg();
+  virtual ArtmResult neg() const;
+  virtual ArtmResult abs() const;
 
   virtual long long toInt() const { return (long long)m_data; }
   virtual double toFloat() const { return m_data; }
@@ -318,9 +321,15 @@ public:
   static constexpr Object::Type Type = Object::Ratio;
 
   RatioObject(long long num, long long denom) :
-    NumberObject(Type), m_num(num), m_denom(denom) { }
+    NumberObject(Type), m_num(num), m_denom(denom)
+  {
+    simplyfy();
+  }
   RatioObject(long long num, long long denom, DebugFlags flags) :
-    NumberObject(Type, flags), m_num(num), m_denom(denom) { }
+    NumberObject(Type, flags), m_num(num), m_denom(denom)
+  {
+    simplyfy();
+  }
 
   virtual std::string repr() const
   {
@@ -329,6 +338,14 @@ public:
   virtual bool compare(int cond, const Object& other) const;
   virtual size_t hash() const;
   virtual void finalize(ObjectManager& om);
+
+  virtual ArtmResult add(const Object& o) const;
+  virtual ArtmResult sub(const Object& o) const;
+  virtual ArtmResult mul(const Object& o) const;
+  virtual ArtmResult div(const Object& o) const;
+
+  virtual ArtmResult neg() const;
+  virtual ArtmResult abs() const;
 
   virtual long long toInt() const { return m_num/m_denom; }
   virtual double toFloat() const { return (double)m_num/(double)m_denom; }
@@ -339,6 +356,9 @@ public:
 private:
   friend class Vm;
   friend class ObjectManager;
+
+  void simplyfy();
+
 
   long long m_num, m_denom;
 };

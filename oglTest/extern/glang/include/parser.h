@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tokenizer.h"
+#include <tokenizer.h>
 
 #include <cassert>
 #include <memory>
@@ -22,6 +22,7 @@ public:
 
   typedef std::unique_ptr<SyntaxTree> Ptr;
 
+  // Doesn't check if cast is legal!
   template <typename T>
   static const T& ref_cast(const Ptr& ptr)
   {
@@ -43,6 +44,12 @@ public:
       "Atom", "Form", "Collection",
     };
     return lits[m_tag];
+  }
+
+  template <typename T>
+  const T& as() const
+  {
+    return (const T&)*this;
   }
 
   const std::string& str() const { return m_token.str(); }
@@ -67,6 +74,13 @@ public:
 class ParentTree {
 public:
   typedef std::vector<SyntaxTree::Ptr> ChildrenVector;
+
+  // Doesn't check if cast is legal!
+  template <typename T>
+  const T& as() const
+  {
+    return (const T&)*this;
+  }
 
   void appendChild(SyntaxTree::Ptr child)
   {
@@ -167,6 +181,9 @@ public:
 
   struct Error {
     virtual std::string what() const = 0;
+
+    virtual unsigned line() const = 0;
+    virtual unsigned column() const = 0;
   };
 
   struct InvalidMacroError : public Error {
@@ -178,6 +195,9 @@ public:
     {
       return fmt("%d, %d: invalid macro #%c", m_line, m_column, m_ch);
     }
+
+    virtual unsigned line() const { return m_line; }
+    virtual unsigned column() const { return m_column; }
 
   private:
     unsigned m_line, m_column;
@@ -193,6 +213,29 @@ public:
     {
       return fmt("%d, %d: expected ' ' or ',' got %s", m_line, m_column, m_got);
     }
+
+    virtual unsigned line() const { return m_line; }
+    virtual unsigned column() const { return m_column; }
+
+  private:
+    unsigned m_line, m_column;
+    const char *m_got;
+  };
+
+  struct UnexpectedSeparatorError : public Error {
+  public:
+    UnexpectedSeparatorError(unsigned line, unsigned column, const char *got) :
+      m_line(line), m_column(column), m_got(got)
+    {
+    }
+
+    virtual std::string what() const
+    {
+      return fmt("%d, %d: extraneous %s", m_line, m_column, m_got);
+    }
+
+    virtual unsigned line() const { return m_line; }
+    virtual unsigned column() const { return m_column; }
 
   private:
     unsigned m_line, m_column;

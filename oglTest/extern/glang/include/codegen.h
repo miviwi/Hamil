@@ -1,13 +1,15 @@
 #pragma once
 
-#include "util/stream.h"
-#include "parser.h"
-#include "symbols.h"
-#include "asm.h"
+#include <util/stream.h>
+#include <parser.h>
+#include <symbols.h>
+#include <asm.h>
 
 #include <cstdio>
+#include <cmath>
 #include <string>
 #include <stack>
+#include <set>
 
 namespace glang {
 
@@ -51,6 +53,10 @@ class CodeGen : public ASTVisitor {
 public:
   struct Error {
     virtual std::string what() const = 0;
+
+    virtual unsigned line() const = 0;
+    virtual unsigned column() const = 0;
+
   };
   struct ErrorWithToken : public Error {
   public:
@@ -59,10 +65,15 @@ public:
     virtual std::string what() const
     {
       std::ostringstream o;
-      o << m_tok.line() << ", " << m_tok.column() << ": ";
+
+      o << "error: ";
       message(o, m_tok);
+
       return o.str();
     }
+
+    virtual unsigned line() const { return m_tok.line(); }
+    virtual unsigned column() const { return m_tok.column(); }
 
   protected:
     virtual void message(std::ostringstream& o, const Token& tok) const = 0;
@@ -72,37 +83,40 @@ public:
   };
   struct SpecialFormArgError : public ErrorWithToken {
   public:
-    SpecialFormArgError(const Token& tok, const std::string& gotten_, const std::string& expected_) :
-      ErrorWithToken(tok), m_gotten(gotten_), m_expected(expected_) { }
+    SpecialFormArgError(const Token& tok, const std::string& func_,
+                        const std::string& gotten_, const std::string& expected_) :
+      ErrorWithToken(tok), m_func(func_), m_gotten(gotten_), m_expected(expected_) { }
 
   protected:
     virtual void message(std::ostringstream& o, const Token& tok) const
     {
       if(!m_expected.empty()) {
-        o << "expected '" << m_expected << "' for function '" << tok.str() << "' (got '"
-          << m_gotten << "')\n";
+        o << "expected " << m_expected << " for function '" << m_func << "' (got "
+          << m_gotten << ")";
       } else {
-        o << "argument type error for funtion '" << tok.str() << "' (got '" << m_gotten << "')";
+        o << "argument type error for funtion '" << m_func << "' (got '" << m_gotten << "')";
       }
     }
 
   private:
-    std::string m_gotten, m_expected;
+    std::string m_func, m_gotten, m_expected;
   };
   struct SpecialFormArgCountError : public ErrorWithToken {
   public:
-    SpecialFormArgCountError(const Token& tok, unsigned gotten_, unsigned expected_) :
-      ErrorWithToken(tok), m_gotten(gotten_), m_expected(expected_) { }
+    SpecialFormArgCountError(const Token& tok, const std::string& func_, int gotten_, int expected_) :
+      ErrorWithToken(tok), m_func(func_), m_gotten(gotten_), m_expected(expected_) { }
 
   protected:
     virtual void message(std::ostringstream& o, const Token& tok) const
     {
-      o << "expected " << m_expected << " arguments for function '" << tok.str() << "' (got "
+      o << "expected " << (m_expected < 0 ? "at least " : "") << abs(m_expected)
+        << " arguments for function '" << m_func << "' (got "
         << m_gotten << ")";
     }
 
   private:
-    unsigned m_gotten, m_expected;
+    std::string m_func;
+    int m_gotten, m_expected;
   };
   struct DefAtNonGlobalScopeError : public ErrorWithToken {
   public:
@@ -171,7 +185,7 @@ public:
   protected:
     virtual void message(std::ostringstream& o, const Token& tok) const
     {
-      o << "& not followed by arg vector namename  in function argument list";
+      o << "'&' not followed by arg vector name in function argument list";
     }
   };
   struct InvalidDestructureError : public ErrorWithToken {
@@ -258,6 +272,9 @@ private:
   void pushVar(const Symbol& var);
   void pushEnvVar(InternedString var);
 
+  void pushTrampoline(const AST_Atom& fn);
+  void genTrampolines();
+
   SymbolTable::Sym defLocalSymbol(const Token& tok, const AST_Atom& sym);
   SymbolTable::Sym defArg(const Token& tok, const SyntaxTree& arg);
 
@@ -268,9 +285,15 @@ private:
 
   void ifFastPath(const AST_Form& form, const AST_Form& cond);
 
-  void formArgCountError(const AST_Form& form, unsigned expected);
+  // when
+  //   expected < 0
+  // "at least" is added to the error mewssage
+  void formArgCountError(const AST_Form& form, int expected);
 
   void location(const SyntaxTree& s);
+
+  static bool is_special_form(InternedString op);
+  static bool is_syscall(InternedString op);
 
   AsmGen m_gen;
   AsmConstTable m_consts;
@@ -279,6 +302,8 @@ private:
   std::stack<SymbolTable::Ptr> m_sym_stack;
 
   unsigned m_lambda_id, m_if_no, m_cond_no;
+
+  std::set<std::string> m_special_trampolines, m_syscall_trampolines;
 };
 
 }

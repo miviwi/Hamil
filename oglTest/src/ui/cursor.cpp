@@ -131,7 +131,7 @@ const gx::VertexFormat pCursorDriver::Fmt =
     .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
     .attr(gx::u16, 2, gx::VertexFormat::UnNormalized);
 
-const static auto pipeline =
+static const auto pipeline =
   gx::Pipeline()
     .alphaBlend();
 
@@ -212,6 +212,9 @@ void CursorDriver::init()
   cursor_program->getUniformsLocations(U::cursor);
 
   cursor_program->label("CURSOR_program");
+
+  cursor_program->use()
+    .uniformSampler(U::cursor.uTex, pCursorDriver::TexImageUnit);
 }
 
 void CursorDriver::finalize()
@@ -249,7 +252,6 @@ void CursorDriver::paint()
   gx::tex_unit(pCursorDriver::TexImageUnit, p->tex, p->sampler);
   cursor_program->use()
     .uniformMatrix4x4(U::cursor.uModelViewProjection, modelviewprojection)
-    .uniformInt(U::cursor.uTex, pCursorDriver::TexImageUnit)
     .draw(gx::Triangles, p->vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);
 }
 

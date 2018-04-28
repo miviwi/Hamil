@@ -530,7 +530,7 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
 
   auto s = font.writeVertsAndIndices(str.c_str(), pos_ptr, uv_ptr, m_ind.data()+offset);
 
-  unsigned num = font.num(s);
+  unsigned num = s.num();
 
   m_buf.resize(base + (num*ft::NumCharVerts));
   m_ind.resize(offset + (num*ft::NumCharIndices));
@@ -545,12 +545,11 @@ VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 
 
   auto s = appendTextVertices(font, str);
 
-
   appendCommand(Command::text(
     font,
     { floor(pos.x), floor(pos.y) }, c,
     base, offset,
-    font.num(s)
+    s.num()
   ));
 
   return *this;
@@ -565,7 +564,7 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
 
   vec2 center = g.center();
   vec2 pos = {
-    floor(center.x - font.width(s)/2.0f),
+    floor(center.x - s.width()/2.0f),
     floor(center.y - font.descender())
   };
 
@@ -573,7 +572,7 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
     font,
     { floor(pos.x), floor(pos.y) }, c,
     base, offset,
-    font.num(s)
+    s.num()
   ));
 
   return *this;
@@ -596,7 +595,7 @@ VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, G
     font,
     { floor(pos.x), floor(pos.y) }, c,
     base, offset,
-    font.num(s)
+    s.num()
   ));
 
   return *this;

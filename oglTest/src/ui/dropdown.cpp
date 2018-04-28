@@ -189,7 +189,7 @@ vec2 DropDownFrame::sizeHint() const
   for(auto& item : m_items) {
     auto s = font.stringMetrics(item.caption);
 
-    width = std::max(font.width(s), width);
+    width = std::max(s.width(), width);
   }
 
   return { width+ButtonWidth+20, font.height()*1.4f };

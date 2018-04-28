@@ -149,6 +149,6 @@ public:
   virtual void next(char ch) { putchar(ch); }
 };
 
-__declspec(dllexport) std::string fmt(const char *fmt, ...);
+std::string fmt(const char *fmt, ...);
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/istring.h"
+#include <util/istring.h>
 
 #include <cstdint>
 #include <cassert>

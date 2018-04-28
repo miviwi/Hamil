@@ -1,14 +1,14 @@
 #pragma once
 
-#include "object.h"
-#include "heap.h"
+#include <vm/object.h>
+#include <vm/heap.h>
 
 #include <cstdint>
 #include <utility>
 
 namespace glang {
 
-class __declspec(dllexport) ObjectManager {
+class ObjectManager {
 public:
   ObjectManager(IHeap *heap) :
     m_heap(heap)

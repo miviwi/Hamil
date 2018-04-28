@@ -211,6 +211,8 @@ void Ui::paint()
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
   style().font->bindFontAltas();
+  ui_program->use()
+    .uniformSampler(U::ui.uFontAtlas, ft::TexImageUnit);
 
   m_vtx.use();
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
@@ -220,7 +222,6 @@ void Ui::paint()
       ui_program->use()
         .uniformMatrix4x4(U::ui.uModelViewProjection, projection)
         .uniformInt(U::ui.uType, Shader_TypeShape)
-        .uniformVector4(U::ui.uTextColor, { 0, 0, 0, 0 })
         .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
       break;
 
@@ -228,7 +229,6 @@ void Ui::paint()
       ui_program->use()
         .uniformMatrix4x4(U::ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
         .uniformInt(U::ui.uType, Shader_TypeText)
-        .uniformSampler(U::ui.uFontAtlas, ft::TexImageUnit)
         .uniformVector4(U::ui.uTextColor, cmd.color.normalize())
         .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
       break;

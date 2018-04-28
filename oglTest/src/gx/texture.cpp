@@ -108,36 +108,16 @@ void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
   glTexImage2DMultisample(m_target, m_samples, m_format, w, h, GL_TRUE);
 }
 
-Sampler::Sampler() :
-  m_ref(new unsigned(1))
+Sampler::Sampler()
 {
   glGenSamplers(1, &m);
 }
 
-Sampler::Sampler(const Sampler& other) :
-  m(other.m), m_ref(other.m_ref)
-{
-  *m_ref++;
-}
-
 Sampler::~Sampler()
 {
-  *m_ref--;
+  if(deref()) return;
 
-  if(!*m_ref) {
-    glDeleteSamplers(1, &m);
-    delete m_ref;
-  }
-}
-
-Sampler& Sampler::operator=(const Sampler& other)
-{
-  m = other.m;
-  m_ref = other.m_ref;
-
-  *m_ref++;
-
-  return *this;
+  glDeleteSamplers(1, &m);
 }
 
 Sampler& Sampler::param(ParamName name, Param p)

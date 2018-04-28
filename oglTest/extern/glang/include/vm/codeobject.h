@@ -6,7 +6,7 @@ namespace glang {
 
 namespace assembler {
 
-struct __declspec(dllexport) CodeObject {
+struct CodeObject {
 public:
   enum { InitialAlloc = 4096 };
 
@@ -45,7 +45,7 @@ namespace std {
 template <typename T> struct hash;
 
 template <>
-struct __declspec(dllexport) hash<glang::assembler::CodeObject> {
+struct hash<glang::assembler::CodeObject> {
   typedef glang::assembler::CodeObject argument_type;
   typedef size_t result_type;
 

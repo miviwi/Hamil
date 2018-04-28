@@ -1,5 +1,7 @@
 #pragma once
 
+#include <util/ref.h>
+
 #include <cstdint>
 
 namespace win32 {
@@ -17,6 +19,8 @@ public:
     Read    = (1<<0),
     Write   = (1<<1),
     Execute = (1<<2),
+
+    ReadWrite = Read|Write,
   };
 
   enum Share {
@@ -44,13 +48,40 @@ public:
     ProtectExecuteReadWrite = ProtectExecute|ProtectRead|ProtectWrite,
   };
 
+  enum Seek {
+    SeekBegin,
+    SeekCurrent,
+    SeekEnd,
+  };
+
+  struct Error {
+    const unsigned what;
+    Error(unsigned what_) : what(what_) { }
+
+    const char *errorString() const;
+  };
+
+  struct FileOpenError : public Error {
+    using Error::Error;
+  };
+  struct MappingCreateError : public Error {
+    using Error::Error;
+  };
+  struct MapFileError : public Error {
+    using Error::Error;
+  };
+
   File(const char *path, Access access, Share share, OpenMode open);
   File(const char *path, Access access);
   File(const File& other) = delete;
   ~File();
 
+  size_t size() const;
+
   Size read(void *buf, Size sz);
   Size write(const void * buf, Size sz);
+
+  void seek(Seek seek, long offset) const;
 
   bool flush();
 
@@ -60,16 +91,18 @@ public:
 private:
   void *m;
   Access m_access;
+  size_t m_sz;
 };
 
-class FileView {
+class FileView : public Ref {
 public:
-  FileView(const FileView& other);
   ~FileView();
 
   FileView& operator=(const FileView& other) = delete;
 
   void *get() const;
+  template <typename T> T *get() const { return (T *)get(); }
+
   void flush(File::Size sz = 0);
 
   uint8_t& operator[](size_t offset);
@@ -81,8 +114,6 @@ private:
 
   void *m;
   void *m_ptr;
-
-  unsigned *m_ref;
 };
 
 }

@@ -4,12 +4,12 @@ struct IUnknown; // for Clang with microsoft codegen compat
 
 #include <Windows.h>
 
-#include "vm/heap.h"
+#include <vm/heap.h>
 
 
 namespace glang {
 
-class __declspec(dllexport) WinHeap : public IHeap {
+class WinHeap : public IHeap {
 public:
   enum { InitialSize = 1024*1024 };
 

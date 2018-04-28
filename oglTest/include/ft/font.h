@@ -42,7 +42,25 @@ private:
   std::string m_path;
 };
 
-using String = std::shared_ptr<pString>;
+struct String : public Ref {
+public:
+  String(pString *p) : m(p) { }
+  ~String();
+
+  float width() const;
+  float height() const;
+
+  // Number of generated indices
+  unsigned num() const;
+
+private:
+  friend class Font;
+  
+  pString *operator->() const { return get(); }
+  pString *get() const;
+
+  pString *m;
+};
 
 class Font {
 public:
@@ -82,12 +100,6 @@ public:
   void draw(const String& str, vec2 pos, Vector4<byte> color) const;
   void draw(const std::string& str, vec2 pos, Vector4<byte> color) const;
   void draw(const char *str, vec2 pos, Vector4<byte> color) const;
-
-  float width(const String& str) const;
-  float height(const String& str) const;
-
-  // Number of generated indices
-  unsigned num(const String& str) const;
 
   // Returns NEGATIVE value
   float descender() const;

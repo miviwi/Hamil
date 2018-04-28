@@ -218,6 +218,12 @@ float LoopTimer::elapsedf()
   return tick();
 }
 
+float LoopTimer::elapsedLoopsf()
+{
+  auto x = tick();
+  return x + (float)m_loops;
+}
+
 double LoopTimer::tick()
 {
   double loops = 0;

@@ -45,6 +45,7 @@ protected:
   Time m_started;
 };
 
+// Gives the amount of time elapsed since reset()
 class DeltaTimer : public Timer {
 public:
   Time elapsedSeconds();
@@ -54,6 +55,10 @@ public:
   double elapsedSecondsf();
 };
 
+// elapsedf():
+//   Gives a normalized value <0; 1> of the duration elapsed since reset()
+// duration<Milli,U>Seconds():
+//   sets the duration
 class DurationTimer : public Timer {
 public:
   DurationTimer();
@@ -73,6 +78,11 @@ protected:
   Time m_duration;
 };
 
+// elapsedf():
+//   Gives a normalized value <0; 1> of the duration elapsed since reset()
+// elapedLoopsf():
+//   the whole part is the number of loops since reset()
+//   and the fractional part is the same as elapsedf()
 class LoopTimer : public DurationTimer {
 public:
   LoopTimer();
@@ -85,6 +95,8 @@ public:
 
   u64 loops();
   float elapsedf();
+
+  float elapsedLoopsf();
 
 private:
   double tick();

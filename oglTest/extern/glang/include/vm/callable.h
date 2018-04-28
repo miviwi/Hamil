@@ -1,7 +1,7 @@
 #pragma once
 
-#include "object.h"
-#include "objman.h"
+#include <vm/object.h>
+#include <vm/objman.h>
 
 #include <tuple>
 #include <functional>
@@ -75,7 +75,7 @@ std::tuple<std::add_pointer_t<Args>...> parse_args(Object *args[])
 }
 
 template <typename... Args>
-class __declspec(dllexport) CallableFn : public ICallable {
+class CallableFn : public ICallable {
 public:
   using Fn = std::function<Object *(ObjectManager&, std::tuple<std::add_pointer_t<Args>...>)>;
 
@@ -93,7 +93,7 @@ private:
 };
 
 template <>
-class __declspec(dllexport) CallableFn<> : public ICallable {
+class CallableFn<> : public ICallable {
 public:
   using Fn = std::function<Object *(ObjectManager&)>;
 

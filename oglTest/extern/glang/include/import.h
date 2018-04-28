@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vm/object.h"
-#include "vm/objman.h"
+#include <vm/object.h>
+#include <vm/objman.h>
 
 using glang::ObjectManager;
 

@@ -28,6 +28,12 @@ File::File(const char *path, Access access, Share share, OpenMode open) :
 
   m = CreateFileA(path, desired_access, share_mode, nullptr,
                   creation_disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+  if(m == INVALID_HANDLE_VALUE) throw FileOpenError(GetLastError());
+
+  DWORD size_low = 0, size_high = 0;
+  size_low = GetFileSize(m, &size_high);
+
+  m_sz = ((size_t)size_high<<32ull) | size_low;
 }
 
 File::File(const char *path, Access access) :
@@ -38,6 +44,11 @@ File::File(const char *path, Access access) :
 File::~File()
 {
   if(m) CloseHandle(m);
+}
+
+size_t File::size() const
+{
+  return m_sz;
 }
 
 File::Size File::read(void *buf, Size sz)
@@ -54,6 +65,18 @@ File::Size File::write(const void *buf, Size sz)
   WriteFile(m, buf, sz, &num_written, nullptr);
 
   return num_written;
+}
+
+void File::seek(Seek seek, long offset) const
+{
+  DWORD move_method = 0;
+  switch(seek) {
+  case SeekBegin:   move_method = FILE_BEGIN; break;
+  case SeekCurrent: move_method = FILE_CURRENT; break;
+  case SeekEnd:     move_method = FILE_END; break;
+  }
+
+  SetFilePointer(m, offset, nullptr, move_method);
 }
 
 bool File::flush()
@@ -80,19 +103,14 @@ FileView File::map(Protect protect, size_t offset, Size size, const char *name)
   }
      
   auto mapping = CreateFileMappingA(m, nullptr, flprotect, 0, 0, name);
-  return FileView(mapping, m_access, offset, size);
-}
+  if(!mapping) throw MappingCreateError(GetLastError());
 
-FileView::FileView(const FileView& other) :
-  m(other.m), m_ptr(other.m_ptr), m_ref(other.m_ref)
-{
-  *m_ref++;
+  return FileView(mapping, m_access, offset, size);
 }
 
 FileView::~FileView()
 {
-  *m_ref--;
-  if(*m_ref) return;
+  if(deref()) return;
 
   UnmapViewOfFile(m_ptr);
   CloseHandle(m);
@@ -115,7 +133,7 @@ uint8_t& FileView::operator[](size_t offset)
 }
 
 FileView::FileView(void *mapping, File::Access access, size_t offset, File::Size size) :
-  m(mapping), m_ref(new unsigned(1))
+  m(mapping)
 {
   DWORD desired_access = 0;
   desired_access |= access & File::Read    ? FILE_MAP_READ    : 0;
@@ -123,6 +141,18 @@ FileView::FileView(void *mapping, File::Access access, size_t offset, File::Size
   desired_access |= access & File::Execute ? FILE_MAP_EXECUTE : 0;
 
   m_ptr = MapViewOfFile(m, desired_access, offset>>32, offset&0xFFFFFFFF, size);
+  if(!m_ptr) throw File::MapFileError(GetLastError());
+}
+
+const char *File::Error::errorString() const
+{
+  switch(what) {
+  case ERROR_FILE_NOT_FOUND: return "FileNotFound";
+  case ERROR_FILE_INVALID:   return "FileInvalid";
+  case ERROR_ACCESS_DENIED:  return "AccessDenied";
+  }
+
+  return "<unknown-error>";
 }
 
 }
