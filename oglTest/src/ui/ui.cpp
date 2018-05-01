@@ -140,8 +140,10 @@ ivec4 Ui::scissor_rect(Geometry g)
 Ui& Ui::frame(Frame *f, vec2 pos)
 {
   if(!pos.x && !pos.y) pos = m_geom.center();
-
+  
   f->m_geom.x = pos.x; f->m_geom.y = pos.y;
+  f->attached();
+
   m_frames.push_back(f);
 
   return *this;
@@ -149,6 +151,7 @@ Ui& Ui::frame(Frame *f, vec2 pos)
 
 Ui& Ui::frame(Frame *f)
 {
+  f->attached();
   m_frames.push_back(f);
 
   return *this;

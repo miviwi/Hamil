@@ -70,6 +70,8 @@ public:
   Font(const Font& other) = delete;
   ~Font();
 
+  int glyphIndex(int ch) const;
+
   // Must be drawn with the same Font!
   String string(const char *str, size_t length) const;
   String string(const std::string& str) const;
@@ -107,6 +109,9 @@ public:
   float height() const;
   float bearingY() const;
 
+  float advance(int glyph_index) const;
+  float charAdvance(int ch) const;
+
   // Defines sampleFontAtlas
   static const char *frag_shader;
 
@@ -124,7 +129,7 @@ private:
 
   void populateRenderData(const std::vector<pGlyph>& glyphs);
 
-  int glyphIndex(int ch) const;
+  int getGlyphIndex(int ch) const;
   const GlyphRenderData& getGlyphRenderData(int ch) const;
 
   pFace *m;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common.h>
+#include <win32/time.h>
 
 #include <list>
 #include <memory>
@@ -17,12 +18,14 @@ struct Input {
     return getTag() == T::tag() ? (T *)this : nullptr;
   }
 
+  Time timestamp;
+
 protected:
   virtual Tag getTag() const = 0;
 };
 
 struct Mouse : public Input {
-  enum Button {
+  enum Button : u16 {
     Left   = 1<<0,
     Right  = 1<<1,
     Middle = 1<<2,
@@ -30,13 +33,13 @@ struct Mouse : public Input {
     X2     = 1<<4,
   };
 
-  enum Event {
+  enum Event : u16 {
     Move, Up, Down, Wheel,
   };
 
-  unsigned buttons;
+  u16 event;
 
-  unsigned event;
+  u16 buttons;
   int ev_data;
 
   float dx, dy;
@@ -51,25 +54,53 @@ protected:
 };
 
 struct Keyboard : public Input {
-  enum Event {
+  enum Event : u16 {
     Invalid,
-    Up, Down,
+    KeyUp, KeyDown,
     SysUp, SysDown,
   };
 
-  unsigned event;
-  unsigned key;
+  enum Modifier : u16 {
+    Ctrl  = 1<<0,
+    Shift = 1<<1,
+    Alt   = 1<<2,
+    Super = 1<<3,
+  };
+
+  enum Key {
+    SpecialKey = (1<<16),
+
+    Up, Left, Down, Right,
+    Enter, Backspace,
+    Fn,
+  };
+
+  u16 event;
+  u16 modifiers;
+
+  unsigned key; // raw scancode
+  unsigned sym; // printed character
 
   static Tag tag() { return "kb"; }
 
   bool keyDown(unsigned k) const;
   bool keyUp(unsigned k) const;
 
+  bool modifier(unsigned mod) const;
+
+  bool special() const;
+
 protected:
   virtual Tag getTag() const { return tag(); }
+
+private:
+  friend class InputDeviceManager;
+
+  static unsigned translate_key(u16 vk, unsigned modifiers);
+  static unsigned translate_sym(u16 vk, unsigned modifiers);
 };
 
-struct InputDeviceManager {
+class InputDeviceManager {
 public:
   InputDeviceManager();
 
@@ -84,6 +115,7 @@ private:
 
   float m_mouse_speed;
   unsigned m_mouse_buttons;
+  unsigned m_kb_modifiers;
 };
 
 }

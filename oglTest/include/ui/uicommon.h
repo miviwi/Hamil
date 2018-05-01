@@ -138,10 +138,10 @@ inline ui::Color lerp(ui::Color a, ui::Color b, float u)
     alpha = a.a + (b.a-a.a)*u;
 
   Color r = {
-    (byte)clamp(red, 0, 255),
-    (byte)clamp(green, 0, 255),
-    (byte)clamp(blue, 0, 255),
-    (byte)clamp(alpha, 0, 255)
+    saturate<byte>(red),
+    saturate<byte>(green),
+    saturate<byte>(blue),
+    saturate<byte>(alpha),
   };
   return r;
 }

@@ -261,6 +261,11 @@ Font::~Font()
   delete m;
 }
 
+int Font::glyphIndex(int ch) const
+{
+  return ch < m_glyph_index.size() ? getGlyphIndex(ch) : -1;
+}
+
 String Font::string(const char *str, size_t length) const
 {
   auto ptr = (unsigned)p->allocator.alloc(length); // Simple free list alloator
@@ -522,6 +527,19 @@ float Font::bearingY() const
   return m_bearing_y;
 }
 
+float Font::advance(int glyph_index) const
+{
+  if((size_t)glyph_index > m_render_data.size()) return NAN;
+
+  const auto& rd = m_render_data[glyph_index];
+  return rd.advance.x / (float)(1<<16);
+}
+
+float Font::charAdvance(int ch) const
+{
+  return advance(getGlyphIndex(ch));
+}
+
 void Font::bindFontAltas(int unit) const
 {
   gx::tex_unit(unit, m_atlas, m_sampler);
@@ -637,14 +655,14 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   }
 }
 
-int Font::glyphIndex(int ch) const
+int Font::getGlyphIndex(int ch) const
 {
   return m_glyph_index[ch];
 }
 
 const Font::GlyphRenderData& Font::getGlyphRenderData(int ch) const
 {
-  return m_render_data[glyphIndex(ch)];
+  return m_render_data[getGlyphIndex(ch)];
 }
 
 pFace::pFace(FT_Face f) :

@@ -27,6 +27,7 @@
 #include <ui/slider.h>
 #include <ui/label.h>
 #include <ui/dropdown.h>
+#include <ui/textbox.h>
 
 #include <game/game.h>
 
@@ -493,6 +494,7 @@ void main() {
            .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
            .gravity(ui::Frame::Left))
+    .frame(ui::create<ui::TextBoxFrame>(iface, "textbox"))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b"),
@@ -536,6 +538,11 @@ void main() {
     };
   });
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
+
+  auto& textbox = iface.getFrameByName<ui::TextBoxFrame>("textbox")->onSubmit([&](auto target)
+  {
+    MessageBoxA(nullptr, target->text().c_str(), "textbox submitted!", MB_OK);
+  });
 
   light_no.onChange([&](auto target) {
     auto light_id = target->selected();
@@ -717,7 +724,7 @@ void main() {
 
     auto texmatrix = xform::Transform()
       .translate(-5.0f, -5.0f, 0.0f)
-      .scale(1.0f/(sin((float)win32::Timers::timef_s() * PI/2.0f) + 2.0f))
+      .scale(1.0f/(sin(win32::Timers::timef_s() * PI/2.0) + 2.0f))
       .rotz(lerp(0.0f, PIf, anim_timer.elapsedf()))
       .translate(5.0f, 5.0f, 0.0f)
       .matrix()
@@ -782,6 +789,8 @@ void main() {
               texmatrix[4], texmatrix[5], texmatrix[6], texmatrix[7],
               texmatrix[8], texmatrix[9], texmatrix[10], texmatrix[11],
               texmatrix[12], texmatrix[13], texmatrix[14], texmatrix[15]);
+
+
 
     if(display_tex_matrix) small_face.draw(texmatrix_str, vec2{ 30.0f, 150.0f }, vec3{ 1, 1, 1 });
 

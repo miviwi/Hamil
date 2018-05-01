@@ -30,6 +30,7 @@ void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
 
 LayoutFrame& LayoutFrame::frame(Frame *frame)
 {
+  frame->attached();
   m_frames.push_back(frame);
 
   return *this;

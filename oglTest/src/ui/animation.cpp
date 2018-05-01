@@ -13,12 +13,26 @@ Animation::Animation() :
 {
 }
 
-Animation::Animation(std::initializer_list<IAnimationChannel*> channels)
+Animation::Animation(ChannelList channels)
 {
+  init(channels);
+}
+
+Animation::~Animation()
+{
+  for(auto chan : m_channels) {
+    if(chan) delete chan;
+  }
+}
+
+void Animation::init(ChannelList channels)
+{
+  if(!channels.size()) return;
+
   assert(channels.size() < MaxAnimationChannels && "MaxAnimationChannels exceeded!");
 
   float duration = channels.begin()[0]->totalDuration();
-  for(auto chan : m_channels) {
+  for(auto chan : channels) {
     if(!chan) continue;
 
     assert(math::equal(chan->totalDuration(), duration) && "animation channels have varying length!");
@@ -30,30 +44,28 @@ Animation::Animation(std::initializer_list<IAnimationChannel*> channels)
   m_timer.durationSeconds(m_channels[0]->totalDuration());
 }
 
-Animation::~Animation()
-{
-  for(auto chan : m_channels) {
-    if(chan) delete chan;
-  }
-}
-
 void Animation::start()
 {
   m_timer.reset();
+}
+
+bool Animation::done()
+{
+  return m_timer.loops();
 }
 
 IAnimationChannel::IAnimationChannel()
 {
 }
 
-IAnimationChannel::IndexPair IAnimationChannel::findKeyframe(float time) const
+size_t IAnimationChannel::findKeyframe(float time) const
 {
   auto num_keyframes = m_timepoints.size();
 
   size_t first = 0;
   while(time > m_timepoints[first+1]) first++;
   
-  return { first, first+1 };
+  return first;
 } 
 
 size_t IAnimationChannel::numKeyframes() const
@@ -66,7 +78,7 @@ float IAnimationChannel::totalDuration() const
   return m_total_duration;
 }
 
-AnimationFrame IAnimationChannel::getKeyframe(float time) const
+AnimationFrame IAnimationChannel::getFrame(float time) const
 {
   float loops;
   time = modf(time, &loops);
@@ -76,15 +88,15 @@ AnimationFrame IAnimationChannel::getKeyframe(float time) const
   auto keyframe = findKeyframe(time);
 
   float timepoints[] = {
-    m_timepoints[keyframe.first],
-    m_timepoints[keyframe.second]
+    m_timepoints[keyframe],
+    m_timepoints[keyframe+1]
   };
   float duration = timepoints[1] - timepoints[0];
 
   float factor = (time - timepoints[0]) / duration;
 
   return {
-    keyframe.first, keyframe.second,
+    keyframe,
     factor
   };
 }

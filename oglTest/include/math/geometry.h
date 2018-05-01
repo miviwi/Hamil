@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <limits>
 #include <type_traits>
 
 static unsigned pow2_round(unsigned v)
@@ -514,6 +515,16 @@ T clamp(T x, T minimum, T maximum)
   if(x <= minimum) return minimum;
   
   return std::min(x, maximum);
+}
+
+template <typename Limit, typename T>
+Limit saturate(T x)
+{
+  static_assert(std::numeric_limits<T>::digits > std::numeric_limits<Limit>::digits,
+                "saturating smaller type with larger!");
+
+  using Limits = std::numeric_limits<Limit>;
+  return (Limit)clamp(x, (T)Limits::min(), (T)Limits::max());
 }
 
 template <typename T>

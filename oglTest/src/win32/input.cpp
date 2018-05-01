@@ -1,6 +1,8 @@
 #include <win32/input.h>
+#include <win32/panic.h>
 
 #include <vector>
+#include <cctype>
 
 #include <Windows.h>
 
@@ -23,11 +25,12 @@ InputDeviceManager::InputDeviceManager()
   rid[1].hwndTarget = nullptr;
 
   if(RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE)) == FALSE) {
-    throw;
+    panic("couldn't register input devices!", -6);
   }
 
   m_mouse_speed = 1.0f;
   m_mouse_buttons = 0;
+  m_kb_modifiers = 0;
 }
 
 void InputDeviceManager::setMouseSpeed(float speed)
@@ -51,18 +54,35 @@ void InputDeviceManager::process(void *handle)
   case RIM_TYPEKEYBOARD: {
     RAWKEYBOARD *kb = &raw->data.keyboard;
 
+    if(kb->VKey == 0xFF) return; // no mapping - ignore
+
     input = Input::Ptr(new Keyboard());
     auto kbi = (Keyboard *)input.get();
 
     switch(kb->Message) {
-    case WM_KEYDOWN: kbi->event = Keyboard::Down; break;
-    case WM_KEYUP: kbi->event = Keyboard::Up; break;
+    case WM_KEYDOWN:    kbi->event = Keyboard::KeyDown; break;
+    case WM_KEYUP:      kbi->event = Keyboard::KeyUp; break;
     case WM_SYSKEYDOWN: kbi->event = Keyboard::SysDown; break;
-    case WM_SYSKEYUP: kbi->event = Keyboard::SysUp; break;
+    case WM_SYSKEYUP:   kbi->event = Keyboard::SysUp; break;
 
     default: break;
     }
-    kbi->key = kb->VKey;
+    
+    unsigned modifiers = 0;
+    switch(kb->VKey) {
+    case VK_CONTROL: modifiers = Keyboard::Ctrl; break;
+    case VK_SHIFT:   modifiers = Keyboard::Shift; break;
+    case VK_MENU:    modifiers = Keyboard::Alt; break;
+    case VK_LWIN:    modifiers = Keyboard::Super; break;
+    case VK_RWIN:    modifiers = Keyboard::Super; break;
+    }
+
+    if(kbi->event == Keyboard::KeyUp)        m_kb_modifiers &= ~modifiers;
+    else if(kbi->event == Keyboard::KeyDown) m_kb_modifiers |= modifiers;
+    kbi->modifiers = m_kb_modifiers;
+
+    kbi->key = Keyboard::translate_key(kb->VKey, kbi->modifiers);
+    kbi->sym = Keyboard::translate_sym(kb->VKey, kbi->modifiers);
 
     break;
   }
@@ -136,6 +156,7 @@ void InputDeviceManager::process(void *handle)
 
   default: break;
   }
+  input->timestamp = win32::Timers::ticks();
 
   m_input_buffer.push_back(std::move(input));
 }
@@ -164,12 +185,85 @@ bool Mouse::buttonUp(Button btn) const
 
 bool Keyboard::keyDown(unsigned k) const
 {
-  return event == Down && key == k;
+  return event == KeyDown && key == k;
 }
 
 bool Keyboard::keyUp(unsigned k) const
 {
-  return event == Up && key == k;
+  return event == KeyUp && key == k;
+}
+
+bool Keyboard::modifier(unsigned mod) const
+{
+  return modifiers & mod;
+}
+
+bool Keyboard::special() const
+{
+  return key > SpecialKey;
+}
+
+unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
+{
+  bool shift = modifiers & Shift;
+
+  if(shift) {
+    switch(vk) {
+    case '1': return '!';
+    case '2': return '@';
+    case '3': return '#';
+    case '4': return '$';
+    case '5': return '%';
+    case '6': return '^';
+    case '7': return '&';
+    case '8': return '*';
+    case '9': return '(';
+    case '0': return ')';
+
+    case VK_OEM_1:      return ':';
+    case VK_OEM_2:      return '?';
+    case VK_OEM_3:      return '~';
+    case VK_OEM_4:      return '{';
+    case VK_OEM_5:      return '|';
+    case VK_OEM_6:      return '}';
+    case VK_OEM_7:      return '\"';
+    case VK_OEM_COMMA:  return '<';
+    case VK_OEM_PERIOD: return '>';
+    case VK_OEM_PLUS:   return '+';
+    case VK_OEM_MINUS:  return '_';
+    }
+  } else {
+    switch(vk) {
+    case VK_OEM_1:      return ';';
+    case VK_OEM_2:      return '/';
+    case VK_OEM_3:      return '`';
+    case VK_OEM_4:      return '[';
+    case VK_OEM_5:      return '\\';
+    case VK_OEM_6:      return ']';
+    case VK_OEM_7:      return '\'';
+    case VK_OEM_COMMA:  return ',';
+    case VK_OEM_PERIOD: return '.';
+    case VK_OEM_PLUS:   return '+';
+    case VK_OEM_MINUS:  return '-';
+    }
+  }
+
+  return shift ? toupper(vk) : tolower(vk);
+}
+
+unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
+{
+  switch(vk) {
+  case VK_UP:    return Up;
+  case VK_DOWN:  return Down;
+  case VK_LEFT:  return Left;
+  case VK_RIGHT: return Right;
+
+  case VK_RETURN: return Enter;
+  case VK_BACK:   return Backspace;
+  }
+
+  return vk;
 }
 
 }

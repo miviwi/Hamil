@@ -133,6 +133,14 @@ Pipeline& Pipeline::additiveBlend()
   return *this;
 }
 
+Pipeline& Pipeline::multiplyBlend()
+{
+  m_enabled[Blend] = true;
+  m_blend.sfactor = GL_DST_COLOR; m_blend.dfactor = GL_ZERO;
+
+  return *this;
+}
+
 Pipeline& Pipeline::depthTest(DepthFunc func)
 {
   m_enabled[Depth] = true;

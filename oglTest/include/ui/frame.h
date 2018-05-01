@@ -36,6 +36,7 @@ public:
   Gravity gravity() const;
 
   virtual void losingCapture();
+  virtual void attached();
 
   virtual vec2 sizeHint() const;
 
@@ -47,8 +48,6 @@ private:
   const char *m_name;
   Gravity m_gravity;
   Geometry m_geom;
-
-  Animation m_animation;
 };
 
 template <typename T, typename... Args>

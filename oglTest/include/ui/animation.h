@@ -34,14 +34,12 @@ enum AnimationRepeat {
 };
 
 struct AnimationFrame {
-  size_t first, second;
+  size_t first;
   float factor;
 };
 
 class IAnimationChannel {
 public:
-  using IndexPair = std::pair<size_t, size_t>;
-
   size_t numKeyframes() const;
   float totalDuration() const;
 
@@ -51,9 +49,9 @@ protected:
   static float ease(AnimationEasing easing, float factor);
 
   // time must be normalized (in the range <0; 1>)
-  IndexPair findKeyframe(float time) const;
+  size_t findKeyframe(float time) const;
   // time must be passed directly from LoopTimer::elapsedLoopsf()
-  AnimationFrame getKeyframe(float time) const;
+  AnimationFrame getFrame(float time) const;
 
   float m_total_duration;
 
@@ -114,9 +112,9 @@ private:
 
   T value(float time)
   {
-    auto frame = getKeyframe(time);
+    auto frame = getFrame(time);
 
-    return lerp(m_keyframes[frame.first], m_keyframes[frame.second], ease(m_easing, frame.factor));
+    return lerp(m_keyframes[frame.first], m_keyframes[frame.first+1], ease(m_easing, frame.factor));
   }
 
   std::vector<T> m_keyframes;
@@ -132,15 +130,20 @@ IAnimationChannel *make_animation_channel(std::initializer_list<AnimationKeyfram
 
 class Animation {
 public:
+  using ChannelList = std::initializer_list<IAnimationChannel *>;
+
   enum {
     MaxAnimationChannels = 8,
   };
 
   Animation();
-  Animation(std::initializer_list<IAnimationChannel *> channels);
+  Animation(ChannelList channels);
   ~Animation();
 
+  void init(ChannelList channels);
+
   void start();
+  bool done();
 
   template <typename T>
   T channel(unsigned id)

@@ -4,23 +4,9 @@
 namespace ui {
 
 Frame::Frame(Ui &ui, const char *name, Geometry geom) :
-  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom),
-  m_animation({
-      make_animation_channel({
-            keyframe(Color(255, 0, 0), 2.0f),
-            keyframe(Color(0, 255, 0), 2.0f),
-            keyframe(Color(0, 0, 255), 2.0f),
-            keyframe(Color(0, 255, 0), 2.0f),
-      }, EaseQuinticOut, RepeatLoop),
-
-      make_animation_channel({
-            keyframe(0.0f, 3.0f),
-            keyframe(-150.0f, 3.0f),
-      }, EaseBounce, RepeatLoop)
-  })
+  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom)
 {
   m_ui->registerFrame(this);
-  m_animation.start();
 }
 
 Frame::Frame(Ui& ui, Geometry geom) :
@@ -101,6 +87,10 @@ void Frame::losingCapture()
 {
 }
 
+void Frame::attached()
+{
+}
+
 vec2 Frame::sizeHint() const
 {
   return { 0, 0 };
@@ -173,7 +163,6 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
     .line(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10, VertexPainter::CapRound, slider_color, slider_color)
     .lineBorder(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10-1, VertexPainter::CapRound, black(), black())
     //.rect({ c.x, c.y+m_animation.channel<float>(0), 50.0f, 50.0f }, Color(255, 0, 0))
-    .rect({ c.x, c.y+m_animation.channel<float>(1), 50.0f, 50.0f }, m_animation.channel<Color>(0))
     ;
 }
 

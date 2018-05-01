@@ -48,6 +48,7 @@ public:
   Pipeline& scissor(ivec4 rect);
   Pipeline& alphaBlend();
   Pipeline& additiveBlend();
+  Pipeline& multiplyBlend();
   Pipeline& depthTest(DepthFunc func);
   Pipeline& cull(FrontFace front, CullMode mode);
   Pipeline& cull(CullMode mode);
