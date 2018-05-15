@@ -86,6 +86,13 @@ Time Timers::us_to_ticks(Time usecs)
   return (usecs*p_perf_freq.QuadPart) / 1000000ull;
 }
 
+Time Timers::s_to_ticksf(double secs)
+{
+  double t = (double)ticks_per_s() * secs;
+
+  return (Time)t;
+}
+
 Timer::Timer() :
   m_started(~0u)
 {
@@ -169,7 +176,7 @@ float DurationTimer::elapsedf()
   return clamp((float)x, 0.0f, 1.0f);
 }
 
-void DurationTimer::clear()
+void DurationTimer::clearDuration()
 {
   m_duration = ~0u;
 }

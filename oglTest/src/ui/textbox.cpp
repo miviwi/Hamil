@@ -10,27 +10,44 @@ TextBoxFrame::~TextBoxFrame()
 
 bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
+  auto g = geometry();
+  bool mouse_over = g.intersect(cursor.pos());
+    
   if(auto mouse = input->get<win32::Mouse>()) {
     using win32::Mouse;
-    bool mouse_over = geometry().intersect(cursor.pos());
 
     if(mouse_over) {
-      if(mouse->event == Mouse::Down) {
-        m_state = Editing;
+      switch(mouse->event) {
+      case Mouse::Down:
+        m_state = Selecting;
+        m_cursor = placeCursor(cursor.pos()-g.pos());
 
-        m_ui->capture(this);
+        m_ui->keyboard(this);
+        break;
+
+      case Mouse::Up:
+        m_state = Editing;
+        break;
+
+      case Mouse::DoubleClick:
+        m_text += "a";
+        break;
       }
     } else {
       if(mouse->event == Mouse::Down) {
         m_state = Default;
 
-        m_ui->capture(nullptr);
+        m_ui->keyboard(nullptr);
+        return false;
       }
     }
 
-    return mouse_over;
+    return true;
   } else if(auto kb = input->get<win32::Keyboard>()) {
-    return keyboardInput(kb);
+    if(m_state != Editing || kb->event != win32::Keyboard::KeyDown) return false;
+
+    cursor.visible(!mouse_over);
+    return keyboardDown(cursor, kb);
   }
 
   return false;
@@ -72,11 +89,16 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(cursor_pipeline)
-    .rect(g, white())
+    .rect(g, m_state == Selecting ? Color(112, 112, 255) : white())
     .rect(cursor_g, cursor_color)
     .border(g, 1.0f, black())
     .text(font, m_text, text_pos, black())
     ;
+}
+
+void TextBoxFrame::losingCapture()
+{
+  m_state = Default;
 }
 
 void TextBoxFrame::attached()
@@ -125,10 +147,8 @@ vec2 TextBoxFrame::sizeHint() const
   return vec2{ 0, font.height() + TextPixelMargin };
 }
 
-bool TextBoxFrame::keyboardInput(win32::Keyboard *kb)
+bool TextBoxFrame::keyboardDown(CursorDriver& cursor, win32::Keyboard *kb)
 {
-  if(kb->event == win32::Keyboard::KeyUp) return true;
-
   return kb->special() ? specialInput(kb) : charInput(kb);
 }
 
@@ -136,7 +156,7 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
 {
   using win32::Keyboard;
 
-  if(iscntrl(kb->key)) return true;
+  if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) return true;
 
   m_text.insert(m_cursor, 1, (char)kb->sym);
   m_cursor++;
@@ -164,6 +184,24 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
   m_cursor_blink.start();
 
   return true;
+}
+
+size_t TextBoxFrame::placeCursor(vec2 pos) const
+{
+  const auto& style = m_ui->style();
+  auto& font = *style.font;
+
+  float x = TextPixelMargin;
+  size_t cursor = 0;
+  for(; cursor < m_text.size(); cursor++) {
+    float advance = font.charAdvance(m_text[cursor]);
+
+    if(x + advance/2.0f > pos.x) break;
+
+    x += advance;
+  }
+
+  return cursor;
 }
 
 }

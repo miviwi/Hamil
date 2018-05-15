@@ -1,6 +1,8 @@
 #pragma once
 
 #include <common.h>
+
+#include <util/ringbuffer.h>
 #include <win32/time.h>
 
 #include <list>
@@ -31,6 +33,8 @@ struct Mouse : public Input {
     Middle = 1<<2,
     X1     = 1<<3,
     X2     = 1<<4,
+
+    DoubleClick = 1<<15,
   };
 
   enum Event : u16 {
@@ -71,8 +75,13 @@ struct Keyboard : public Input {
     SpecialKey = (1<<16),
 
     Up, Left, Down, Right,
+    
     Enter, Backspace,
-    Fn,
+
+    Insert, Home, PageUp,
+    Delete, End,  PageDown,
+
+    Print, ScrollLock, Pause,
   };
 
   u16 event;
@@ -105,17 +114,23 @@ public:
   InputDeviceManager();
 
   void setMouseSpeed(float speed);
+  void setDoubleClickSpeed(float speed_seconds);
 
   void process(void *handle);
 
   Input::Ptr getInput();
 
 private:
+  void doDoubleClick(Mouse *mi);
+
   std::list<Input::Ptr> m_input_buffer;
 
   float m_mouse_speed;
   unsigned m_mouse_buttons;
   unsigned m_kb_modifiers;
+
+  RingBuffer<Mouse> m_clicks;
+  Time m_dbl_click_speed;
 };
 
 }

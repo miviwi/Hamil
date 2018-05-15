@@ -27,6 +27,7 @@ bool ButtonFrame::input(CursorDriver& cursor, const InputPtr& input)
   using win32::Mouse;
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
+    m_ui->keyboard(nullptr);
   } else if(m_state == Pressed && mouse->buttonUp(Mouse::Left)) {
     if(mouse_over) {
       m_state = Hover;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <common.h>
+
 #include <ui/uicommon.h>
 #include <win32/time.h>
 

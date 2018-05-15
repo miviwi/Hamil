@@ -25,6 +25,7 @@ bool SliderFrame::input(CursorDriver& cursor, const InputPtr& input)
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
     m_ui->capture(this);
+    m_ui->keyboard(nullptr);
   } else if(mouse->buttonUp(Mouse::Left)) {
     if(mouse_inside) {
       m_state = Hover;

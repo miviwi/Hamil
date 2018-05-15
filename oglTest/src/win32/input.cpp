@@ -8,7 +8,8 @@
 
 namespace win32 {
 
-InputDeviceManager::InputDeviceManager()
+InputDeviceManager::InputDeviceManager() :
+  m_mouse_buttons(0), m_kb_modifiers(0)
 {
   RAWINPUTDEVICE rid[2];
 
@@ -28,14 +29,18 @@ InputDeviceManager::InputDeviceManager()
     panic("couldn't register input devices!", -6);
   }
 
-  m_mouse_speed = 1.0f;
-  m_mouse_buttons = 0;
-  m_kb_modifiers = 0;
+  setMouseSpeed(1.0f);
+  setDoubleClickSpeed(0.5f);
 }
 
 void InputDeviceManager::setMouseSpeed(float speed)
 {
   m_mouse_speed = speed;
+}
+
+void InputDeviceManager::setDoubleClickSpeed(float speed_seconds)
+{
+  m_dbl_click_speed = Timers::s_to_ticksf(speed_seconds);
 }
 
 void InputDeviceManager::process(void *handle)
@@ -57,6 +62,8 @@ void InputDeviceManager::process(void *handle)
     if(kb->VKey == 0xFF) return; // no mapping - ignore
 
     input = Input::Ptr(new Keyboard());
+    input->timestamp = win32::Timers::ticks();
+
     auto kbi = (Keyboard *)input.get();
 
     switch(kb->Message) {
@@ -91,6 +98,8 @@ void InputDeviceManager::process(void *handle)
     RAWMOUSE *m = &raw->data.mouse;
 
     input = Input::Ptr(new Mouse());
+    input->timestamp = win32::Timers::ticks();
+
     auto mi = (Mouse *)input.get();
     
     switch(m->usButtonFlags) {
@@ -147,6 +156,8 @@ void InputDeviceManager::process(void *handle)
     mi->dx = (float)m->lLastX*m_mouse_speed;
     mi->dy = (float)m->lLastY*m_mouse_speed;
 
+    doDoubleClick(mi);
+
     if(mi->event == Mouse::Up)        m_mouse_buttons &= ~mi->ev_data;
     else if(mi->event == Mouse::Down) m_mouse_buttons |= mi->ev_data;
     mi->buttons = m_mouse_buttons;
@@ -156,7 +167,6 @@ void InputDeviceManager::process(void *handle)
 
   default: break;
   }
-  input->timestamp = win32::Timers::ticks();
 
   m_input_buffer.push_back(std::move(input));
 }
@@ -171,6 +181,28 @@ Input::Ptr InputDeviceManager::getInput()
   }
 
   return ptr;
+}
+
+void InputDeviceManager::doDoubleClick(Mouse *mi)
+{
+  if(mi->event != Mouse::Down) {
+    if(mi->dx > 5.0f || mi->dy > 5.0f) m_clicks.clear();
+
+    return;
+  }
+
+  if(m_clicks.empty()) {
+    m_clicks.put(*mi);
+  } else {
+    auto last_click = m_clicks.last();
+    auto dt = mi->timestamp - last_click.timestamp;
+
+    if(last_click.ev_data == mi->ev_data && dt < m_dbl_click_speed) {
+      mi->event = Mouse::DoubleClick;
+    }
+
+    m_clicks.clear();
+  }
 }
 
 bool Mouse::buttonDown(Button btn) const
@@ -195,7 +227,7 @@ bool Keyboard::keyUp(unsigned k) const
 
 bool Keyboard::modifier(unsigned mod) const
 {
-  return modifiers & mod;
+  return (modifiers & mod) == mod;
 }
 
 bool Keyboard::special() const
@@ -261,6 +293,17 @@ unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
 
   case VK_RETURN: return Enter;
   case VK_BACK:   return Backspace;
+
+  case VK_INSERT: return Insert;
+  case VK_DELETE: return Delete;
+  case VK_HOME:   return Home;
+  case VK_END:    return End;
+  case VK_PRIOR:  return PageUp;
+  case VK_NEXT:   return PageDown;
+
+  case VK_PRINT:  return Print;
+  case VK_SCROLL: return ScrollLock;
+  case VK_PAUSE:  return Pause;
   }
 
   return vk;

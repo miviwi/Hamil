@@ -6,6 +6,10 @@ namespace win32 {
 
 using Time = u64;
 
+enum : Time {
+  InvalidTime = ~0ull,
+};
+
 class Timers {
 public:
   static void init();
@@ -31,6 +35,8 @@ public:
   static Time s_to_ticks(Time secs);
   static Time ms_to_ticks(Time msecs);
   static Time us_to_ticks(Time usecs);
+
+  static Time s_to_ticksf(double secs);
 };
 
 class Timer {
@@ -72,7 +78,7 @@ public:
   bool elapsed();
   float elapsedf();
 
-  void clear();
+  void clearDuration();
 
 protected:
   Time m_duration;

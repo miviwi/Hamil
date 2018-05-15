@@ -12,6 +12,9 @@ static const DWORD p_creation_disposition_table[] = {
   TRUNCATE_EXISTING,
 };
 
+static constexpr size_t p_high_shift = 32;
+static constexpr size_t p_low_mask = 0xFFFFFFFF;
+
 File::File(const char *path, Access access, Share share, OpenMode open) :
   m_access(access)
 {
@@ -34,6 +37,11 @@ File::File(const char *path, Access access, Share share, OpenMode open) :
   size_low = GetFileSize(m, &size_high);
 
   m_sz = ((size_t)size_high<<32ull) | size_low;
+}
+
+File::File(const char *path, Access access, OpenMode open) :
+  File(path, access, ShareRead, open)
+{
 }
 
 File::File(const char *path, Access access) :
@@ -89,7 +97,7 @@ FileView File::map(Protect protect, const char *name)
   return map(protect, 0, 0, name);
 }
 
-FileView File::map(Protect protect, size_t offset, Size size, const char *name)
+FileView File::map(Protect protect, size_t offset, size_t size, const char *name)
 {
   DWORD flprotect = 0;
   if(protect == ProtectRead) {
@@ -101,8 +109,8 @@ FileView File::map(Protect protect, size_t offset, Size size, const char *name)
   } else if(protect == ProtectExecuteReadWrite) {
     flprotect = PAGE_EXECUTE_READWRITE;
   }
-     
-  auto mapping = CreateFileMappingA(m, nullptr, flprotect, 0, 0, name);
+
+  auto mapping = CreateFileMappingA(m, nullptr, flprotect, size>>p_high_shift, size&p_low_mask, name);
   if(!mapping) throw MappingCreateError(GetLastError());
 
   return FileView(mapping, m_access, offset, size);
@@ -132,7 +140,7 @@ uint8_t& FileView::operator[](size_t offset)
   return ptr[offset];
 }
 
-FileView::FileView(void *mapping, File::Access access, size_t offset, File::Size size) :
+FileView::FileView(void *mapping, File::Access access, size_t offset, size_t size) :
   m(mapping)
 {
   DWORD desired_access = 0;
@@ -140,7 +148,7 @@ FileView::FileView(void *mapping, File::Access access, size_t offset, File::Size
   desired_access |= access & File::Write   ? FILE_MAP_WRITE   : 0;
   desired_access |= access & File::Execute ? FILE_MAP_EXECUTE : 0;
 
-  m_ptr = MapViewOfFile(m, desired_access, offset>>32, offset&0xFFFFFFFF, size);
+  m_ptr = MapViewOfFile(m, desired_access, offset>>p_high_shift, offset&p_low_mask, size);
   if(!m_ptr) throw File::MapFileError(GetLastError());
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <common.h>
+
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/frame.h>
@@ -28,6 +30,7 @@ public:
   virtual bool input(CursorDriver& cursor, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
+  virtual void losingCapture();
   virtual void attached();
 
   const std::string& text() const;
@@ -56,9 +59,12 @@ private:
     }
   };
 
-  bool keyboardInput(win32::Keyboard *kb);
+  bool keyboardDown(CursorDriver& cursor, win32::Keyboard *kb);
   bool charInput(win32::Keyboard *kb);
   bool specialInput(win32::Keyboard *kb);
+
+  // pos must be relative!
+  size_t placeCursor(vec2 pos) const;
 
   State m_state = Default;
 

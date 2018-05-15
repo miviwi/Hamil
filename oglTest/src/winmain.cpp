@@ -73,9 +73,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   vm->eval("(def v [:a :b :c :d])");
 
-  win32::File f("test.txt", win32::File::ReadWrite);
-
-  auto map = f.map(win32::File::ProtectReadWrite);
+  win32::File f("test.txt", win32::File::ReadWrite, win32::File::TruncateExisting);
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -541,7 +539,8 @@ void main() {
 
   auto& textbox = iface.getFrameByName<ui::TextBoxFrame>("textbox")->onSubmit([&](auto target)
   {
-    MessageBoxA(nullptr, target->text().c_str(), "textbox submitted!", MB_OK);
+    const auto& text = target->text();
+    f.write(text.c_str(), (win32::File::Size)text.size());
   });
 
   light_no.onChange([&](auto target) {

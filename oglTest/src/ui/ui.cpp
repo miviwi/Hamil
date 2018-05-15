@@ -111,6 +111,7 @@ void finalize()
 Ui::Ui(Geometry geom, const Style& style) :
   m_geom(geom), m_style(style), m_repaint(true),
   m_capture(nullptr),
+  m_keyboard(nullptr),
   m_buf(gx::Buffer::Dynamic),
   m_ind(gx::Buffer::Dynamic, gx::u16),
   m_vtx(VertexPainter::Fmt, m_buf, m_ind)
@@ -185,9 +186,17 @@ const Style& Ui::style() const
 
 bool Ui::input(CursorDriver& cursor, const InputPtr& input)
 {
+  if(auto mouse = input->get<win32::Mouse>()) {
+    if(mouse->event == win32::Mouse::Move && !cursor.visible()) cursor.visible(true);
+  }
+
   if(!m_geom.intersect(cursor.pos())) return false;
 
-  if(m_capture) return m_capture->input(cursor, input);
+  if(m_keyboard) {
+    if(input->get<win32::Keyboard>()) return m_keyboard->input(cursor, input);
+  } else if(m_capture) {
+    return m_capture->input(cursor, input);
+  }
 
   for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
     const auto& frame = *iter;
@@ -254,6 +263,13 @@ void Ui::capture(Frame *frame)
   if(m_capture && frame != m_capture) m_capture->losingCapture();
 
   m_capture = frame;
+}
+
+void Ui::keyboard(Frame *frame)
+{
+  if(m_keyboard && frame != m_keyboard) m_keyboard->losingCapture();
+
+  m_keyboard = frame;
 }
 
 }

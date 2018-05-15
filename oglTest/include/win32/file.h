@@ -1,8 +1,8 @@
 #pragma once
 
-#include <util/ref.h>
+#include <common.h>
 
-#include <cstdint>
+#include <util/ref.h>
 
 namespace win32 {
 
@@ -30,11 +30,12 @@ public:
   };
 
   enum OpenMode {
-    CreateAlways,
-    CreateNew,
-    OpenAlways,
-    OpenExisting,
-    TruncateExisting,
+    CreateAlways, // Create new, overwrite existing
+    CreateNew,    // Create new, fail otherwise
+    OpenAlways,   // Open file, append existing
+    OpenExisting, // Open file, fail otherwise
+    TruncateExisting, // Opens a file and truncates it to 0 bytes,
+                      // fails if it doesn't exist
   };
 
   enum Protect {
@@ -72,6 +73,7 @@ public:
   };
 
   File(const char *path, Access access, Share share, OpenMode open);
+  File(const char *path, Access access, OpenMode open);
   File(const char *path, Access access);
   File(const File& other) = delete;
   ~File();
@@ -86,7 +88,7 @@ public:
   bool flush();
 
   FileView map(Protect protect, const char *name = nullptr);
-  FileView map(Protect protect, size_t offset, Size size, const char *name = nullptr);
+  FileView map(Protect protect, size_t offset, size_t size, const char *name = nullptr);
 
 private:
   void *m;
@@ -110,7 +112,7 @@ public:
 private:
   friend class File;
 
-  FileView(void *mapping, File::Access access, size_t offset, File::Size size);
+  FileView(void *mapping, File::Access access, size_t offset, size_t size);
 
   void *m;
   void *m_ptr;

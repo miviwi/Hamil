@@ -33,6 +33,7 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
   if(mouse->event == Mouse::Down) {
     if(mouse_over && (mouse->buttons & Mouse::Left)) {
       m_state = Pressed;
+      m_ui->keyboard(nullptr);
     } else {
       m_ui->capture(nullptr);
     }

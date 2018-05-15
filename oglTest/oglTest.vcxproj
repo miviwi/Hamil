@@ -265,6 +265,7 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\style.h" />
     <ClInclude Include="include\ui\ui.h" />
     <ClInclude Include="include\util\ref.h" />
+    <ClInclude Include="include\util\ringbuffer.h" />
     <ClInclude Include="include\win32\cpuid.h" />
     <ClInclude Include="include\win32\file.h" />
     <ClInclude Include="include\win32\panic.h" />

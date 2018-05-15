@@ -1,3 +1,0 @@
-xello, world!
-this is a test file!
-if you see this FileView is working!

@@ -27,6 +27,7 @@ public:
   void type(Type type);
 
   void visible(bool visible);
+  bool visible() const;
   void toggleVisible();
 
   vec2 pos() const;

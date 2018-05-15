@@ -265,6 +265,11 @@ void CursorDriver::visible(bool visible)
   m_shown = visible;
 }
 
+bool CursorDriver::visible() const
+{
+  return m_shown;
+}
+
 void CursorDriver::toggleVisible()
 {
   m_shown = !m_shown;

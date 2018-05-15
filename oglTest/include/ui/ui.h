@@ -62,13 +62,16 @@ public:
   void paint();
 
   void capture(Frame *frame);
+  void keyboard(Frame *frame);
 
 private:
   Geometry m_geom;
   Style m_style;
   std::vector<Frame *> m_frames;
   std::unordered_map<std::string, Frame *> m_names;
+
   Frame *m_capture;
+  Frame *m_keyboard;
 
   VertexPainter m_painter;
   bool m_repaint;
