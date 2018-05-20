@@ -236,6 +236,7 @@ bool DropDownFrame::inputDropped(vec2 mouse_pos, win32::Mouse *mouse)
     }
     break;
   }
+  if(i == m_items.size()) m_highlighted = DropDownItem::Invalid;
 
   return i != m_items.size();
 }

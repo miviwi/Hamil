@@ -36,7 +36,7 @@ public:
   static Time ms_to_ticks(Time msecs);
   static Time us_to_ticks(Time usecs);
 
-  static Time s_to_ticksf(double secs);
+  static Time s_to_ticks(double secs);
 };
 
 class Timer {

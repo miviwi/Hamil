@@ -40,7 +40,7 @@ void InputDeviceManager::setMouseSpeed(float speed)
 
 void InputDeviceManager::setDoubleClickSpeed(float speed_seconds)
 {
-  m_dbl_click_speed = Timers::s_to_ticksf(speed_seconds);
+  m_dbl_click_speed = Timers::s_to_ticks(speed_seconds);
 }
 
 void InputDeviceManager::process(void *handle)
@@ -191,18 +191,19 @@ void InputDeviceManager::doDoubleClick(Mouse *mi)
     return;
   }
 
-  if(m_clicks.empty()) {
-    m_clicks.put(*mi);
-  } else {
+  if(!m_clicks.empty()) {
     auto last_click = m_clicks.last();
     auto dt = mi->timestamp - last_click.timestamp;
 
+    m_clicks.clear();
+
     if(last_click.ev_data == mi->ev_data && dt < m_dbl_click_speed) {
       mi->event = Mouse::DoubleClick;
+      return;
     }
-
-    m_clicks.clear();
   }
+
+  m_clicks.put(*mi);
 }
 
 bool Mouse::buttonDown(Button btn) const

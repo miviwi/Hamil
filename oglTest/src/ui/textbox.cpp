@@ -1,5 +1,6 @@
 #include <ui/textbox.h>
 
+#include <cmath>
 #include <cctype>
 
 namespace ui {
@@ -16,11 +17,14 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
   if(auto mouse = input->get<win32::Mouse>()) {
     using win32::Mouse;
 
+    auto pos = cursor.pos() - g.pos();
+
     if(mouse_over) {
       switch(mouse->event) {
       case Mouse::Down:
         m_state = Selecting;
-        m_cursor = placeCursor(cursor.pos()-g.pos());
+        m_cursor = placeCursor(pos);
+        m_selection = { m_cursor, m_cursor };
 
         m_ui->keyboard(this);
         break;
@@ -30,9 +34,19 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
         break;
 
       case Mouse::DoubleClick:
-        m_text += "a";
+        selection(selectWord(pos));
+        break;
+
+      default:
+        if(m_state == Selecting) {
+          m_cursor = placeCursor(pos);
+
+          selection(m_selection.first, m_cursor);
+        }
         break;
       }
+
+      return true;
     } else {
       if(mouse->event == Mouse::Down) {
         m_state = Default;
@@ -41,8 +55,6 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
         return false;
       }
     }
-
-    return true;
   } else if(auto kb = input->get<win32::Keyboard>()) {
     if(m_state != Editing || kb->event != win32::Keyboard::KeyDown) return false;
 
@@ -65,13 +77,19 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
   case Editing: cursor_color = m_cursor_blink.channel<Color>(0); break;
   }
 
+  Color border_color = black();
+  switch(m_state) {
+  case Editing:
+  case Selecting:
+    border_color = Color(112, 112, 255); break;
+  }
+
   vec2 text_pos = {
     g.x + TextPixelMargin,
     g.y + font.bearingY() + TextPixelMargin
   };
 
-  float cursor_x = text_pos.x;
-  for(size_t i = 0; i < m_cursor; i++) cursor_x += font.charAdvance(m_text[i]);
+  float cursor_x = text_pos.x + cursorX(m_cursor);
 
   Geometry cursor_g = {
     cursor_x, g.y + 1.0f,
@@ -89,11 +107,29 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(cursor_pipeline)
-    .rect(g, m_state == Selecting ? Color(112, 112, 255) : white())
+    .rect(g, white())
     .rect(cursor_g, cursor_color)
-    .border(g, 1.0f, black())
+    .border(g, 1.0f, border_color)
     .text(font, m_text, text_pos, black())
     ;
+
+  if(m_selection.valid()) {
+    std::pair<float, float> sx = {
+      cursorX(m_selection.first),
+      cursorX(m_selection.last),
+    };
+
+    if(sx.first > sx.second) std::swap(sx.first, sx.second);
+
+    Geometry selection_g = {
+      text_pos.x + sx.first, g.y + 1.0f,
+      sx.second - sx.first, g.x - TextPixelMargin
+    };
+
+    painter
+      .rect(selection_g, Color(112, 112, 255, 128))
+      ;
+  }
 }
 
 void TextBoxFrame::losingCapture()
@@ -161,6 +197,8 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
   m_text.insert(m_cursor, 1, (char)kb->sym);
   m_cursor++;
 
+  m_selection.reset();
+
   return true;
 }
 
@@ -168,16 +206,41 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
 {
   using win32::Keyboard;
 
+  auto delete_selection = [this]()
+  {
+    size_t off = std::min(m_selection.first, m_selection.last),
+      count = abs((long)m_selection.first - (long)m_selection.last);
+
+    m_text.erase(off, count);
+    m_cursor -= count;
+
+    m_selection.reset();
+  };
+
   switch(kb->key) {
   case Keyboard::Right: m_cursor = clamp((int)m_cursor+1, 0, (int)m_text.size()); break;
   case Keyboard::Left:  m_cursor = clamp((int)m_cursor-1, 0, (int)m_text.size()); break;
 
   case Keyboard::Enter: m_on_submit.emit(this); break;
-  case Keyboard::Backspace: 
+
+  case Keyboard::Backspace:
     if(m_text.empty() || !m_cursor) break;
 
-    m_text.erase(m_cursor-1, 1);
-    m_cursor--;
+    if(m_selection.valid()) {
+      delete_selection();
+    } else {
+      m_text.erase(m_cursor-1, 1);
+      m_cursor--;
+    }
+    break;
+  case Keyboard::Delete:
+    if(m_text.empty() || m_cursor == m_text.size()) break;
+    
+    if(m_selection.valid()) {
+      delete_selection();
+    } else {
+      m_text.erase(m_cursor, 1);
+    }
     break;
   }
 
@@ -186,10 +249,19 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
   return true;
 }
 
+float TextBoxFrame::cursorX(size_t index) const
+{
+  auto& font = *m_ui->style().font;
+
+  float x = 0.0f;
+  for(size_t i = 0; i < index; i++) x += font.charAdvance(m_text[i]);
+
+  return x;
+}
+
 size_t TextBoxFrame::placeCursor(vec2 pos) const
 {
-  const auto& style = m_ui->style();
-  auto& font = *style.font;
+  auto& font = *m_ui->style().font;
 
   float x = TextPixelMargin;
   size_t cursor = 0;
@@ -202,6 +274,47 @@ size_t TextBoxFrame::placeCursor(vec2 pos) const
   }
 
   return cursor;
+}
+
+SelectionRange TextBoxFrame::selectWord(vec2 pos) const
+{
+  size_t cursor = placeCursor(pos);
+
+  if(cursor == m_text.size()) {
+    return { 0, m_text.size() };
+  } else if(m_text[cursor] == ' ') {
+    return { cursor, cursor+1 };
+  }
+
+  auto r = SelectionRange::none();
+
+  auto word_start = m_text.find_last_of(' ', cursor);
+  auto word_end = m_text.find_first_of(' ', cursor);
+
+  return {
+    word_start != std::string::npos ? word_start+1 : 0,
+    word_end != std::string::npos ? word_end : m_text.size()
+  };
+}
+
+SelectionRange TextBoxFrame::selection() const
+{
+  return m_selection;
+}
+
+void TextBoxFrame::selection(SelectionRange r)
+{
+  selection(r.first, r.last);
+}
+
+void TextBoxFrame::selection(size_t first, size_t last)
+{
+  m_selection = {
+    clamp(first, (size_t)0, m_text.size()),
+    clamp(last, (size_t)0, m_text.size())
+  };
+  
+  m_cursor = m_selection.last;
 }
 
 }

@@ -16,6 +16,11 @@ struct SelectionRange {
     None = ~0u,
   };
 
+  bool valid() const { return first != None && last != None; }
+  void reset() { first = last = None; }
+
+  static SelectionRange none() { return { None, None }; }
+
   size_t first, last;
 };
 
@@ -35,6 +40,10 @@ public:
 
   const std::string& text() const;
   void text(const std::string& s);
+
+  SelectionRange selection() const;
+  void selection(SelectionRange r);
+  void selection(size_t first, size_t last);
 
   TextBoxFrame& onChange(OnChange::Slot on_change);
   OnChange& change();
@@ -63,14 +72,17 @@ private:
   bool charInput(win32::Keyboard *kb);
   bool specialInput(win32::Keyboard *kb);
 
-  // pos must be relative!
+  // pos is relative
+  float cursorX(size_t index) const;
   size_t placeCursor(vec2 pos) const;
+
+  SelectionRange selectWord(vec2 pos) const;
 
   State m_state = Default;
 
   size_t m_cursor = 0;
   std::string m_text;
-  SelectionRange m_selection = { SelectionRange::None, SelectionRange::None };
+  SelectionRange m_selection = SelectionRange::none();
 
   OnChange m_on_change;
   OnSubmit m_on_submit;

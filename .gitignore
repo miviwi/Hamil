@@ -247,3 +247,5 @@ extern/*/win64/*
 oglTest/Generated/
 uniforms.*
 uniformgen.db
+
+*.exe

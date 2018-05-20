@@ -86,7 +86,7 @@ Time Timers::us_to_ticks(Time usecs)
   return (usecs*p_perf_freq.QuadPart) / 1000000ull;
 }
 
-Time Timers::s_to_ticksf(double secs)
+Time Timers::s_to_ticks(double secs)
 {
   double t = (double)ticks_per_s() * secs;
 
