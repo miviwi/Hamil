@@ -1,9 +1,27 @@
 #include <ui/textbox.h>
+#include <win32/clipboard.h>
 
 #include <cmath>
 #include <cctype>
 
 namespace ui {
+
+size_t SelectionRange::left() const
+{
+  return std::min(first, last);
+}
+
+size_t SelectionRange::right() const
+{
+  return std::max(first, last);
+}
+
+size_t SelectionRange::size() const
+{
+  long long d = first - last;
+
+  return abs(d);
+}
 
 TextBoxFrame::~TextBoxFrame()
 {
@@ -24,7 +42,7 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
       case Mouse::Down:
         m_state = Selecting;
         m_cursor = placeCursor(pos);
-        m_selection = { m_cursor, m_cursor };
+        m_selection = SelectionRange::begin(m_cursor);
 
         m_ui->keyboard(this);
         break;
@@ -37,13 +55,7 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
         selection(selectWord(pos));
         break;
 
-      default:
-        if(m_state == Selecting) {
-          m_cursor = placeCursor(pos);
-
-          selection(m_selection.first, m_cursor);
-        }
-        break;
+      default: return mouseGesture(pos);
       }
 
       return true;
@@ -102,11 +114,8 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
     .primitiveRestart(0xFFFF)
     ;
 
-  auto cursor_pipeline = gx::Pipeline(text_pipeline)
-    ;
-
   painter
-    .pipeline(cursor_pipeline)
+    .pipeline(text_pipeline)
     .rect(g, white())
     .rect(cursor_g, cursor_color)
     .border(g, 1.0f, border_color)
@@ -192,7 +201,38 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
 {
   using win32::Keyboard;
 
-  if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) return true;
+  if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) {
+    switch(kb->key) {
+    case 'A':
+      m_selection = { 0, m_text.size() };
+      m_cursor = m_text.size();
+      break;
+
+    case 'X':
+    case 'C': {
+      win32::Clipboard clipboard;
+      auto str = m_text.c_str() + m_selection.left();
+
+      clipboard.string(str, m_selection.size());
+      if(kb->key == 'X') doDeleteSelection();
+    }
+    break;
+    case 'V': {
+      win32::Clipboard clipboard;
+      auto str = clipboard.string();
+
+      doDeleteSelection();
+
+      m_text.insert(m_cursor, str);
+      m_cursor += str.size();
+    }
+    break;
+    }
+
+    return true;
+  }
+
+  doDeleteSelection();
 
   m_text.insert(m_cursor, 1, (char)kb->sym);
   m_cursor++;
@@ -206,45 +246,59 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
 {
   using win32::Keyboard;
 
-  auto delete_selection = [this]()
-  {
-    size_t off = std::min(m_selection.first, m_selection.last),
-      count = abs((long)m_selection.first - (long)m_selection.last);
-
-    m_text.erase(off, count);
-    m_cursor -= count;
-
-    m_selection.reset();
-  };
+  m_cursor_blink.start();
 
   switch(kb->key) {
-  case Keyboard::Right: m_cursor = clamp((int)m_cursor+1, 0, (int)m_text.size()); break;
-  case Keyboard::Left:  m_cursor = clamp((int)m_cursor-1, 0, (int)m_text.size()); break;
+  case Keyboard::Right:
+    m_cursor = clamp((int)m_cursor+1, 0, (int)m_text.size());
+    if(kb->modifier(Keyboard::Shift)) {
+      selection(m_selection.valid() ? m_selection.first : m_cursor-1, m_cursor);
+    } else {
+      m_selection.reset();
+    }
+    break;
+  case Keyboard::Left:
+    m_cursor = clamp((int)m_cursor-1, 0, (int)m_text.size());
+    if(kb->modifier(Keyboard::Shift)) {
+      selection(m_selection.valid() ? m_selection.first : m_cursor+1, m_cursor);
+    } else {
+      m_selection.reset();
+    }
+    break;
 
   case Keyboard::Enter: m_on_submit.emit(this); break;
 
   case Keyboard::Backspace:
+    if(doDeleteSelection()) break;
     if(m_text.empty() || !m_cursor) break;
 
-    if(m_selection.valid()) {
-      delete_selection();
-    } else {
-      m_text.erase(m_cursor-1, 1);
-      m_cursor--;
-    }
+    m_text.erase(m_cursor-1, 1);
+    m_cursor--;
     break;
   case Keyboard::Delete:
+    if(doDeleteSelection()) break;
     if(m_text.empty() || m_cursor == m_text.size()) break;
-    
-    if(m_selection.valid()) {
-      delete_selection();
+
+    m_text.erase(m_cursor, 1);
+    break;
+
+  case Keyboard::Home:
+    if(kb->modifier(Keyboard::Shift)) {
+      selection(0, m_selection.valid() ? m_selection.right() : m_cursor);
     } else {
-      m_text.erase(m_cursor, 1);
+      m_selection.reset();
     }
+    m_cursor = 0;
+    break;
+  case Keyboard::End:
+    if(kb->modifier(Keyboard::Shift)) {
+      selection(m_selection.valid() ?  m_selection.left() : m_cursor, m_text.size());
+    } else {
+      m_selection.reset();
+    }
+    m_cursor = m_text.size();
     break;
   }
-
-  m_cursor_blink.start();
 
   return true;
 }
@@ -282,19 +336,57 @@ SelectionRange TextBoxFrame::selectWord(vec2 pos) const
 
   if(cursor == m_text.size()) {
     return { 0, m_text.size() };
-  } else if(m_text[cursor] == ' ') {
-    return { cursor, cursor+1 };
   }
 
   auto r = SelectionRange::none();
 
-  auto word_start = m_text.find_last_of(' ', cursor);
-  auto word_end = m_text.find_first_of(' ', cursor);
+  auto word_start = std::string::npos,
+    word_end = std::string::npos;
+
+  if(m_text[cursor] != ' ') {
+    word_start = m_text.find_last_of(' ', cursor);
+
+    word_end = m_text.find_first_of(' ', cursor);       // find the first space
+    word_end = m_text.find_first_not_of(' ', word_end); // ...and then the last
+  } else {
+    word_start = m_text.find_last_not_of(' ', cursor); // find the last non-space character
+    if(word_start != std::string::npos) word_start = m_text.find_last_of(' ', word_start); 
+
+    word_end = m_text.find_first_not_of(' ', cursor);
+  }
 
   return {
     word_start != std::string::npos ? word_start+1 : 0,
     word_end != std::string::npos ? word_end : m_text.size()
   };
+}
+
+bool TextBoxFrame::doDeleteSelection()
+{
+  if(!m_selection.valid()) return false;
+
+  size_t off = m_selection.left(),
+    count = m_selection.size();
+
+  m_text.erase(off, count);
+  m_cursor = (m_cursor > m_selection.first ? m_selection.last : m_selection.first) - count;
+
+  m_selection.reset();
+
+  return true;
+}
+
+bool TextBoxFrame::mouseGesture(vec2 pos)
+{
+  switch(m_state) {
+  case Selecting:
+    m_cursor = placeCursor(pos);
+
+    selection(m_selection.first, m_cursor);
+    break;
+  }
+
+  return true;
 }
 
 SelectionRange TextBoxFrame::selection() const

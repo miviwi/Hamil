@@ -73,8 +73,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
   vm->eval("(def v [:a :b :c :d])");
 
-  win32::File f("test.txt", win32::File::ReadWrite, win32::File::TruncateExisting);
-
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
@@ -108,13 +106,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   tex.init(tex_image, 0, 4, 4, gx::rgba, gx::u32_8888);
 
   gx::tex_unit(0, tex, sampler);
-
-  int vram_size;
-  glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &vram_size);
-
-  char vram_size_buf[256];
-  sprintf_s(vram_size_buf, "VRAM: %.2fGB", (float)vram_size/(1024.0f*1024.0f));
-  auto vram_size_str = face.string(vram_size_buf);
 
   unsigned cp = 0;
 
@@ -537,12 +528,6 @@ void main() {
   });
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
 
-  auto& textbox = iface.getFrameByName<ui::TextBoxFrame>("textbox")->onSubmit([&](auto target)
-  {
-    const auto& text = target->text();
-    f.write(text.c_str(), (win32::File::Size)text.size());
-  });
-
   light_no.onChange([&](auto target) {
     auto light_id = target->selected();
     auto pos = light_position[light_id];
@@ -767,8 +752,6 @@ void main() {
     fps = (float)old_fps*smoothing + (float)fps*(1.0f-smoothing);
 
     face.draw(util::fmt("FPS: %d", fps), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
-
-    face.draw(vram_size_str, vec2{ FB_DIMS.x - 300.0f, 70.0f }, vec3{ 0.8f, 0.0f, 0.0f });
 
     small_face.draw(util::fmt("anim_factor: %.2f eye: (%.2f, %.2f, %.2f)",
                               anim_timer.elapsedf(), eye.x, eye.y, eye.z),

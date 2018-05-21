@@ -120,6 +120,7 @@ bool Pipeline::isEnabled(ConfigType what)
 Pipeline& Pipeline::alphaBlend()
 {
   m_enabled[Blend] = true;
+  m_blend.mode = GL_FUNC_ADD;
   m_blend.sfactor = GL_SRC_ALPHA; m_blend.dfactor = GL_ONE_MINUS_SRC_ALPHA;
 
   return *this;
@@ -128,6 +129,16 @@ Pipeline& Pipeline::alphaBlend()
 Pipeline& Pipeline::additiveBlend()
 {
   m_enabled[Blend] = true;
+  m_blend.mode = GL_FUNC_ADD;
+  m_blend.sfactor = GL_ONE; m_blend.dfactor = GL_ONE;
+
+  return *this;
+}
+
+Pipeline & Pipeline::subtractiveBlend()
+{
+  m_enabled[Blend] = true;
+  m_blend.mode = GL_FUNC_SUBTRACT;
   m_blend.sfactor = GL_ONE; m_blend.dfactor = GL_ONE;
 
   return *this;
@@ -136,6 +147,7 @@ Pipeline& Pipeline::additiveBlend()
 Pipeline& Pipeline::multiplyBlend()
 {
   m_enabled[Blend] = true;
+  m_blend.mode = GL_FUNC_ADD;
   m_blend.sfactor = GL_DST_COLOR; m_blend.dfactor = GL_ZERO;
 
   return *this;
@@ -248,6 +260,7 @@ void Pipeline::enable(ConfigType config) const
     break;
   case Blend:
     do_enable(Blend, GL_BLEND);
+    glBlendEquation(m_blend.mode);
     glBlendFunc(m_blend.sfactor, m_blend.dfactor);
     break;
   case Depth:

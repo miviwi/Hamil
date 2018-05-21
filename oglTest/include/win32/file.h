@@ -3,6 +3,7 @@
 #include <common.h>
 
 #include <util/ref.h>
+#include <util/bit.h>
 
 namespace win32 {
 
@@ -81,7 +82,7 @@ public:
   size_t size() const;
 
   Size read(void *buf, Size sz);
-  Size write(const void * buf, Size sz);
+  Size write(const void *buf, Size sz);
 
   void seek(Seek seek, long offset) const;
 

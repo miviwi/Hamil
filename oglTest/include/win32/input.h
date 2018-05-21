@@ -14,6 +14,8 @@ struct Input {
   using Ptr = std::unique_ptr<Input>;
   using Tag = const char *;
 
+  // Use example:
+  //   if(auto mouse = input.get<Mouse>()) { ... }
   template <typename T>
   T *get()
   {

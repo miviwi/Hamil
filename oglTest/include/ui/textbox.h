@@ -19,7 +19,13 @@ struct SelectionRange {
   bool valid() const { return first != None && last != None; }
   void reset() { first = last = None; }
 
+  size_t left() const;
+  size_t right() const;
+
+  size_t size() const;
+
   static SelectionRange none() { return { None, None }; }
+  static SelectionRange begin(size_t where) { return { where, None }; }
 
   size_t first, last;
 };
@@ -72,11 +78,16 @@ private:
   bool charInput(win32::Keyboard *kb);
   bool specialInput(win32::Keyboard *kb);
 
-  // pos is relative
+  // 'pos' must be relative to self
+  bool mouseGesture(vec2 pos);
+
+  // 'pos' must be relative to self in all methods below!
   float cursorX(size_t index) const;
   size_t placeCursor(vec2 pos) const;
 
   SelectionRange selectWord(vec2 pos) const;
+
+  bool doDeleteSelection();
 
   State m_state = Default;
 

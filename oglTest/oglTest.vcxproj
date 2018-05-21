@@ -215,6 +215,7 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\drawable.h" />
     <ClInclude Include="include\ui\textbox.h" />
     <ClInclude Include="include\util\allocator.h" />
+    <ClInclude Include="include\util\bit.h" />
     <ClInclude Include="include\util\format.h" />
     <ClInclude Include="include\ft\font.h" />
     <ClCompile Include="src\gx\pipeline.cpp" />
@@ -226,6 +227,7 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\style.cpp" />
     <ClCompile Include="src\ui\ui.cpp" />
     <ClCompile Include="src\util\ref.cpp" />
+    <ClCompile Include="src\win32\clipboard.cpp" />
     <ClCompile Include="src\win32\cpuid.cpp" />
     <ClCompile Include="src\win32\file.cpp" />
     <ClCompile Include="src\win32\panic.cpp" />
@@ -266,6 +268,7 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\ui.h" />
     <ClInclude Include="include\util\ref.h" />
     <ClInclude Include="include\util\ringbuffer.h" />
+    <ClInclude Include="include\win32\clipboard.h" />
     <ClInclude Include="include\win32\cpuid.h" />
     <ClInclude Include="include\win32\file.h" />
     <ClInclude Include="include\win32\panic.h" />

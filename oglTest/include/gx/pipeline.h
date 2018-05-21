@@ -48,6 +48,7 @@ public:
   Pipeline& scissor(ivec4 rect);
   Pipeline& alphaBlend();
   Pipeline& additiveBlend();
+  Pipeline& subtractiveBlend();
   Pipeline& multiplyBlend();
   Pipeline& depthTest(DepthFunc func);
   Pipeline& cull(FrontFace front, CullMode mode);
@@ -85,6 +86,7 @@ private:
   } m_scissor;
 
   struct BlendConfig {
+    GLenum mode;
     GLenum sfactor, dfactor;
   } m_blend;
 

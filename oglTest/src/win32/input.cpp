@@ -150,7 +150,7 @@ void InputDeviceManager::process(void *handle)
       mi->ev_data = (short)m->usButtonData;
       break;
 
-    default: mi->event = Mouse::Move;
+    default: mi->event = Mouse::Move; break;
     }
 
     mi->dx = (float)m->lLastX*m_mouse_speed;
@@ -203,7 +203,7 @@ void InputDeviceManager::doDoubleClick(Mouse *mi)
     }
   }
 
-  m_clicks.put(*mi);
+  m_clicks.push(*mi);
 }
 
 bool Mouse::buttonDown(Button btn) const

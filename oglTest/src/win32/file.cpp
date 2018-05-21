@@ -12,8 +12,6 @@ static const DWORD p_creation_disposition_table[] = {
   TRUNCATE_EXISTING,
 };
 
-static constexpr size_t p_high_shift = 32;
-static constexpr size_t p_low_mask = 0xFFFFFFFF;
 
 File::File(const char *path, Access access, Share share, OpenMode open) :
   m_access(access)
@@ -36,7 +34,7 @@ File::File(const char *path, Access access, Share share, OpenMode open) :
   DWORD size_low = 0, size_high = 0;
   size_low = GetFileSize(m, &size_high);
 
-  m_sz = ((size_t)size_high<<32ull) | size_low;
+  m_sz = dword_combine2(size_high, size_low);
 }
 
 File::File(const char *path, Access access, OpenMode open) :
@@ -110,7 +108,7 @@ FileView File::map(Protect protect, size_t offset, size_t size, const char *name
     flprotect = PAGE_EXECUTE_READWRITE;
   }
 
-  auto mapping = CreateFileMappingA(m, nullptr, flprotect, size>>p_high_shift, size&p_low_mask, name);
+  auto mapping = CreateFileMappingA(m, nullptr, flprotect, dword_high(size), dword_low(size), name);
   if(!mapping) throw MappingCreateError(GetLastError());
 
   return FileView(mapping, m_access, offset, size);
@@ -148,7 +146,7 @@ FileView::FileView(void *mapping, File::Access access, size_t offset, size_t siz
   desired_access |= access & File::Write   ? FILE_MAP_WRITE   : 0;
   desired_access |= access & File::Execute ? FILE_MAP_EXECUTE : 0;
 
-  m_ptr = MapViewOfFile(m, desired_access, offset>>p_high_shift, offset&p_low_mask, size);
+  m_ptr = MapViewOfFile(m, desired_access, dword_high(offset), dword_low(offset), size);
   if(!m_ptr) throw File::MapFileError(GetLastError());
 }
 

@@ -13,7 +13,7 @@ public:
 
   RingBuffer() { clear(); }
   
-  void put(T elem)
+  void push(T elem)
   {
     m_data[m_ptr] = elem;
 
@@ -26,6 +26,15 @@ public:
     size_t ptr = (m_ptr-1) % N;
 
     return m_data[ptr];
+  }
+
+  T pop()
+  {
+    auto r = last();
+
+    m_ptr = (m_ptr-1) % N;
+
+    return r;
   }
 
   bool empty() const { return m_empty; }
