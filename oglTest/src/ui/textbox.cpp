@@ -47,26 +47,23 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
         m_ui->keyboard(this);
         break;
 
-      case Mouse::Up:
-        m_state = Editing;
-        break;
-
-      case Mouse::DoubleClick:
-        selection(selectWord(pos));
-        break;
+      case Mouse::Up: m_state = Editing; break;
+      case Mouse::DoubleClick: selection(selectWord(pos)); break;
 
       default: return mouseGesture(pos);
       }
 
       return true;
     } else {
-      if(mouse->event == Mouse::Down) {
+      switch(mouse->event) {
+      case Mouse::Down:
         m_state = Default;
 
         m_ui->keyboard(nullptr);
         return false;
       }
     }
+
   } else if(auto kb = input->get<win32::Keyboard>()) {
     if(m_state != Editing || kb->event != win32::Keyboard::KeyDown) return false;
 
@@ -119,16 +116,23 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
     .rect(g, white())
     .rect(cursor_g, cursor_color)
     .border(g, 1.0f, border_color)
-    .text(font, m_text, text_pos, black())
     ;
+
+  if(m_text.empty() && !m_hint.empty()) { // Draw hint
+    painter
+      .text(font, m_hint, text_pos, black().opacity(0.35))
+      ;
+  } else {
+    painter
+      .text(font, m_text, text_pos, black())
+      ;
+  }
 
   if(m_selection.valid()) {
     std::pair<float, float> sx = {
-      cursorX(m_selection.first),
-      cursorX(m_selection.last),
+      cursorX(m_selection.left()),
+      cursorX(m_selection.right()),
     };
-
-    if(sx.first > sx.second) std::swap(sx.first, sx.second);
 
     Geometry selection_g = {
       text_pos.x + sx.first, g.y + 1.0f,
@@ -136,7 +140,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
     };
 
     painter
-      .rect(selection_g, Color(112, 112, 255, 128))
+      .rect(selection_g, Color(112, 112, 255).opacity(0.5))
       ;
   }
 }
@@ -156,9 +160,25 @@ const std::string& TextBoxFrame::text() const
   return m_text;
 }
 
-void TextBoxFrame::text(const std::string& s)
+TextBoxFrame& TextBoxFrame::text(const std::string& s)
 {
   m_text = s;
+  m_cursor = m_text.size();
+  m_selection.reset();
+
+  return *this;
+}
+
+const std::string& TextBoxFrame::hint() const
+{
+  return m_hint;
+}
+
+TextBoxFrame& TextBoxFrame::hint(const std::string& s)
+
+  m_hint = s;
+
+  return *this;
 }
 
 TextBoxFrame& TextBoxFrame::onChange(OnChange::Slot on_change)
@@ -189,7 +209,7 @@ vec2 TextBoxFrame::sizeHint() const
 {
   const auto& font = *m_ui->style().font;
 
-  return vec2{ 0, font.height() + TextPixelMargin };
+  return { 0, font.height() + TextPixelMargin };
 }
 
 bool TextBoxFrame::keyboardDown(CursorDriver& cursor, win32::Keyboard *kb)
@@ -203,13 +223,13 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
 
   if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) {
     switch(kb->key) {
-    case 'A':
+    case 'A': // Select all
       m_selection = { 0, m_text.size() };
       m_cursor = m_text.size();
       break;
 
-    case 'X':
-    case 'C': {
+    case 'X':   // Cut
+    case 'C': { // Copy
       win32::Clipboard clipboard;
       auto str = m_text.c_str() + m_selection.left();
 
@@ -217,7 +237,7 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
       if(kb->key == 'X') doDeleteSelection();
     }
     break;
-    case 'V': {
+    case 'V': { // Paste
       win32::Clipboard clipboard;
       auto str = clipboard.string();
 
@@ -250,7 +270,7 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
 
   switch(kb->key) {
   case Keyboard::Right:
-    m_cursor = clamp((int)m_cursor+1, 0, (int)m_text.size());
+    cursor(m_cursor+1);
     if(kb->modifier(Keyboard::Shift)) {
       selection(m_selection.valid() ? m_selection.first : m_cursor-1, m_cursor);
     } else {
@@ -258,12 +278,30 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
     }
     break;
   case Keyboard::Left:
-    m_cursor = clamp((int)m_cursor-1, 0, (int)m_text.size());
+    cursor(m_cursor-1);
     if(kb->modifier(Keyboard::Shift)) {
       selection(m_selection.valid() ? m_selection.first : m_cursor+1, m_cursor);
     } else {
       m_selection.reset();
     }
+    break;
+  case Keyboard::Up:
+  case Keyboard::Home:
+    if(kb->modifier(Keyboard::Shift)) {
+      selection(0, m_selection.valid() ? m_selection.right() : m_cursor);
+    } else {
+      m_selection.reset();
+    }
+    m_cursor = 0;
+    break;
+  case Keyboard::Down:
+  case Keyboard::End:
+    if(kb->modifier(Keyboard::Shift)) {
+      selection(m_selection.valid() ? m_selection.left() : m_cursor, m_text.size());
+    } else {
+      m_selection.reset();
+    }
+    m_cursor = m_text.size();
     break;
 
   case Keyboard::Enter: m_on_submit.emit(this); break;
@@ -280,23 +318,6 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
     if(m_text.empty() || m_cursor == m_text.size()) break;
 
     m_text.erase(m_cursor, 1);
-    break;
-
-  case Keyboard::Home:
-    if(kb->modifier(Keyboard::Shift)) {
-      selection(0, m_selection.valid() ? m_selection.right() : m_cursor);
-    } else {
-      m_selection.reset();
-    }
-    m_cursor = 0;
-    break;
-  case Keyboard::End:
-    if(kb->modifier(Keyboard::Shift)) {
-      selection(m_selection.valid() ?  m_selection.left() : m_cursor, m_text.size());
-    } else {
-      m_selection.reset();
-    }
-    m_cursor = m_text.size();
     break;
   }
 
@@ -361,6 +382,11 @@ SelectionRange TextBoxFrame::selectWord(vec2 pos) const
   };
 }
 
+void TextBoxFrame::cursor(size_t x)
+{
+  m_cursor = clamp(x, (size_t)0, m_text.size());
+}
+
 bool TextBoxFrame::doDeleteSelection()
 {
   if(!m_selection.valid()) return false;
@@ -369,8 +395,7 @@ bool TextBoxFrame::doDeleteSelection()
     count = m_selection.size();
 
   m_text.erase(off, count);
-  m_cursor = (m_cursor > m_selection.first ? m_selection.last : m_selection.first) - count;
-
+  cursor(m_selection.left());
   m_selection.reset();
 
   return true;

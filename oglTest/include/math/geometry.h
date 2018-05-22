@@ -517,6 +517,33 @@ T clamp(T x, T minimum, T maximum)
   return std::min(x, maximum);
 }
 
+static vec2 clamp(vec2 x, vec2 minimum, vec2 maximum)
+{
+  return {
+    clamp(x.x, minimum.x, maximum.x),
+    clamp(x.y, minimum.y, maximum.y)
+  };
+}
+
+static vec3 clamp(vec3 x, vec3 minimum, vec3 maximum)
+{
+  return {
+    clamp(x.x, minimum.x, maximum.x),
+    clamp(x.y, minimum.y, maximum.y),
+    clamp(x.z, minimum.z, maximum.z)
+  };
+}
+
+static vec4 clamp(vec4 x, vec4 minimum, vec4 maximum)
+{
+  return {
+    clamp(x.x, minimum.x, maximum.x),
+    clamp(x.y, minimum.y, maximum.y),
+    clamp(x.z, minimum.z, maximum.z),
+    clamp(x.w, minimum.w, maximum.w)
+  };
+}
+
 template <typename Limit, typename T>
 Limit saturate(T x)
 {

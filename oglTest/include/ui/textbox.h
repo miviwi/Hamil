@@ -45,7 +45,10 @@ public:
   virtual void attached();
 
   const std::string& text() const;
-  void text(const std::string& s);
+  TextBoxFrame& text(const std::string& s);
+
+  const std::string& hint() const;
+  TextBoxFrame& hint(const std::string& s);
 
   SelectionRange selection() const;
   void selection(SelectionRange r);
@@ -87,12 +90,14 @@ private:
 
   SelectionRange selectWord(vec2 pos) const;
 
+  void cursor(size_t x);
+
   bool doDeleteSelection();
 
   State m_state = Default;
 
   size_t m_cursor = 0;
-  std::string m_text;
+  std::string m_text, m_hint;
   SelectionRange m_selection = SelectionRange::none();
 
   OnChange m_on_change;

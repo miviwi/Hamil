@@ -21,6 +21,9 @@ struct Geometry {
   Geometry(vec2 pos, float w_, float h_) :
     x(pos.x), y(pos.y), w(w_), h(h_)
   { }
+  Geometry(float x_, float y_, vec2 size) :
+    x(x_), y(y_), w(size.x), h(size.y)
+  { }
   Geometry(float w_, float h_) :
     x(0), y(0), w(w_), h(h_)
   { }
@@ -61,8 +64,9 @@ struct Color : public Vector4<byte> {
 };
 
 static Color transparent() { return Color{ 0, 0, 0, 0 }; }
-static Color black() { return Color{ 0, 0, 0, 255 }; }
-static Color white() { return Color{ 255, 255, 255, 255 }; }
+static Color black()       { return Color{ 0, 0, 0, 255 }; }
+static Color grey()        { return Color{ 128, 128, 128, 255 }; }
+static Color white()       { return Color{ 255, 255, 255, 255 }; }
 
 struct Position : public Vector2<i16> {
   Position();

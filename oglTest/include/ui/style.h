@@ -11,7 +11,7 @@ namespace ui {
 struct Style {
   using Corner = VertexPainter::Corner;
 
-  ft::Font::Ptr font;
+  ft::Font::Ptr font, monospace;
 
   struct {
     Color color[4];

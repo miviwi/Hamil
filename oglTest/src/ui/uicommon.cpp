@@ -18,18 +18,10 @@ Geometry Geometry::translate(vec2 t) const
 Geometry Geometry::clip(const Geometry& g) const
 {
   vec2 gb = { g.x+g.w, g.y+g.h };
-
   if(gb.x > (x+w) && gb.y > (y+h)) return Geometry{ 0, 0, 0, 0 };
 
-  vec2 da = {
-    clamp(g.x, x, x+w),
-    clamp(g.y, y, y+h),
-  };
-
-  vec2 db = {
-    clamp(gb.x, x, x+w),
-    clamp(gb.y, y, y+h),
-  };
+  vec2 da = clamp(g.pos(), { x, y }, { x+w, y+h });
+  vec2 db = clamp(gb, { x, y }, { x+w, y+h });
 
   return Geometry{ da.x, da.y, db.x-da.x, db.y-da.y };
 }

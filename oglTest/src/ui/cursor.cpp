@@ -1,6 +1,7 @@
 #include <ui/cursor.h>
 #include <ui/uicommon.h>
 
+#include <math/geometry.h>
 #include <gx/gx.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
@@ -231,10 +232,7 @@ void CursorDriver::input(const InputPtr& input)
   if(auto mouse = input->get<win32::Mouse>()) {
     m_pos += { mouse->dx, mouse->dy };
 
-    m_pos = {
-      std::max(0.0f, m_pos.x),
-      std::max(0.0f, m_pos.y),
-    };
+    m_pos = clamp(m_pos, { }, FramebufferSize);
   }
 }
 

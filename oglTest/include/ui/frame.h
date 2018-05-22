@@ -15,6 +15,14 @@ namespace ui {
 
 // TODO:
 //   - Think of a way to eliminate the Ui& argument of constructor
+// 
+//   - Refactor input handling to make use of events.
+//     That is instead of input() being unique to each widget
+//     'Frame' will emit calls to ex. :
+//       * evMouseEnter()
+//       * evMouseClick()
+//       * evMouseDrag()
+//       * etc...
 class Frame {
 public:
   enum Gravity {

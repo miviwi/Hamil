@@ -196,6 +196,7 @@ exit /b 0</Command>
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\ui\animation.cpp" />
+    <ClCompile Include="src\ui\console.cpp" />
     <ClCompile Include="src\ui\drawable.cpp" />
     <ClCompile Include="src\ui\textbox.cpp" />
     <ClCompile Include="src\util\allocator.cpp" />
@@ -212,6 +213,7 @@ exit /b 0</Command>
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\ui\animation.h" />
+    <ClInclude Include="include\ui\console.h" />
     <ClInclude Include="include\ui\drawable.h" />
     <ClInclude Include="include\ui\textbox.h" />
     <ClInclude Include="include\util\allocator.h" />

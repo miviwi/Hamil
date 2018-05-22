@@ -28,6 +28,7 @@
 #include <ui/label.h>
 #include <ui/dropdown.h>
 #include <ui/textbox.h>
+#include <ui/console.h>
 
 #include <game/game.h>
 
@@ -442,6 +443,7 @@ void main() {
 
   ui::Style style;
   style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("segoeui"), 12));
+  style.monospace = ft::Font::Ptr(new ft::Font(ft::FontFamily("consola"), 12));
 
   style.bg.color[0] = style.bg.color[3] = color_b;
   style.bg.color[1] = style.bg.color[2] = color_a;
@@ -483,7 +485,7 @@ void main() {
            .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
            .gravity(ui::Frame::Left))
-    .frame(ui::create<ui::TextBoxFrame>(iface, "textbox"))
+    .frame(ui::create<ui::TextBoxFrame>(iface, "textbox").hint("Type something here!"))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b"),
@@ -539,7 +541,7 @@ void main() {
 
   iface
     .frame(layout, { 30.0f, 500.0f })
-    .frame<ui::Frame>(iface, ui::Geometry{ 1000.0f, 300.0f, 200.0f, 300.0f })
+    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
 
   auto fps_timer = win32::DeltaTimer();

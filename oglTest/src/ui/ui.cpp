@@ -222,7 +222,6 @@ void Ui::paint()
 
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
-  style().font->bindFontAltas();
   ui_program->use()
     .uniformSampler(U::ui.uFontAtlas, ft::TexImageUnit);
 
@@ -238,6 +237,7 @@ void Ui::paint()
       break;
 
     case VertexPainter::Text:
+      cmd.font->bindFontAltas();
       ui_program->use()
         .uniformMatrix4x4(U::ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
         .uniformInt(U::ui.uType, Shader_TypeText)
