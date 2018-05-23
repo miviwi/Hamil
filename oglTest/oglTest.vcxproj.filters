@@ -283,9 +283,6 @@
     <ClInclude Include="extern\GL\wgl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="extern\GL\glext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\program.uniform">

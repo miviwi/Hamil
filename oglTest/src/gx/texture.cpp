@@ -5,7 +5,6 @@
 #include <cstdio>
 
 #include <windows.h>
-#include <GL/glext.h>
 
 namespace gx {
 
@@ -147,7 +146,7 @@ GLenum Sampler::pname(ParamName name)
   static const GLenum table[] = {
     GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER,
     GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_WRAP_R,
-    GL_TEXTURE_MAX_ANISOTROPY_EXT,
+    GL_TEXTURE_MAX_ANISOTROPY,
     GL_TEXTURE_BORDER_COLOR,
   };
   return table[name];

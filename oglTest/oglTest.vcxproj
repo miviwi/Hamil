@@ -209,7 +209,6 @@ exit /b 0</Command>
     <ClCompile Include="src\ft\font.cpp" />
     <ClInclude Include="extern\GL\gl3w.h" />
     <ClInclude Include="extern\GL\glcorearb.h" />
-    <ClInclude Include="extern\GL\glext.h" />
     <ClInclude Include="extern\GL\wgl.h" />
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\math\compare.h" />
