@@ -15,16 +15,16 @@ static constexpr vec2 FramebufferSize = { 1280, 720 };
 struct Geometry {
   float x, y, w, h;
 
-  Geometry(float x_, float y_, float w_, float h_) :
+  constexpr Geometry(float x_, float y_, float w_, float h_) :
     x(x_), y(y_), w(w_), h(h_)
   { }
-  Geometry(vec2 pos, float w_, float h_) :
+  constexpr Geometry(vec2 pos, float w_, float h_) :
     x(pos.x), y(pos.y), w(w_), h(h_)
   { }
-  Geometry(float x_, float y_, vec2 size) :
+  constexpr Geometry(float x_, float y_, vec2 size) :
     x(x_), y(y_), w(size.x), h(size.y)
   { }
-  Geometry(float w_, float h_) :
+  constexpr Geometry(float w_, float h_) :
     x(0), y(0), w(w_), h(h_)
   { }
 

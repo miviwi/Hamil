@@ -45,6 +45,8 @@ public:
   Frame& gravity(Gravity gravity);
   Gravity gravity() const;
 
+  void position(vec2 pos);
+
   virtual void losingCapture();
   virtual void attached();
 

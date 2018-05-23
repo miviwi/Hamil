@@ -145,6 +145,7 @@ public:
   void init(ChannelList channels);
 
   void start();
+  void stop();
   bool done();
 
   template <typename T>

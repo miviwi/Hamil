@@ -189,9 +189,7 @@ exit /b 0</Command>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="extern\GL\glew.c">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">GLEW_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
+    <ClCompile Include="extern\GL\gl3w.c" />
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
@@ -209,6 +207,10 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\label.cpp" />
     <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\ft\font.cpp" />
+    <ClInclude Include="extern\GL\gl3w.h" />
+    <ClInclude Include="extern\GL\glcorearb.h" />
+    <ClInclude Include="extern\GL\glext.h" />
+    <ClInclude Include="extern\GL\wgl.h" />
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
@@ -240,19 +242,13 @@ exit /b 0</Command>
     <ClCompile Include="src\gx\framebuffer.cpp" />
     <ClCompile Include="src\win32\input.cpp" />
     <ClCompile Include="src\math\intrin.cpp" />
-    <ClCompile Include="src\gx\program.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="src\gx\program.cpp" />
     <ClCompile Include="src\gx\texture.cpp" />
     <ClCompile Include="src\gx\vertex.cpp" />
     <ClCompile Include="src\winmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h" />
-    <ClInclude Include="extern\GL\eglew.h" />
-    <ClInclude Include="extern\GL\glew.h" />
-    <ClInclude Include="extern\GL\glxew.h" />
-    <ClInclude Include="extern\GL\wglew.h" />
     <ClInclude Include="include\ui\cursor.h" />
     <ClInclude Include="include\game\game.h" />
     <ClInclude Include="include\gx\pipeline.h" />

@@ -175,7 +175,7 @@ const std::string& TextBoxFrame::hint() const
 }
 
 TextBoxFrame& TextBoxFrame::hint(const std::string& s)
-
+{
   m_hint = s;
 
   return *this;

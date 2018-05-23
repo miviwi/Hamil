@@ -544,6 +544,8 @@ void main() {
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
 
+  auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
+
   auto fps_timer = win32::DeltaTimer();
 
   constexpr auto anim_time = 10000.0f;
@@ -578,11 +580,14 @@ void main() {
           window.quit();
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
+        } else if(kb->keyDown('`')) {
+          console.toggle();
         }
       } else if(auto mouse = input->get<win32::Mouse>()) {
         using win32::Mouse;
 
-        cursor.visible(!(mouse->buttons & (Mouse::Left|Mouse::Right)));
+        cursor.visible(!mouse->buttons);
+        if(mouse->buttonDown(Mouse::Left)) iface.keyboard(nullptr);
 
         if(mouse->buttons & Mouse::Left) {
           mat4 d_mtx = xform::identity()

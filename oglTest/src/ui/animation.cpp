@@ -49,6 +49,11 @@ void Animation::start()
   m_timer.reset();
 }
 
+void Animation::stop()
+{
+  m_timer.stop();
+}
+
 bool Animation::done()
 {
   return m_timer.loops();

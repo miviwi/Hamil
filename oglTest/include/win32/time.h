@@ -44,6 +44,7 @@ public:
   Timer();
 
   void reset();
+  void stop();
 
 protected:
   Time delta();

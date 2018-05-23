@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GL/glew.h>
+#include <GL/gl3w.h>
 
 #include <gx/gx.h>
 #include <gx/texture.h>

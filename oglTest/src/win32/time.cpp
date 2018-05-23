@@ -104,6 +104,11 @@ void Timer::reset()
   m_started = Timers::ticks();
 }
 
+void Timer::stop()
+{
+  m_started = InvalidTime;
+}
+
 Time Timer::delta()
 {
   return Timers::ticks() - m_started;

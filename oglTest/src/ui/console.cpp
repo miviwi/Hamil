@@ -1,8 +1,42 @@
 #include <ui/console.h>
+#include <ui/animation.h>
 
 #include <win32/input.h>
 
 namespace ui {
+
+class ConsoleBufferFrame : public Frame {
+public:
+  using LineBuffer = std::deque<std::string>;
+
+  static constexpr float BufferHeight = 290.0f,
+    BufferPixelMargin = 5.0f;
+
+  enum : size_t {
+    CursorNotSet = ~0u,
+
+    BufferDepth = 512,
+  };
+
+  using Frame::Frame;
+
+  virtual bool input(CursorDriver& cursor, const InputPtr& input);
+  virtual void paint(VertexPainter& painter, Geometry parent);
+
+  virtual vec2 sizeHint() const;
+
+  void submitCommand(TextBoxFrame *prompt);
+
+  void print(const std::string& str);
+  void clear();
+
+  std::string historyPrevious();
+  std::string historyNext();
+
+private:
+  LineBuffer m_buffer;
+  size_t m_cursor = CursorNotSet;
+};
 
 ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   Frame(ui, name, make_geometry()),
@@ -22,6 +56,10 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     m_on_command.emit(this, target->text().c_str());
     m_buffer->submitCommand(target);
   });
+
+  m_buffer->print("putting some text into the buffer...");
+  m_buffer->print("some more text");
+  m_buffer->print("wow such text (!)");
 }
 
 ConsoleFrame::ConsoleFrame(Ui& ui) :
@@ -31,33 +69,39 @@ ConsoleFrame::ConsoleFrame(Ui& ui) :
 
 ConsoleFrame::~ConsoleFrame()
 {
+  delete m_console;
 }
 
 bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
   if(auto kb = input->get<win32::Keyboard>()) {
-    if(!kb->special()) return m_prompt->input(cursor, input);
-
     using win32::Keyboard;
+    if(!kb->special() || kb->event != Keyboard::KeyDown) return m_console->input(cursor, input);
 
     std::string s;
     
-    switch(kb->key) {
+    switch(kb->key) { // TODO: work out how to make this reachable when m_prompt has keyboard...
     case Keyboard::Up:   s = m_buffer->historyPrevious(); break;
     case Keyboard::Down: s = m_buffer->historyNext(); break;
 
-    default: return m_prompt->input(cursor, input);
+    default: return m_console->input(cursor, input);
     }
 
     m_prompt->text(s);
     return true;
   }
 
-  return m_prompt->input(cursor, input);
+  return m_console->input(cursor, input);
 }
 
 void ConsoleFrame::paint(VertexPainter& painter, Geometry parent)
 {
+  auto y = m_dropdown.done() ? 0.0f : m_dropdown.channel<float>(0);
+  m_console->position({
+    make_geometry().x,
+    m_dropped ? y : (-ConsoleSize.y - y)
+  });
+
   m_console->paint(painter, geometry());
 }
 
@@ -68,6 +112,34 @@ void ConsoleFrame::losingCapture()
 
 void ConsoleFrame::attached()
 {
+  m_dropdown.stop();
+}
+
+ConsoleFrame& ConsoleFrame::toggle()
+{
+  return dropped(!m_dropped);
+}
+
+ConsoleFrame& ConsoleFrame::dropped(bool val)
+{
+  m_dropped = val;
+  m_dropdown.start();
+
+  return *this;
+}
+
+ConsoleFrame& ConsoleFrame::print(const char *str)
+{
+  m_buffer->print(str);
+
+  return *this;
+}
+
+ConsoleFrame& ConsoleFrame::clear()
+{
+  m_buffer->clear();
+
+  return *this;
 }
 
 ConsoleFrame& ConsoleFrame::onCommand(OnCommand::Slot on_command)
@@ -87,9 +159,9 @@ vec2 ConsoleFrame::sizeHint() const
   return ConsoleSize;
 }
 
-Geometry ConsoleFrame::make_geometry()
+constexpr Geometry ConsoleFrame::make_geometry()
 {
-  float hcenter = (1.0f/2.0f)*(FramebufferSize.x - ConsoleSize.x);
+  float hcenter = (FramebufferSize.x - ConsoleSize.x)/2.0f;
 
   return {
     hcenter, 0,
@@ -123,8 +195,8 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
 
   float line_height = font.height();
 
-  vec2 pos = {
-    g.x + BufferPixelMargin,
+  vec2 pos = g.pos() + vec2{
+    BufferPixelMargin,
     g.h - (font.ascender() + BufferPixelMargin)
   };
   for(auto& line : m_buffer) {
@@ -143,30 +215,47 @@ vec2 ConsoleBufferFrame::sizeHint() const
 
 void ConsoleBufferFrame::submitCommand(TextBoxFrame *prompt)
 {
-  m_buffer.push_front(prompt->text());
-  if(m_buffer.size() > BufferDepth) m_buffer.pop_back();
-
-  m_cursor = -1;
+  print(prompt->text());
 
   prompt->text("");
 }
 
-const std::string&  ConsoleBufferFrame::historyPrevious()
+void ConsoleBufferFrame::print(const std::string& str)
 {
-  if(m_cursor < 0) {
-    m_cursor = 0;
-  }
+  m_buffer.push_front(str);
+  if(m_buffer.size() > BufferDepth) m_buffer.pop_back();
 
-  return m_buffer.front();
+  m_cursor = CursorNotSet;
 }
 
-const std::string& ConsoleBufferFrame::historyNext()
+void ConsoleBufferFrame::clear()
 {
-  if(m_cursor < 0) {
-    m_cursor = (int)m_buffer.size() - 1;
+  m_buffer.clear();
+  m_cursor = CursorNotSet;
+}
+
+std::string ConsoleBufferFrame::historyPrevious()
+{
+  if(m_cursor == CursorNotSet) {
+    m_cursor = 0;
+  } else if(m_cursor < m_buffer.size()) {
+    m_cursor++;
+    return m_buffer[m_cursor];
   }
 
-  return m_buffer.back();
+  return "";
+}
+
+std::string ConsoleBufferFrame::historyNext()
+{
+  if(m_cursor == CursorNotSet) {
+    m_cursor = m_buffer.size()-1;
+  } else if(m_cursor > 0) {
+    m_cursor--;
+    return m_buffer[m_cursor];
+  }
+
+  return "";
 }
 
 }

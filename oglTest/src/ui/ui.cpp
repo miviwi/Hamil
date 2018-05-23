@@ -225,7 +225,6 @@ void Ui::paint()
   ui_program->use()
     .uniformSampler(U::ui.uFontAtlas, ft::TexImageUnit);
 
-  m_vtx.use();
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
     switch(cmd.type) {

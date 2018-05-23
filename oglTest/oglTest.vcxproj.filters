@@ -17,9 +17,6 @@
     <ClCompile Include="src\winmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="extern\GL\glew.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\ui\ui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -140,21 +137,12 @@
     <ClCompile Include="src\ui\console.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="extern\GL\gl3w.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="extern\GL\eglew.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="extern\GL\glew.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="extern\GL\glxew.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="extern\GL\wglew.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ui\ui.h">
@@ -284,6 +272,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ui\console.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GL\gl3w.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GL\glcorearb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GL\wgl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GL\glext.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

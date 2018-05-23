@@ -31,6 +31,8 @@ InputDeviceManager::InputDeviceManager() :
 
   setMouseSpeed(1.0f);
   setDoubleClickSpeed(0.5f);
+
+  m_capslock = (GetKeyState(VK_CAPITAL) & 1) ? Keyboard::CapsLock : 0; //  bit 0 == toggle state
 }
 
 void InputDeviceManager::setMouseSpeed(float speed)
@@ -84,9 +86,13 @@ void InputDeviceManager::process(void *handle)
     case VK_RWIN:    modifiers = Keyboard::Super; break;
     }
 
-    if(kbi->event == Keyboard::KeyUp)        m_kb_modifiers &= ~modifiers;
-    else if(kbi->event == Keyboard::KeyDown) m_kb_modifiers |= modifiers;
-    kbi->modifiers = m_kb_modifiers;
+    if(kbi->event == Keyboard::KeyUp) {
+      m_kb_modifiers &= ~modifiers;
+    } else if(kbi->event == Keyboard::KeyDown) {
+      m_kb_modifiers |= modifiers;
+      if(kb->VKey == VK_CAPITAL) m_capslock ^= Keyboard::CapsLock; // Toggles between Capslock and 0
+    }
+    kbi->modifiers = m_kb_modifiers | m_capslock;
 
     kbi->key = Keyboard::translate_key(kb->VKey, kbi->modifiers);
     kbi->sym = Keyboard::translate_sym(kb->VKey, kbi->modifiers);
@@ -238,7 +244,8 @@ bool Keyboard::special() const
 
 unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
 {
-  bool shift = modifiers & Shift;
+  bool shift = modifiers & Shift,
+    caps = modifiers & CapsLock;
 
   if(shift) {
     switch(vk) {
@@ -281,12 +288,24 @@ unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
     }
   }
 
-  return shift ? toupper(vk) : tolower(vk);
+  return (shift || caps) ? toupper(vk) : tolower(vk);
 }
 
 unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
 {
   switch(vk) {
+  case VK_OEM_1:      return ';';
+  case VK_OEM_2:      return '/';
+  case VK_OEM_3:      return '`';
+  case VK_OEM_4:      return '[';
+  case VK_OEM_5:      return '\\';
+  case VK_OEM_6:      return ']';
+  case VK_OEM_7:      return '\'';
+  case VK_OEM_COMMA:  return ',';
+  case VK_OEM_PERIOD: return '.';
+  case VK_OEM_PLUS:   return '+';
+  case VK_OEM_MINUS:  return '-';
+
   case VK_UP:    return Up;
   case VK_DOWN:  return Down;
   case VK_LEFT:  return Left;

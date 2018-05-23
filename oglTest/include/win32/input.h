@@ -71,6 +71,8 @@ struct Keyboard : public Input {
     Shift = 1<<1,
     Alt   = 1<<2,
     Super = 1<<3,
+
+    CapsLock = 1<<15,
   };
 
   enum Key {
@@ -129,7 +131,9 @@ private:
 
   float m_mouse_speed;
   unsigned m_mouse_buttons;
+
   unsigned m_kb_modifiers;
+  unsigned m_capslock;
 
   RingBuffer<Mouse> m_clicks;
   Time m_dbl_click_speed;

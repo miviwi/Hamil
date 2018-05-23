@@ -7,10 +7,13 @@
 
 #include <windowsx.h>
 
-#include <GL/glew.h>
-#include <GL/wglew.h>
+#include <GL/gl3w.h>
+#include <GL/wgl.h>
 
 #pragma comment(lib, "opengl32.lib")
+
+PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
+PFNWGLCREATECONTEXTATTRIBSARBPROC CreateContextAttribsARB;
 
 namespace win32 {
 
@@ -51,7 +54,7 @@ void Window::swapBuffers()
 
 void Window::swapInterval(unsigned interval)
 {
-  wglSwapIntervalEXT(interval);
+  SwapIntervalEXT(interval);
 }
 
 Input::Ptr Window::getInput()
@@ -157,13 +160,13 @@ HGLRC Window::ogl_create_context(HWND hWnd)
 
   wglMakeCurrent(hdc, temp_context);
   
-  GLenum err = glewInit();
-  if(err != GLEW_OK) panic("Failed to initialize GLEW!", -2);
+  int err = gl3wInit();
+  if(err) panic("Failed to initialize gl3w!", -2);
 
-  auto version_error = []()
-  {
-    panic("OpenGL version >= 3.3 required!", -3);
-  };
+  if(!gl3wIsSupported(3, 3)) panic("OpenGL version >= 3.3 required!", -3);
+
+  SwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+  CreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
 
   int flags = WGL_CONTEXT_DEBUG_BIT_ARB,
     profile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
@@ -176,22 +179,17 @@ HGLRC Window::ogl_create_context(HWND hWnd)
     0
   };
 
-  if(!wglewIsSupported("WGL_ARB_create_context")) version_error();
-
-  HGLRC context = wglCreateContextAttribsARB(hdc, nullptr, attribs);
-  if(!context) version_error();
+  HGLRC context = CreateContextAttribsARB(hdc, nullptr, attribs);
 
   wglMakeCurrent(nullptr, nullptr);
   wglDeleteContext(temp_context);
 
   wglMakeCurrent(hdc, context);
 
-  wglSwapIntervalEXT(0);
+  SwapIntervalEXT(0);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 #if !defined(NDEBUG)
-  if(!glewIsSupported("GL_KHR_debug")) panic("GL_KHR_debug not supported!", -4);
-
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback((GLDEBUGPROC)ogl_debug_callback, nullptr);
 #endif

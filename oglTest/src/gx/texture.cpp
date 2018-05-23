@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include <windows.h>
+#include <GL/glext.h>
 
 namespace gx {
 

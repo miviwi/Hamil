@@ -69,12 +69,10 @@ private:
   };
 
   Animation m_cursor_blink = {
-    {
-      make_animation_channel({
-         keyframe(black(),       0.5f),
-         keyframe(transparent(), 0.5f),
-      }, EaseNone, RepeatLoop)
-    }
+    make_animation_channel({
+       keyframe(black(),       0.5f),
+       keyframe(transparent(), 0.5f),
+    }, EaseNone, RepeatLoop)
   };
 
   bool keyboardDown(CursorDriver& cursor, win32::Keyboard *kb);

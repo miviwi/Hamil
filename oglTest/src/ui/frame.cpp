@@ -96,6 +96,12 @@ vec2 Frame::sizeHint() const
   return { 0, 0 };
 }
 
+void Frame::position(vec2 pos)
+{
+  m_geom.x = pos.x;
+  m_geom.y = pos.y;
+}
+
 void Frame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = m_geom;
