@@ -38,6 +38,7 @@ public:
   ConsoleFrame& toggle();
   ConsoleFrame& dropped(bool val);
   ConsoleFrame& print(const char *str);
+  ConsoleFrame& print(const std::string& str);
   ConsoleFrame& clear();
 
   ConsoleFrame& onCommand(OnCommand::Slot on_command);

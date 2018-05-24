@@ -242,7 +242,6 @@ ModelManifest.xml
 .fake/
 
 *.raw
-extern/*/win64/*
 
 oglTest/Generated/
 uniforms.*

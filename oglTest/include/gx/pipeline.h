@@ -1,8 +1,8 @@
 #pragma once
 
-#include <math/geometry.h>
+#include <gx/gx.h>
 
-#include <GL/gl3w.h>
+#include <math/geometry.h>
 
 namespace gx {
 

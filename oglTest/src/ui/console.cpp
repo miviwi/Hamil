@@ -25,8 +25,6 @@ public:
 
   virtual vec2 sizeHint() const;
 
-  void submitCommand(TextBoxFrame *prompt);
-
   void print(const std::string& str);
   void clear();
 
@@ -51,15 +49,12 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     
   m_console = &console;
 
-  m_prompt->onSubmit([this](auto target)
-  {
+  m_prompt->onSubmit([this](TextBoxFrame *target) {
+    m_buffer->print(target->text());
     m_on_command.emit(this, target->text().c_str());
-    m_buffer->submitCommand(target);
-  });
 
-  m_buffer->print("putting some text into the buffer...");
-  m_buffer->print("some more text");
-  m_buffer->print("wow such text (!)");
+    target->text("");
+  });
 }
 
 ConsoleFrame::ConsoleFrame(Ui& ui) :
@@ -122,6 +117,8 @@ ConsoleFrame& ConsoleFrame::toggle()
 
 ConsoleFrame& ConsoleFrame::dropped(bool val)
 {
+  if(m_dropped == val) return *this;
+
   m_dropped = val;
   m_dropdown.start();
 
@@ -133,6 +130,11 @@ ConsoleFrame& ConsoleFrame::print(const char *str)
   m_buffer->print(str);
 
   return *this;
+}
+
+ConsoleFrame& ConsoleFrame::print(const std::string& str)
+{
+  return print(str.c_str());
 }
 
 ConsoleFrame& ConsoleFrame::clear()
@@ -211,13 +213,6 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
 vec2 ConsoleBufferFrame::sizeHint() const
 {
   return { 0, BufferHeight };
-}
-
-void ConsoleBufferFrame::submitCommand(TextBoxFrame *prompt)
-{
-  print(prompt->text());
-
-  prompt->text("");
 }
 
 void ConsoleBufferFrame::print(const std::string& str)

@@ -7,6 +7,11 @@ GLuint p_dummy_vao;
 
 void init()
 {
+  // 'p_dummy_vao' is created beacuse the GL spec forbids binding
+  // to the ELEMENT_ARRAY_BUFFER target without a valid VertexArray bound.
+  //
+  // This limitation would make constructing gx::IndexBuffer objects error-prone
+  // without the workaround.
   glGenVertexArrays(1, &p_dummy_vao);
   p_bind_VertexArray(p_dummy_vao);
 
@@ -23,7 +28,6 @@ void finalize()
 void p_bind_VertexArray(unsigned array)
 {
   if(p_last_array != array) glBindVertexArray(array);
-
   p_last_array = array;
 }
 

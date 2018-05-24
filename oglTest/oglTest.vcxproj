@@ -69,25 +69,17 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Generated;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\win64;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;$(LibraryPath)</LibraryPath>
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(LibraryPath)</LibraryPath>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
-    <SourcePath>$(ProjectDir)Generated;$(SourcePath)</SourcePath>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;$(IncludePath)</IncludePath>
+    <SourcePath>$(ProjectDir)Generated;I:\Python\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Generated;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\include;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\win64;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir)Generated;$(SourcePath)</SourcePath>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
@@ -121,9 +113,9 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;glang.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\glang\win64;C:\Users\bruneron\Documents\Visual Studio 2015\Projects\oglTest\oglTest\extern\freetype2\win64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;python37_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4049,4075 /LTCG</AdditionalOptions>
+      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -175,7 +167,7 @@ exit /b 0</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;glang.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;python37.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4049,4075 /LTCG %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <CustomBuildStep>
@@ -193,6 +185,8 @@ exit /b 0</Command>
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
+    <ClCompile Include="src\python\python.cpp" />
+    <ClCompile Include="src\python\object.cpp" />
     <ClCompile Include="src\ui\animation.cpp" />
     <ClCompile Include="src\ui\console.cpp" />
     <ClCompile Include="src\ui\drawable.cpp" />
@@ -213,6 +207,8 @@ exit /b 0</Command>
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
+    <ClInclude Include="include\python\python.h" />
+    <ClInclude Include="include\python\object.h" />
     <ClInclude Include="include\ui\animation.h" />
     <ClInclude Include="include\ui\console.h" />
     <ClInclude Include="include\ui\drawable.h" />

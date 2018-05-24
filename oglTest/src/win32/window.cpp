@@ -12,13 +12,19 @@
 
 #pragma comment(lib, "opengl32.lib")
 
+namespace win32 {
+
 PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
 PFNWGLCREATECONTEXTATTRIBSARBPROC CreateContextAttribsARB;
 
-namespace win32 {
-
 static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
                                         GLenum severity, GLsizei length, GLchar *msg, const void *user);
+
+static void get_wgl_extension_addresses()
+{
+  SwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
+  CreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+}
 
 Window::Window(int width, int height) :
   m_width(width), m_height(height)
@@ -165,8 +171,7 @@ HGLRC Window::ogl_create_context(HWND hWnd)
 
   if(!gl3wIsSupported(3, 3)) panic("OpenGL version >= 3.3 required!", -3);
 
-  SwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-  CreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+  get_wgl_extension_addresses();
 
   int flags = WGL_CONTEXT_DEBUG_BIT_ARB,
     profile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;

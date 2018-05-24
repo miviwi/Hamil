@@ -283,7 +283,7 @@ unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
     case VK_OEM_7:      return '\'';
     case VK_OEM_COMMA:  return ',';
     case VK_OEM_PERIOD: return '.';
-    case VK_OEM_PLUS:   return '+';
+    case VK_OEM_PLUS:   return '=';
     case VK_OEM_MINUS:  return '-';
     }
   }

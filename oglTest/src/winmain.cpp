@@ -30,11 +30,9 @@
 #include <ui/textbox.h>
 #include <ui/console.h>
 
-#include <game/game.h>
+#include <python/python.h>
 
-#include <glang/glang.h>
-#include <glang/heap.h>
-#include <glang/import.h>
+#include <game/game.h>
 
 #include <vector>
 #include <array>
@@ -52,27 +50,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
   gx::init();
   ft::init();
   ui::init();
+  python::init();
   game::init();
-
-  auto heap = glang::FastHeap();
-  auto *vm = new glang::Vm(&heap);
-
-  auto& om = vm->objMan();
-
-  auto vm_messagebox = glang::CallableFn<StringObject, StringObject>(
-    [](glang::ObjectManager& om, auto args) -> Object *
-  {
-    StringObject *title = std::get<0>(args),
-      *text = std::get<1>(args);
-
-    MessageBoxA(nullptr, text->get(), title->get(), MB_OK);
-
-    return nullptr;
-  });
-  auto vm_messagebox_fn = om.fn(&vm_messagebox);
-  vm->envSet("messagebox", vm_messagebox_fn);
-
-  vm->eval("(def v [:a :b :c :d])");
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -494,10 +473,7 @@ void main() {
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-  btn_c->caption("Call vm!").onClick([&](auto target) {
-    auto obj = vm->eval("(messagebox \"VM MessageBox!\" (repr (2 v)))");
-    om.deref(obj);
-  });
+  btn_c->caption("Call vm!");
 
   auto& light_no = *iface.getFrameByName<ui::DropDownFrame>("light_no");
 
@@ -545,6 +521,16 @@ void main() {
     ;
 
   auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
+
+  console.onCommand([&](auto target, const char *command) {
+    auto result = python::eval(command);
+    console.print(">>> " + result);
+  });
+
+  btn_c->onClick([&](auto target) {
+    console.print("Sorry, no VM :(");
+    console.dropped(true);
+  });
 
   auto fps_timer = win32::DeltaTimer();
 
@@ -795,6 +781,7 @@ void main() {
   }
 
   game::finalize();
+  python::finalize();
   ui::finalize();
   ft::finalize();
   gx::finalize();
