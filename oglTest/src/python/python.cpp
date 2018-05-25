@@ -1,6 +1,6 @@
 #include <python/python.h>
 #include <python/object.h>
-#include <python/collection.h>
+#include <python/collections.h>
 #include <python/module.h>
 
 #include <tuple>
@@ -19,12 +19,6 @@ void init()
   if(!mod_builtin) throw Exception::fetch();
 
   p_globals.set("__builtins__", mod_builtin);
-
-  auto g_list = List(
-    { Unicode("this"), Unicode("is"), Unicode("a"), Unicode("list"), Unicode("of"), Unicode("words!"), }
-  );
-  
-  p_globals.set("g_list", g_list);
 }
 
 void finalize()

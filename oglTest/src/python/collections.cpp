@@ -1,4 +1,4 @@
-#include <python/collection.h>
+#include <python/collections.h>
 
 namespace python {
 

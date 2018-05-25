@@ -152,7 +152,10 @@
     <ClCompile Include="src\win32\stdstream.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\python\collection.cpp">
+    <ClCompile Include="src\python\collections.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\python\types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -310,7 +313,10 @@
     <ClInclude Include="include\win32\stdstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\python\collection.h">
+    <ClInclude Include="include\python\collections.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\python\types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

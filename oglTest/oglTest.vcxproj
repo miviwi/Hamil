@@ -185,10 +185,11 @@ exit /b 0</Command>
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
-    <ClCompile Include="src\python\collection.cpp" />
+    <ClCompile Include="src\python\collections.cpp" />
     <ClCompile Include="src\python\module.cpp" />
     <ClCompile Include="src\python\python.cpp" />
     <ClCompile Include="src\python\object.cpp" />
+    <ClCompile Include="src\python\types.cpp" />
     <ClCompile Include="src\ui\animation.cpp" />
     <ClCompile Include="src\ui\console.cpp" />
     <ClCompile Include="src\ui\drawable.cpp" />
@@ -209,10 +210,11 @@ exit /b 0</Command>
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
-    <ClInclude Include="include\python\collection.h" />
+    <ClInclude Include="include\python\collections.h" />
     <ClInclude Include="include\python\module.h" />
     <ClInclude Include="include\python\python.h" />
     <ClInclude Include="include\python\object.h" />
+    <ClInclude Include="include\python\types.h" />
     <ClInclude Include="include\ui\animation.h" />
     <ClInclude Include="include\ui\console.h" />
     <ClInclude Include="include\ui\drawable.h" />
