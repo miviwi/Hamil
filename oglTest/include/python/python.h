@@ -13,27 +13,21 @@ void finalize();
 
 std::string eval(const char *input);
 
-class Interpreter {
-public:
-  Interpreter();
-  ~Interpreter();
-
-  void lock();
-  void unlock();
-
-private:
-  PyThreadState *m_thread_state;
-};
-
 class Exception {
 public:
   static Exception fetch();
 
+  static bool occured();
+
+  const std::string& type() const;
+  const std::string& value() const;
+  const std::string& traceback() const;
+
 protected:
-  Exception(std::string type, std::string value, std::string traceback);
+  Exception(std::string&& type, std::string&& value, std::string&& traceback);
 
 private:
-  std::string m_type, m_value, m_traceback;
+  std::string m_type, m_val, m_trace;
 };
 
 }

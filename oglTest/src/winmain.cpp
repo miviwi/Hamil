@@ -7,6 +7,7 @@
 #include <win32/window.h>
 #include <win32/time.h>
 #include <win32/file.h>
+#include <win32/stdstream.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -38,7 +39,8 @@
 #include <array>
 #include <utility>
 
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+//int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+int main ()
 {
   win32::init();
 
@@ -523,8 +525,14 @@ void main() {
   auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
 
   console.onCommand([&](auto target, const char *command) {
-    auto result = python::eval(command);
-    console.print(">>> " + result);
+    try {
+      auto result = python::eval(command);
+      //console.print(">>> " + result);
+      console.print(">>> " + win32::StdStream::gets());
+    } catch(python::Exception e) {
+      console.print(e.type());
+      console.print(e.value());
+    }
   });
 
   btn_c->onClick([&](auto target) {

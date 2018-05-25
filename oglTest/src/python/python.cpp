@@ -1,71 +1,94 @@
 #include <python/python.h>
 #include <python/object.h>
+#include <python/collection.h>
+#include <python/module.h>
+
+#include <tuple>
 
 namespace python {
 
-Object p_globals(nullptr);
-PyThreadState *p_main_thread_state = nullptr;
+Dict p_globals(nullptr);
 
 void init()
 {
   Py_InitializeEx(0);
-  PyEval_InitThreads();
 
-  p_main_thread_state = PyEval_SaveThread();
+  p_globals = Dict();
 
-  p_globals = Py_BuildValue("{s:d}", "a", 123.456);
+  auto mod_builtin = Module("builtins");
+  if(!mod_builtin) throw Exception::fetch();
+
+  p_globals.set("__builtins__", mod_builtin);
+
+  auto g_list = List(
+    { Unicode("this"), Unicode("is"), Unicode("a"), Unicode("list"), Unicode("of"), Unicode("words!"), }
+  );
+  
+  p_globals.set("g_list", g_list);
 }
 
 void finalize()
 {
   p_globals = nullptr; // Py_DECREF's the underlying PyObject
 
-  PyEval_RestoreThread(p_main_thread_state);
   Py_Finalize();
 }
 
 std::string eval(const char *input)
 {
-  Object co = Py_CompileString(input, "$", Py_eval_input);
-  if(!co) return "";
+  Object co = Py_CompileString(input, "$", Py_single_input);
+  if(!co) throw Exception::fetch();
 
-  Object result = PyEval_EvalCode(*co, *p_globals, *p_globals);
+  Object result = PyEval_EvalCode(*co, *p_globals, nullptr);
+  if(Exception::occured()) throw Exception::fetch();
 
-  return result.repr();
-}
+  auto repr = result.repr();
 
-Interpreter::Interpreter()
-{
-  PyEval_AcquireLock();
-  m_thread_state = Py_NewInterpreter();
-
-  unlock();
-}
-
-Interpreter::~Interpreter()
-{
-  lock();
-  Py_EndInterpreter(m_thread_state);
-  PyEval_ReleaseLock();
-}
-
-void Interpreter::lock()
-{
-  PyEval_AcquireThread(m_thread_state);
-}
-
-void Interpreter::unlock()
-{
-  PyEval_ReleaseThread(m_thread_state);
+  return repr;
 }
 
 Exception Exception::fetch()
 {
-  return { "", "", "" };
+  Object otype = nullptr,
+    oval = nullptr,
+    otrace = nullptr;
+
+  {
+    PyObject *type, *val, *trace;
+    PyErr_Fetch(&type, &val, &trace);
+
+    std::tie(otype, oval, otrace) = std::tie(type, val, trace);
+  }
+
+  return {
+    otype ? otype.attr("__name__").str() : "???",
+    oval ? oval.repr() : "",
+    otrace ? otrace.repr() : ""
+  };
 }
 
-Exception::Exception(std::string type, std::string value, std::string traceback) :
-  m_type(type), m_value(value), m_traceback(traceback)
+bool Exception::occured()
+{
+  return PyErr_Occurred();
+}
+
+const std::string& Exception::type() const
+{
+  return m_type;
+}
+
+const std::string& Exception::value() const
+{
+  return m_val;
+}
+
+const std::string& Exception::traceback() const
+{
+  return m_trace;
+}
+
+Exception::Exception(std::string&& type, std::string&& value, std::string&& traceback) :
+  m_type(type), m_val(value), m_trace(traceback)
 {
 }
 
