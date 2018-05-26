@@ -171,4 +171,49 @@ std::string Unicode::str() const
   return std::string(data, (size_t)sz);
 }
 
+Capsule::Capsule(PyObject *capsule) :
+  Object(capsule)
+{
+}
+
+Capsule::Capsule(void *ptr, const char *name) :
+  Object(PyCapsule_New(ptr, name, nullptr))
+{
+}
+
+void Capsule::ptr(void *p)
+{
+  PyCapsule_SetPointer(py(), p);
+}
+
+void *Capsule::ptr(const char *name) const
+{
+  return PyCapsule_GetPointer(py(), name);
+}
+
+void *Capsule::ptr() const
+{
+  return ptr(name());
+}
+
+void Capsule::name(const char *name)
+{
+  PyCapsule_SetName(py(), name);
+}
+
+const char *Capsule::name() const
+{
+  return PyCapsule_GetName(py());
+}
+
+void Capsule::context(void *ctx)
+{
+  PyCapsule_SetContext(py(), ctx);
+}
+
+void *Capsule::context() const
+{
+  return PyCapsule_GetContext(py());
+}
+
 }

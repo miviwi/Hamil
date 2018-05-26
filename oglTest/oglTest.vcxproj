@@ -186,6 +186,7 @@ exit /b 0</Command>
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\python\collections.cpp" />
+    <ClCompile Include="src\python\messagebox.cpp" />
     <ClCompile Include="src\python\module.cpp" />
     <ClCompile Include="src\python\python.cpp" />
     <ClCompile Include="src\python\object.cpp" />
@@ -271,6 +272,7 @@ exit /b 0</Command>
     <ClInclude Include="include\win32\clipboard.h" />
     <ClInclude Include="include\win32\cpuid.h" />
     <ClInclude Include="include\win32\file.h" />
+    <ClInclude Include="include\python\messagebox.h" />
     <ClInclude Include="include\win32\panic.h" />
     <ClInclude Include="include\win32\stdstream.h" />
     <ClInclude Include="include\win32\time.h" />

@@ -3,6 +3,8 @@
 #include <python/python.h>
 #include <python/object.h>
 
+#include <functional>
+
 namespace python {
 
 class None : public Object {
@@ -74,6 +76,22 @@ public:
 
   ssize_t size() const;
   std::string str() const;
+};
+
+class Capsule : public Object {
+public:
+  Capsule(PyObject *capsule);
+  Capsule(void *ptr, const char *name = nullptr);
+
+  void ptr(void *p);
+  void *ptr(const char *name) const;
+  void *ptr() const;
+
+  void name(const char *name);
+  const char *name() const;
+
+  void context(void *ctx);
+  void *context() const;
 };
 
 }

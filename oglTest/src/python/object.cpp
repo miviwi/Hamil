@@ -100,22 +100,22 @@ std::string Object::repr() const
 
 Object Object::attr(const Object& name) const
 {
-  return PyObject_GetAttr(m, *name);
+  return PyObject_GetAttr(py(), *name);
 }
 
 Object Object::attr(const char *name) const
 {
-  return PyObject_GetAttrString(m, name);
+  return PyObject_GetAttrString(py(), name);
 }
 
 void Object::attr(const Object& name, const Object& value)
 {
-  PyObject_SetAttr(m, *name, *value);
+  PyObject_SetAttr(py(), *name, *value);
 }
 
 void Object::attr(const char *name, const Object& value)
 {
-  PyObject_SetAttrString(m, name, *value);
+  PyObject_SetAttrString(py(), name, *value);
 }
 
 }

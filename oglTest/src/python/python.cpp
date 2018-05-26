@@ -1,7 +1,10 @@
 #include <python/python.h>
 #include <python/object.h>
+#include <python/types.h>
 #include <python/collections.h>
 #include <python/module.h>
+
+#include <python/messagebox.h>
 
 #include <tuple>
 
@@ -11,14 +14,16 @@ Dict p_globals(nullptr);
 
 void init()
 {
-  Py_InitializeEx(0);
+  PyImport_AppendInittab("win32", python::PyInit_win32);
 
+  Py_InitializeEx(0);
   p_globals = Dict();
 
-  auto mod_builtin = Module("builtins");
-  if(!mod_builtin) throw Exception::fetch();
-
-  p_globals.set("__builtins__", mod_builtin);
+  if(auto mod_builtin = Module::import("builtins")) {
+    p_globals.set("__builtins__", mod_builtin);
+  } else {
+    throw Exception::fetch();
+  }
 }
 
 void finalize()
