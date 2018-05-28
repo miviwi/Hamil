@@ -82,6 +82,8 @@ public:
   size_t size() const;
 
   Size read(void *buf, Size sz);
+  // Reads all of the File
+  Size read(void *buf); 
   Size write(const void *buf, Size sz);
 
   void seek(Seek seek, long offset) const;

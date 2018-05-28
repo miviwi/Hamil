@@ -4,8 +4,16 @@
 #include <python/object.h>
 
 #include <functional>
+#include <string>
 
 namespace python {
+
+class Type : public Object {
+public:
+  using Object::Object;
+
+  std::string name() const;
+};
 
 class None : public Object {
 public:
@@ -76,6 +84,19 @@ public:
 
   ssize_t size() const;
   std::string str() const;
+};
+
+class Bytes : public Object {
+public:
+  Bytes(PyObject *object);
+  Bytes(const char *str);
+  Bytes(const char *str, ssize_t sz);
+
+  ssize_t size() const;
+  std::string str() const;
+  const char *c_str() const;
+
+  const void *data() const;
 };
 
 class Capsule : public Object {

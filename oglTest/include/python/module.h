@@ -3,6 +3,11 @@
 #include <python/python.h>
 #include <python/object.h>
 
+#include <initializer_list>
+#include <string>
+
+#include <structmember.h>
+
 namespace python {
 
 class TypeObject;
@@ -13,6 +18,7 @@ public:
 
   static Module import(const char *name);
   static Module create(PyModuleDef *module);
+  static Module exec(const char *name, const Object& co, const char *filename = nullptr);
 
   Module& addType(const char *name, TypeObject& type);
   Module& addObject(const char *name, Object&& o);
@@ -22,6 +28,10 @@ public:
   void *state();
 };
 
+class MethodDef;
+class MemberDef;
+
+// Must be made 'static'!
 class ModuleDef {
 public:
   ModuleDef();
@@ -29,13 +39,80 @@ public:
   ModuleDef& name(const char *name);
   ModuleDef& doc(const char *doc);
   ModuleDef& size(ssize_t sz);
+
   ModuleDef& methods(PyMethodDef *methods);
   ModuleDef& slots(PyModuleDef_Slot *slots);
 
-  PyModuleDef *get();
+  PyModuleDef *py();
 
 private:
   PyModuleDef m;
+};
+
+class MethodDef {
+public:
+  MethodDef();
+
+  MethodDef& name(const char *name);
+  MethodDef& doc(const char *doc);
+  MethodDef& method(PyCFunction fn);
+  MethodDef& flags(int flags);
+
+  const PyMethodDef& py() const;
+
+private:
+  PyMethodDef m;
+};
+
+template <typename T, typename Token>
+class DefList {
+public:
+  template <typename... Args>
+  T *operator()(Args&... methods)
+  {
+    static T m[] = {
+      methods.py()...,
+    { nullptr }
+    };
+
+    return m;
+  }
+};
+
+// Usage:
+//   struct MyModuleToken;
+//   static MethodDefList<MyModuleToken> MyModuleMethods;
+//
+//   MyModuleMethods(
+//     MethodDef(), MethodDef(), ...
+//   )
+//
+//   struct MyTypeToken;
+//   static MemberDefList<MyTypeToken> MyTypeMembers;
+//
+//   MyTypeMembers(
+//     MemberDef(), MemberDef(), ...
+//   )
+template <typename T>
+class MethodDefList : public DefList<PyMethodDef, T> { };
+
+template <typename T>
+class MemberDefList : public DefList<PyMemberDef, T> { };
+
+class MemberDef {
+public:
+  MemberDef();
+
+  MemberDef& name(const char *name);
+  MemberDef& doc(const char *doc);
+  MemberDef& offset(ssize_t off);
+  MemberDef& type(int type);
+  MemberDef& readonly();
+
+  const PyMemberDef& py() const;
+
+private:
+  PyMemberDef m;
 };
 
 class TypeObject {
@@ -49,10 +126,14 @@ public:
   TypeObject& flags(unsigned long flags);
   TypeObject& base(PyTypeObject *base);
 
+  TypeObject& new_(newfunc fn);
+  TypeObject& init(initproc fn);
+  TypeObject& destructor(::destructor fn);
+
   TypeObject& methods(PyMethodDef *methods);
   TypeObject& members(PyMemberDef *members);
 
-  PyObject *get();
+  PyObject *py();
 
 private:
   PyTypeObject m;

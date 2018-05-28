@@ -32,6 +32,8 @@
 #include <ui/console.h>
 
 #include <python/python.h>
+#include <python/object.h>
+#include <python/exception.h>
 
 #include <game/game.h>
 
@@ -526,12 +528,14 @@ void main() {
 
   console.onCommand([&](auto target, const char *command) {
     try {
-      auto result = python::eval(command);
-      //console.print(">>> " + result);
+      python::exec(command);
       console.print(">>> " + win32::StdStream::gets());
     } catch(python::Exception e) {
-      console.print(e.type());
-      console.print(e.value());
+      std::string exception_type = e.type().attr("__name__").str();
+      if(exception_type == "SystemExit") exit(0);
+
+      console.print(exception_type);
+      console.print(e.value().str());
     }
   });
 

@@ -65,6 +65,11 @@ File::Size File::read(void *buf, Size sz)
   return num_read;
 }
 
+File::Size File::read(void *buf)
+{
+  return read(buf, size());
+}
+
 File::Size File::write(const void *buf, Size sz)
 {
   DWORD num_written = 0;

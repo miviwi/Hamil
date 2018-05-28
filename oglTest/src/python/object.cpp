@@ -1,5 +1,6 @@
 #include <python/object.h>
 #include <python/types.h>
+#include <python/collections.h>
 
 namespace python {
 
@@ -116,6 +117,11 @@ void Object::attr(const Object& name, const Object& value)
 void Object::attr(const char *name, const Object& value)
 {
   PyObject_SetAttrString(py(), name, *value);
+}
+
+List Object::dir() const
+{
+  return PyObject_Dir(py());
 }
 
 }

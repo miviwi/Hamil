@@ -1,14 +1,48 @@
 #include <python/collections.h>
+#include <python/exception.h>
 
 namespace python {
 
+ObjectRef::ObjectRef(Object&& object) :
+  m(object.move())
+{
+}
+
+PyObject *ObjectRef::operator*() const
+{
+  return m;
+}
+
+Collection::Collection(PyObject *collection) :
+  Object(collection)
+{
+}
+
+Object Collection::get(const Object& key) const
+{
+  return PyObject_GetItem(py(), *key);
+}
+
+void Collection::set(const Object& key, const Object& item)
+{
+  PyObject_SetItem(py(), *key, *item);
+}
+
+void Collection::foreach(IteratorCallback fn)
+{
+  Object iter = PyObject_GetIter(py());
+  if(!iter) throw Exception::fetch();
+
+  while(Object item = PyIter_Next(py())) fn(item);
+}
+
 Dict::Dict(PyObject *dict) :
-  Object(dict)
+  Collection(dict)
 {
 }
 
 Dict::Dict() :
-  Object(PyDict_New())
+  Collection(PyDict_New())
 {
 }
 
@@ -38,13 +72,18 @@ void Dict::set(const char *key, const Object& item)
   PyDict_SetItemString(py(), key, *item);
 }
 
+ssize_t Dict::size() const
+{
+  return PyDict_Size(py());
+}
+
 List::List(PyObject *list) :
-  Object(list)
+  Collection(list)
 {
 }
 
 List::List(ssize_t sz) :
-  Object(PyList_New(sz))
+  Collection(PyList_New(sz))
 {
 }
 
@@ -75,18 +114,23 @@ void List::append(const Object& item)
   PyList_Append(py(), *item);
 }
 
+void List::insert(ssize_t where, const Object& item)
+{
+  PyList_Insert(py(), where, *item);
+}
+
 ssize_t List::size() const
 {
   return PyList_Size(py());
 }
 
 Tuple::Tuple(PyObject *tuple) :
-  Object(tuple)
+  Collection(tuple)
 {
 }
 
 Tuple::Tuple(ssize_t sz) :
-  Object(PyTuple_New(sz))
+  Collection(PyTuple_New(sz))
 {
 }
 
@@ -112,14 +156,9 @@ void Tuple::set(ssize_t index, Object&& item)
   PyTuple_SetItem(py(), index, item.move());
 }
 
-ObjectRef::ObjectRef(Object&& object) :
-  m(object.move())
+ssize_t Tuple::size() const
 {
-}
-
-PyObject *ObjectRef::operator*() const
-{
-  return m;
+  return PyTuple_GET_SIZE(py());
 }
 
 }

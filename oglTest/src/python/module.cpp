@@ -1,6 +1,7 @@
 #include <python/module.h>
 
 #include <cstring>
+#include <algorithm>
 
 namespace python {
 
@@ -23,9 +24,14 @@ Module Module::create(PyModuleDef *module)
   return PyModule_Create(module);
 }
 
+Module Module::exec(const char *name, const Object& co, const char *filename)
+{
+  return PyImport_ExecCodeModule(name, *co);
+}
+
 Module& Module::addType(const char *name, TypeObject& type)
 {
-  PyModule_AddObject(py(), name, type.get());
+  PyModule_AddObject(py(), name, type.py());
   return *this;
 }
 
@@ -50,6 +56,88 @@ Module& Module::addString(const char *name, const char *value)
 void *Module::state()
 {
   return PyModule_GetState(py());
+}
+
+MethodDef::MethodDef()
+{
+  memset(&m, 0, sizeof(PyMethodDef));
+  m = {
+    "", nullptr, METH_VARARGS,
+    ""
+  };
+}
+
+MethodDef& MethodDef::name(const char *name)
+{
+  m.ml_name = name;
+  return *this;
+}
+
+MethodDef& MethodDef::doc(const char *doc)
+{
+  m.ml_doc = doc;
+  return *this;
+}
+
+MethodDef& MethodDef::method(PyCFunction fn)
+{
+  m.ml_meth = fn;
+  return *this;
+}
+
+MethodDef& MethodDef::flags(int flags)
+{
+  m.ml_flags = flags;
+  return *this;
+}
+
+const PyMethodDef& MethodDef::py() const
+{
+  return m;
+}
+
+MemberDef::MemberDef()
+{
+  memset(&m, 0, sizeof(PyMemberDef));
+  m = {
+    "", 0, 0, 0,
+    ""
+  };
+}
+
+MemberDef& MemberDef::name(const char *name)
+{
+  m.name = name;
+  return *this;
+}
+
+MemberDef& MemberDef::doc(const char* doc)
+{
+  m.doc = doc;
+  return *this;
+}
+
+MemberDef& MemberDef::offset(ssize_t off)
+{
+  m.offset = off;
+  return *this;
+}
+
+MemberDef& MemberDef::type(int type)
+{
+  m.type = type;
+  return *this;
+}
+
+MemberDef& MemberDef::readonly()
+{
+  m.flags = READONLY;
+  return *this;
+}
+
+const PyMemberDef& MemberDef::py() const
+{
+  return m;
 }
 
 ModuleDef::ModuleDef()
@@ -94,7 +182,7 @@ ModuleDef& ModuleDef::slots(PyModuleDef_Slot *slots)
   return *this;
 }
 
-PyModuleDef *ModuleDef::get()
+PyModuleDef *ModuleDef::py()
 {
   return &m;
 }
@@ -109,7 +197,6 @@ TypeObject::TypeObject()
   m.tp_flags = Py_TPFLAGS_DEFAULT;
   m.tp_new = PyType_GenericNew;
   m.tp_alloc = PyType_GenericAlloc;
-  m.tp_free = PyObject_Free;
 }
 
 TypeObject& TypeObject::name(const char *name)
@@ -148,6 +235,24 @@ TypeObject& TypeObject::base(PyTypeObject *base)
   return *this;
 }
 
+TypeObject& TypeObject::new_(newfunc fn)
+{
+  m.tp_new = fn;
+  return *this;
+}
+
+TypeObject& TypeObject::init(initproc fn)
+{
+  m.tp_init = fn;
+  return *this;
+}
+
+TypeObject& TypeObject::destructor(::destructor fn)
+{
+  m.tp_dealloc = fn;
+  return *this;
+}
+
 TypeObject& TypeObject::methods(PyMethodDef *methods)
 {
   m.tp_methods = methods;
@@ -160,7 +265,7 @@ TypeObject& TypeObject::members(PyMemberDef *members)
   return *this;
 }
 
-PyObject *TypeObject::get()
+PyObject *TypeObject::py()
 {
   if(PyType_Ready(&m) < 0) return nullptr;
 

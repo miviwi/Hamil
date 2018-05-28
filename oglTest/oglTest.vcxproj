@@ -103,7 +103,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <DisableSpecificWarnings>4244;4049;4217;4273;4251;4075</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -156,14 +156,14 @@ exit /b 0</Command>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;NDEBUG;_CRT_SECURE_NO_WARNINGS;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <OmitFramePointers>true</OmitFramePointers>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -186,6 +186,7 @@ exit /b 0</Command>
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\python\collections.cpp" />
+    <ClCompile Include="src\python\exception.cpp" />
     <ClCompile Include="src\python\messagebox.cpp" />
     <ClCompile Include="src\python\module.cpp" />
     <ClCompile Include="src\python\python.cpp" />
@@ -212,6 +213,7 @@ exit /b 0</Command>
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\python\collections.h" />
+    <ClInclude Include="include\python\exception.h" />
     <ClInclude Include="include\python\module.h" />
     <ClInclude Include="include\python\python.h" />
     <ClInclude Include="include\python\object.h" />

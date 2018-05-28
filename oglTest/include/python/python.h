@@ -5,29 +5,24 @@
 #include <Python.h>
 
 #include <string>
+#include <vector>
 
 namespace python {
+
+class Object;
 
 void init();
 void finalize();
 
-std::string eval(const char *input);
+void exec(const char *input);
+Object eval(const char *input);
 
-class Exception {
-public:
-  static Exception fetch();
+Object load(const void *code, size_t sz);
+Object load(const std::vector<char>& code);
 
-  static bool occured();
+std::vector<char> compile(const char *src, const char *filename = nullptr);
 
-  const std::string& type() const;
-  const std::string& value() const;
-  const std::string& traceback() const;
-
-protected:
-  Exception(std::string&& type, std::string&& value, std::string&& traceback);
-
-private:
-  std::string m_type, m_val, m_trace;
-};
+Object get_global(const char *name);
+void set_global(const char *name, const Object& value);
 
 }

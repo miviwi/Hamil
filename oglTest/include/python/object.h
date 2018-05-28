@@ -6,6 +6,8 @@
 
 namespace python {
 
+class List;
+
 // RAII wrapper around PyObject (does Py_DECREF automatically)
 //   - nullptr can be passed to the constructor as the 'object'
 //     and will be handled correctly, though no checking is done
@@ -38,6 +40,8 @@ public:
   Object attr(const char *name) const;
   void attr(const Object& name, const Object& value);
   void attr(const char *name, const Object& value);
+
+  List dir() const;
 
 private:
   PyObject *m;

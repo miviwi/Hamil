@@ -18,6 +18,10 @@ namespace ui {
 class ConsoleBufferFrame;
 
 // TODO:
+//   - Custom solution for text input:
+//       * only keyboard input for simplicity
+//       * command autocomplete
+//   - Text coloring
 //   - That animation is impossible to get right...
 class ConsoleFrame : public Frame {
 public:

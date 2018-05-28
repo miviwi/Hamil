@@ -216,4 +216,44 @@ void *Capsule::context() const
   return PyCapsule_GetContext(py());
 }
 
+Bytes::Bytes(PyObject *object) :
+  Object(object)
+{
+}
+
+Bytes::Bytes(const char *str) :
+  Object(PyBytes_FromString(str))
+{
+}
+
+Bytes::Bytes(const char *str, ssize_t sz) :
+  Object(PyBytes_FromStringAndSize(str, sz))
+{
+}
+
+ssize_t Bytes::size() const
+{
+  return PyBytes_Size(py());
+}
+
+std::string Bytes::str() const
+{
+  return c_str();
+}
+
+const char *Bytes::c_str() const
+{
+  return PyBytes_AsString(py());
+}
+
+const void *Bytes::data() const
+{
+  return c_str();
+}
+
+std::string Type::name() const
+{
+  return attr("__name__").str();
+}
+
 }
