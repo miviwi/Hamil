@@ -79,9 +79,9 @@ MethodDef& MethodDef::doc(const char *doc)
   return *this;
 }
 
-MethodDef& MethodDef::method(PyCFunction fn)
+MethodDef& MethodDef::method(void *fn)
 {
-  m.ml_meth = fn;
+  m.ml_meth = (PyCFunction)fn;
   return *this;
 }
 
@@ -253,6 +253,18 @@ TypeObject& TypeObject::destructor(::destructor fn)
   return *this;
 }
 
+TypeObject& TypeObject::repr(reprfunc fn)
+{
+  m.tp_repr = fn;
+  return *this;
+}
+
+TypeObject& TypeObject::str(reprfunc fn)
+{
+  m.tp_str = fn;
+  return *this;
+}
+
 TypeObject& TypeObject::methods(PyMethodDef *methods)
 {
   m.tp_methods = methods;
@@ -265,12 +277,40 @@ TypeObject& TypeObject::members(PyMemberDef *members)
   return *this;
 }
 
+TypeObject& TypeObject::number_methods(PyNumberMethods *number)
+{
+  m.tp_as_number = number;
+  return *this;
+}
+
+TypeObject& TypeObject::sequence_methods(PySequenceMethods *sequence)
+{
+  m.tp_as_sequence = sequence;
+  return *this;
+}
+ 
+TypeObject& TypeObject::mapping_methods(PyMappingMethods *mapping)
+{
+  m.tp_as_mapping = mapping;
+  return *this;
+}
+
 PyObject *TypeObject::py()
 {
   if(PyType_Ready(&m) < 0) return nullptr;
 
   Py_INCREF(&m);
   return (PyObject*)&m;
+}
+
+bool TypeObject::check(PyObject *obj)
+{
+  return PyObject_TypeCheck(obj, &m);
+}
+
+PyObject *TypeObject::newObject()
+{
+  return PyObject_NEW(PyObject, &m);
 }
 
 #if 0

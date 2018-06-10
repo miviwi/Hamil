@@ -17,8 +17,7 @@ class Renderbuffer;
 //   - etc... up to Color(7)
 class Framebuffer {
 public:
-  enum class BindTarget {
-    Framebuffer = GL_FRAMEBUFFER,
+  enum BindTarget {
     Read = GL_READ_FRAMEBUFFER, Draw = GL_DRAW_FRAMEBUFFER,
   };
 
@@ -50,7 +49,10 @@ public:
   Framebuffer& renderbufferMultisample(unsigned samples, Format fmt, Attachment att);
   Framebuffer& renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att);
 
+  void blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
   void blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
+
+  bool complete();
 
   static void bind_window(BindTarget target);
 
@@ -73,6 +75,8 @@ private:
 
   void drawBuffer(Attachment att);
   void setupDrawBuffers();
+
+  void doBlit(GLuint fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
 
   GLuint m;
   GLenum m_bound;

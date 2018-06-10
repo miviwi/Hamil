@@ -103,20 +103,17 @@ FileView File::map(Protect protect, const char *name)
 FileView File::map(Protect protect, size_t offset, size_t size, const char *name)
 {
   DWORD flprotect = 0;
-  if(protect == ProtectRead) {
-    flprotect = PAGE_READONLY;
-  } else if(protect == ProtectReadWrite) {
-    flprotect = PAGE_READWRITE;
-  } else if(protect == ProtectExecuteRead) {
-    flprotect = PAGE_EXECUTE_READ;
-  } else if(protect == ProtectExecuteReadWrite) {
-    flprotect = PAGE_EXECUTE_READWRITE;
+  switch(protect) {
+  case ProtectRead:             flprotect = PAGE_READONLY; break;
+  case ProtectReadWrite:        flprotect = PAGE_READWRITE; break;
+  case ProtectExecuteRead:      flprotect = PAGE_EXECUTE_READ; break;
+  case ProtectExecuteReadWrite: flprotect = PAGE_EXECUTE_READWRITE; break;
   }
 
   auto mapping = CreateFileMappingA(m, nullptr, flprotect, dword_high(size), dword_low(size), name);
   if(!mapping) throw MappingCreateError(GetLastError());
 
-  return FileView(mapping, m_access, offset, size);
+  return FileView(mapping, protect, offset, size);
 }
 
 FileView::~FileView()
@@ -143,13 +140,13 @@ uint8_t& FileView::operator[](size_t offset)
   return ptr[offset];
 }
 
-FileView::FileView(void *mapping, File::Access access, size_t offset, size_t size) :
+FileView::FileView(void *mapping, File::Protect access, size_t offset, size_t size) :
   m(mapping)
 {
   DWORD desired_access = 0;
-  desired_access |= access & File::Read    ? FILE_MAP_READ    : 0;
-  desired_access |= access & File::Write   ? FILE_MAP_WRITE   : 0;
-  desired_access |= access & File::Execute ? FILE_MAP_EXECUTE : 0;
+  desired_access |= access & File::ProtectRead    ? FILE_MAP_READ    : 0;
+  desired_access |= access & File::ProtectWrite   ? FILE_MAP_WRITE   : 0;
+  desired_access |= access & File::ProtectExecute ? FILE_MAP_EXECUTE : 0;
 
   m_ptr = MapViewOfFile(m, desired_access, dword_high(offset), dword_low(offset), size);
   if(!m_ptr) throw File::MapFileError(GetLastError());

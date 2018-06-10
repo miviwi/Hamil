@@ -55,7 +55,7 @@ public:
 
   MethodDef& name(const char *name);
   MethodDef& doc(const char *doc);
-  MethodDef& method(PyCFunction fn);
+  MethodDef& method(void *fn);
   MethodDef& flags(int flags);
 
   const PyMethodDef& py() const;
@@ -130,10 +130,22 @@ public:
   TypeObject& init(initproc fn);
   TypeObject& destructor(::destructor fn);
 
+  TypeObject& repr(reprfunc fn);
+  TypeObject& str(reprfunc fn);
+
   TypeObject& methods(PyMethodDef *methods);
   TypeObject& members(PyMemberDef *members);
 
+  TypeObject& number_methods(PyNumberMethods *number);
+  TypeObject& sequence_methods(PySequenceMethods *sequence);
+  TypeObject& mapping_methods(PyMappingMethods *mapping);
+
   PyObject *py();
+
+  template <typename T> T *newObject() { return (T *)newObject(); }
+  PyObject *newObject();
+
+  bool check(PyObject *obj);
 
 private:
   PyTypeObject m;

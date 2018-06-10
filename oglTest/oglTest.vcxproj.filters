@@ -158,10 +158,13 @@
     <ClCompile Include="src\python\types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\python\messagebox.cpp">
+    <ClCompile Include="src\python\exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\python\exception.cpp">
+    <ClCompile Include="src\python\mathmodule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\python\win32module.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -325,10 +328,13 @@
     <ClInclude Include="include\python\types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\python\messagebox.h">
+    <ClInclude Include="include\python\exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\python\exception.h">
+    <ClInclude Include="include\python\mathmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\python\win32module.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

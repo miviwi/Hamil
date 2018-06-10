@@ -45,6 +45,7 @@ public:
 class List : public Collection {
 public:
   List(PyObject *list);
+  List(Object&& list);
   List(ssize_t sz);
   List(ObjectRefInitList list);
 
@@ -61,6 +62,7 @@ public:
 class Dict : public Collection {
 public:
   Dict(PyObject *dict);
+  Dict(Object&& dict);
   Dict();
   Dict(ObjectPairInitList list);
 
@@ -75,6 +77,7 @@ public:
 class Tuple : public Collection {
 public:
   Tuple(PyObject *tuple);
+  Tuple(Object&& tuple);
   Tuple(ssize_t sz);
   Tuple(ObjectRefInitList list);
 

@@ -82,6 +82,8 @@ public:
   Unicode(const char *str);
   Unicode(const char *str, ssize_t sz);
 
+  static Unicode from_format(const char *fmt, ...);
+
   ssize_t size() const;
   std::string str() const;
 };

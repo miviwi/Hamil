@@ -115,7 +115,7 @@ public:
 private:
   friend class File;
 
-  FileView(void *mapping, File::Access access, size_t offset, size_t size);
+  FileView(void *mapping, File::Protect access, size_t offset, size_t size);
 
   void *m;
   void *m_ptr;

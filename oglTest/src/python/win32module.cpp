@@ -1,4 +1,4 @@
-#include <python/messagebox.h>
+#include <python/win32module.h>
 #include <python/module.h>
 #include <python/object.h>
 #include <python/types.h>
@@ -53,7 +53,7 @@ static PyMethodDef Win32Methods[] = {
 
 static ModuleDef Win32Module =
   ModuleDef()
-    .name("win32")
+    .name("Win32")
     .methods(Win32ModuleMethods(
       MethodDef()
         .name("messagebox")

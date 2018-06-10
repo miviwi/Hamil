@@ -40,7 +40,7 @@ struct Vector2 {
   };
 
   T length() const { return (T)sqrt((x*x) + (y*y)); }
-  T dot(const Vector2& b) const { return (a.x*b.x) + (a.y*b.y); }
+  T dot(const Vector2& b) const { return (x*b.x) + (y*b.y); }
 
   Vector2 normalize() const
   {
@@ -128,7 +128,7 @@ struct Vector3 {
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
 
   T length() const { return (T)sqrt((x*x) + (y*y) + (z*z)); }
-  T dot(const Vector3& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z); }
+  T dot(const Vector3& b) const { return (x*b.x) + (y*b.y) + (z*b.z); }
 
   Vector3 normalize() const
   {

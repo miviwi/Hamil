@@ -46,8 +46,10 @@ int main ()
 {
   win32::init();
 
+  constexpr vec2 WindowSize = { 1280, 720 };
+
   using win32::Window;
-  Window window(1280, 720);
+  Window window(WindowSize.x, WindowSize.y);
 
   constexpr ivec2 FB_DIMS{ 1280, 720 };
 
@@ -128,17 +130,17 @@ uniform LightBlock {
 };
 
 vec3 phong(Light light, vec3 position, vec3 normal) {
-  vec3 light_direction = normalize(light.position - position);
+  vec3 L = normalize(light.position - position);
   float distance = length(light.position - position);
 
   float attenuation = 1.0 / (1 + 0.35*distance + 0.44*(distance*distance));
 
-  float diffuse_strength = max(dot(normal, light_direction), 0.0);
+  float diffuse_strength = max(dot(normal, L), 0.0);
   
-  vec3 view_direction = normalize(-position);
-  vec3 reflect_direction = reflect(-light_direction, normal);
+  vec3 V = normalize(-position);
+  vec3 H = normalize(L + V);
 
-  float specular_strength = pow(max(dot(view_direction, reflect_direction), 0.0), 32);
+  float specular_strength = pow(max(dot(V, H), 0.0), 32);
   
   vec3 ambient = 0.1 * light.color;
   vec3 diffuse = diffuse_strength * light.color;
@@ -251,11 +253,17 @@ void main() {
   gx::Framebuffer fb;
 
   fb_tex.initMultisample(2, FB_DIMS.x, FB_DIMS.y);
+  //fb_tex.init(FB_DIMS.x, FB_DIMS.y);
   fb_tex.label("FB_tex");
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
     .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::depth24, gx::Framebuffer::Depth);
+
+  gx::Framebuffer resolved_fb;
+
+  resolved_fb.use()
+    .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::rgb8, gx::Framebuffer::Color(0));
 
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
@@ -444,7 +452,7 @@ void main() {
   style.combobox.color[0] = color_b; style.combobox.color[1] = color_b.lighten(10);
   style.combobox.radius = 3.0f;
 
-  ui::Ui iface(ui::Geometry{ 0, 0, 1280, 720 }, style);
+  ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, style);
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
@@ -777,15 +785,16 @@ void main() {
               texmatrix[8], texmatrix[9], texmatrix[10], texmatrix[11],
               texmatrix[12], texmatrix[13], texmatrix[14], texmatrix[15]);
 
-
-
     if(display_tex_matrix) small_face.draw(texmatrix_str, vec2{ 30.0f, 150.0f }, vec3{ 1, 1, 1 });
 
     iface.paint();
     cursor.paint();
 
-    fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, 1280, 720 },
-                    gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
+    fb.blit(resolved_fb, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y },
+            gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
+
+    resolved_fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
+                    gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
 

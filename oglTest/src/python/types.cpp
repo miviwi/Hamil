@@ -1,5 +1,7 @@
 #include <python/types.h>
 
+#include <cstdarg>
+
 namespace python {
 
 None::None() :
@@ -156,6 +158,19 @@ Unicode::Unicode(const char *str) :
 Unicode::Unicode(const char *str, ssize_t sz) :
   Object(PyUnicode_FromStringAndSize(str, sz))
 {
+}
+
+static char p_fmt_buf[4096];
+Unicode Unicode::from_format(const char *fmt, ...)
+{
+  va_list va;
+  va_start(va, fmt);
+
+  int len = vsnprintf(p_fmt_buf, sizeof(p_fmt_buf), fmt, va);
+
+  va_end(va);
+
+  return Unicode(p_fmt_buf, len);
 }
 
 ssize_t Unicode::size() const

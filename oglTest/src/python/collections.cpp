@@ -1,3 +1,4 @@
+#include "..\..\include\python\collections.h"
 #include <python/collections.h>
 #include <python/exception.h>
 
@@ -41,6 +42,11 @@ Dict::Dict(PyObject *dict) :
 {
 }
 
+Dict::Dict(Object&& dict) :
+  Collection(dict.move())
+{
+}
+
 Dict::Dict() :
   Collection(PyDict_New())
 {
@@ -79,6 +85,11 @@ ssize_t Dict::size() const
 
 List::List(PyObject *list) :
   Collection(list)
+{
+}
+
+List::List(Object&& list) :
+  Collection(list.move())
 {
 }
 
@@ -126,6 +137,11 @@ ssize_t List::size() const
 
 Tuple::Tuple(PyObject *tuple) :
   Collection(tuple)
+{
+}
+
+Tuple::Tuple(Object&& tuple) :
+  Collection(tuple.move())
 {
 }
 

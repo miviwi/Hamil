@@ -5,7 +5,8 @@
 #include <python/module.h>
 #include <python/exception.h>
 
-#include <python/messagebox.h>
+#include <python/win32module.h>
+#include <python/mathmodule.h>
 
 #include <marshal.h>
 
@@ -18,13 +19,13 @@ namespace python {
 Dict p_globals(nullptr);
 
 static _inittab p_modules[] = {
-  { "win32", PyInit_win32 },
+  { "Win32", PyInit_win32 },
+  { "Math", PyInit_math },
   { nullptr }
 };
 
 void init()
 {
-  //PyImport_AppendInittab("win32", python::PyInit_win32);
   PyImport_ExtendInittab(p_modules);
 
   Py_InitializeEx(0);
@@ -35,13 +36,6 @@ void init()
   } else {
     throw Exception::fetch();
   }
-
-  win32::File f("test", win32::File::ReadWrite);
-  std::vector<char> code(f.size());
-  f.read(code.data());
-
-  Object co = load(code);
-  set_global("test", Module::exec("test", co));
 }
 
 void finalize()
@@ -53,6 +47,8 @@ void finalize()
 
 void exec(const char *input)
 {
+  if(*input == '\0') return;
+
   Object co = Py_CompileString(input, "$", Py_single_input);
   if(!co) throw Exception::fetch();
 
@@ -62,6 +58,8 @@ void exec(const char *input)
 
 Object eval(const char *input)
 {
+  if(*input == '\0') return None();
+
   Object co = Py_CompileString(input, "$", Py_eval_input);
   if(!co) throw Exception::fetch();
 
@@ -81,11 +79,26 @@ Object load(const std::vector<char>& code)
   return load(code.data(), code.size());
 }
 
-std::vector<char> compile(const char *src, const char *filename)
+Object deserialize(const void *code, size_t sz)
 {
-  Object co = Py_CompileString(src, filename, Py_file_input); 
+  auto co = load(code, sz);
+
+  Object result = PyEval_EvalCode(*co, *p_globals, nullptr);
+  if(Exception::occured()) throw Exception::fetch();
+
+  return result;
+}
+
+Object deserialize(const std::vector<char>& code)
+{
+  return deserialize(code.data(), code.size());
+}
+
+static std::vector<char> p_compile_helper(const char *src, const char *filename, int mode)
+{
+  Object co = Py_CompileString(src, filename, mode);
   if(!co) throw Exception::fetch();
-  
+
   Bytes code_bytes = PyMarshal_WriteObjectToString(*co, Py_MARSHAL_VERSION);
   if(!code_bytes) throw Exception::fetch();
 
@@ -93,6 +106,16 @@ std::vector<char> compile(const char *src, const char *filename)
   memcpy(code.data(), code_bytes.data(), code.size());
 
   return code;
+}
+
+std::vector<char> compile(const char *src, const char *filename)
+{
+  return p_compile_helper(src, filename, Py_file_input);
+}
+
+std::vector<char> serialize(const char *src, const char *filename)
+{
+  return p_compile_helper(src, filename, Py_eval_input);
 }
 
 Object get_global(const char *name)

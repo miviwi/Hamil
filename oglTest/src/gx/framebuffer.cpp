@@ -79,7 +79,7 @@ Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, 
   return renderbufferMultisample(samples, dimensions.x, dimensions.y, fmt, att);
 }
 
-Framebuffer & Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att)
 {
   auto rb = create_rendebuffer();
   m_rb.push_back(rb);
@@ -93,10 +93,31 @@ Framebuffer & Framebuffer::renderbufferMultisample(unsigned samples, unsigned w,
   return *this;
 }
 
+void Framebuffer::blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)
+{
+  fb.use();
+  use();
+
+  doBlit(fb.m, src, dst, mask, filter);
+}
+
 void Framebuffer::blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)
 {
+  use();
+
+  doBlit(0, src, dst, mask, filter);
+}
+
+bool Framebuffer::complete()
+{
+  use();
+  return glCheckFramebufferStatus(m_bound);
+}
+
+void Framebuffer::doBlit(GLuint fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)
+{
   glBindFramebuffer(GL_READ_FRAMEBUFFER, m);
-  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fb);
 
   GLenum f = -1;
   switch(filter) {
@@ -144,8 +165,8 @@ void Framebuffer::checkIfBound()
 {
   GLint bound = -1;
   switch(m_bound) {
-  case GL_READ_FRAMEBUFFER: glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &bound);
-  default:                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound);
+  case GL_READ_FRAMEBUFFER: glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &bound); break;
+  default:                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound); break;
   }
 
   if(bound != m) assert(0 && "Framebuffer needs to be bound before use");

@@ -6,6 +6,8 @@
 
 namespace python {
 
+class TypeObject;
+
 class List;
 
 // RAII wrapper around PyObject (does Py_DECREF automatically)

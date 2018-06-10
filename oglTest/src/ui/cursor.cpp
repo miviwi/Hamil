@@ -195,8 +195,8 @@ void CursorDriver::init()
   p->buf.init(vtx.data(), vtx.size());
 
   p->sampler = gx::Sampler()
-    .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
-    .param(gx::Sampler::MagFilter, gx::Sampler::Linear)
+    .param(gx::Sampler::MinFilter, gx::Sampler::Nearest)
+    .param(gx::Sampler::MagFilter, gx::Sampler::Nearest)
     .param(gx::Sampler::WrapS, gx::Sampler::EdgeClamp)
     .param(gx::Sampler::WrapT, gx::Sampler::EdgeClamp);
 

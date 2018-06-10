@@ -269,10 +269,10 @@ static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
 
   const char *severity_str = "";
   switch(severity) {
-  case GL_DEBUG_SEVERITY_HIGH:         severity_str = "HIGH"; break;
-  case GL_DEBUG_SEVERITY_MEDIUM:       severity_str = "MEDIUM"; break;
-  case GL_DEBUG_SEVERITY_LOW:          severity_str = "LOW"; break;
-  case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "NOTIFICATION"; break;
+  case GL_DEBUG_SEVERITY_HIGH:         severity_str = "!!!"; break;
+  case GL_DEBUG_SEVERITY_MEDIUM:       severity_str = "!!"; break;
+  case GL_DEBUG_SEVERITY_LOW:          severity_str = "!"; break;
+  case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "?"; break;
   }
 
   sprintf_s(dbg_buf, "%s (%s, %s): %s\n", source_str, severity_str, type_str, msg);

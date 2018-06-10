@@ -13,7 +13,7 @@ Pipeline::Pipeline()
   memset(this, 0xFF, sizeof(*this));
   std::fill(m_enabled, m_enabled+NumConfigTypes, false);
 
-  m_viewport = { 0, 0, 1280, 720 };
+  m_viewport = { -1, -1, -1, -1 };
   m_scissor.current = false;
   m_depth.func = GL_LESS;
   m_cull.front = GL_CCW;

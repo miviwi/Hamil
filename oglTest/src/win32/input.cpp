@@ -306,6 +306,20 @@ unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
   case VK_OEM_PLUS:   return '+';
   case VK_OEM_MINUS:  return '-';
 
+  case VK_ESCAPE: return Escape;
+  case VK_F1:     return F1;
+  case VK_F2:     return F2;
+  case VK_F3:     return F3;
+  case VK_F4:     return F4;
+  case VK_F5:     return F5;
+  case VK_F6:     return F6;
+  case VK_F7:     return F7;
+  case VK_F8:     return F8;
+  case VK_F9:     return F9;
+  case VK_F10:    return F10;
+  case VK_F11:    return F11;
+  case VK_F12:    return F12;
+
   case VK_UP:    return Up;
   case VK_DOWN:  return Down;
   case VK_LEFT:  return Left;

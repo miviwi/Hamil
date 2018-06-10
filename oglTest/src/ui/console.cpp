@@ -3,6 +3,8 @@
 
 #include <win32/input.h>
 
+#include <sstream>
+
 namespace ui {
 
 class ConsoleBufferFrame : public Frame {
@@ -26,6 +28,7 @@ public:
   virtual vec2 sizeHint() const;
 
   void print(const std::string& str);
+  void input(const std::string& str);
   void clear();
 
   std::string historyPrevious();
@@ -33,6 +36,7 @@ public:
 
 private:
   LineBuffer m_buffer;
+  LineBuffer m_input;
   size_t m_cursor = CursorNotSet;
 };
 
@@ -50,7 +54,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   m_console = &console;
 
   m_prompt->onSubmit([this](TextBoxFrame *target) {
-    m_buffer->print(target->text());
+    m_buffer->input(target->text());
     m_on_command.emit(this, target->text().c_str());
 
     target->text("");
@@ -217,15 +221,28 @@ vec2 ConsoleBufferFrame::sizeHint() const
 
 void ConsoleBufferFrame::print(const std::string& str)
 {
-  m_buffer.push_front(str);
-  if(m_buffer.size() > BufferDepth) m_buffer.pop_back();
+  std::istringstream stream(str);
+  std::string line;
+  while(std::getline(stream, line)) {
+    m_buffer.push_front(line);
+    if(m_buffer.size() > BufferDepth) m_buffer.pop_back();
+  }
 
   m_cursor = CursorNotSet;
+}
+
+void ConsoleBufferFrame::input(const std::string& str)
+{
+  print(str);
+  if(m_buffer.size() > BufferDepth) m_input.pop_back();
+
+  m_input.push_front(str);
 }
 
 void ConsoleBufferFrame::clear()
 {
   m_buffer.clear();
+  m_input.clear();
   m_cursor = CursorNotSet;
 }
 
@@ -233,9 +250,9 @@ std::string ConsoleBufferFrame::historyPrevious()
 {
   if(m_cursor == CursorNotSet) {
     m_cursor = 0;
-  } else if(m_cursor < m_buffer.size()) {
+  } else if(m_cursor+1 < m_input.size()) {
     m_cursor++;
-    return m_buffer[m_cursor];
+    return m_input[m_cursor];
   }
 
   return "";
@@ -244,10 +261,10 @@ std::string ConsoleBufferFrame::historyPrevious()
 std::string ConsoleBufferFrame::historyNext()
 {
   if(m_cursor == CursorNotSet) {
-    m_cursor = m_buffer.size()-1;
+    m_cursor = m_input.size()-1;
   } else if(m_cursor > 0) {
     m_cursor--;
-    return m_buffer[m_cursor];
+    return m_input[m_cursor];
   }
 
   return "";
