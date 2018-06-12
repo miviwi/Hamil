@@ -141,13 +141,13 @@ struct Vector3 {
     return Vector3{ y*b.z - z*b.y, z*b.x - x*b.z, x*b.y - y*b.x };
   }
 
-  Vector3 distance2(const Vector3& v) const
+  T distance2(const Vector3& v) const
   {
     Vector3 d = v - *this;
 
     return d.x*d.x + d.y*d.y + d.z*d.z;
   }
-  Vector3 distance(const Vector3& v) const
+  T distance(const Vector3& v) const
   {
     return sqrt(distance2(v));
   }
@@ -253,7 +253,7 @@ struct Vector4 {
   Vector3<T> xyz() const { return Vector3<T>{ x, y, z }; }
 
   T length() const { return (T)sqrt((x*x) + (y*y) + (z*z) + (w*w)); }
-  T dot(const Vector4& b) const { return (a.x*b.x) + (a.y*b.y) + (a.z*b.z) + (a.w*b.w); }
+  T dot(const Vector4& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
 
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }

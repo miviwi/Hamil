@@ -6,6 +6,7 @@
 #include <math/geometry.h>
 
 #include <string>
+#include <cstring>
 
 namespace python {
 
@@ -38,13 +39,14 @@ static int Vec2_Init(vec2 *self, PyObject *args, PyObject *kwds)
   static char *kwds_names[] = { "x", "y", nullptr };
 
   if(num_args == 1) {
-    if(!Vec2_Check(PyTuple_GET_ITEM(args, 0))) {
-      PyErr_SetString(PyExc_TypeError, VEC2_INIT_ERR);
+    auto other = PyTuple_GET_ITEM(args, 0);
+    if(Vec2_Check(other)) {
+      self->m = ((vec2 *)other)->m;
+    } else {
+      ArgTypeError(VEC2_INIT_ERR);
       return -1;
     }
-    auto other = (vec2 *)PyTuple_GET_ITEM(args, 0);
 
-    self->m = other->m;
     return 1;
   } else {
     float x = 0, y = 0;
@@ -57,7 +59,7 @@ static int Vec2_Init(vec2 *self, PyObject *args, PyObject *kwds)
     return 0;
   }
 
-  return -1;
+  return -1; // unreachable
 }
 
 static PyObject *Vec2_Repr(vec2 *self)
@@ -199,14 +201,10 @@ static TypeObject Vec2_Type =
     .size(sizeof(vec2))
     .init((initproc)Vec2_Init)
     .members(Vec2Members(
-      MemberDef()
-        .name("x")
-        .offset(offsetof(vec2, m.x))
-        .type(T_FLOAT),
-      MemberDef()
-        .name("y")
-        .offset(offsetof(vec2, m.y))
-        .type(T_FLOAT)))
+      MemberDef().name("x").offset(offsetof(vec2, m.x)).type(T_FLOAT),
+      MemberDef().name("y").offset(offsetof(vec2, m.y)).type(T_FLOAT),
+      MemberDef().name("s").offset(offsetof(vec2, m.s)).type(T_FLOAT),
+      MemberDef().name("t").offset(offsetof(vec2, m.t)).type(T_FLOAT)))
     .methods(Vec2Methods(
       MethodDef()
         .name("length")
@@ -275,7 +273,7 @@ static int Vec3_Init(vec3 *self, PyObject *args, PyObject *kwds)
       return 1;
     }
 
-    PyErr_SetString(PyExc_TypeError, VEC3_INIT_ERR);
+    ArgTypeError(VEC3_INIT_ERR);
     return -1;
   } else {
     float x = 0, y = 0, z = 0;
@@ -288,7 +286,7 @@ static int Vec3_Init(vec3 *self, PyObject *args, PyObject *kwds)
     return 0;
   }
 
-  return -1;
+  return -1; // unreachable
 }
 
 static PyObject *Vec3_Repr(vec3 *self)
@@ -347,6 +345,22 @@ static PyObject *Vec3_Length(vec3 *self, PyObject *Py_UNUSED(arg))
   return PyFloat_FromDouble(self->m.length());
 }
 
+static PyObject *Vec3_Dot(vec3 *self, PyObject *other)
+{
+  if(!Vec3_Check(other)) {
+    ArgTypeError("argument to dot() must be a vec3");
+    return nullptr;
+  }
+
+  auto b = (vec3 *)other;
+  return PyFloat_FromDouble(self->m.dot(b->m));
+}
+
+static PyObject *Vec3_Normalize(vec3 *self, PyObject *Py_UNUSED(arg))
+{
+  return Vec3_FromVec3(self->m.normalize());
+}
+
 static PyObject *Vec3_Cross(vec3 *self, PyObject *other)
 {
   if(!Vec3_Check(other)) {
@@ -356,6 +370,28 @@ static PyObject *Vec3_Cross(vec3 *self, PyObject *other)
 
   auto b = (vec3 *)other;
   return Vec3_FromVec3(self->m.cross(b->m));
+}
+
+static PyObject *Vec3_Distance2(vec3 *self, PyObject *other)
+{
+  if(!Vec3_Check(other)) {
+    ArgTypeError("argument to distance2() must be a vec3");
+    return nullptr;
+  }
+
+  auto b = (vec3 *)other;
+  return PyFloat_FromDouble(self->m.distance2(b->m));
+}
+
+static PyObject *Vec3_Distance(vec3 *self, PyObject *other)
+{
+  if(!Vec3_Check(other)) {
+    ArgTypeError("argument to distance() must be a vec3");
+    return nullptr;
+  }
+
+  auto b = (vec3 *)other;
+  return PyFloat_FromDouble(self->m.distance(b->m));
 }
 
 static PyNumberMethods Vec3NumberMethods = {
@@ -408,18 +444,15 @@ static TypeObject Vec3_Type =
     .size(sizeof(vec3))
     .init((initproc)Vec3_Init)
     .members(Vec3Members(
-      MemberDef()
-        .name("x")
-        .offset(offsetof(vec3, m.x))
-        .type(T_FLOAT),
-      MemberDef()
-        .name("y")
-        .offset(offsetof(vec3, m.y))
-        .type(T_FLOAT),
-      MemberDef()
-        .name("z")
-        .offset(offsetof(vec3, m.z))
-        .type(T_FLOAT)))
+      MemberDef().name("x").offset(offsetof(vec3, m.x)).type(T_FLOAT),
+      MemberDef().name("y").offset(offsetof(vec3, m.y)).type(T_FLOAT),
+      MemberDef().name("z").offset(offsetof(vec3, m.z)).type(T_FLOAT),
+      MemberDef().name("r").offset(offsetof(vec3, m.r)).type(T_FLOAT),
+      MemberDef().name("g").offset(offsetof(vec3, m.g)).type(T_FLOAT),
+      MemberDef().name("b").offset(offsetof(vec3, m.b)).type(T_FLOAT),
+      MemberDef().name("s").offset(offsetof(vec3, m.s)).type(T_FLOAT),
+      MemberDef().name("t").offset(offsetof(vec3, m.t)).type(T_FLOAT),
+      MemberDef().name("p").offset(offsetof(vec3, m.p)).type(T_FLOAT)))
     .methods(Vec3Methods(
       MethodDef()
         .name("xy")
@@ -430,8 +463,24 @@ static TypeObject Vec3_Type =
         .method(Vec3_Length)
         .flags(METH_NOARGS),
       MethodDef()
+        .name("dot")
+        .method(Vec3_Dot)
+        .flags(METH_O),
+      MethodDef()
+        .name("normalize")
+        .method(Vec3_Normalize)
+        .flags(METH_NOARGS),
+      MethodDef()
         .name("cross")
         .method(Vec3_Cross)
+        .flags(METH_O),
+      MethodDef()
+        .name("distance2")
+        .method(Vec3_Distance2)
+        .flags(METH_O),
+      MethodDef()
+        .name("distance")
+        .method(Vec3_Distance)
         .flags(METH_O)))
     .number_methods(&Vec3NumberMethods)
     .repr((reprfunc)Vec3_Repr)
@@ -480,7 +529,7 @@ static int Vec4_Init(vec4 *self, PyObject *args, PyObject *kwds)
     } else if(Vec2_Check(other)) {
       self->m = ((vec2 *)other)->m;
     } else {
-      PyErr_SetString(PyExc_TypeError, VEC4_INIT_ERR);
+      ArgTypeError(VEC4_INIT_ERR);
       return -1;
     }
 
@@ -496,7 +545,7 @@ static int Vec4_Init(vec4 *self, PyObject *args, PyObject *kwds)
     return 0;
   }
 
-  return -1;
+  return -1; // unreachable
 }
 
 static PyObject *Vec4_Repr(vec4 *self)
@@ -544,6 +593,27 @@ static PyObject *Vec4_Mul(vec4 *self, PyObject *other)
 
   ArgTypeError("argument to '*' must be a vec4 or number");
   return nullptr;
+}
+
+static PyObject *Vec4_XYZ(vec4 *self, PyObject *Py_UNUSED(arg))
+{
+  return Vec3_FromVec3(self->m.xyz());
+}
+
+static PyObject *Vec4_Length(vec4 *self, PyObject *Py_UNUSED(arg))
+{
+  return PyFloat_FromDouble(self->m.length());
+}
+
+static PyObject *Vec4_Dot(vec4 *self, PyObject *other)
+{
+  if(!Vec4_Check(other)) {
+    ArgTypeError("argument to dot() must be a vec4");
+    return nullptr;
+  }
+
+  auto b = (vec4 *)other;
+  return PyFloat_FromDouble(self->m.dot(b->m));
 }
 
 static PyNumberMethods Vec4NumberMethods = {
@@ -596,28 +666,37 @@ static TypeObject Vec4_Type =
     .size(sizeof(vec4))
     .init((initproc)Vec4_Init)
     .members(Vec4Members(
-      MemberDef()
-        .name("x")
-        .offset(offsetof(vec4, m.x))
-        .type(T_FLOAT),
-      MemberDef()
-        .name("y")
-        .offset(offsetof(vec4, m.y))
-        .type(T_FLOAT),
-      MemberDef()
-        .name("z")
-        .offset(offsetof(vec4, m.z))
-        .type(T_FLOAT),
-      MemberDef()
-        .name("w")
-        .offset(offsetof(vec4, m.w))
-        .type(T_FLOAT)))
+      MemberDef().name("x").offset(offsetof(vec4, m.x)).type(T_FLOAT),
+      MemberDef().name("y").offset(offsetof(vec4, m.y)).type(T_FLOAT),
+      MemberDef().name("z").offset(offsetof(vec4, m.z)).type(T_FLOAT),
+      MemberDef().name("w").offset(offsetof(vec4, m.w)).type(T_FLOAT),
+      MemberDef().name("r").offset(offsetof(vec4, m.r)).type(T_FLOAT),
+      MemberDef().name("g").offset(offsetof(vec4, m.g)).type(T_FLOAT),
+      MemberDef().name("b").offset(offsetof(vec4, m.b)).type(T_FLOAT),
+      MemberDef().name("a").offset(offsetof(vec4, m.a)).type(T_FLOAT),
+      MemberDef().name("s").offset(offsetof(vec4, m.s)).type(T_FLOAT),
+      MemberDef().name("t").offset(offsetof(vec4, m.t)).type(T_FLOAT),
+      MemberDef().name("p").offset(offsetof(vec4, m.p)).type(T_FLOAT),
+      MemberDef().name("q").offset(offsetof(vec4, m.q)).type(T_FLOAT)))
+    .methods(Vec4Methods(
+      MethodDef()
+        .name("xyz")
+        .method(Vec4_XYZ)
+        .flags(METH_NOARGS),
+      MethodDef()
+        .name("length")
+        .method(Vec4_Length)
+        .flags(METH_NOARGS),
+      MethodDef()
+        .name("dot")
+        .method(Vec4_Dot)
+        .flags(METH_O)))
     .number_methods(&Vec4NumberMethods)
     .repr((reprfunc)Vec4_Repr)
     .str((reprfunc)Vec4_Str)
   ;
 
-int Vec4_Check(PyObject *obj)
+static int Vec4_Check(PyObject *obj)
 {
   return Vec4_Type.check(obj);
 }
@@ -630,18 +709,233 @@ static PyObject *Vec4_FromVec4(::vec4 v)
   return (PyObject *)obj;
 }
 
+struct Mat4Token;
+static MemberDefList<Mat4Token> Mat4Members;
+static MethodDefList<Mat4Token> Mat4Methods;
+
+struct mat4 {
+  PyObject_HEAD;
+
+  ::mat4 m;
+};
+
+static int Mat4_Check(PyObject *obj);
+static PyObject *Mat4_FromMat4(const ::mat4& m);
+
+#define MAT4_INIT_ERR "argument to mat4() must be number(s) or another mat4"
+
+static int Mat4_Init(mat4 *self, PyObject *args, PyObject *kwds)
+{
+  auto num_args = PyTuple_Size(args);
+
+  if(num_args == 1) {
+    auto other = PyTuple_GET_ITEM(args, 0);
+    if(Mat4_Check(other)) {
+      self->m = ((mat4 *)other)->m;
+    } else {
+      ArgTypeError(MAT4_INIT_ERR);
+      return -1;
+    }
+
+    return 1;
+  } else {
+    float d[16] = {
+      1.0f, 0.0f, 0.0f, 0.0f,
+      0.0f, 1.0f, 0.0f, 0.0f,
+      0.0f, 0.0f, 1.0f, 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f,
+    };
+    if(!PyArg_ParseTuple(args, "|ffffffffffffffff;" VEC4_INIT_ERR,
+                         d+0, d+1, d+2, d+3, d+4, d+5, d+6, d+7,
+                         d+8, d+9, d+10, d+11, d+12, d+13, d+14, d+15))
+      return -1;
+
+    memcpy((float *)self->m, d, sizeof(d));
+    return 0;
+  }
+
+  return -1; // unreachable
+}
+
+static PyObject *Mat4_Repr(mat4 *self)
+{
+  return Unicode::from_format("mat4(%.2f, %.2f, %.2f, %.2f,\n"
+                              "     %.2f, %.2f, %.2f, %.2f,\n"
+                              "     %.2f, %.2f, %.2f, %.2f,\n"
+                              "     %.2f, %.2f, %.2f, %.2f)",
+    self->m.d[0],  self->m.d[1],  self->m.d[2],  self->m.d[3],
+    self->m.d[4],  self->m.d[5],  self->m.d[6],  self->m.d[7],
+    self->m.d[8],  self->m.d[9],  self->m.d[10], self->m.d[11],
+    self->m.d[12], self->m.d[13], self->m.d[14], self->m.d[15]).move();
+}
+
+static PyObject *Mat4_Str(mat4 *self)
+{
+  return Unicode::from_format("[%.2f, %.2f, %.2f, %.2f,\n"
+                              " %.2f, %.2f, %.2f, %.2f,\n"
+                              " %.2f, %.2f, %.2f, %.2f,\n"
+                              " %.2f, %.2f, %.2f, %.2f]",
+    self->m.d[0],  self->m.d[1],  self->m.d[2],  self->m.d[3],
+    self->m.d[4],  self->m.d[5],  self->m.d[6],  self->m.d[7],
+    self->m.d[8],  self->m.d[9],  self->m.d[10], self->m.d[11],
+    self->m.d[12], self->m.d[13], self->m.d[14], self->m.d[15]).move();
+}
+
+#define MAT4_INDEX_ERR "mat4 element index must be in the range 0-15"
+
+static Py_ssize_t Mat4_Len(mat4 *Py_UNUSED(self))
+{
+  return 4 * 4;
+}
+
+static PyObject *Mat4_Item(mat4 *self, Py_ssize_t item)
+{
+  if(item < 0 || item > 15) {
+    PyErr_SetString(PyExc_IndexError, MAT4_INDEX_ERR);
+    return nullptr;
+  }
+
+  return PyFloat_FromDouble(self->m.d[item]);
+}
+
+static int Mat4_SetItem(mat4 *self, Py_ssize_t item, PyObject *value)
+{
+  if(item < 0 || item > 15) {
+    PyErr_SetString(PyExc_IndexError, MAT4_INDEX_ERR);
+    return -1;
+  }
+
+  Float f = PyNumber_Float(value);
+  if(!f) {
+    ArgTypeError("only numbers can be assigned");
+    return -1;
+  }
+
+  self->m.d[item] = f.f();
+  return 0;
+}
+
+static PySequenceMethods Mat4SequenceMethods = {
+  (lenfunc)Mat4_Len,             /* sq_length */
+  nullptr,                       /* sq_concat */
+  nullptr,                       /* sq_repeat */
+  (ssizeargfunc)Mat4_Item,       /* sq_item */
+  nullptr,                       /* sq_slice */
+  (ssizeobjargproc)Mat4_SetItem, /* sq_ass_item */
+  nullptr,                       /* sq_ass_slice */
+  nullptr,                       /* sq_contains */
+  nullptr,                       /* sq_inplace_concat */
+  nullptr,                       /* sq_inplace_repeat */
+};
+
+static TypeObject Mat4_Type = 
+  TypeObject()
+    .name("mat4")
+    .doc("4x4 Matrix")
+    .size(sizeof(mat4))
+    .init((initproc)Mat4_Init)
+    
+    .sequence_methods(&Mat4SequenceMethods)
+    .repr((reprfunc)Mat4_Repr)
+    .str((reprfunc)Mat4_Str)
+  ;
+
+static int Mat4_Check(PyObject *obj)
+{
+  return Mat4_Type.check(obj);
+}
+
+static PyObject *Mat4_FromMat4(const ::mat4& m)
+{
+  auto obj = Mat4_Type.newObject<mat4>();
+  obj->m = m;
+
+  return (PyObject *)obj;
+}
+
+struct XformToken;
+static MethodDefList<XformToken> XformMethods;
+
+static PyObject *Xform_Translate(PyObject *self, PyObject *args, PyObject *kwds)
+{
+  //auto num_args = PyTuple_Size(args) + PyDict_Size(kwds);
+  static char *kwds_names[] = { "x", "y", "z", nullptr };
+
+  float x = 0, y = 0, z = 0;
+  if(!PyArg_ParseTupleAndKeywords(args, kwds, "fff:translate",
+                                  kwds_names, &x, &y, &z))
+    return nullptr;
+
+  return Mat4_FromMat4(xform::translate(x, y, z));
+}
+
+static ModuleDef XformModule =
+  ModuleDef()
+    .name("Math.xform")
+    .doc("functions for operating on 4x4 transformation matrices")
+    .methods(XformMethods(
+      MethodDef()
+        .name("translate")
+        .method(Xform_Translate)    
+        .flags(METH_VARARGS | METH_KEYWORDS)))
+  ;
+
+static PyObject *Math_Lerp(PyObject *self, PyObject *args)
+{
+  PyObject *a = nullptr, *b = nullptr;
+  float u = 0;
+
+  if(!PyArg_ParseTuple(args, "OOf:lerp", &a, &b, &u))
+    return nullptr;
+
+  if(PyNumber_Check(a) && PyNumber_Check(b)) {
+    Float fa = PyNumber_Float(a),
+      fb = PyNumber_Float(b);
+
+    return PyFloat_FromDouble(lerp(fa.f(), fb.f(), u));
+  } else if(Vec4_Check(a) && Vec4_Check(b)) {
+    auto va = (vec4 *)a,
+      vb = (vec4 *)b;
+
+    return Vec4_FromVec4(lerp(va->m, vb->m, u));
+  } else if(Vec3_Check(a) && Vec3_Check(b)) {
+    auto va = (vec3 *)a,
+      vb = (vec3 *)b;
+
+    return Vec3_FromVec3(lerp(va->m, vb->m, u));
+  }
+
+  ArgTypeError("arguments to lerp() must be 2 vectors and a number or 3 numbers");
+  return nullptr;
+}
+
 static ModuleDef MathModule = 
   ModuleDef()
     .name("Math")
     .doc("Vector and Matrix types and various 3D graphics related operations.")
+    .methods(MathMethods(
+      MethodDef()
+        .name("lerp")
+        .doc("perform linear interpolation: lerp(a, b, u) -> a + (b-a)*u")
+        .method(Math_Lerp)
+        .flags(METH_VARARGS)))
   ;
 
 PyObject *PyInit_math()
 {
   auto self = Module::create(MathModule.py())
+    // Submodules
+    .addObject("xform", Module::create(XformModule.py()))
+    
+    // Vectors
     .addType("vec2", Vec2_Type)
     .addType("vec3", Vec3_Type)
     .addType("vec4", Vec4_Type)
+
+    // Matrices
+    .addType("mat4", Mat4_Type)
+
+    // Constants
     .addObject("pi", Float(PI))
     ;
         
