@@ -30,7 +30,7 @@ Database::Database(const char *fname) :
   }
 
   auto header_cmp = memcmp(header, good_header, sizeof(header));
-  if(header_cmp) panic("invalid adtabase file header!");
+  if(header_cmp) panic("invalid database file header!");
 
   unsigned num_records = 0;
   fread(&num_records, sizeof(num_records), 1, fp);

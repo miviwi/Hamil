@@ -173,6 +173,7 @@ int main(int argc, char *argv[])
 
     WIN32_FIND_DATAA find_data;
     auto handle = FindFirstFileA(pattern.c_str(), &find_data);
+    if(handle == INVALID_HANDLE_VALUE) continue;
     do {
       Key key = find_data.cFileName;
       Record record = find_data.ftLastWriteTime;

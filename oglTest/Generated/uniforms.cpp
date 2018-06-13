@@ -30,19 +30,19 @@ const std::array<Location, 3> font_klass::offsets = {
 };
 
 
+cursor_klass cursor;
+const std::array<Location, 2> cursor_klass::offsets = {
+  Location{ "uModelViewProjection", 0 },
+  Location{ "uTex", 1 },
+};
+
+
 ui_klass ui;
 const std::array<Location, 4> ui_klass::offsets = {
   Location{ "uModelViewProjection", 0 },
   Location{ "uType", 1 },
   Location{ "uFontAtlas", 2 },
   Location{ "uTextColor", 3 },
-};
-
-
-cursor_klass cursor;
-const std::array<Location, 2> cursor_klass::offsets = {
-  Location{ "uModelViewProjection", 0 },
-  Location{ "uTex", 1 },
 };
 
 }

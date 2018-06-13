@@ -52,6 +52,19 @@ struct font_klass {
 };
 extern font_klass font;
 
+struct cursor_klass {
+  union { struct {
+    int uModelViewProjection;
+    int uTex;
+    };
+
+    int locations[2];
+  };
+
+  static const std::array<Location, 2> offsets;
+};
+extern cursor_klass cursor;
+
 struct ui_klass {
   union { struct {
     int uModelViewProjection;
@@ -66,18 +79,5 @@ struct ui_klass {
   static const std::array<Location, 4> offsets;
 };
 extern ui_klass ui;
-
-struct cursor_klass {
-  union { struct {
-    int uModelViewProjection;
-    int uTex;
-    };
-
-    int locations[2];
-  };
-
-  static const std::array<Location, 2> offsets;
-};
-extern cursor_klass cursor;
 
 }
