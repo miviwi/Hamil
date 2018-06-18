@@ -13,11 +13,15 @@ public:
   using Object::Object;
 
   std::string name() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class None : public Object {
 public:
   None();
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Number : public Object {
@@ -32,6 +36,8 @@ public:
   virtual double f() const;
   virtual size_t sz() const;
   virtual ssize_t ssz() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Long : public Number {
@@ -53,6 +59,8 @@ public:
   virtual double f() const;
   virtual size_t sz() const;
   virtual ssize_t ssz() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Float : public Number {
@@ -67,6 +75,8 @@ public:
   virtual double f() const;
   virtual size_t sz() const;
   virtual ssize_t ssz() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Boolean : public Object {
@@ -75,6 +85,8 @@ public:
   Boolean(bool b);
 
   bool val() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Unicode : public Object {
@@ -87,6 +99,8 @@ public:
 
   ssize_t size() const;
   std::string str() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Bytes : public Object {
@@ -100,6 +114,8 @@ public:
   const char *c_str() const;
 
   const void *data() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Capsule : public Object {
@@ -116,6 +132,8 @@ public:
 
   void context(void *ctx);
   void *context() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 }

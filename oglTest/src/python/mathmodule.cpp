@@ -819,7 +819,7 @@ static PyObject *Mat4_ConstMul(mat4 *self, PyObject *value)
 {
   Float u = PyNumber_Float(value);
   if(!u) {
-    ArgTypeError("mat4 can only be multiplied with a number");
+    ArgTypeError("mat4 can only be multiplied with a number (did you mean to use '@'?)");
     return nullptr;
   }
 
@@ -840,10 +840,20 @@ static PyObject *Mat4_MatMul(mat4 *self, PyObject *other)
   return nullptr;
 }
 
+static PyObject *Mat4_IMatMul(mat4 *self, PyObject *other)
+{
+  if(Mat4_Check(other)) {
+    self->m *= ((mat4 *)other)->m;
+    return (PyObject *)self;
+  }
+
+  ArgTypeError("mat4 can only be inplace-matrix-multiplied with a vec4 or another mat4");
+  return nullptr;
+}
+
 static PyObject *Mat4_Transpose(mat4 *self, PyObject *Py_UNUSED(arg))
 {
   return Mat4_FromMat4(self->m.transpose());
-
 }
 
 static PyObject *Mat4_Inverse(mat4 *self, PyObject *Py_UNUSED(arg))
@@ -890,8 +900,8 @@ static PyNumberMethods Mat4NumberMethods = {
 
   nullptr, /* nb_index */
 
-  (binaryfunc)Mat4_MatMul, /* nb_matrix_multiply */
-  nullptr, /* nb_inplace_matrix_multiply */
+  (binaryfunc)Mat4_MatMul,  /* nb_matrix_multiply */
+  (binaryfunc)Mat4_IMatMul, /* nb_inplace_matrix_multiply */
 };
 
 static PySequenceMethods Mat4SequenceMethods = {
@@ -978,6 +988,22 @@ static PyObject *Xform_Scale(PyObject *self, PyObject *args, PyObject *kwds)
   return nullptr; // unreachable
 }
 
+static PyObject *Xform_Rotate(PyObject *self, PyObject *args, PyObject *kwds)
+{
+  static char *kwds_names[] = { "x", "y", "z", nullptr };
+
+  if(PyTuple_Size(args)) {
+    PyErr_SetString(PyExc_ValueError, "rotate() expects only keyword arguments");
+    return nullptr;
+  }
+
+  float x = 0, y = 0, z = 0;
+  if(!PyArg_ParseTupleAndKeywords(args, kwds, "|$fff:rotate", kwds_names, &x, &y, &z))
+    return nullptr;
+
+  return Mat4_FromMat4(xform::rotz(z) * xform::roty(y) * xform::rotx(x));
+}
+
 static ModuleDef XformModule =
   ModuleDef()
     .name("Math.xform")
@@ -990,6 +1016,10 @@ static ModuleDef XformModule =
       MethodDef()
         .name("scale")
         .method(Xform_Scale)
+        .flags(METH_VARARGS | METH_KEYWORDS),
+      MethodDef()
+        .name("rotate")
+        .method(Xform_Rotate)
         .flags(METH_VARARGS | METH_KEYWORDS)))
   ;
 
@@ -1091,7 +1121,7 @@ PyObject *PyInit_math()
     .addType("mat4", Mat4_Type)
 
     // Constants
-    .addObject("pi", Float(PI))
+    .addObject("Pi", Float(PI))
     ;
         
   return *self;

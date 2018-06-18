@@ -83,6 +83,11 @@ ssize_t Dict::size() const
   return PyDict_Size(py());
 }
 
+bool Dict::py_type_check(PyObject *self)
+{
+  return PyDict_Check(self);
+}
+
 List::List(PyObject *list) :
   Collection(list)
 {
@@ -135,6 +140,11 @@ ssize_t List::size() const
   return PyList_Size(py());
 }
 
+bool List::py_type_check(PyObject *self)
+{
+  return PyList_Check(self);
+}
+
 Tuple::Tuple(PyObject *tuple) :
   Collection(tuple)
 {
@@ -175,6 +185,11 @@ void Tuple::set(ssize_t index, Object&& item)
 ssize_t Tuple::size() const
 {
   return PyTuple_GET_SIZE(py());
+}
+
+bool Tuple::py_type_check(PyObject *self)
+{
+  return PyTuple_Check(self);
 }
 
 }

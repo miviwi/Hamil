@@ -4,6 +4,7 @@
 
 #include <string>
 #include <utility>
+#include <type_traits>
 
 namespace python {
 
@@ -17,6 +18,14 @@ class Tuple;
 //   - nullptr can be passed to the constructor as the 'object'
 //     and will be handled correctly, though no checking is done
 //     when attempting to run methods on such an Object
+//   - NEVER put Object's or any other derived types in global scope
+//     they are initialized before the interpreter and will cause 
+//     undefined behaviour to overcome this limitation do:
+//       Object obj = nullptr;
+//       void init_obj()
+//       {
+//         obj = ...; // init 'obj' however you like
+//       }
 class Object {
 public:
   Object(PyObject *object);
@@ -37,6 +46,16 @@ public:
   PyObject *operator *() const;
 
   operator bool() const;
+
+  template <typename T>
+  bool typeCheck() const
+  {
+    static_assert(std::is_base_of_v<Object, T>, "invalid T passed to Object::typeCheck()!");
+    return py() ? T::py_type_check(py()) : false;
+  }
+
+  template <typename T> T as() const& { return typeCheck<T>() ? py() : nullptr; }
+  template <typename T> T as() &&     { return typeCheck<T>() ? move() : nullptr; }
 
   std::string str() const;
   std::string repr() const;

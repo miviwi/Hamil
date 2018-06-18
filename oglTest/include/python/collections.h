@@ -57,6 +57,8 @@ public:
   void insert(ssize_t where, const Object& item);
 
   virtual ssize_t size() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Dict : public Collection {
@@ -72,6 +74,8 @@ public:
   void set(const char *key, const Object& item);
 
   virtual ssize_t size() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 class Tuple : public Collection {
@@ -86,6 +90,8 @@ public:
   void set(ssize_t index, Object&& item);
 
   virtual ssize_t size() const;
+
+  static bool py_type_check(PyObject *self);
 };
 
 }

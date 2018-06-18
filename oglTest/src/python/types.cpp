@@ -10,6 +10,61 @@ None::None() :
   Py_INCREF(Py_None);
 }
 
+bool None::py_type_check(PyObject *self)
+{
+  return self == Py_None;
+}
+
+Number::Number(PyObject *number) :
+  Object(number)
+{
+}
+
+Number::Number(Object&& number) :
+  Number(number.move())
+{
+}
+
+long Number::l() const
+{
+  return Long(PyNumber_Long(py())).l();
+}
+
+unsigned long Number::ul() const
+{
+  return Long(PyNumber_Long(py())).ul();
+}
+
+long long Number::ll() const
+{
+  return Long(PyNumber_Long(py())).ll();
+}
+
+unsigned long long Number::ull() const
+{
+  return Long(PyNumber_Long(py())).ull();
+}
+
+double Number::f() const
+{
+  return Float(PyNumber_Float(py())).f();
+}
+
+size_t Number::sz() const
+{
+  return (size_t)PyNumber_AsSsize_t(py(), nullptr);
+}
+
+ssize_t Number::ssz() const
+{
+  return PyNumber_AsSsize_t(py(), nullptr);
+}
+
+bool Number::py_type_check(PyObject *self)
+{
+  return PyNumber_Check(self);
+}
+
 Long::Long(PyObject *object) :
   Number(object)
 {
@@ -85,6 +140,11 @@ ssize_t Long::ssz() const
   return PyLong_AsSsize_t(py());
 }
 
+bool Long::py_type_check(PyObject *self)
+{
+  return PyLong_Check(self);
+}
+
 Float::Float(PyObject *object) :
   Number(object)
 {
@@ -130,6 +190,11 @@ ssize_t Float::ssz() const
   return (ssize_t)f();
 }
 
+bool Float::py_type_check(PyObject *self)
+{
+  return PyFloat_Check(self);
+}
+
 Boolean::Boolean(PyObject *object) :
   Object(object)
 {
@@ -143,6 +208,11 @@ Boolean::Boolean(bool b) :
 bool Boolean::val() const
 {
   return py() == Py_True ? true : false;
+}
+
+bool Boolean::py_type_check(PyObject *self)
+{
+  return PyBool_Check(self);
 }
 
 Unicode::Unicode(PyObject *object) :
@@ -184,6 +254,11 @@ std::string Unicode::str() const
   const char *data = PyUnicode_AsUTF8AndSize(py(), &sz);
 
   return std::string(data, (size_t)sz);
+}
+
+bool Unicode::py_type_check(PyObject *self)
+{
+  return PyUnicode_Check(self);
 }
 
 Capsule::Capsule(PyObject *capsule) :
@@ -231,6 +306,11 @@ void *Capsule::context() const
   return PyCapsule_GetContext(py());
 }
 
+bool Capsule::py_type_check(PyObject *self)
+{
+  return PyCapsule_CheckExact(self);
+}
+
 Bytes::Bytes(PyObject *object) :
   Object(object)
 {
@@ -266,54 +346,19 @@ const void *Bytes::data() const
   return c_str();
 }
 
+bool Bytes::py_type_check(PyObject *self)
+{
+  return PyBytes_Check(self);
+}
+
 std::string Type::name() const
 {
   return attr("__name__").str();
 }
 
-Number::Number(PyObject *number) :
-  Object(number)
+bool Type::py_type_check(PyObject *self)
 {
-}
-
-Number::Number(Object&& number) :
-  Number(number.move())
-{
-}
-
-long Number::l() const
-{
-  return Long(PyNumber_Long(py())).l();
-}
-
-unsigned long Number::ul() const
-{
-  return Long(PyNumber_Long(py())).ul();
-}
-
-long long Number::ll() const
-{
-  return Long(PyNumber_Long(py())).ll();
-}
-
-unsigned long long Number::ull() const
-{
-  return Long(PyNumber_Long(py())).ull();
-}
-
-double Number::f() const
-{
-  return Float(PyNumber_Float(py())).f();
-}
-
-size_t Number::sz() const
-{
-  return (size_t)PyNumber_AsSsize_t(py(), nullptr);
-}
-
-ssize_t Number::ssz() const
-{
-  return PyNumber_AsSsize_t(py(), nullptr);
+  return PyType_Check(self);
 }
 
 }
