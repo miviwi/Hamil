@@ -20,20 +20,21 @@ public:
   None();
 };
 
-class Numeric : public Object {
+class Number : public Object {
 public:
-  using Object::Object;
+  Number(PyObject *number);
+  Number(Object&& number);
 
-  virtual long l() const = 0;
-  virtual unsigned long ul() const = 0;
-  virtual long long ll() const = 0;
-  virtual unsigned long long ull() const = 0;
-  virtual double f() const = 0;
-  virtual size_t sz() const = 0;
-  virtual ssize_t ssz() const = 0;
+  virtual long l() const;
+  virtual unsigned long ul() const;
+  virtual long long ll() const;
+  virtual unsigned long long ull() const;
+  virtual double f() const;
+  virtual size_t sz() const;
+  virtual ssize_t ssz() const;
 };
 
-class Long : public Numeric {
+class Long : public Number {
 public:
   Long(PyObject *object);
   Long(long l);
@@ -54,7 +55,7 @@ public:
   virtual ssize_t ssz() const;
 };
 
-class Float : public Numeric {
+class Float : public Number {
 public:
   Float(PyObject *object);
   Float(double f);

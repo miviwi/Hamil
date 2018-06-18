@@ -3,12 +3,15 @@
 #include <python/python.h>
 
 #include <string>
+#include <utility>
 
 namespace python {
 
 class TypeObject;
 
 class List;
+class Dict;
+class Tuple;
 
 // RAII wrapper around PyObject (does Py_DECREF automatically)
 //   - nullptr can be passed to the constructor as the 'object'
@@ -43,9 +46,29 @@ public:
   void attr(const Object& name, const Object& value);
   void attr(const char *name, const Object& value);
 
+  bool callable() const;
+
+  Object call(Tuple args, Dict kwds);
+  Object call(Tuple args);
+  Object call();
+
+  template <typename... Args>
+  Object call(Args&&... args)
+  {
+    auto tuple = PyTuple_Pack(sizeof...(args), args.py()...);
+    return doCall(tuple); // cleans up 'tuple'
+  }
+  template <typename... Args>
+  Object operator()(Args&&... args)
+  {
+    return call(std::forward<Args>(args)...);
+  }
+
   List dir() const;
 
 private:
+  Object doCall(PyObject *args);
+
   PyObject *m;
 };
 

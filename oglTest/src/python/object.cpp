@@ -119,9 +119,37 @@ void Object::attr(const char *name, const Object& value)
   PyObject_SetAttrString(py(), name, *value);
 }
 
+bool Object::callable() const
+{
+  return PyCallable_Check(py());
+}
+
+Object Object::call(Tuple args, Dict kwds)
+{
+  return PyObject_Call(py(), *args, *kwds);
+}
+
+Object Object::call(Tuple args)
+{
+  return PyObject_CallObject(py(), *args);
+}
+
+Object Object::call()
+{
+  return PyObject_CallObject(py(), nullptr);
+}
+
 List Object::dir() const
 {
   return PyObject_Dir(py());
+}
+
+Object Object::doCall(PyObject *args)
+{
+  auto result = PyObject_CallObject(py(), args);
+  Py_DECREF(args);
+
+  return result;
 }
 
 }

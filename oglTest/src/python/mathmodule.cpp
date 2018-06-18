@@ -815,6 +815,85 @@ static int Mat4_SetItem(mat4 *self, Py_ssize_t item, PyObject *value)
   return 0;
 }
 
+static PyObject *Mat4_ConstMul(mat4 *self, PyObject *value)
+{
+  Float u = PyNumber_Float(value);
+  if(!u) {
+    ArgTypeError("mat4 can only be multiplied with a number");
+    return nullptr;
+  }
+
+  return Mat4_FromMat4(self->m * (float)u.f());
+}
+
+static PyObject *Mat4_MatMul(mat4 *self, PyObject *other)
+{
+  if(Vec4_Check(other)) {
+    auto v = (vec4 *)other;
+    return Vec4_FromVec4(self->m * v->m);
+  } else if(Mat4_Check(other)) {
+    auto m = (mat4 *)other;
+    return Mat4_FromMat4(self->m * m->m);
+  }
+
+  ArgTypeError("mat4 can only be matrix-multiplied with a vec4 or another mat4");
+  return nullptr;
+}
+
+static PyObject *Mat4_Transpose(mat4 *self, PyObject *Py_UNUSED(arg))
+{
+  return Mat4_FromMat4(self->m.transpose());
+
+}
+
+static PyObject *Mat4_Inverse(mat4 *self, PyObject *Py_UNUSED(arg))
+{
+  return Mat4_FromMat4(self->m.inverse());
+}
+
+static PyNumberMethods Mat4NumberMethods = {
+  nullptr, /* nb_add */
+  nullptr, /* nb_subtract */
+  (binaryfunc)Mat4_ConstMul, /* nb_multiply */
+  nullptr, /* nb_remainder */
+  nullptr, /* nb_divmod */
+  nullptr, /* nb_power */
+  nullptr, /* nb_negative */
+  nullptr, /* nb_positive */
+  nullptr, /* nb_absolute */
+  nullptr, /* nb_bool */
+  nullptr, /* nb_invert */
+  nullptr, /* nb_lshift */
+  nullptr, /* nb_rshift */
+  nullptr, /* nb_and */
+  nullptr, /* nb_xor */
+  nullptr, /* nb_or */
+  nullptr, /* nb_int */
+  nullptr, /* nb_reserved */
+  nullptr, /* nb_float */
+
+  nullptr, /* nb_inplace_add */
+  nullptr, /* nb_inplace_subtract */
+  nullptr, /* nb_inplace_multiply */
+  nullptr, /* nb_inplace_remainder */
+  nullptr, /* nb_inplace_power */
+  nullptr, /* nb_inplace_lshift */
+  nullptr, /* nb_inplace_rshift */
+  nullptr, /* nb_inplace_and */
+  nullptr, /* nb_inplace_xor */
+  nullptr, /* nb_inplace_or */
+
+  nullptr, /* nb_floor_divide */
+  nullptr, /* nb_true_divide */
+  nullptr, /* nb_inplace_floor_divide */
+  nullptr, /* nb_inplace_true_divide */
+
+  nullptr, /* nb_index */
+
+  (binaryfunc)Mat4_MatMul, /* nb_matrix_multiply */
+  nullptr, /* nb_inplace_matrix_multiply */
+};
+
 static PySequenceMethods Mat4SequenceMethods = {
   (lenfunc)Mat4_Len,             /* sq_length */
   nullptr,                       /* sq_concat */
@@ -834,7 +913,17 @@ static TypeObject Mat4_Type =
     .doc("4x4 Matrix")
     .size(sizeof(mat4))
     .init((initproc)Mat4_Init)
-    
+    .methods(Mat4Methods(
+      MethodDef()
+        .name("transpose")
+        .method(Mat4_Transpose)
+        .flags(METH_NOARGS),
+      MethodDef()
+        .name("inverse")
+        .doc("the matrix must be non-singular or undefined behaviour will occur")
+        .method(Mat4_Inverse)
+        .flags(METH_NOARGS)))
+    .number_methods(&Mat4NumberMethods)
     .sequence_methods(&Mat4SequenceMethods)
     .repr((reprfunc)Mat4_Repr)
     .str((reprfunc)Mat4_Str)
@@ -858,7 +947,7 @@ static MethodDefList<XformToken> XformMethods;
 
 static PyObject *Xform_Translate(PyObject *self, PyObject *args, PyObject *kwds)
 {
-  //auto num_args = PyTuple_Size(args) + PyDict_Size(kwds);
+  auto num_args = PyTuple_Size(args) + (kwds ? PyDict_Size(kwds) : 0);
   static char *kwds_names[] = { "x", "y", "z", nullptr };
 
   float x = 0, y = 0, z = 0;
@@ -869,6 +958,26 @@ static PyObject *Xform_Translate(PyObject *self, PyObject *args, PyObject *kwds)
   return Mat4_FromMat4(xform::translate(x, y, z));
 }
 
+static PyObject *Xform_Scale(PyObject *self, PyObject *args, PyObject *kwds)
+{
+  static char *kwds_names[] = { "x", "y", "z", nullptr };
+
+  if(PyTuple_Size(args) == 1 && !kwds) {
+    float s = 1;
+    if(!PyArg_ParseTuple(args, "f:scale", &s)) return nullptr;
+
+    return Mat4_FromMat4(xform::scale(s));
+  } else {
+    float x = 1, y = 1, z = 1;
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "|fff:scale", kwds_names, &x, &y, &z))
+      return nullptr;
+
+    return Mat4_FromMat4(xform::scale(x, y, z));
+  }
+
+  return nullptr; // unreachable
+}
+
 static ModuleDef XformModule =
   ModuleDef()
     .name("Math.xform")
@@ -877,6 +986,10 @@ static ModuleDef XformModule =
       MethodDef()
         .name("translate")
         .method(Xform_Translate)    
+        .flags(METH_VARARGS | METH_KEYWORDS),
+      MethodDef()
+        .name("scale")
+        .method(Xform_Scale)
         .flags(METH_VARARGS | METH_KEYWORDS)))
   ;
 
@@ -909,6 +1022,43 @@ static PyObject *Math_Lerp(PyObject *self, PyObject *args)
   return nullptr;
 }
 
+static PyObject *Math_Clamp(PyObject *self, PyObject *args)
+{
+  PyObject *x = nullptr, *minimum = nullptr, *maximum;
+
+  if(!PyArg_ParseTuple(args, "OOO:lerp", &x, &minimum, &maximum))
+    return nullptr;
+
+  if(PyNumber_Check(x) && PyNumber_Check(minimum) && PyNumber_Check(maximum)) {
+    Float fx = PyNumber_Float(x),
+      fminimum = PyNumber_Float(minimum),
+      fmaximum = PyNumber_Float(maximum);
+
+    return PyFloat_FromDouble(clamp(fx.f(), fminimum.f(), fmaximum.f()));
+  } else if(Vec2_Check(x) && Vec2_Check(minimum) && Vec2_Check(maximum)) {
+    auto vx = (vec2 *)x,
+      vminimum = (vec2 *)minimum,
+      vmaximum = (vec2 *)maximum;
+
+    return Vec2_FromVec2(clamp(vx->m, vminimum->m, vmaximum->m));
+  } else if(Vec3_Check(x) && Vec3_Check(minimum) && Vec3_Check(maximum)) {
+    auto vx = (vec3 *)x,
+      vminimum = (vec3 *)minimum,
+      vmaximum = (vec3 *)maximum;
+
+    return Vec3_FromVec3(clamp(vx->m, vminimum->m, vmaximum->m));
+  } else if(Vec4_Check(x) && Vec4_Check(minimum) && Vec4_Check(maximum)) {
+    auto vx = (vec4 *)x,
+      vminimum = (vec4 *)minimum,
+      vmaximum = (vec4 *)maximum;
+
+    return Vec4_FromVec4(clamp(vx->m, vminimum->m, vmaximum->m));
+  }
+
+  ArgTypeError("arguments to clamp() must be 3 numbers");
+  return nullptr;
+}
+
 static ModuleDef MathModule = 
   ModuleDef()
     .name("Math")
@@ -918,6 +1068,11 @@ static ModuleDef MathModule =
         .name("lerp")
         .doc("perform linear interpolation: lerp(a, b, u) -> a + (b-a)*u")
         .method(Math_Lerp)
+        .flags(METH_VARARGS),
+      MethodDef()
+        .name("clamp")
+        .doc("clamp(x, minimum, maximum) -> clamps x to the range <minimum; maximum>")
+        .method(Math_Clamp)
         .flags(METH_VARARGS)))
   ;
 

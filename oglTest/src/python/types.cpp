@@ -11,12 +11,12 @@ None::None() :
 }
 
 Long::Long(PyObject *object) :
-  Numeric(object)
+  Number(object)
 {
 }
 
 Long::Long(long l) :
-  Numeric(PyLong_FromLong(l))
+  Number(PyLong_FromLong(l))
 {
 }
 
@@ -86,12 +86,12 @@ ssize_t Long::ssz() const
 }
 
 Float::Float(PyObject *object) :
-  Numeric(object)
+  Number(object)
 {
 }
 
 Float::Float(double f) :
-  Numeric(PyFloat_FromDouble(f))
+  Number(PyFloat_FromDouble(f))
 {
 }
 
@@ -269,6 +269,51 @@ const void *Bytes::data() const
 std::string Type::name() const
 {
   return attr("__name__").str();
+}
+
+Number::Number(PyObject *number) :
+  Object(number)
+{
+}
+
+Number::Number(Object&& number) :
+  Number(number.move())
+{
+}
+
+long Number::l() const
+{
+  return Long(PyNumber_Long(py())).l();
+}
+
+unsigned long Number::ul() const
+{
+  return Long(PyNumber_Long(py())).ul();
+}
+
+long long Number::ll() const
+{
+  return Long(PyNumber_Long(py())).ll();
+}
+
+unsigned long long Number::ull() const
+{
+  return Long(PyNumber_Long(py())).ull();
+}
+
+double Number::f() const
+{
+  return Float(PyNumber_Float(py())).f();
+}
+
+size_t Number::sz() const
+{
+  return (size_t)PyNumber_AsSsize_t(py(), nullptr);
+}
+
+ssize_t Number::ssz() const
+{
+  return PyNumber_AsSsize_t(py(), nullptr);
 }
 
 }

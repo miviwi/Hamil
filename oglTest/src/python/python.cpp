@@ -36,6 +36,15 @@ void init()
   } else {
     throw Exception::fetch();
   }
+
+  exec("def f(x, y):\n  z = x**2+y**2\n  print(z)\n  return (x**2 + y**2)\n");
+
+  auto f = get_global("f");
+  Number result = f(Long(3), Long(4));
+
+  auto x = result.l();
+
+
 }
 
 void finalize()

@@ -129,6 +129,10 @@ if not errorlevel 1 (
 exit /b 0</Command>
       <Outputs>uniforms.cpp;uniforms.h;%(Outputs)</Outputs>
     </CustomBuildStep>
+    <PostBuildEvent>
+      <Command>copy $(ProjectDir)extern\freetype2\win64\freetype271MT.dll $(OutDir)</Command>
+      <Message>Copy freetype2 runtime lib</Message>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
