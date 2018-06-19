@@ -13,7 +13,7 @@ class ConsoleBufferFrame : public Frame {
 public:
   using LineBuffer = std::deque<std::string>;
 
-  static constexpr float BufferHeight = 290.0f,
+  static constexpr float BufferHeight = ConsoleFrame::ConsoleSize.y - 30.0f,
     BufferPixelMargin = 5.0f,
     ScrollBarWidth = 5.0f;
 

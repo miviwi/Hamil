@@ -15,6 +15,7 @@ void init()
 
 void finalize()
 {
+  StdStream::finalize();
 }
 
 }

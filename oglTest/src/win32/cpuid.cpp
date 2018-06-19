@@ -12,7 +12,7 @@ void check_sse_sse2_support()
   
   if(sse && sse2) return;
 
-  panic("CPU doesn't support SSE2!", -1);
+  panic("Your CPU doesn't support the SSE2 instruction set which is required.", -1);
 }
 
 }

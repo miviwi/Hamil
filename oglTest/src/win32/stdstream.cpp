@@ -9,12 +9,21 @@
 namespace win32 {
 
 int p_fds[2];
-static char p_buf[4096];
+
+static constexpr size_t p_buf_sz = 1024*1024;
+static char *p_buf;
 
 void StdStream::init()
 {
+  p_buf = new char[p_buf_sz];
+
   _pipe(p_fds, sizeof(p_buf), O_TEXT);
   _dup2(p_fds[1], 1); // 1 == stdout
+}
+
+void StdStream::finalize()
+{
+  delete[] p_buf;
 }
 
 std::string StdStream::gets()

@@ -27,7 +27,7 @@ class ConsoleFrame : public Frame {
 public:
   using OnCommand = Signal<ConsoleFrame *, const char *>;
 
-  static constexpr vec2 ConsoleSize = { 1080, 320 };
+  static constexpr vec2 ConsoleSize = { 1080, 520 };
 
   ConsoleFrame(Ui& ui, const char *name);
   ConsoleFrame(Ui& ui);
