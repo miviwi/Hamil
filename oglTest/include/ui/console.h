@@ -60,6 +60,8 @@ private:
 
   static constexpr Geometry make_geometry();
 
+  void consoleCommand(const std::string& cmd);
+
   TextBoxFrame *m_prompt;
   ConsoleBufferFrame *m_buffer;
   LayoutFrame *m_console;

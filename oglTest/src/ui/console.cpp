@@ -3,6 +3,8 @@
 
 #include <win32/input.h>
 
+#include <unordered_map>
+#include <functional>
 #include <sstream>
 
 namespace ui {
@@ -12,7 +14,8 @@ public:
   using LineBuffer = std::deque<std::string>;
 
   static constexpr float BufferHeight = 290.0f,
-    BufferPixelMargin = 5.0f;
+    BufferPixelMargin = 5.0f,
+    ScrollBarWidth = 5.0f;
 
   enum : size_t {
     CursorNotSet = ~0u,
@@ -35,9 +38,13 @@ public:
   std::string historyNext();
 
 private:
+  size_t rows() const;
+  size_t columns() const;
+
   LineBuffer m_buffer;
   LineBuffer m_input;
-  size_t m_cursor = CursorNotSet;
+  size_t m_history = CursorNotSet;
+  size_t m_scroll = 0;
 };
 
 ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
@@ -54,8 +61,14 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   m_console = &console;
 
   m_prompt->onSubmit([this](TextBoxFrame *target) {
-    m_buffer->input(target->text());
-    m_on_command.emit(this, target->text().c_str());
+    const auto& cmd = target->text();
+
+    m_buffer->input(cmd);
+    if(cmd.length() && cmd.front() == '$') {
+      consoleCommand(cmd);
+    } else {
+      m_on_command.emit(this, cmd.c_str());
+    }
 
     target->text("");
   });
@@ -175,8 +188,31 @@ constexpr Geometry ConsoleFrame::make_geometry()
   };
 }
 
+void ConsoleFrame::consoleCommand(const std::string& cmd)
+{
+  std::unordered_map<std::string, std::function<void()>> fns = {
+    { "$cls", [this]() { m_buffer->clear(); } },
+  };
+  fns[cmd]();
+}
+
 bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
+  if(auto mouse = input->get<win32::Mouse>()) {
+    using win32::Mouse;
+    if(mouse->event != Mouse::Wheel) return false;
+
+    auto direction = mouse->ev_data > 0 ? 1 : -1;
+    if(direction > 0 && m_buffer.size()) {
+      auto max_scroll = m_buffer.size() < rows() ? m_buffer.size() : m_buffer.size()-rows();
+      if(m_scroll >= 0 && m_scroll < max_scroll) m_scroll += direction;
+    } else {
+      if(m_scroll > 0) m_scroll += direction;
+    }
+
+    return true;
+  }
+
   return false;
 }
 
@@ -185,6 +221,15 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
   auto& font = *m_ui->style().monospace;
 
   Geometry g = geometry();
+
+  float content_height = (float)m_buffer.size(),
+    visible_content = std::min(rows() / content_height, 1.0f),
+    scrollbar_height = std::max(visible_content, 0.1f) * BufferHeight,
+    scrollbar_position = visible_content*font.height()*(float)m_scroll;
+  Geometry scrollbar_g = {
+    g.x + (g.w-ScrollBarWidth), g.y + (g.h-scrollbar_position-scrollbar_height-BufferPixelMargin),
+    ScrollBarWidth, scrollbar_height,
+  };
 
   auto pipeline = gx::Pipeline()
     .scissor(Ui::scissor_rect(parent.clip(g)))
@@ -195,6 +240,7 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
   painter
     .pipeline(pipeline)
     .rect(g, black().opacity(0.8))
+    .rect(scrollbar_g, grey().opacity(0.8))
     ;
 
   if(m_buffer.empty()) return;
@@ -205,7 +251,8 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
     BufferPixelMargin,
     g.h - (font.ascender() + BufferPixelMargin)
   };
-  for(auto& line : m_buffer) {
+  for(auto it = m_buffer.begin()+m_scroll; it != m_buffer.end(); it++) {
+    const auto& line = *it;
     painter
       .text(font, line, pos, white())
       ;
@@ -221,14 +268,28 @@ vec2 ConsoleBufferFrame::sizeHint() const
 
 void ConsoleBufferFrame::print(const std::string& str)
 {
+  auto wrap_limit = columns();
+  
   std::istringstream stream(str);
   std::string line;
   while(std::getline(stream, line)) {
-    m_buffer.push_front(line);
-    if(m_buffer.size() > BufferDepth) m_buffer.pop_back();
+    if(line.length() > wrap_limit) {
+      size_t pos = 0;
+      while(pos < line.length()) {
+        size_t count = pos+wrap_limit <= line.length() ? wrap_limit : std::string::npos;
+
+        m_buffer.push_front(line.substr(pos, count));
+        pos += wrap_limit;
+      }
+    } else {
+      m_buffer.push_front(line);
+    }
   }
 
-  m_cursor = CursorNotSet;
+  while(m_buffer.size() > BufferDepth) m_buffer.pop_back();
+
+  m_history = CursorNotSet;
+  m_scroll = 0;
 }
 
 void ConsoleBufferFrame::input(const std::string& str)
@@ -243,16 +304,17 @@ void ConsoleBufferFrame::clear()
 {
   m_buffer.clear();
   m_input.clear();
-  m_cursor = CursorNotSet;
+  m_history = CursorNotSet;
+  m_scroll = 0;
 }
 
 std::string ConsoleBufferFrame::historyPrevious()
 {
-  if(m_cursor == CursorNotSet) {
-    m_cursor = 0;
-  } else if(m_cursor+1 < m_input.size()) {
-    m_cursor++;
-    return m_input[m_cursor];
+  if(m_history == CursorNotSet) {
+    m_history = 0;
+  } else if(m_history+1 < m_input.size()) {
+    m_history++;
+    return m_input[m_history];
   }
 
   return "";
@@ -260,14 +322,30 @@ std::string ConsoleBufferFrame::historyPrevious()
 
 std::string ConsoleBufferFrame::historyNext()
 {
-  if(m_cursor == CursorNotSet) {
-    m_cursor = m_input.size()-1;
-  } else if(m_cursor > 0) {
-    m_cursor--;
-    return m_input[m_cursor];
+  if(m_history == CursorNotSet) {
+    m_history = m_input.size()-1;
+  } else if(m_history > 0) {
+    m_history--;
+    return m_input[m_history];
   }
 
   return "";
+}
+
+size_t ConsoleBufferFrame::rows() const
+{
+  const auto& font = *m_ui->style().monospace;
+  auto height = BufferHeight - BufferPixelMargin;
+
+  return (size_t)(height / font.height());
+}
+
+size_t ConsoleBufferFrame::columns() const
+{
+  const auto& font = *m_ui->style().monospace;
+  auto width = ConsoleFrame::ConsoleSize.x - (BufferPixelMargin+ScrollBarWidth);
+
+  return (size_t)floor(width / font.monospaceWidth());
 }
 
 }

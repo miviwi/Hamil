@@ -197,7 +197,7 @@ static PyNumberMethods Vec2NumberMethods = {
 static TypeObject Vec2_Type =
   TypeObject()
     .name("math.vec2")
-    .doc("2D vector")
+    .doc("2D vector with xy/st components (which alias eachother)")
     .size(sizeof(vec2))
     .init((initproc)Vec2_Init)
     .members(Vec2Members(
@@ -208,23 +208,27 @@ static TypeObject Vec2_Type =
     .methods(Vec2Methods(
       MethodDef()
         .name("length")
+        .doc("returns the vectors magnitued (length)")
         .method(Vec2_Length)
         .flags(METH_NOARGS),
       MethodDef()
         .name("dot")
+        .doc("returns the scalar (dot) product of the vector")
         .method(Vec2_Dot)
         .flags(METH_O),
       MethodDef()
         .name("distance2")
+        .doc("returns the squared distance between two vectors")
         .method(Vec2_Distance2)
         .flags(METH_O),
       MethodDef()
         .name("distance")
+        .doc("returns the distance between two vectors")
         .method(Vec2_Distance)
         .flags(METH_O),
       MethodDef()
         .name("normalize")
-        .doc("convert to unit vector")
+        .doc("returns the vector divided by it's length (which makes it a unit vector/direction)")
         .method(Vec2_Normalize)
         .flags(METH_NOARGS)))
     .number_methods(&Vec2NumberMethods)
@@ -440,7 +444,7 @@ static PyNumberMethods Vec3NumberMethods = {
 static TypeObject Vec3_Type = 
   TypeObject()
     .name("vec3")
-    .doc("3D Vector")
+    .doc("3D vector, with xyz/rgb/stp components (which alias eachother)")
     .size(sizeof(vec3))
     .init((initproc)Vec3_Init)
     .members(Vec3Members(
@@ -456,30 +460,37 @@ static TypeObject Vec3_Type =
     .methods(Vec3Methods(
       MethodDef()
         .name("xy")
+        .doc("returns a vec2 (without the 'z' component)")
         .method(Vec3_XY)
         .flags(METH_NOARGS),
       MethodDef()
         .name("length")
+        .doc("returns the mgnitude (length) of the vector")
         .method(Vec3_Length)
         .flags(METH_NOARGS),
       MethodDef()
         .name("dot")
+        .doc("returns the scalar (dot) product of the vector")
         .method(Vec3_Dot)
         .flags(METH_O),
       MethodDef()
         .name("normalize")
+        .doc("returns the vector divided by it's length (which makes it a unit vector/direction)")
         .method(Vec3_Normalize)
         .flags(METH_NOARGS),
       MethodDef()
         .name("cross")
+        .doc("returns the vector (cross) product of the vector")
         .method(Vec3_Cross)
         .flags(METH_O),
       MethodDef()
         .name("distance2")
+        .doc("returns the squared distance between two vectors")
         .method(Vec3_Distance2)
         .flags(METH_O),
       MethodDef()
         .name("distance")
+        .doc("returns the distance between two vectors")
         .method(Vec3_Distance)
         .flags(METH_O)))
     .number_methods(&Vec3NumberMethods)
@@ -662,7 +673,7 @@ static PyNumberMethods Vec4NumberMethods = {
 static TypeObject Vec4_Type = 
   TypeObject()
     .name("vec4")
-    .doc("4D vector")
+    .doc("4D vector, with xyzw/rgba/stpq components (which alias eachother)")
     .size(sizeof(vec4))
     .init((initproc)Vec4_Init)
     .members(Vec4Members(
@@ -681,14 +692,17 @@ static TypeObject Vec4_Type =
     .methods(Vec4Methods(
       MethodDef()
         .name("xyz")
+        .doc("returns a vec3 (without the 'w' comopnent)")
         .method(Vec4_XYZ)
         .flags(METH_NOARGS),
       MethodDef()
         .name("length")
+         .doc("returns the magnitude (length) of the vector")
         .method(Vec4_Length)
         .flags(METH_NOARGS),
       MethodDef()
         .name("dot")
+        .doc("returns the scalar (dot) product of the vector")
         .method(Vec4_Dot)
         .flags(METH_O)))
     .number_methods(&Vec4NumberMethods)
@@ -920,17 +934,18 @@ static PySequenceMethods Mat4SequenceMethods = {
 static TypeObject Mat4_Type = 
   TypeObject()
     .name("mat4")
-    .doc("4x4 Matrix")
+    .doc("4x4 Matrix indexed like a list (in the range <0; 15>)")
     .size(sizeof(mat4))
     .init((initproc)Mat4_Init)
     .methods(Mat4Methods(
       MethodDef()
         .name("transpose")
+        .doc("returns the transposed matrix (rows and columns swapped)")
         .method(Mat4_Transpose)
         .flags(METH_NOARGS),
       MethodDef()
         .name("inverse")
-        .doc("the matrix must be non-singular or undefined behaviour will occur")
+        .doc("returns the inverse of the matrix, it must be non-singular or undefined behaviour will occur")
         .method(Mat4_Inverse)
         .flags(METH_NOARGS)))
     .number_methods(&Mat4NumberMethods)
@@ -1011,14 +1026,17 @@ static ModuleDef XformModule =
     .methods(XformMethods(
       MethodDef()
         .name("translate")
+        .doc("returns a 4x4 translation matrix (accepts positional and keyword arguments)")
         .method(Xform_Translate)    
         .flags(METH_VARARGS | METH_KEYWORDS),
       MethodDef()
         .name("scale")
+        .doc("returns a 4x4 scale matrix (accepts either a single or 3 positional/keyword arguments)")
         .method(Xform_Scale)
         .flags(METH_VARARGS | METH_KEYWORDS),
       MethodDef()
         .name("rotate")
+        .doc("returns a 4x4 rotation matrix ordered like so: X->Y->Z (accepts only keyword arguments)")
         .method(Xform_Rotate)
         .flags(METH_VARARGS | METH_KEYWORDS)))
   ;

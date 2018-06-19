@@ -117,6 +117,9 @@ public:
 
   void bindFontAltas(int unit = TexImageUnit) const;
 
+  bool monospace() const;
+  float monospaceWidth() const;
+
 private:
   struct GlyphRenderData {
     unsigned idx;

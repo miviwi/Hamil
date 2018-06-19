@@ -17,6 +17,8 @@ void finalize();
 void exec(const char *input);
 Object eval(const char *input);
 
+void run_script(const char *input);
+
 Object load(const void *code, size_t sz);
 Object load(const std::vector<char>& code);
 Object deserialize(const void *code, size_t sz);

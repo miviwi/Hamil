@@ -45,14 +45,19 @@ void finalize()
   Py_Finalize();
 }
 
+Object p_compile_string(const char *src, int start)
+{
+  Object co = Py_CompileString(src, "$", Py_single_input);
+  if(!co) throw Exception::fetch();
+
+  return co;
+}
+
 void exec(const char *input)
 {
   if(*input == '\0') return;
 
-  Object co = Py_CompileString(input, "$", Py_file_input);
-  if(!co) throw Exception::fetch();
-
-  PyEval_EvalCode(*co, *p_globals, nullptr);
+  PyEval_EvalCode(*p_compile_string(input, Py_single_input), *p_globals, nullptr);
   if(Exception::occured()) throw Exception::fetch();
 }
 
@@ -60,13 +65,18 @@ Object eval(const char *input)
 {
   if(*input == '\0') return None();
 
-  Object co = Py_CompileString(input, "$", Py_eval_input);
-  if(!co) throw Exception::fetch();
-
-  Object result = PyEval_EvalCode(*co, *p_globals, nullptr);
+  Object result = PyEval_EvalCode(*p_compile_string(input, Py_eval_input), *p_globals, nullptr);
   if(Exception::occured()) throw Exception::fetch();
 
   return result;
+}
+
+void run_script(const char *input)
+{
+  if(*input == '\0') return;
+
+  PyEval_EvalCode(*p_compile_string(input, Py_file_input), *p_globals, nullptr);
+  if(Exception::occured()) throw Exception::fetch();
 }
 
 Object load(const void *code, size_t sz)

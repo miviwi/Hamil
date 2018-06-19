@@ -545,6 +545,17 @@ void Font::bindFontAltas(int unit) const
   gx::tex_unit(unit, m_atlas, m_sampler);
 }
 
+bool Font::monospace() const
+{
+  return FT_IS_FIXED_WIDTH(m->get());
+}
+
+float Font::monospaceWidth() const
+{
+  assert(monospace() && "attempted to get width of variable-wdth font!");
+  return charAdvance('M'); // 'M' is just a random character
+}
+
 void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
 {
   int total_area = 0;
