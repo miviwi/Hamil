@@ -197,7 +197,7 @@ static PyNumberMethods Vec2NumberMethods = {
 static TypeObject Vec2_Type =
   TypeObject()
     .name("math.vec2")
-    .doc("2D vector with xy/st components (which alias eachother)")
+    .doc("2D vector with xy/st components (which alias each other)")
     .size(sizeof(vec2))
     .init((initproc)Vec2_Init)
     .members(Vec2Members(
@@ -444,7 +444,7 @@ static PyNumberMethods Vec3NumberMethods = {
 static TypeObject Vec3_Type = 
   TypeObject()
     .name("vec3")
-    .doc("3D vector, with xyz/rgb/stp components (which alias eachother)")
+    .doc("3D vector, with xyz/rgb/stp components (which alias each other)")
     .size(sizeof(vec3))
     .init((initproc)Vec3_Init)
     .members(Vec3Members(
@@ -673,7 +673,7 @@ static PyNumberMethods Vec4NumberMethods = {
 static TypeObject Vec4_Type = 
   TypeObject()
     .name("vec4")
-    .doc("4D vector, with xyzw/rgba/stpq components (which alias eachother)")
+    .doc("4D vector, with xyzw/rgba/stpq components (which alias each other)")
     .size(sizeof(vec4))
     .init((initproc)Vec4_Init)
     .members(Vec4Members(
