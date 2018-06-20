@@ -70,6 +70,11 @@ Long::Long(PyObject *object) :
 {
 }
 
+Long::Long(Object&& object) :
+  Long(object.move())
+{
+}
+
 Long::Long(long l) :
   Number(PyLong_FromLong(l))
 {
@@ -150,6 +155,11 @@ Float::Float(PyObject *object) :
 {
 }
 
+Float::Float(Object&& object) :
+  Float(object.move())
+{
+}
+
 Float::Float(double f) :
   Number(PyFloat_FromDouble(f))
 {
@@ -200,6 +210,11 @@ Boolean::Boolean(PyObject *object) :
 {
 }
 
+Boolean::Boolean(Object&& object) :
+  Boolean(object.move())
+{
+}
+
 Boolean::Boolean(bool b) :
   Object(PyBool_FromLong((long)b))
 {
@@ -217,6 +232,11 @@ bool Boolean::py_type_check(PyObject *self)
 
 Unicode::Unicode(PyObject *object) :
   Object(object)
+{
+}
+
+Unicode::Unicode(Object&& object) :
+  Unicode(object.move())
 {
 }
 
@@ -263,6 +283,11 @@ bool Unicode::py_type_check(PyObject *self)
 
 Capsule::Capsule(PyObject *capsule) :
   Object(capsule)
+{
+}
+
+Capsule::Capsule(Object&& object) :
+  Capsule(object.move())
 {
 }
 
@@ -313,6 +338,11 @@ bool Capsule::py_type_check(PyObject *self)
 
 Bytes::Bytes(PyObject *object) :
   Object(object)
+{
+}
+
+Bytes::Bytes(Object&& object) :
+  Bytes(object.move())
 {
 }
 

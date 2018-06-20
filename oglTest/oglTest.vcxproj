@@ -74,7 +74,7 @@
     <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(LibraryPath)</LibraryPath>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
-    <SourcePath>$(ProjectDir)Generated;I:\Python\src;$(SourcePath)</SourcePath>
+    <SourcePath>$(ProjectDir)Generated;C:\Python\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

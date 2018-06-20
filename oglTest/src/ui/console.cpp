@@ -345,7 +345,7 @@ size_t ConsoleBufferFrame::columns() const
   const auto& font = *m_ui->style().monospace;
   auto width = ConsoleFrame::ConsoleSize.x - (BufferPixelMargin+ScrollBarWidth);
 
-  return (size_t)floor(width / font.monospaceWidth());
+  return (size_t)floor(width / font.monospaceWidth())-1;
 }
 
 }

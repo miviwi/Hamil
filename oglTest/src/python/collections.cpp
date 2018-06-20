@@ -19,6 +19,11 @@ Collection::Collection(PyObject *collection) :
 {
 }
 
+Collection::Collection(Object&& collection) :
+  Collection(collection.move())
+{
+}
+
 Object Collection::get(const Object& key) const
 {
   return PyObject_GetItem(py(), *key);
@@ -29,12 +34,22 @@ void Collection::set(const Object& key, const Object& item)
   PyObject_SetItem(py(), *key, *item);
 }
 
-void Collection::foreach(IteratorCallback fn)
+ssize_t Collection::size() const
+{
+  return PySequence_Size(py());
+}
+
+void Collection::foreach(IteratorCallback fn) 
 {
   Object iter = PyObject_GetIter(py());
   if(!iter) throw Exception::fetch();
 
   while(Object item = PyIter_Next(py())) fn(item);
+}
+
+int Collection::py_type_check(PyObject *self)
+{
+  return PySequence_Check(self) || PyMapping_Check(self);
 }
 
 Dict::Dict(PyObject *dict) :
@@ -81,6 +96,17 @@ void Dict::set(const char *key, const Object& item)
 ssize_t Dict::size() const
 {
   return PyDict_Size(py());
+}
+
+void Dict::foreachkv(DictIteratorCallback fn)
+{
+  PyObject *key = nullptr, *value = nullptr;
+  Py_ssize_t pos = 0;
+
+  while(PyDict_Next(py(), &pos, &key, &value)) {
+    // 'key' and 'value' are borrowed references
+    fn(Object::ref(key), Object::ref(value));
+  }
 }
 
 bool Dict::py_type_check(PyObject *self)

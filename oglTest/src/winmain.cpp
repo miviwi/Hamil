@@ -562,11 +562,21 @@ void main() {
 
     vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
+    /*
     mat4 eye_mtx = xform::identity()
       *xform::translate(pos*2.0f)
       *xform::roty(yaw)
       *xform::rotx(-pitch)
       *xform::translate(-pos)
+      ;
+      */
+
+    mat4 eye_mtx = xform::Transform()
+      .translate(-pos)
+      .rotx(-pitch)
+      .roty(yaw)
+      .translate(pos * 2)
+      .matrix()
       ;
     eye = eye_mtx*eye;
 

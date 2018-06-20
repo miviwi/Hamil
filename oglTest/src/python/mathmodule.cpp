@@ -4,6 +4,7 @@
 #include <python/collections.h>
 
 #include <math/geometry.h>
+#include <math/transform.h>
 
 #include <string>
 #include <cstring>
@@ -1019,6 +1020,168 @@ static PyObject *Xform_Rotate(PyObject *self, PyObject *args, PyObject *kwds)
   return Mat4_FromMat4(xform::rotz(z) * xform::roty(y) * xform::rotx(x));
 }
 
+struct TransformToken;
+static MemberDefList<TransformToken> TransformMembers;
+static MethodDefList<TransformToken> TransformMethods;
+
+struct Transform {
+  PyObject_HEAD;
+
+  xform::Transform m;
+};
+
+static int Transform_Init(Transform *self, PyObject *args, PyObject *kwds)
+{
+  if(PyTuple_Size(args) || kwds) {
+    PyErr_SetString(PyExc_ValueError, "Transform() takes no arguemnts");
+    return -1;
+  }
+
+  self->m = xform::Transform();
+  return 0;
+}
+
+static PyObject *Transform_Repr(Transform *self)
+{
+  return Mat4_Repr((mat4 *)self);
+}
+
+static PyObject *Transform_Str(Transform *self)
+{
+  return Mat4_Str((mat4 *)self);
+}
+
+static PyObject *Transform_Translate(Transform *self, PyObject *args, PyObject *kwds)
+{
+  auto num_args = PyTuple_Size(args);
+  static char *kwds_names[] = { "x", "y", "z", nullptr };
+
+  if(num_args == 1 && !kwds) {
+    PyObject *v = PyTuple_GET_ITEM(args, 0);
+    if(Vec3_Check(v)) {
+      self->m.translate(((vec3 *)v)->m);
+    } else if(Vec4_Check(v)) {
+      self->m.translate(((vec4 *)v)->m);
+    } else {
+      ArgTypeError("Transform.translate() takes either a vec3/4 or numbers");
+      return nullptr;
+    }
+  } else {
+    float x = 0, y = 0, z = 0;
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "fff:Transform_translate", kwds_names, &x, &y, &z))
+      return nullptr;
+
+    self->m.translate(x, y, z);
+  }
+
+  Py_INCREF(self);
+  return (PyObject *)self;
+}
+
+static PyObject *Transform_Scale(Transform *self, PyObject *args, PyObject *kwds)
+{
+  auto num_args = PyTuple_Size(args);
+  static char *kwds_names[] = { "x", "y", "z", nullptr };
+
+  if(num_args == 1 && !kwds) {
+    PyObject *v = PyTuple_GET_ITEM(args, 0);
+    if(Vec3_Check(v)) {
+      self->m.scale(((vec3 *)v)->m);
+    } else if(PyNumber_Check(v)) {
+      Float f = PyNumber_Float(v);
+      self->m.scale(f.f());
+    } else {
+      ArgTypeError("Transform.scale() takes either a vec3 or number(s)");
+      return nullptr;
+    }
+  } else {
+    float x = 0, y = 0, z = 0;
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "fff:Transform_scale", kwds_names, &x, &y, &z))
+      return nullptr;
+
+    self->m.scale(x, y, z);
+  }
+
+  Py_INCREF(self);
+  return (PyObject *)self;
+}
+
+static PyObject *Transform_Rotate(Transform *self, PyObject *args, PyObject *kwds)
+{
+  static char *kwds_names[] = { "x", "y", "z", nullptr };
+
+  if(PyTuple_Size(args) && !kwds) {
+    ArgTypeError("Transform.rotate() takes only keyword arguments");
+    return nullptr;
+  }
+
+  float x = 0, y = 0, z = 0;
+  if(!PyArg_ParseTupleAndKeywords(args, kwds, "|$fff:Transform_rotate", kwds_names, &x, &y, &z))
+    return nullptr;
+
+  self->m.rotx(x); self->m.roty(y); self->m.rotz(z);
+
+  Py_INCREF(self);
+  return (PyObject *)self;
+}
+
+#define TRANSFORM_TRANSFORM_ARG_ERR "Transform.transform() takes a single mat4" 
+
+static PyObject *Transform_Transform(Transform *self, PyObject *arg)
+{
+  if(!Mat4_Type.check(arg)) {
+    ArgTypeError(TRANSFORM_TRANSFORM_ARG_ERR);
+    return nullptr;
+  }
+  
+  auto m = (mat4 *)arg;
+  self->m.transform(m->m);
+
+  Py_INCREF(self);
+  return (PyObject *)self;
+}
+
+static PyObject *Transform_Matrix(Transform *self, PyObject *Py_UNUSED(arg))
+{
+  return Mat4_FromMat4(self->m.matrix());
+}
+
+static TypeObject Transform_Type = 
+  TypeObject()
+    .name("Transform")
+    .doc("transformation matrix builder")
+    .size(sizeof(Transform))
+    .init((initproc)Transform_Init)
+    .methods(TransformMethods(
+      MethodDef()
+        .name("translate")
+        .doc("applies a translation (takes either a vec3/4 or numbers)")
+        .method(Transform_Translate)
+        .flags(METH_VARARGS | METH_KEYWORDS),
+      MethodDef()
+        .name("scale")
+        .doc("applies a scale (takes either a vec3 or number(s))")
+        .method(Transform_Scale)
+        .flags(METH_VARARGS | METH_KEYWORDS),
+      MethodDef()
+        .name("rotate")
+        .doc("applies a rotation in the order X->Y->Z (takes numbers as keyword arguments)")
+        .method(Transform_Rotate)
+        .flags(METH_VARARGS | METH_KEYWORDS),
+      MethodDef()
+        .name("transform")
+        .doc("applies a transformation (takes a mat4)")
+        .method(Transform_Transform)
+        .flags(METH_O),
+      MethodDef()
+        .name("matrix")
+        .doc("returns a matrix which will apply the transformations")
+        .method(Transform_Matrix)
+        .flags(METH_NOARGS)))
+    .repr((reprfunc)Transform_Repr)
+    .str((reprfunc)Transform_Str)
+  ;
+
 static ModuleDef XformModule =
   ModuleDef()
     .name("Math.xform")
@@ -1128,7 +1291,10 @@ PyObject *PyInit_math()
 {
   auto self = Module::create(MathModule.py())
     // Submodules
-    .addObject("xform", Module::create(XformModule.py()))
+    .addObject("xform",
+      Module::create(XformModule.py())
+        .addType("Transform", Transform_Type).move()
+    )
     
     // Vectors
     .addType("vec2", Vec2_Type)

@@ -47,7 +47,7 @@ void finalize()
 
 Object p_compile_string(const char *src, int start)
 {
-  Object co = Py_CompileString(src, "$", Py_single_input);
+  Object co = Py_CompileString(src, "$", start);
   if(!co) throw Exception::fetch();
 
   return co;

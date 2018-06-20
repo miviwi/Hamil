@@ -54,7 +54,7 @@ public:
     return py() ? T::py_type_check(py()) : false;
   }
 
-  template <typename T> T as() const& { return typeCheck<T>() ? py() : nullptr; }
+  template <typename T> T as() const& { return typeCheck<T>() ? ref(py()) : nullptr; }
   template <typename T> T as() &&     { return typeCheck<T>() ? move() : nullptr; }
 
   std::string str() const;

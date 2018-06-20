@@ -30,16 +30,19 @@ class Tuple;
 
 class Collection : public Object {
 public:
-  using IteratorCallback = std::function<void(Object&)>;
+  using IteratorCallback = std::function<void(const Object&)>;
 
   Collection(PyObject *collection);
+  Collection(Object&& collection);
 
   Object get(const Object& key) const;
   void set(const Object& key, const Object& item);
 
-  virtual ssize_t size() const = 0;
+  virtual ssize_t size() const;
 
   void foreach(IteratorCallback fn);
+
+  static int py_type_check(PyObject *self);
 };
 
 class List : public Collection {
@@ -63,6 +66,8 @@ public:
 
 class Dict : public Collection {
 public:
+  using DictIteratorCallback = std::function<void(const Object&, const Object&)>;
+
   Dict(PyObject *dict);
   Dict(Object&& dict);
   Dict();
@@ -74,6 +79,8 @@ public:
   void set(const char *key, const Object& item);
 
   virtual ssize_t size() const;
+
+  void foreachkv(DictIteratorCallback fn);
 
   static bool py_type_check(PyObject *self);
 };

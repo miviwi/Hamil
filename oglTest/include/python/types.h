@@ -43,6 +43,7 @@ public:
 class Long : public Number {
 public:
   Long(PyObject *object);
+  Long(Object&& object);
   Long(long l);
 
   static Long from_ul(unsigned long ul);
@@ -66,6 +67,7 @@ public:
 class Float : public Number {
 public:
   Float(PyObject *object);
+  Float(Object&& object);
   Float(double f);
 
   virtual long l() const;
@@ -82,6 +84,7 @@ public:
 class Boolean : public Object {
 public:
   Boolean(PyObject *object);
+  Boolean(Object&& object);
   Boolean(bool b);
 
   bool val() const;
@@ -92,6 +95,7 @@ public:
 class Unicode : public Object {
 public:
   Unicode(PyObject *object);
+  Unicode(Object&& object);
   Unicode(const char *str);
   Unicode(const char *str, ssize_t sz);
 
@@ -106,6 +110,7 @@ public:
 class Bytes : public Object {
 public:
   Bytes(PyObject *object);
+  Bytes(Object&& object);
   Bytes(const char *str);
   Bytes(const char *str, ssize_t sz);
 
@@ -121,6 +126,7 @@ public:
 class Capsule : public Object {
 public:
   Capsule(PyObject *capsule);
+  Capsule(Object&& object);
   Capsule(void *ptr, const char *name = nullptr);
 
   void ptr(void *p);
