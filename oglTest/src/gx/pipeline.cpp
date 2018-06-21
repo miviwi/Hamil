@@ -291,7 +291,7 @@ void Pipeline::enable(ConfigType config) const
   }
 }
 
-bool Pipeline::compare(ConfigType config) const
+bool Pipeline::compare(const ConfigType config) const
 {
   auto do_compare = [](const auto& a, const auto& b) -> bool
   {

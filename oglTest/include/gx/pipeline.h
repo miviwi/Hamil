@@ -112,7 +112,7 @@ private:
   void disable(ConfigType config) const;
   void enable(ConfigType config) const;
 
-  bool compare(ConfigType config) const;
+  bool compare(const ConfigType config) const;
 
   bool m_enabled[NumConfigTypes];
 };

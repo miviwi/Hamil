@@ -35,6 +35,9 @@
 #include <python/object.h>
 #include <python/exception.h>
 
+#include <yaml/document.h>
+#include <yaml/node.h>
+
 #include <game/game.h>
 
 #include <vector>
@@ -546,6 +549,11 @@ void main() {
       console.print(e.value().str());
     }
   });
+
+  win32::File conf("conf", win32::File::Read);
+
+  auto doc = yaml::Document::from_string(conf.map(win32::File::ProtectRead).get<const char>());
+  console.print(win32::StdStream::gets());
 
   btn_c->onClick([&](auto target) {
     console.print("Sorry, no VM :(");
