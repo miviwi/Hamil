@@ -102,7 +102,7 @@ static const char *p_event_type_names[] = {
 bool Parser::nextEvent()
 {
   return yaml_parser_parse(&m_parser, &m_event)
-    && printf("event %s\n", p_event_type_names[m_event.type]);
+    || 0 && printf("event %s\n", p_event_type_names[m_event.type]);
 }
 
 Node::Ptr Parser::node()
@@ -182,8 +182,8 @@ Document Document::from_string(const std::string& doc)
 
   puts(document.m_root->repr().c_str());
 
-  auto item = document.m_root->as<Sequence>()->get(1)->as<Scalar>()->b();
-  puts(item ? "TRUE" : "FALSE");
+  auto e = document.m_root->as<Mapping>()->get(std::make_shared<Scalar>("e"));
+  puts(e->repr().c_str());
 
   return document;
 

@@ -34,6 +34,35 @@ Scalar::Scalar(byte *data, size_t sz) :
   memcpy(m_data.data(), data, sz);
 }
 
+Node::Ptr Scalar::from_str(const std::string& str)
+{
+  return std::make_shared<Scalar>(str.c_str(), str.length());
+}
+
+Node::Ptr Scalar::from_i(long long i)
+{
+  auto str = std::to_string(i);
+  return std::make_shared<Scalar>(str.c_str(), str.length());
+}
+
+Node::Ptr Scalar::from_ui(unsigned long long ui)
+{
+  auto str = std::to_string(ui);
+  return std::make_shared<Scalar>(str.c_str(), str.length());
+}
+
+Node::Ptr Scalar::from_f(double f)
+{
+  auto str = std::to_string(f);
+  return std::make_shared<Scalar>(str.c_str(), str.length());
+}
+
+Node::Ptr Scalar::from_b(bool b)
+{
+  std::string str = b ? "yes" : "no";
+  return std::make_shared<Scalar>(str.c_str(), str.length());
+}
+
 std::string Scalar::repr() const
 {
   return str();

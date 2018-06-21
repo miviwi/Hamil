@@ -48,6 +48,12 @@ public:
   
   Scalar(byte *data, size_t sz);
 
+  static Node::Ptr from_str(const std::string& str);
+  static Node::Ptr from_i(long long i);
+  static Node::Ptr from_ui(unsigned long long ui);
+  static Node::Ptr from_f(double f);
+  static Node::Ptr from_b(bool b);
+
   virtual std::string repr() const;
 
   const char *str() const;
