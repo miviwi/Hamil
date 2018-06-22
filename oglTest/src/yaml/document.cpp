@@ -1,15 +1,17 @@
 #include <yaml/document.h>
-
-#include <cassert>
+#include <util/format.h>
 
 #include <yaml.h>
+
+#include <cassert>
+#include <cstdlib>
+#include <unordered_map>
+#include <sstream>
 
 namespace yaml {
 
 class Parser {
 public:
-  struct Error { };
-
   Parser();
   ~Parser();
 
@@ -29,13 +31,17 @@ private:
 
   Node::Ptr alias();
 
+  Document::ParseError parseError();
+
   yaml_parser_t m_parser;
   yaml_event_t m_event;
+
+  std::unordered_map<string, Node::Ptr> m_anchors;
 };
 
 Parser::Parser()
 {
-  if(!yaml_parser_initialize(&m_parser)) throw Error();
+  if(!yaml_parser_initialize(&m_parser)) throw Document::Error(0, 0, "failed to initialie libyaml!");
 }
 
 Parser::~Parser()
@@ -53,7 +59,7 @@ Parser& Parser::input(const char *input, size_t sz)
 Node::Ptr Parser::parse()
 {
   do {
-    if(!nextEvent()) throw Error();
+    if(!nextEvent()) throw parseError();
 
     switch(m_event.type) {
     case YAML_NO_EVENT: break;
@@ -67,6 +73,8 @@ Node::Ptr Parser::parse()
     }
 
   } while(m_event.type != YAML_STREAM_END_EVENT);
+
+  return Node::Ptr();
 }
 
 static const char *p_event_type_names[] = {
@@ -101,8 +109,23 @@ static const char *p_event_type_names[] = {
 
 bool Parser::nextEvent()
 {
-  return yaml_parser_parse(&m_parser, &m_event)
-    || 0 && printf("event %s\n", p_event_type_names[m_event.type]);
+  auto result = yaml_parser_parse(&m_parser, &m_event);
+
+#if 0
+  if(m_event.type == YAML_SCALAR_EVENT)
+    printf("type %s anchor %s tag %s value %s\n",
+      p_event_type_names[m_event.type],
+      m_event.data.scalar.anchor,
+      m_event.data.scalar.tag,
+      m_event.data.scalar.value);
+  else if(m_event.type == YAML_MAPPING_START_EVENT || m_event.type == YAML_SEQUENCE_START_EVENT)
+    printf("type %s anchor %s tag %s\n",
+      p_event_type_names[m_event.type],
+      m_event.data.mapping_start.anchor,
+      m_event.data.mapping_start.tag);
+#endif
+
+  return result;
 }
 
 Node::Ptr Parser::node()
@@ -127,34 +150,53 @@ Node::Ptr Parser::node()
 
 Node::Ptr Parser::scalar()
 {
-  return std::make_shared<Scalar>(m_event.data.scalar.value, m_event.data.scalar.length);
+  auto data = m_event.data.scalar;
+
+  auto scalar = new Scalar(data.value, data.length, data.tag ? (const char *)data.tag : Node::Tag());
+  auto ptr = Node::Ptr(scalar);
+
+  if(data.anchor) m_anchors.insert({ data.anchor, ptr });
+
+  return ptr;
 }
 
 Node::Ptr Parser::sequence()
 {
-  auto seq = new Sequence();
+  auto data = m_event.data.sequence_start;
+
+  auto seq = data.tag ? new Sequence((const char *)data.tag) : new Sequence();
+  auto ptr = Node::Ptr(seq);
+
+  if(data.anchor) m_anchors.insert({ data.anchor, ptr });
+
   do {
-    if(!nextEvent()) throw Error();
+    if(!nextEvent()) throw parseError();
 
     switch(m_event.type) {
-    case YAML_SEQUENCE_END_EVENT: return Node::Ptr(seq);
+    case YAML_SEQUENCE_END_EVENT: return ptr;
     }
 
     auto item = node();
     seq->append(item);
   } while(m_event.type != YAML_STREAM_END_EVENT);
 
-  return Node::Ptr(); // shouldn't be reached
+  return Node::Ptr(); // should never be reached
 }
 
 Node::Ptr Parser::mapping()
 {
-  auto map = new Mapping();
+  auto data = m_event.data.mapping_start;
+
+  auto map = data.tag ? new Mapping((const char *)data.tag) : new Mapping();
+  auto ptr = Node::Ptr(map);
+
+  if(data.anchor) m_anchors.insert({ data.anchor, ptr });
+
   do {
-    if(!nextEvent()) throw Error();
+    if(!nextEvent()) throw parseError();
 
     switch(m_event.type) {
-    case YAML_MAPPING_END_EVENT: return Node::Ptr(map);
+    case YAML_MAPPING_END_EVENT: return ptr;
     }
 
     Node::Ptr key, value;
@@ -166,27 +208,85 @@ Node::Ptr Parser::mapping()
     map->append(key, value);
   } while(m_event.type != YAML_STREAM_END_EVENT);
 
-  return Node::Ptr(); // shouldn't be reached
+  return Node::Ptr(); // shouldn never be reached
 }
 
 Node::Ptr Parser::alias()
 {
-  printf("got alias\n");
-  return Node::Ptr();
+  auto data = m_event.data.alias;
+
+  auto it = m_anchors.find(data.anchor);
+  if(it == m_anchors.end()) {
+    auto line = m_parser.mark.line, column = m_parser.mark.column;
+    auto reason = util::fmt("anchor '%s' has not been defined", data.anchor);
+
+    throw Document::AliasError(line, column, reason);
+  }
+
+  return it->second;
+}
+
+Document::ParseError Parser::parseError()
+{
+  auto line = m_parser.problem_mark.line, column = m_parser.problem_mark.column;
+
+  return Document::ParseError(line, column, m_parser.problem);
+}
+
+std::string Document::Error::what() const
+{
+  return util::fmt("%lld, %lld: %s", line, column, reason.c_str());
+}
+
+Document::Document()
+{
+}
+
+Document Document::from_string(const char *doc, size_t len)
+{
+  Document document;
+  document.m_root = Parser().input(doc, len ? len : strlen(doc)).parse();
+
+  puts(document.m_root->repr().c_str());
+  printf("f.1: %d\ne.2: %d\n", document("f.1")->as<Scalar>()->dataType(),
+    document("e.2")->as<Scalar>()->dataType());
+
+  auto n = document("f.3")->as<Scalar>()->size();
+
+  return document;
+
 }
 
 Document Document::from_string(const std::string& doc)
 {
-  Document document;
-  document.m_root = Parser().input(doc.c_str(), doc.length()).parse();
+  return from_string(doc.c_str(), doc.length());
+}
 
-  puts(document.m_root->repr().c_str());
+Node::Ptr Document::get() const
+{
+  return m_root;
+}
 
-  auto e = document.m_root->as<Mapping>()->get(std::make_shared<Scalar>("e"));
-  puts(e->repr().c_str());
+Node::Ptr Document::get(const std::string& what) const
+{
+  Node::Ptr node = m_root;
 
-  return document;
+  std::istringstream stream(what);
+  std::string term;
+  while(std::getline(stream, term, '.')) {
+    char *end = nullptr;
+    auto idx = strtoull(term.c_str(), &end, 0);
 
+    if(end == term.c_str()+term.length()) { // 'term' was an index
+      node = node->get(idx);
+    } else {
+      node = node->get(term);
+    }
+
+    if(!node) return Node::Ptr();
+  }
+
+  return node;
 }
 
 }
