@@ -6,6 +6,7 @@
 
 #include <string>
 #include <memory>
+#include <utility>
 
 namespace yaml {
 
@@ -13,8 +14,8 @@ class Document {
 public:
   struct Error {
   public:
-    Error(size_t line_, size_t column_, const std::string& reason_) :
-      line(line_+1), column(column_+1), reason(reason_) /* yaml_mark_t values are 0-based */
+    Error(size_t line_, size_t column_, std::string&& reason_) :
+      line(line_+1), column(column_+1), reason(std::move(reason_)) /* yaml_mark_t values are 0-based */
     { }
 
     std::string what() const;

@@ -99,6 +99,9 @@ class MethodDefList : public DefList<PyMethodDef, T> { };
 template <typename T>
 class MemberDefList : public DefList<PyMemberDef, T> { };
 
+template <typename T>
+class GetSetDefList : public DefList<PyGetSetDef, T> { };
+
 class MemberDef {
 public:
   MemberDef();
@@ -115,6 +118,22 @@ private:
   PyMemberDef m;
 };
 
+class GetSetDef {
+public:
+  GetSetDef();
+
+  GetSetDef& name(const char *name);
+  GetSetDef& doc(const char *doc);
+  GetSetDef& get(getter fn);
+  GetSetDef& set(setter fn);
+  GetSetDef& closure(void *closure);
+
+  const PyGetSetDef& py() const;
+
+private:
+  PyGetSetDef m;
+};
+
 class TypeObject {
 public:
   TypeObject();
@@ -124,7 +143,7 @@ public:
   TypeObject& size(ssize_t sz);
   TypeObject& itemsize(ssize_t item_sz);
   TypeObject& flags(unsigned long flags);
-  TypeObject& base(PyTypeObject *base);
+  TypeObject& base(const TypeObject& base);
 
   TypeObject& new_(newfunc fn);
   TypeObject& init(initproc fn);
@@ -135,6 +154,7 @@ public:
 
   TypeObject& methods(PyMethodDef *methods);
   TypeObject& members(PyMemberDef *members);
+  TypeObject& getset(PyGetSetDef *getset);
 
   TypeObject& number_methods(PyNumberMethods *number);
   TypeObject& sequence_methods(PySequenceMethods *sequence);

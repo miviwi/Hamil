@@ -31,7 +31,7 @@ private:
 
   Node::Ptr alias();
 
-  Document::ParseError parseError();
+  Document::ParseError parseError() const;
 
   yaml_parser_t m_parser;
   yaml_event_t m_event;
@@ -218,15 +218,14 @@ Node::Ptr Parser::alias()
   auto it = m_anchors.find(data.anchor);
   if(it == m_anchors.end()) {
     auto line = m_parser.mark.line, column = m_parser.mark.column;
-    auto reason = util::fmt("anchor '%s' has not been defined", data.anchor);
 
-    throw Document::AliasError(line, column, reason);
+    throw Document::AliasError(line, column, util::fmt("anchor '%s' has not been defined", data.anchor));
   }
 
   return it->second;
 }
 
-Document::ParseError Parser::parseError()
+Document::ParseError Parser::parseError() const
 {
   auto line = m_parser.problem_mark.line, column = m_parser.problem_mark.column;
 
@@ -248,10 +247,11 @@ Document Document::from_string(const char *doc, size_t len)
   document.m_root = Parser().input(doc, len ? len : strlen(doc)).parse();
 
   puts(document.m_root->repr().c_str());
-  printf("f.1: %d\ne.2: %d\n", document("f.1")->as<Scalar>()->dataType(),
-    document("e.2")->as<Scalar>()->dataType());
 
-  auto n = document("f.3")->as<Scalar>()->size();
+  auto foliage_lod = document("graphics.lod.foliage")->as<Scalar>();
+  auto fire = document("input.keyboard.fire")->as<Scalar>();
+
+  printf("foliage_lod: %lf fire: %s\n", foliage_lod->f(), fire->str());
 
   return document;
 
@@ -269,7 +269,7 @@ Node::Ptr Document::get() const
 
 Node::Ptr Document::get(const std::string& what) const
 {
-  Node::Ptr node = m_root;
+  auto node = m_root;
 
   std::istringstream stream(what);
   std::string term;

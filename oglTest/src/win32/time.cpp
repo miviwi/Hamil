@@ -114,6 +114,11 @@ Time Timer::delta()
   return Timers::ticks() - m_started;
 }
 
+Time DeltaTimer::elapsedTicks()
+{
+  return delta();
+}
+
 Time DeltaTimer::elapsedSeconds()
 {
   return Timers::ticks_to_s(delta());

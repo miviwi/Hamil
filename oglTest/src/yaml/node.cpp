@@ -94,11 +94,9 @@ std::string Scalar::repr() const
 
 // Must be kept in sync with Scalar::DataType!
 // 
-// The regex patterns have been taken from:
-//   - yaml.org/type/null.html
+// The Scalar::Int,Scalar::Float regex patterns come from:
 //   - yaml.org/type/int.html
 //   - yaml.org/type/float.html
-//   - yaml.org/type/bool.html
 static const std::regex p_datatype_regexes[] = {
   // Scalar::Null
   std::regex("~|null",                            std::regex::icase|std::regex::optimize), 
@@ -144,6 +142,8 @@ Scalar::DataType Scalar::dataType() const
 
     return it->second;
   }
+
+
 
   std::string s = str();
   for(int i = 0; i < NumDataTypes; i++) {
@@ -228,7 +228,7 @@ std::string Sequence::repr() const
   return str += "]";
 }
 
-void Sequence::append(Node::Ptr node)
+void Sequence::append(const Node::Ptr &node)
 {
   m.push_back(node);
 }

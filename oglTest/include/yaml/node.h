@@ -115,7 +115,7 @@ public:
   virtual std::string repr() const;
 
 
-  void append(Node::Ptr node);
+  void append(const Node::Ptr &node);
 
   virtual Node::Ptr get(const std::string& key) const { return Node::Ptr(); }
   virtual Node::Ptr get(size_t idx) const;

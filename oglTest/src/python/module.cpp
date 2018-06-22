@@ -229,9 +229,9 @@ TypeObject& TypeObject::flags(unsigned long flags)
   return *this;
 }
 
-TypeObject& TypeObject::base(PyTypeObject *base)
+TypeObject& TypeObject::base(const TypeObject& base)
 {
-  m.tp_base = base;
+  m.tp_base = (PyTypeObject *)&base.m;
   return *this;
 }
 
@@ -274,6 +274,12 @@ TypeObject& TypeObject::methods(PyMethodDef *methods)
 TypeObject& TypeObject::members(PyMemberDef *members)
 {
   m.tp_members = members;
+  return *this;
+}
+
+TypeObject& TypeObject::getset(PyGetSetDef *getset)
+{
+  m.tp_getset = getset;
   return *this;
 }
 
@@ -326,5 +332,45 @@ void TypeObject::generic_free(void *object)
   if(PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) Py_DECREF(type);
 }
 #endif
+
+GetSetDef::GetSetDef()
+{
+  memset(&m, 0, sizeof(PyGetSetDef));
+}
+
+GetSetDef& GetSetDef::name(const char *name)
+{
+  m.name = name;
+  return *this;
+}
+
+GetSetDef& GetSetDef::doc(const char *doc)
+{
+  m.doc = doc;
+  return *this;
+}
+
+GetSetDef& GetSetDef::get(getter fn)
+{
+  m.get = fn;
+  return *this;
+}
+
+GetSetDef& GetSetDef::set(setter fn)
+{
+  m.set = fn;
+  return *this;
+}
+
+GetSetDef& GetSetDef::closure(void *closure)
+{
+  m.closure = closure;
+  return *this;
+}
+
+const PyGetSetDef& GetSetDef::py() const
+{
+  return m;
+}
 
 }

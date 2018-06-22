@@ -55,6 +55,7 @@ protected:
 // Gives the amount of time elapsed since reset()
 class DeltaTimer : public Timer {
 public:
+  Time elapsedTicks();
   Time elapsedSeconds();
   Time elapsedMillieconds();
   Time elapsedUseconds();

@@ -209,7 +209,7 @@ static TypeObject Vec2_Type =
     .methods(Vec2Methods(
       MethodDef()
         .name("length")
-        .doc("returns the vectors magnitued (length)")
+        .doc("returns the vectors magnitude (length)")
         .method(Vec2_Length)
         .flags(METH_NOARGS),
       MethodDef()
