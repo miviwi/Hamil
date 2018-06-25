@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <functional>
 #include <variant>
 #include <optional>
 #include <memory>
@@ -19,6 +20,8 @@ class Node {
 public:
   using Ptr = std::shared_ptr<Node>;
   using Tag = std::optional<std::string>;
+  using IterFn   = std::function<void(Node::Ptr /* Sequence value/Mapping key */)>;
+  using KVIterFn = std::function<void(Node::Ptr key, Node::Ptr value)>;
 
   enum Type {
     Invalid, Scalar, Sequence, Mapping
@@ -48,6 +51,9 @@ public:
 
   struct Hash { size_t operator()(const Node::Ptr& n) const { return n->hash(); } };
   struct Compare { bool operator()(const Node::Ptr& a, const Node::Ptr& b) const; };
+
+  virtual void foreach(IterFn fn) { }
+  virtual void foreach(KVIterFn fn) { }
 
 private:
   Type m_type;
@@ -109,11 +115,12 @@ private:
 class Sequence : public Node {
 public:
   static constexpr Type NodeType = Node::Sequence;
-  
+
+  using Seq = std::vector<Node::Ptr>;
+  using Iterator = Seq::iterator;
   Sequence(Tag tag = {});
 
   virtual std::string repr() const;
-
 
   void append(const Node::Ptr &node);
 
@@ -126,14 +133,22 @@ public:
   virtual size_t hash() const;
   virtual bool compare(const Node::Ptr& other) const;
 
+  Iterator begin() { return m.begin(); }
+  Iterator end()   { return m.end(); }
+
+  virtual void foreach(IterFn fn);
+  virtual void foreach(KVIterFn fn); // SLOW!
+
 private:
-  std::vector<Node::Ptr> m;
+  Seq m;
 };
 
 class Mapping : public Node {
 public:
   static constexpr Type NodeType = Node::Mapping;
-  
+
+  using Map = std::unordered_map<Node::Ptr, Node::Ptr, Node::Hash, Node::Compare>;
+  using Iterator = Map::iterator;
   Mapping(Tag tag = {});
 
   virtual std::string repr() const;
@@ -150,8 +165,14 @@ public:
   virtual size_t hash() const;
   virtual bool compare(const Node::Ptr& other) const;
 
+  virtual void foreach(IterFn fn);
+  virtual void foreach(KVIterFn fn);
+
+  Iterator begin() { return m.begin(); }
+  Iterator end()   { return m.end(); }
+
 private:
-  std::unordered_map<Node::Ptr, Node::Ptr, Node::Hash, Node::Compare> m;
+  Map m;
 };
 
 }

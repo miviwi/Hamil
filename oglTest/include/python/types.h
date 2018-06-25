@@ -98,6 +98,7 @@ public:
   Unicode(Object&& object);
   Unicode(const char *str);
   Unicode(const char *str, ssize_t sz);
+  Unicode(const std::string& str);
 
   static Unicode from_format(const char *fmt, ...);
 

@@ -20,7 +20,7 @@ public:
   static Module create(PyModuleDef *module);
   static Module exec(const char *name, const Object& co, const char *filename = nullptr);
 
-  Module& addType(const char *name, TypeObject& type);
+  Module& addType(TypeObject& type);
   Module& addObject(const char *name, Object&& o);
   Module& addInt(const char *name, long value);
   Module& addString(const char *name, const char *value);
@@ -145,6 +145,11 @@ public:
   TypeObject& flags(unsigned long flags);
   TypeObject& base(const TypeObject& base);
 
+  TypeObject& dictoffset(ssize_t off);
+
+  TypeObject& iter(getiterfunc fn);
+  TypeObject& iternext(iternextfunc fn);
+
   TypeObject& new_(newfunc fn);
   TypeObject& init(initproc fn);
   TypeObject& destructor(::destructor fn);
@@ -155,6 +160,9 @@ public:
   TypeObject& methods(PyMethodDef *methods);
   TypeObject& members(PyMemberDef *members);
   TypeObject& getset(PyGetSetDef *getset);
+
+  TypeObject& getattr(getattrofunc getattro);
+  TypeObject& setattr(setattrofunc setattro);
 
   TypeObject& number_methods(PyNumberMethods *number);
   TypeObject& sequence_methods(PySequenceMethods *sequence);

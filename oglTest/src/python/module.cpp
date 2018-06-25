@@ -29,9 +29,9 @@ Module Module::exec(const char *name, const Object& co, const char *filename)
   return PyImport_ExecCodeModule(name, *co);
 }
 
-Module& Module::addType(const char *name, TypeObject& type)
+Module& Module::addType(TypeObject& type)
 {
-  PyModule_AddObject(py(), name, type.py());
+  PyModule_AddObject(py(), ((PyTypeObject *)type.py())->tp_name, type.py());
   return *this;
 }
 
@@ -235,6 +235,24 @@ TypeObject& TypeObject::base(const TypeObject& base)
   return *this;
 }
 
+TypeObject& TypeObject::dictoffset(ssize_t off)
+{
+  m.tp_dictoffset = off;
+  return *this;
+}
+
+TypeObject& TypeObject::iter(getiterfunc fn)
+{
+  m.tp_iter = fn;
+  return *this;
+}
+
+TypeObject& TypeObject::iternext(iternextfunc fn)
+{
+  m.tp_iternext = fn;
+  return *this;
+}
+
 TypeObject& TypeObject::new_(newfunc fn)
 {
   m.tp_new = fn;
@@ -280,6 +298,18 @@ TypeObject& TypeObject::members(PyMemberDef *members)
 TypeObject& TypeObject::getset(PyGetSetDef *getset)
 {
   m.tp_getset = getset;
+  return *this;
+}
+
+TypeObject& TypeObject::getattr(getattrofunc getattro)
+{
+  m.tp_getattro = getattro;
+  return *this;
+}
+
+TypeObject& TypeObject::setattr(setattrofunc setattro)
+{
+  m.tp_setattro = setattro;
   return *this;
 }
 

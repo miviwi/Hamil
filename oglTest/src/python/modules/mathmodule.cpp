@@ -1,4 +1,4 @@
-#include <python/mathmodule.h>
+#include <python/modules/mathmodule.h>
 #include <python/module.h>
 #include <python/types.h>
 #include <python/collections.h>
@@ -1204,6 +1204,15 @@ static ModuleDef XformModule =
         .flags(METH_VARARGS | METH_KEYWORDS)))
   ;
 
+PyObject *PyInit_xform()
+{
+  auto self = Module::create(XformModule.py())
+    .addType(Transform_Type)
+    ;
+
+  return *self;
+}
+
 static PyObject *Math_Lerp(PyObject *self, PyObject *args)
 {
   PyObject *a = nullptr, *b = nullptr;
@@ -1291,18 +1300,15 @@ PyObject *PyInit_math()
 {
   auto self = Module::create(MathModule.py())
     // Submodules
-    .addObject("xform",
-      Module::create(XformModule.py())
-        .addType("Transform", Transform_Type).move()
-    )
+    .addObject("xform", PyInit_xform())
     
     // Vectors
-    .addType("vec2", Vec2_Type)
-    .addType("vec3", Vec3_Type)
-    .addType("vec4", Vec4_Type)
+    .addType(Vec2_Type)
+    .addType(Vec3_Type)
+    .addType(Vec4_Type)
 
     // Matrices
-    .addType("mat4", Mat4_Type)
+    .addType(Mat4_Type)
 
     // Constants
     .addObject("Pi", Float(PI))

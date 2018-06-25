@@ -161,12 +161,6 @@
     <ClCompile Include="src\python\exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\python\mathmodule.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\win32module.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\yaml\node.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -174,6 +168,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\util\hash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\python\modules\mathmodule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\python\modules\win32module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\python\modules\yamlmodule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -340,12 +343,6 @@
     <ClInclude Include="include\python\exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\python\mathmodule.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\win32module.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\yaml\document.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -353,6 +350,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\util\hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\python\modules\mathmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\python\modules\win32module.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\python\modules\yamlmodule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

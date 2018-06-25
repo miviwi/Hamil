@@ -250,6 +250,11 @@ Unicode::Unicode(const char *str, ssize_t sz) :
 {
 }
 
+Unicode::Unicode(const std::string& str) :
+  Unicode(str.c_str(), (ssize_t)str.size())
+{
+}
+
 static char p_fmt_buf[4096];
 Unicode Unicode::from_format(const char *fmt, ...)
 {

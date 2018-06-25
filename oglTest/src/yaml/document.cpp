@@ -246,16 +246,9 @@ Document Document::from_string(const char *doc, size_t len)
   Document document;
   document.m_root = Parser().input(doc, len ? len : strlen(doc)).parse();
 
-  puts(document.m_root->repr().c_str());
-
-  auto foliage_lod = document("graphics.lod.foliage")->as<Scalar>();
-  auto fire = document("input.keyboard.fire")->as<Scalar>();
-
-  printf("foliage_lod(%s): %lf fire(%s): %s\n",
-    foliage_lod->tagString().c_str(), foliage_lod->f(), fire->tagString().c_str(), fire->str());
+ // puts(document.m_root->repr().c_str());
 
   return document;
-
 }
 
 Document Document::from_string(const std::string& doc)

@@ -198,9 +198,10 @@ exit /b 0</Command>
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\python\collections.cpp" />
     <ClCompile Include="src\python\exception.cpp" />
-    <ClCompile Include="src\python\mathmodule.cpp" />
-    <ClCompile Include="src\python\win32module.cpp" />
+    <ClCompile Include="src\python\modules\mathmodule.cpp" />
+    <ClCompile Include="src\python\modules\win32module.cpp" />
     <ClCompile Include="src\python\module.cpp" />
+    <ClCompile Include="src\python\modules\yamlmodule.cpp" />
     <ClCompile Include="src\python\python.cpp" />
     <ClCompile Include="src\python\object.cpp" />
     <ClCompile Include="src\python\types.cpp" />
@@ -229,8 +230,9 @@ exit /b 0</Command>
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\python\collections.h" />
     <ClInclude Include="include\python\exception.h" />
-    <ClInclude Include="include\python\mathmodule.h" />
+    <ClInclude Include="include\python\modules\mathmodule.h" />
     <ClInclude Include="include\python\module.h" />
+    <ClInclude Include="include\python\modules\yamlmodule.h" />
     <ClInclude Include="include\python\python.h" />
     <ClInclude Include="include\python\object.h" />
     <ClInclude Include="include\python\types.h" />
@@ -293,7 +295,7 @@ exit /b 0</Command>
     <ClInclude Include="include\win32\clipboard.h" />
     <ClInclude Include="include\win32\cpuid.h" />
     <ClInclude Include="include\win32\file.h" />
-    <ClInclude Include="include\python\win32module.h" />
+    <ClInclude Include="include\python\modules\win32module.h" />
     <ClInclude Include="include\win32\panic.h" />
     <ClInclude Include="include\win32\stdstream.h" />
     <ClInclude Include="include\win32\time.h" />

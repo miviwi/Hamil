@@ -1,11 +1,10 @@
-#include <python/win32module.h>
+#include <python/modules/win32module.h>
 #include <python/module.h>
 #include <python/object.h>
 #include <python/types.h>
 #include <python/collections.h>
 
 #include <Windows.h>
-
 #include <win32/time.h>
 
 #include <type_traits>
@@ -390,19 +389,19 @@ static PyObject *LoopTimer_New()
 
 static ModuleDef Win32Module =
   ModuleDef()
-    .name("Win32")
-    .doc("interface to various win32 apis")
+    .name("win32")
+    .doc("interface to various win32 (system) apis")
   ;
 
 PyObject *PyInit_win32()
 {
   auto self = Module::create(Win32Module.py())
-    .addType("Time", Time_Type)
+    .addType(Time_Type)
 
-    .addType("Timer", Timer_Type)
-    .addType("DeltaTimer", DeltaTimer_Type)
-    .addType("DurationTimer", DurationTimer_Type)
-    .addType("LoopTimer", LoopTimer_Type)
+    .addType(Timer_Type)
+    .addType(DeltaTimer_Type)
+    .addType(DurationTimer_Type)
+    .addType(LoopTimer_Type)
     ;
 
   return *self;

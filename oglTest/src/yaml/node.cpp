@@ -233,7 +233,7 @@ void Sequence::append(const Node::Ptr &node)
 
 Node::Ptr Sequence::get(size_t idx) const
 {
-  return m[idx];
+  return idx < size() ? m[idx] : Node::Ptr();
 }
 
 size_t Sequence::size() const
@@ -265,6 +265,16 @@ bool Sequence::compare(const Node::Ptr& other) const
   return true;
 }
 
+void Sequence::foreach(IterFn fn)
+{
+  for(const auto& value : m) fn(value);
+}
+
+void Sequence::foreach(KVIterFn fn)
+{
+  for(size_t i = 0; i < m.size(); i++) fn(Scalar::from_ui(i), m[i]);
+}
+
 Mapping::Mapping(Tag tag) :
   Node(NodeType, tag)
 {
@@ -293,7 +303,8 @@ Node::Ptr Mapping::get(const std::string& key) const
 
 Node::Ptr Mapping::get(Node::Ptr key) const
 {
-  return m.find(key)->second;
+  auto it = m.find(key);
+  return it != m.end() ? it->second : Node::Ptr();
 }
 
 size_t Mapping::size() const
@@ -328,6 +339,16 @@ bool Mapping::compare(const Node::Ptr& other) const
   }
 
   return true;
+}
+
+void Mapping::foreach(IterFn fn)
+{
+  for(const auto& item : m) fn(item.first);
+}
+
+void Mapping::foreach(KVIterFn fn)
+{
+  for(const auto& item : m) fn(item.first, item.second);
 }
 
 }

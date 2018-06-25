@@ -5,8 +5,9 @@
 #include <python/module.h>
 #include <python/exception.h>
 
-#include <python/win32module.h>
-#include <python/mathmodule.h>
+#include <python/modules/win32module.h>
+#include <python/modules/mathmodule.h>
+#include <python/modules/yamlmodule.h>
 
 #include <marshal.h>
 
@@ -19,8 +20,10 @@ namespace python {
 Dict p_globals(nullptr);
 
 static _inittab p_modules[] = {
-  { "Win32", PyInit_win32 },
-  { "Math", PyInit_math },
+  { "win32", PyInit_win32 },
+  { "Math",  PyInit_math },
+  { "yaml",  PyInit_yaml },
+
   { nullptr }
 };
 
