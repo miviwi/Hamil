@@ -251,7 +251,8 @@ Document Document::from_string(const char *doc, size_t len)
   auto foliage_lod = document("graphics.lod.foliage")->as<Scalar>();
   auto fire = document("input.keyboard.fire")->as<Scalar>();
 
-  printf("foliage_lod: %lf fire: %s\n", foliage_lod->f(), fire->str());
+  printf("foliage_lod(%s): %lf fire(%s): %s\n",
+    foliage_lod->tagString().c_str(), foliage_lod->f(), fire->tagString().c_str(), fire->str());
 
   return document;
 

@@ -143,8 +143,6 @@ Scalar::DataType Scalar::dataType() const
     return it->second;
   }
 
-
-
   std::string s = str();
   for(int i = 0; i < NumDataTypes; i++) {
     if(!std::regex_match(s, p_datatype_regexes[i])) continue;

@@ -37,6 +37,7 @@ public:
   static Time us_to_ticks(Time usecs);
 
   static Time s_to_ticks(double secs);
+  static double ticks_to_sf(Time ticks);
 };
 
 class Timer {
@@ -71,11 +72,14 @@ class DurationTimer : public Timer {
 public:
   DurationTimer();
 
+  DurationTimer& durationTicks(Time duration);
   DurationTimer& durationSeconds(Time duration);
   DurationTimer& durationMilliseconds(Time duration);
   DurationTimer& durationUseconds(Time duration);
 
   DurationTimer& durationSeconds(double duration);
+
+  Time duration() const;
 
   bool elapsed();
   float elapsedf();
@@ -95,6 +99,7 @@ class LoopTimer : public DurationTimer {
 public:
   LoopTimer();
 
+  LoopTimer& durationTicks(Time duration);
   LoopTimer& durationSeconds(Time duration);
   LoopTimer& durationMilliseconds(Time duration);
   LoopTimer& durationUseconds(Time duration);

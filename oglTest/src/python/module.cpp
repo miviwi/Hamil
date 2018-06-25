@@ -319,19 +319,18 @@ PyObject *TypeObject::newObject()
   return PyObject_NEW(PyObject, &m);
 }
 
-#if 0
-void TypeObject::generic_free(void *object)
+void TypeObject::freeObject(void *object)
 {
-  auto type = Py_TYPE(object);
-  if(PyType_IS_GC(type)) {
+  auto t = Py_TYPE(object);
+  if(PyType_IS_GC(t)) {
     PyObject_GC_Del(object);
   } else {
     PyObject_Free(object);
   }
 
-  if(PyType_HasFeature(type, Py_TPFLAGS_HEAPTYPE)) Py_DECREF(type);
+  // no 'Py_TPFLAGS_HEAPTYPE's for now
+ // if(PyType_HasFeature(&m, Py_TPFLAGS_HEAPTYPE)) Py_DECREF(type);
 }
-#endif
 
 GetSetDef::GetSetDef()
 {

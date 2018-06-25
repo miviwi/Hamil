@@ -8,6 +8,8 @@
 
 #include <win32/time.h>
 
+#include <type_traits>
+
 namespace python {
 
 struct Win32ModuleToken;
@@ -27,7 +29,7 @@ struct Time {
 static int Time_Check(PyObject *obj);
 static PyObject *Time_FromTime(win32::Time t);
 
-#define TIME_INIT_ERR "Time can only be initailized with another Time object"
+#define TIME_INIT_ERR "Time can only be initailized with another Time object or a number (of seconds)"
 
 static int Time_Init(Time *self, PyObject *args, PyObject *kwds)
 {
@@ -40,8 +42,9 @@ static int Time_Init(Time *self, PyObject *args, PyObject *kwds)
     PyObject *t = PyTuple_GET_ITEM(args, 0);
     if(Time_Check(t)) {
       self->m = ((Time *)t)->m;
-    } else if(PyLong_Check(t)) {
-      self->m = PyLong_AsUnsignedLongLong(t);
+    } else if(PyNumber_Check(t)) {
+      Float f = PyNumber_Float(t);
+      self->m = win32::Timers::s_to_ticks(f.f());
     } else {
       PyErr_SetString(PyExc_TypeError, TIME_INIT_ERR);
       return -1;
@@ -55,47 +58,22 @@ static int Time_Init(Time *self, PyObject *args, PyObject *kwds)
 
 static PyObject *Time_Repr(Time *self)
 {
-  return Unicode::from_format("Time(%llu)", self->m).move();
+  return Unicode::from_format("Time(%lf)", win32::Timers::ticks_to_sf(self->m)).move();
 }
 
 static PyObject *Time_Str(Time *self)
 {
-  return Unicode::from_format("%llu", self->m).move();
-}
-
-static PyObject *Time_Ticks(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
-{
-  return Time_FromTime(win32::Timers::ticks());
+  return Unicode::from_format("%lf", win32::Timers::ticks_to_sf(self->m)).move();
 }
 
 static PyObject *Time_Time(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
 {
-  return PyFloat_FromDouble(win32::Timers::timef_s());
-}
-
-static PyObject *Time_Secs(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
-{
-  return Time_FromTime(win32::Timers::time_s());
-}
-
-static PyObject *Time_Millisecs(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
-{
-  return Time_FromTime(win32::Timers::time_ms());
-}
-
-static PyObject *Time_Microsecs(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
-{
-  return Time_FromTime(win32::Timers::time_us());
-}
-
-static PyObject *Time_TicksPerSec(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
-{
-  return PyLong_FromUnsignedLongLong(win32::Timers::ticks_per_s());
+  return PyFloat_FromDouble(win32::Timers::ticks());
 }
 
 static PyObject *Time_To_S(Time *self, void *Py_UNUSED(closure))
 {
-  return PyLong_FromUnsignedLongLong(win32::Timers::ticks_to_s(self->m));
+  return PyFloat_FromDouble(win32::Timers::ticks_to_sf(self->m));
 }
 
 static PyObject *Time_To_Ms(Time *self, void *Py_UNUSED(closure))
@@ -117,46 +95,21 @@ static TypeObject Time_Type =
     .methods(TimeMethods(
       MethodDef()
         .name("ticks")
-        .doc("returns a Time object which represents an opaque value mesured from system start")
-        .method(Time_Ticks)
-        .flags(METH_CLASS | METH_NOARGS),
-      MethodDef()
-        .name("time")
-        .doc("returns a float which represents the time in seconds since system start")
+        .doc("returns a Time object which is incremented monotonically since from system start")
         .method(Time_Time)
-        .flags(METH_CLASS | METH_NOARGS),
-      MethodDef()
-        .name("secs")
-        .doc("returns a Time object which reresents the number of seconds since system start")
-        .method(Time_Secs)
-        .flags(METH_CLASS | METH_NOARGS),
-      MethodDef()
-        .name("millisecs")
-        .doc("returns a Time object which reresents the number of milliseconds since system start")
-        .method(Time_Millisecs)
-        .flags(METH_CLASS | METH_NOARGS),
-      MethodDef()
-        .name("microsecs")
-        .doc("returns a Time object which reresents the number of microseconds since system start")
-        .method(Time_Microsecs)
-        .flags(METH_CLASS | METH_NOARGS),
-      MethodDef()
-        .name("ticks_per_sec")
-        .doc("returns a number which represents the number of times Time.ticks() increments per second")
-        .method(Time_TicksPerSec)
         .flags(METH_CLASS | METH_NOARGS)))
     .getset(TimeGetSet(
       GetSetDef()
         .name("s")
-        .doc("converts the time object to seconds")
+        .doc("converts the Time object to seconds")
         .get((getter)Time_To_S),
       GetSetDef()
         .name("ms")
-        .doc("converts the time object to milliseconds")
+        .doc("converts the Time object to milliseconds")
         .get((getter)Time_To_Ms),
       GetSetDef()
         .name("us")
-        .doc("converts the time object to microseconds")
+        .doc("converts the Time object to microseconds")
         .get((getter)Time_To_Us)))
     .repr((reprfunc)Time_Repr)
     .str((reprfunc)Time_Str)
@@ -169,7 +122,10 @@ static int Time_Check(PyObject *object)
 
 static PyObject *Time_FromTime(win32::Time t)
 {
-  return (PyObject *)Time_Type.newObject<Time>();
+  auto obj = Time_Type.newObject<Time>();
+  obj->m = t;
+
+  return (PyObject *)obj;
 }
 
 struct TimerToken;
@@ -202,7 +158,7 @@ static PyObject *Timer_Stop(Timer *self, PyObject *Py_UNUSED(arg))
 static TypeObject Timer_Type =
   TypeObject()
     .name("Timer")
-    .doc("base type for various <...>Timer objects")
+    .doc("Base type for various <...>Timer objects.\nHas no real utility on it's own")
     .size(sizeof(Timer))
     .methods(TimerMethods(
       MethodDef()
@@ -224,7 +180,7 @@ int Timer_Check(PyObject *obj)
 
 static PyObject *Timer_New()
 {
-  return (PyObject *)Timer_Type.newObject<Timer>();
+  return Timer_Type.newObject();
 }
 
 struct DeltaTimerToken;
@@ -241,11 +197,6 @@ struct DeltaTimer {
 static int DeltaTimer_Check(PyObject *obj);
 static PyObject *DeltaTimer_New();
 
-static PyObject *DeltaTimer_ElapsedSecondsf(DeltaTimer *self, void *Py_UNUSED(closure))
-{
-  return PyFloat_FromDouble(self->m.elapsedSecondsf());
-}
-
 static PyObject *DeltaTimer_ElapsedTicks(DeltaTimer *self, void *Py_UNUSED(closure))
 {
   return Time_FromTime(self->m.elapsedTicks());
@@ -261,11 +212,7 @@ static TypeObject DeltaTimer_Type =
       GetSetDef()
         .name("delta")
         .doc("returns a Time object representing time passed since reset()")
-        .get((getter)DeltaTimer_ElapsedTicks),
-      GetSetDef()
-        .name("secs")
-        .doc("returns the number of elapsed seconds since reset()")
-        .get((getter)DeltaTimer_ElapsedSecondsf)))
+        .get((getter)DeltaTimer_ElapsedTicks)))
   ;
 
 static int DeltaTimer_Check(PyObject *obj)
@@ -275,7 +222,170 @@ static int DeltaTimer_Check(PyObject *obj)
 
 static PyObject *DeltaTimer_New()
 {
-  return (PyObject *)DeltaTimer_Type.newObject<DeltaTimer>();
+  return DeltaTimer_Type.newObject();
+}
+
+struct DurationTimerToken;
+static MemberDefList<DurationTimerToken> DurationTimerMembers;
+static MethodDefList<DurationTimerToken> DurationTimerMethods;
+static GetSetDefList<DurationTimerToken> DurationTimerGetSet;
+
+struct DurationTimer {
+  PyObject_HEAD;
+
+  win32::DurationTimer m;
+};
+
+static int DurationTimer_Check(PyObject *obj);
+static PyObject *DurationTimer_New();
+
+static PyObject *DurationTimer_GetDuration(DurationTimer *self, void *Py_UNUSED(closure))
+{
+  return Time_FromTime(self->m.duration());
+}
+
+static int DurationTimer_SetDuration(DurationTimer *self, PyObject *value, void *Py_UNUSED(closure))
+{
+  if(PyNumber_Check(value)) {
+    Float f = PyNumber_Float(value);
+
+    self->m.durationSeconds(f.f());
+    return 0;
+  } else if(Time_Check(value)) {
+    self->m.durationTicks(((Time *)value)->m);
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "DurationTimer.duration can only be set to a Time object or a number");
+  return -1;
+}
+
+static PyObject *DurationTimer_Elapsed(DurationTimer *self, void *Py_UNUSED(closure))
+{
+  return PyFloat_FromDouble(self->m.elapsedf());
+}
+
+static PyObject *DurationTimer_HasElapsed(DurationTimer *self, void *Py_UNUSED(closure))
+{
+  return PyBool_FromLong(self->m.elapsed());
+}
+
+static TypeObject DurationTimer_Type =
+  TypeObject()
+    .name("DurationTimer")
+    .doc("tracks how much of DurationTimer.duration has passed the since reset()")
+    .size(sizeof(DurationTimer))
+    .base(Timer_Type)
+    .getset(DurationTimerGetSet(
+      GetSetDef()
+        .name("duration")
+        .doc("get/set the duration via a Time object or a number")
+        .get((getter)DurationTimer_GetDuration)
+        .set((setter)DurationTimer_SetDuration),
+      GetSetDef()
+        .name("elapsed")
+        .doc("returns a value in the range <0; 1> representing how much of the duration has passed since reset()")
+        .get((getter)DurationTimer_Elapsed),
+      GetSetDef()
+        .name("has_elapsed")
+        .doc("returns true when DurationTimer.elapsed >= 1.0")
+        .get((getter)DurationTimer_HasElapsed)))
+  ;
+
+static int DurationTimer_Check(PyObject *obj)
+{
+  return DurationTimer_Type.check(obj);
+}
+
+static PyObject *DurationTimer_New()
+{
+  return DurationTimer_Type.newObject();
+}
+
+struct LoopTimerToken;
+static MemberDefList<LoopTimerToken> LoopTimerMembers;
+static MethodDefList<LoopTimerToken> LoopTimerMethods;
+static GetSetDefList<LoopTimerToken> LoopTimerGetSet;
+
+struct LoopTimer {
+  PyObject_HEAD;
+
+  win32::LoopTimer m;
+};
+
+static int LoopTimer_Check(PyObject *obj);
+static PyObject *LoopTimer_New();
+
+static PyObject *LoopTimer_GetDuration(LoopTimer *self, void *Py_UNUSED(closure))
+{
+  return Time_FromTime(self->m.duration());
+}
+
+static int LoopTimer_SetDuration(LoopTimer *self, PyObject *value, void *Py_UNUSED(closure))
+{
+  if(PyNumber_Check(value)) {
+    Float f = PyNumber_Float(value);
+
+    self->m.durationSeconds(f.f());
+    return 0;
+  } else if(Time_Check(value)) {
+    self->m.durationTicks(((Time *)value)->m);
+    return 0;
+  }
+
+  PyErr_SetString(PyExc_TypeError, "LoopTimer.duration can only be set to a Time object or a number");
+  return -1;
+}
+
+static PyObject *LoopTimer_Elapsed(LoopTimer *self, void *Py_UNUSED(closure))
+{
+  return PyFloat_FromDouble(self->m.elapsedf());
+}
+
+static PyObject *LoopTimer_HasElapsed(LoopTimer *self, void *Py_UNUSED(closure))
+{
+  return PyBool_FromLong(self->m.elapsed());
+}
+
+static PyObject *LoopTimer_ElapsedLoops(LoopTimer *self, void *Py_UNUSED(closure))
+{
+  return PyFloat_FromDouble(self->m.elapsedLoopsf());
+}
+
+static TypeObject LoopTimer_Type = 
+  TypeObject()
+    .name("LoopTimer")
+    .doc("tracks duration passed analogously to DurationTimer, extending that by also counting the number of loops")
+    .size(sizeof(LoopTimer))
+    .base(Timer_Type)
+    .getset(DurationTimerGetSet(
+      GetSetDef()
+        .name("duration")
+        .doc("get/set the duration via a Time object or a number")
+        .get((getter)LoopTimer_GetDuration)
+        .set((setter)LoopTimer_SetDuration),
+      GetSetDef()
+        .name("elapsed")
+        .doc("returns a value in the range <0; 1> representing how much of the duration has passed since reset()")
+        .get((getter)LoopTimer_Elapsed),
+      GetSetDef()
+        .name("has_elapsed")
+        .doc("returns true when LoopTimer.elapsed >= 1.0")
+        .get((getter)LoopTimer_HasElapsed),
+      GetSetDef()
+        .name("elapsed_loops")
+        .doc("loops since reset() in the integer part and progress in the current loop in the fraction part")
+        .get((getter)LoopTimer_ElapsedLoops)))
+  ;
+
+static int LoopTimer_Check(PyObject *obj)
+{
+  return LoopTimer_Type.check(obj);
+}
+
+static PyObject *LoopTimer_New()
+{
+  return LoopTimer_Type.newObject();
 }
 
 static ModuleDef Win32Module =
@@ -291,6 +401,8 @@ PyObject *PyInit_win32()
 
     .addType("Timer", Timer_Type)
     .addType("DeltaTimer", DeltaTimer_Type)
+    .addType("DurationTimer", DurationTimer_Type)
+    .addType("LoopTimer", LoopTimer_Type)
     ;
 
   return *self;

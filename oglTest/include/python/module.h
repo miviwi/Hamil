@@ -165,6 +165,8 @@ public:
   template <typename T> T *newObject() { return (T *)newObject(); }
   PyObject *newObject();
 
+  static void freeObject(void *object);
+
   bool check(PyObject *obj);
 
 private:

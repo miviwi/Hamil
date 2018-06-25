@@ -93,8 +93,15 @@ Time Timers::s_to_ticks(double secs)
   return (Time)t;
 }
 
+double Timers::ticks_to_sf(Time ticks)
+{
+  double t = (double)ticks / (double)ticks_per_s();
+
+  return t;
+}
+
 Timer::Timer() :
-  m_started(~0u)
+  m_started(InvalidTime)
 {
   reset();
 }
@@ -111,7 +118,8 @@ void Timer::stop()
 
 Time Timer::delta()
 {
-  return Timers::ticks() - m_started;
+  auto dt = Timers::ticks() - m_started;
+  return m_started != InvalidTime ? dt : 0;
 }
 
 Time DeltaTimer::elapsedTicks()
@@ -140,10 +148,16 @@ double DeltaTimer::elapsedSecondsf()
   return dt/(double)Timers::ticks_per_s();
 }
 
-
 DurationTimer::DurationTimer() :
-  m_duration(~0u)
+  m_duration(InvalidTime)
 {
+}
+
+DurationTimer& DurationTimer::durationTicks(Time duration)
+{
+  m_duration = duration;
+
+  return *this;
 }
 
 DurationTimer& DurationTimer::durationSeconds(Time duration)
@@ -175,9 +189,14 @@ DurationTimer& DurationTimer::durationSeconds(double duration)
   return *this;
 }
 
+Time DurationTimer::duration() const
+{
+  return m_duration;
+}
+
 bool DurationTimer::elapsed()
 {
-  return m_duration != ~0u ? Timers::ticks() >= (m_started + m_duration)  : false; 
+  return m_duration != InvalidTime ? Timers::ticks() >= (m_started + m_duration) : false; 
 }
 
 float DurationTimer::elapsedf()
@@ -188,12 +207,19 @@ float DurationTimer::elapsedf()
 
 void DurationTimer::clearDuration()
 {
-  m_duration = ~0u;
+  m_duration = InvalidTime;
 }
 
 LoopTimer::LoopTimer() :
   m_loops(0)
 {
+}
+
+LoopTimer& LoopTimer::durationTicks(Time duration)
+{
+  DurationTimer::durationTicks(duration);
+
+  return *this;
 }
 
 LoopTimer& LoopTimer::durationSeconds(Time duration)
@@ -203,14 +229,14 @@ LoopTimer& LoopTimer::durationSeconds(Time duration)
   return *this;
 }
 
-LoopTimer & LoopTimer::durationMilliseconds(Time duration)
+LoopTimer& LoopTimer::durationMilliseconds(Time duration)
 {
   DurationTimer::durationMilliseconds(duration);
 
   return *this;
 }
 
-LoopTimer & LoopTimer::durationUseconds(Time duration)
+LoopTimer& LoopTimer::durationUseconds(Time duration)
 {
   DurationTimer::durationUseconds(duration);
 
