@@ -4,7 +4,6 @@
 #include <python/types.h>
 #include <python/collections.h>
 
-#include <Windows.h>
 #include <win32/time.h>
 
 #include <type_traits>

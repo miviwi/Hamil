@@ -179,6 +179,30 @@
     <ClCompile Include="src\python\modules\yamlmodule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\res\res.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\win32\thread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\res\manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\res\resource.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\res\text.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\res\cache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\staticstring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\res\loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -359,6 +383,30 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\python\modules\yamlmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\res.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\win32\thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\text.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\cache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\util\staticstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

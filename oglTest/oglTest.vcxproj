@@ -205,6 +205,12 @@ exit /b 0</Command>
     <ClCompile Include="src\python\python.cpp" />
     <ClCompile Include="src\python\object.cpp" />
     <ClCompile Include="src\python\types.cpp" />
+    <ClCompile Include="src\res\cache.cpp" />
+    <ClCompile Include="src\res\loader.cpp" />
+    <ClCompile Include="src\res\manager.cpp" />
+    <ClCompile Include="src\res\res.cpp" />
+    <ClCompile Include="src\res\resource.cpp" />
+    <ClCompile Include="src\res\text.cpp" />
     <ClCompile Include="src\ui\animation.cpp" />
     <ClCompile Include="src\ui\console.cpp" />
     <ClCompile Include="src\ui\drawable.cpp" />
@@ -220,6 +226,8 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\ft\font.cpp" />
     <ClCompile Include="src\util\hash.cpp" />
+    <ClCompile Include="src\util\staticstring.cpp" />
+    <ClCompile Include="src\win32\thread.cpp" />
     <ClCompile Include="src\yaml\node.cpp" />
     <ClCompile Include="src\yaml\document.cpp" />
     <ClInclude Include="extern\GL\gl3w.h" />
@@ -236,6 +244,12 @@ exit /b 0</Command>
     <ClInclude Include="include\python\python.h" />
     <ClInclude Include="include\python\object.h" />
     <ClInclude Include="include\python\types.h" />
+    <ClInclude Include="include\res\cache.h" />
+    <ClInclude Include="include\res\loader.h" />
+    <ClInclude Include="include\res\manager.h" />
+    <ClInclude Include="include\res\res.h" />
+    <ClInclude Include="include\res\resource.h" />
+    <ClInclude Include="include\res\text.h" />
     <ClInclude Include="include\ui\animation.h" />
     <ClInclude Include="include\ui\console.h" />
     <ClInclude Include="include\ui\drawable.h" />
@@ -270,6 +284,8 @@ exit /b 0</Command>
     <ClCompile Include="src\gx\vertex.cpp" />
     <ClCompile Include="src\winmain.cpp" />
     <ClInclude Include="include\util\hash.h" />
+    <ClInclude Include="include\util\staticstring.h" />
+    <ClInclude Include="include\win32\thread.h" />
     <ClInclude Include="include\yaml\document.h" />
     <ClInclude Include="include\yaml\node.h" />
   </ItemGroup>

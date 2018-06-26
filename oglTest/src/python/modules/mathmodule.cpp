@@ -6,8 +6,8 @@
 #include <math/geometry.h>
 #include <math/transform.h>
 
-#include <string>
 #include <cstring>
+#include <string>
 
 namespace python {
 

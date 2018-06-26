@@ -67,7 +67,7 @@ static PyObject *Node_GetAttr(Node *self, PyObject *attr)
 static TypeObject Node_Type =
   TypeObject()
     .name("Node")
-    .doc("object representing the yaml value")
+    .doc("object representing a yaml value")
     .size(sizeof(Node))
     .init((initproc)Node_Init)
     .destructor((::destructor)Node_Dealloc)
@@ -160,18 +160,18 @@ static TypeObject Document_Type =
     .size(sizeof(Document))
     .init((initproc)Document_Init)
     .destructor((::destructor)Document_Dealloc)
-    .getattr((getattrofunc)Document_GetAttr)
+    //.getattr((getattrofunc)Document_GetAttr)
     .methods(DocumentMethods(
       MethodDef()
         .name("from_string")
         .doc("parses a str and returns a Docuemnt")
         .method(Document_FromString_)
         .flags(METH_CLASS | METH_O)))
-    //.getset(DocumentGetSet(
-    //  GetSetDef()
-    //    .name("root")
-    //    .doc("the root Node of the Document")
-    //    .get((getter)Document_Root)))
+    .getset(DocumentGetSet(
+      GetSetDef()
+        .name("root")
+        .doc("the root Node of the Document")
+        .get((getter)Document_Root)))
     .repr((reprfunc)Document_Repr)
     .str((reprfunc)Document_Str)
   ;
