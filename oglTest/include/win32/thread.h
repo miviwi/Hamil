@@ -2,24 +2,33 @@
 
 #include <common.h>
 
+#include <win32/waitable.h>
+
 #include <functional>
 
 namespace win32 {
 
-class Thread {
+class Thread : public Waitable {
 public:
   using Id = ulong;
   using Fn = std::function<ulong()>;
 
-  struct Error { };
-  struct CreateError : public Error { };
+  struct Error {
+    const unsigned what;
+    Error(unsigned what_) :
+      what(what_)
+    { }
+  };
+
+  struct CreateError : public Error {
+    using Error::Error;
+  };
 
   enum : ulong {
     StillActive = /* STILL_ACTIVE */ 259 ,
   };
 
   Thread(Fn fn, bool suspended = false);
-  ~Thread();
 
   Id id() const;
 
@@ -28,7 +37,6 @@ public:
 private:
   static ulong ThreadProcTrampoline(void *param);
 
-  void *m_handle;
   Id m_id;
   Fn m_fn;
 };

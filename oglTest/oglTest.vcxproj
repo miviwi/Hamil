@@ -227,7 +227,10 @@ exit /b 0</Command>
     <ClCompile Include="src\ft\font.cpp" />
     <ClCompile Include="src\util\hash.cpp" />
     <ClCompile Include="src\util\staticstring.cpp" />
+    <ClCompile Include="src\win32\event.cpp" />
+    <ClCompile Include="src\win32\handle.cpp" />
     <ClCompile Include="src\win32\thread.cpp" />
+    <ClCompile Include="src\win32\waitable.cpp" />
     <ClCompile Include="src\yaml\node.cpp" />
     <ClCompile Include="src\yaml\document.cpp" />
     <ClInclude Include="extern\GL\gl3w.h" />
@@ -285,7 +288,10 @@ exit /b 0</Command>
     <ClCompile Include="src\winmain.cpp" />
     <ClInclude Include="include\util\hash.h" />
     <ClInclude Include="include\util\staticstring.h" />
+    <ClInclude Include="include\win32\event.h" />
+    <ClInclude Include="include\win32\handle.h" />
     <ClInclude Include="include\win32\thread.h" />
+    <ClInclude Include="include\win32\waitable.h" />
     <ClInclude Include="include\yaml\document.h" />
     <ClInclude Include="include\yaml\node.h" />
   </ItemGroup>

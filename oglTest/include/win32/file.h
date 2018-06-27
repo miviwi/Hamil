@@ -4,6 +4,7 @@
 
 #include <util/ref.h>
 #include <util/bit.h>
+#include <win32/handle.h>
 
 #include <functional>
 
@@ -11,7 +12,7 @@ namespace win32 {
 
 class FileView;
 
-class File {
+class File : public Handle {
 public:
   using Size = unsigned long;
 
@@ -101,7 +102,6 @@ public:
   FileView map(Protect protect, size_t offset, size_t size, const char *name = nullptr);
 
 private:
-  void *m;
   Access m_access;
   size_t m_sz;
 

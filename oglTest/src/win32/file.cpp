@@ -16,7 +16,6 @@ static const DWORD p_creation_disposition_table[] = {
   TRUNCATE_EXISTING,
 };
 
-
 File::File(const char *path, Access access, Share share, OpenMode open) :
   m_access(access), m_full_path(nullptr)
 {
@@ -53,8 +52,6 @@ File::File(const char *path, Access access) :
 
 File::~File()
 {
-  if(m) CloseHandle(m);
-
   delete[] m_full_path;
 }
 
@@ -80,7 +77,7 @@ const char *File::fullPath() const
     size_t sz = sizeof(FILE_NAME_INFO) + temp_name_info.FileNameLength;
     auto name_info = (FILE_NAME_INFO *)new char[sz];
 
-    // actually fill the buffer
+    // now that we know the size, actually fill the buffer
     memset(name_info, '\0', sz);
     result = GetFileInformationByHandleEx(m, FileNameInfo, name_info, dword_low(sz));
 

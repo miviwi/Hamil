@@ -14,18 +14,13 @@ DWORD Thread::ThreadProcTrampoline(void *param)
 }
 
 Thread::Thread(Fn fn, bool suspended) :
-  m_handle(nullptr), m_id(0), m_fn(std::move(fn))
+  m_id(0), m_fn(std::move(fn))
 {
   DWORD dwCreationFlags = 0;
   dwCreationFlags |= suspended ? CREATE_SUSPENDED : 0;
 
-  m_handle = CreateThread(nullptr, 0, ThreadProcTrampoline, this, dwCreationFlags, &m_id);
-  if(!m_handle) throw CreateError();
-}
-
-Thread::~Thread()
-{
-  if(m_handle) CloseHandle(m_handle);
+  m = CreateThread(nullptr, 0, ThreadProcTrampoline, this, dwCreationFlags, &m_id);
+  if(!m) throw CreateError(GetLastError());
 }
 
 Thread::Id Thread::id() const
@@ -36,7 +31,7 @@ Thread::Id Thread::id() const
 ulong Thread::exitCode() const
 {
   DWORD exit_code = 0;
-  if(!GetExitCodeThread(m_handle, &exit_code)) throw Error();
+  if(!GetExitCodeThread(m, &exit_code)) throw Error(GetLastError());
 
   return exit_code;
 }

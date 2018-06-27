@@ -28,7 +28,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
 {
   using win32::FileQuery;
 
-  // Snoop subfolders first
+  // Snoop subdirectories first
   std::string dir_query_str = path + "*";
   win32::FileQuery dir_query(dir_query_str.c_str());
 
@@ -57,8 +57,9 @@ void SimpleFsLoader::enumAvailable(std::string path)
     try {
       // Because we are in the middle of initializing the ResourceManager
       //   the low-level win32::File interface has to be used which means
-      //   synchronous IO, maybe res::init() could be run on a separate
-      //   thread so events could still be processed?
+      //   synchronous IO.
+      // Maybe res::init() could be run on a separate thread so events
+      //   could still be processed?
       // Regardless, a splash screen should be put up on the screen to let the
       //   user know the application is doing something and isn't just frozen
       win32::File file(name, win32::File::Read, win32::File::OpenExisting);

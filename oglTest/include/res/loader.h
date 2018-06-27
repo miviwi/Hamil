@@ -14,7 +14,10 @@ class FileQuery;
 namespace res {
 
 enum LoadFlags {
-  LoadDefault, LoadStatic, Precache
+  LoadDefault = 0,        // Load the resource immediately
+  LoadStatic  = 1<<0,     // Never purge the resource from the cache
+  Precache    = 1<<1,     // Load the recource asynchronously, 
+                          //   check Resource::loaded() to know when loading is done
 };
 
 class ResourceLoader {
