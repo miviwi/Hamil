@@ -3,7 +3,7 @@
 namespace res {
 
 Resource::Resource(Id id, Tag tag, const std::string& name, Source source, const std::string& path) :
-  m_id(id), m_tag(tag), m_name(name), m_source(source), m_path(path)
+  m_loaded(false), m_id(id), m_tag(tag), m_name(name), m_source(source), m_path(path)
 {
 }
 

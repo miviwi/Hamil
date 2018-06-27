@@ -10,6 +10,9 @@ public:
   constexpr StaticString(const char (&str)[N]) :
     m_str(str), m_sz(N)
   { }
+  constexpr StaticString() :
+    StaticString("")
+  { }
 
   constexpr const char *get() const { return m_str; }
   constexpr size_t size() const { return m_sz; }

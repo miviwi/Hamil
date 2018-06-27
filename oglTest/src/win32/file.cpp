@@ -2,6 +2,10 @@
 
 #include <Windows.h>
 
+#include <cassert>
+#include <cstring>
+#include <cwchar>
+
 namespace win32 {
 
 static const DWORD p_creation_disposition_table[] = {
@@ -14,7 +18,7 @@ static const DWORD p_creation_disposition_table[] = {
 
 
 File::File(const char *path, Access access, Share share, OpenMode open) :
-  m_access(access)
+  m_access(access), m_full_path(nullptr)
 {
   DWORD desired_access = 0;
   desired_access |= access & Read    ? GENERIC_READ    : 0;
@@ -50,11 +54,55 @@ File::File(const char *path, Access access) :
 File::~File()
 {
   if(m) CloseHandle(m);
+
+  delete[] m_full_path;
 }
 
 size_t File::size() const
 {
   return m_sz;
+}
+
+const char *File::fullPath() const
+{
+  // if the full path has already been queried - return it
+  if(m_full_path) return m_full_path;
+
+  // otherwise do the query
+  FILE_NAME_INFO temp_name_info;
+  auto result = GetFileInformationByHandleEx(m, FileNameInfo, &temp_name_info, sizeof(FILE_NAME_INFO));
+
+  assert(!result && "FullPath was less than 2 characters long!");
+  
+  // assumming the full path will be more than 2 characters long
+  switch(GetLastError()) {
+  case ERROR_MORE_DATA: {
+    size_t sz = sizeof(FILE_NAME_INFO) + temp_name_info.FileNameLength;
+    auto name_info = (FILE_NAME_INFO *)new char[sz];
+
+    // actually fill the buffer
+    memset(name_info, '\0', sz);
+    result = GetFileInformationByHandleEx(m, FileNameInfo, name_info, dword_low(sz));
+
+    assert(result && "GetFileInformationByHandle() failed!");
+
+    // have to convert UTF-16 to UTF-8
+    mbstate_t state;
+    const wchar_t *str = name_info->FileName;
+    auto full_path_len = wcsrtombs(nullptr, &str, 0, &state) + 1; // add space '\0'
+
+    m_full_path = new char[full_path_len];
+    memset(m_full_path, '\0', full_path_len);
+    wcsrtombs(m_full_path, &str, full_path_len, &state); // do the conversion
+
+    delete[] name_info;
+    break;
+  }
+
+  default: throw GetFileInfoError(GetLastError());
+  }
+
+  return m_full_path;
 }
 
 File::Size File::read(void *buf, Size sz)
@@ -161,6 +209,81 @@ const char *File::Error::errorString() const
   }
 
   return "<unknown-error>";
+}
+
+FileQuery::FileQuery() :
+  m(INVALID_HANDLE_VALUE), m_find_data(nullptr)
+{
+}
+
+FileQuery::FileQuery(const char *path) :
+  FileQuery()
+{
+  openQuery(path);
+}
+
+FileQuery::FileQuery(FileQuery&& other) :
+  m(other.m), m_find_data(other.m_find_data)
+{
+  // null out 'other'
+  new(&other) FileQuery();
+}
+
+FileQuery::~FileQuery()
+{
+  closeQuery();
+  delete m_find_data;
+}
+
+FileQuery& FileQuery::operator=(FileQuery&& other)
+{
+  this->~FileQuery();
+
+  m = other.m;
+  m_find_data = other.m_find_data;
+
+  // null out 'other'
+  new(&other) FileQuery();
+
+  return *this;
+}
+
+void FileQuery::foreach(IterFn fn)
+{
+  auto compare = [](const char *a, const char *b) {
+    return strncmp(a, b, sizeof(WIN32_FIND_DATAA::cFileName)) == 0;
+  };
+
+  auto find_data = (WIN32_FIND_DATAA *)m_find_data;
+  do {
+    const char *name = find_data->cFileName;
+
+    // don't iterate over current directory (.) and parent directory (..) in queries
+    if(compare(name, ".") || compare(name, "..")) continue;
+
+    unsigned attrs = 0;
+    attrs |= find_data->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? IsDirectory : IsFile;
+
+    fn(name, (Attributes)attrs);
+  } while(FindNextFileA(m, find_data));
+}
+
+void FileQuery::openQuery(const char *path)
+{
+  if(!m_find_data) m_find_data = new WIN32_FIND_DATAA();
+  m = FindFirstFileExA(path, FindExInfoBasic, m_find_data, FindExSearchNameMatch, nullptr, 0);
+
+  if(m == INVALID_HANDLE_VALUE) throw Error();
+}
+
+void FileQuery::closeQuery()
+{
+  if(m != INVALID_HANDLE_VALUE) FindClose(m);
+}
+
+bool current_working_directory(const char *dir)
+{
+  return SetCurrentDirectoryA(dir);
 }
 
 }

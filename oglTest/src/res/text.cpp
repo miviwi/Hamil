@@ -14,6 +14,7 @@ TextResource TextResource::from_memory(const char *buf, size_t sz, Id id, bool i
   } else {
     text.fillBuffer(buf, sz);
   }
+  text.m_loaded = true;
 
   return text;
 }
@@ -24,6 +25,7 @@ TextResource TextResource::from_file(const char *buf, size_t sz,
   TextResource text(id, TextResource::tag(), name, File, path);
 
   text.fillBuffer(buf, sz);
+  text.m_loaded = true;
 
   return text;
 }

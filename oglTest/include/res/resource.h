@@ -50,11 +50,17 @@ public:
   Source source() const { return m_source; }
   const std::string& path() const { return m_path; }
 
+  bool loaded() const { return m_loaded; }
+  operator bool() const { return loaded(); }
+
   struct Hash    { size_t operator()(const Resource::Ptr& r) const { return r->id(); } };
   // Resources are considered the same when:
   //   - their types (tags) match
   //   - their names and paths match
   struct Compare { bool operator()(const Resource::Ptr& a, const Resource::Ptr& b) const; };
+
+protected:
+  bool m_loaded;
 
 private:
   friend class ResourceManager; 

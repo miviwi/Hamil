@@ -38,6 +38,8 @@
 #include <yaml/document.h>
 #include <yaml/node.h>
 
+#include <res/res.h>
+
 #include <game/game.h>
 
 #include <vector>
@@ -60,6 +62,7 @@ int main ()
   ft::init();
   ui::init();
   python::init();
+  res::init();
   game::init();
 
   ft::Font face(ft::FontFamily("georgia"), 35);

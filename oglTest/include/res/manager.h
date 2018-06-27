@@ -16,6 +16,8 @@ namespace res {
 
 class ResourceManager {
 public:
+  using Ptr = std::unique_ptr<ResourceManager>;
+
   struct Error { };
 
   ResourceManager(std::initializer_list<Resource::Tag> tags,
@@ -32,7 +34,7 @@ public:
   ResourceCache::ResourcePtr load(Resource::Tag tag, Resource::Id id, LoadFlags flags = LoadDefault);
 
 private:
-  std::unordered_map<Resource::Tag, ResourceCache> m_caches;
+  std::unordered_map<Resource::Tag, ResourceCache, Resource::Tag::Hash> m_caches;
   std::vector<ResourceLoader::Ptr> m_loader_chain;
 };
 

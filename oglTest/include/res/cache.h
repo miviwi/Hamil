@@ -11,7 +11,7 @@ namespace res {
 
 class ResourceCache {
 public:
-  using Map = std::unordered_map<Resource::Id, Resource::Ptr, Resource::Hash, Resource::Compare>;
+  using Map = std::unordered_map<Resource::Id, Resource::Ptr>;
   using ResourcePtr = std::weak_ptr<Resource>;
 
   std::optional<ResourcePtr> probe(Resource::Id id);

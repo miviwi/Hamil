@@ -5,6 +5,8 @@
 #include <util/ref.h>
 #include <util/bit.h>
 
+#include <functional>
+
 namespace win32 {
 
 class FileView;
@@ -72,6 +74,9 @@ public:
   struct MapFileError : public Error {
     using Error::Error;
   };
+  struct GetFileInfoError : public Error {
+    using Error::Error;
+  };
 
   File(const char *path, Access access, Share share, OpenMode open);
   File(const char *path, Access access, OpenMode open);
@@ -80,6 +85,8 @@ public:
   ~File();
 
   size_t size() const;
+
+  const char *fullPath() const;
 
   Size read(void *buf, Size sz);
   // Reads all of the File
@@ -97,6 +104,8 @@ private:
   void *m;
   Access m_access;
   size_t m_sz;
+
+  mutable char *m_full_path; // lazy-initialized
 };
 
 class FileView : public Ref {
@@ -120,5 +129,37 @@ private:
   void *m;
   void *m_ptr;
 };
+
+class FileQuery {
+public:
+  enum Attributes : unsigned {
+    IsDirectory = 1<<0,
+    IsFile      = 1<<1, 
+  };
+
+  using IterFn = std::function<void(const char *name, Attributes attrs)>;
+
+  struct Error { };
+
+  FileQuery();
+  FileQuery(const char *path);
+  FileQuery(const FileQuery& other) = delete;
+  FileQuery(FileQuery&& other);
+  ~FileQuery();
+
+  FileQuery& operator=(const FileQuery& other) = delete;
+  FileQuery& operator=(FileQuery&& other);
+
+  void foreach(IterFn fn);
+
+private:
+  void openQuery(const char *path);
+  void closeQuery();
+
+  void *m;
+  void /* WIN32_FIND_DATAA */ *m_find_data;
+};
+
+bool current_working_directory(const char *dir);
 
 }
