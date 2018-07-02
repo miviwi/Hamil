@@ -13,18 +13,6 @@
 
 namespace python {
 
-static const std::map<std::string, res::Resource::Tag> p_tags = {
-  { res::TextResource::tag().get(), res::TextResource::tag() },
-};
-
-std::optional<res::Resource::Tag> make_tag(const char *tag)
-{
-  auto it = p_tags.find(tag);
-  if(it != p_tags.end()) return it->second;
-
-  return {};
-}
-
 static PyObject *Res_Guid(PyObject *self, PyObject *args, PyObject *kwds)
 {
   static char *kwds_names[] = {
@@ -36,7 +24,7 @@ static PyObject *Res_Guid(PyObject *self, PyObject *args, PyObject *kwds)
   if(!PyArg_ParseTupleAndKeywords(args, kwds, "sss:guid", kwds_names,
     &tag_str, &name, &path)) return nullptr;
 
-  auto tag = make_tag(tag_str);
+  auto tag = res::resource().make_tag(tag_str);
   if(!tag) {
     PyErr_SetString(PyExc_ValueError, "invalid resource tag!");
     return nullptr;

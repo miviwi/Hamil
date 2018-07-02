@@ -33,14 +33,17 @@ static yaml::Schema p_meta_schema =
 Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
 {
   auto it = m_available.find(id);
-  if(it == m_available.end()) return Resource::Ptr();  // Reource not found!
+  if(it == m_available.end()) return Resource::Ptr();  // Resource not found!
 
   // The file was already parsed (in enumOne()) so we can assume it is valid
   auto meta = yaml::Document::from_string(it->second.data(), it->second.size()-1 /* libyaml doesn't like '\0' */);
 
   if(p_meta_schema.validate(meta)) throw InvalidResourceError(id);
 
-  auto tag = meta("tag")->as<yaml::Scalar>();
+  auto tag      = meta("tag")->as<yaml::Scalar>();
+
+
+
   auto location = meta("location")->as<yaml::Scalar>();
 
   Resource::Ptr r;

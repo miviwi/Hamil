@@ -27,4 +27,9 @@ ResourceManager& resource()
   return *p_manager;
 }
 
+ResourceHandle resource(size_t guid)
+{
+  return p_manager->handle(guid);
+}
+
 }

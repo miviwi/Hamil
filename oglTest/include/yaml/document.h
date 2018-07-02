@@ -39,6 +39,8 @@ public:
   static Document from_string(const char *doc, size_t len = 0);
   static Document from_string(const std::string& doc);
 
+  std::string toString();
+
   // returns the root element
   Node::Ptr get() const;
 

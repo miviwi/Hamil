@@ -535,7 +535,7 @@ void main() {
 
   iface
     .frame(layout, { 30.0f, 500.0f })
-    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
+    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;
 
   auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");

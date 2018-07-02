@@ -11,6 +11,10 @@ namespace win32 {
 class FileQuery;
 }
 
+namespace yaml {
+class Document;
+}
+
 namespace res {
 
 enum LoadFlags : int {
@@ -56,6 +60,8 @@ public:
 private:
   void enumAvailable(std::string path);
   Resource::Id enumOne(const char *meta_file, size_t sz, const char *full_path = "");
+
+  Resource::Ptr loadText(const yaml::Document& meta);
 
   std::string m_path;
   std::unordered_map<Resource::Id, std::vector<char> /* meta_file */>  m_available;

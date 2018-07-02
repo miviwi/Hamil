@@ -110,7 +110,7 @@ private:
     long long, unsigned long long, double, bool
   >;
   mutable CacheStorage m_cache;
-};
+ };
 
 class Sequence : public Node {
 public:

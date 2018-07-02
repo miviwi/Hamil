@@ -51,7 +51,7 @@ Node::Ptr Schema::validate(const Document& doc)
 
 Schema& Schema::condition(const std::string& node, SchemaCondition *cond)
 {
-  m_conditions.emplace_back(node, SchemaCondition::Ptr(cond));
+  m_conditions.emplace_back(node, cond);
   return *this;
 }
 

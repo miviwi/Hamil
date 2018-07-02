@@ -30,4 +30,6 @@ private:
   Map m;
 };
 
+using ResourceHandle = ResourceCache::ResourcePtr;
+
 }

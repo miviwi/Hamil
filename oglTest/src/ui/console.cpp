@@ -124,7 +124,6 @@ void ConsoleFrame::losingCapture()
 
 void ConsoleFrame::attached()
 {
-  m_dropdown.stop();
 }
 
 ConsoleFrame& ConsoleFrame::toggle()

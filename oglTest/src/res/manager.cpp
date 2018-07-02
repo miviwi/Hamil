@@ -1,6 +1,9 @@
 #include <res/manager.h>
+#include <res/text.h>
+
 #include <util/hash.h>
 
+#include <map>
 #include <utility>
 
 namespace res {
@@ -29,7 +32,7 @@ Resource::Id ResourceManager::guid(Resource::Tag tag, const std::string& name, c
   return hash;
 }
 
-ResourceCache::ResourcePtr ResourceManager::load(Resource::Id id, LoadFlags flags)
+ResourceHandle ResourceManager::load(Resource::Id id, LoadFlags flags)
 {
   auto& cache = getCache(flags);
   if(auto r = cache.probe(id)) return *r;
@@ -39,7 +42,27 @@ ResourceCache::ResourcePtr ResourceManager::load(Resource::Id id, LoadFlags flag
   }
   throw Error(); // if no loader manages to locate the resource - throw :(
 
-  return ResourceCache::ResourcePtr(); // unreachable
+  return ResourceHandle(); // unreachable
+}
+
+ResourceHandle ResourceManager::handle(Resource::Id id)
+{
+  for(auto& cache : m_caches) {
+    if(auto r = cache.probe(id)) return r.value();
+  }
+  throw NoSuchResourceError(id);
+
+  return ResourceHandle(); // unreachable
+}
+
+static const std::map<std::string, res::Resource::Tag> p_tags = {
+  { TextResource::tag().get(), TextResource::tag() },
+};
+
+std::optional<Resource::Tag> ResourceManager::make_tag(const char *tag)
+{
+  auto it = p_tags.find(tag);
+  return it != p_tags.end() ? std::optional<Resource::Tag>(it->second) : std::nullopt;
 }
 
 ResourceCache& ResourceManager::getCache(LoadFlags flags)

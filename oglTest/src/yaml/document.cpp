@@ -256,6 +256,11 @@ Document Document::from_string(const std::string& doc)
   return from_string(doc.c_str(), doc.length());
 }
 
+std::string Document::toString()
+{
+  return std::string();
+}
+
 Node::Ptr Document::get() const
 {
   return m_root;
