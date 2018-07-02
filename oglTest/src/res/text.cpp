@@ -4,30 +4,30 @@
 
 namespace res {
 
-TextResource TextResource::from_memory(const char *buf, size_t sz, Id id, bool is_static,
+Resource::Ptr TextResource::from_memory(const char *buf, size_t sz, Id id, bool is_static,
    const std::string& name, const std::string& path)
 {
-  TextResource text(id, TextResource::tag(), name, Memory, path);
+  auto text = new TextResource(id, TextResource::tag(), name, Memory, path);
 
   if(is_static) {
-    text.m_str = std::string_view(buf, sz);
+    text->m_str = std::string_view(buf, sz);
   } else {
-    text.fillBuffer(buf, sz);
+    text->fillBuffer(buf, sz);
   }
-  text.m_loaded = true;
+  text->m_loaded = true;
 
-  return text;
+  return Resource::Ptr(text);
 }
 
-TextResource TextResource::from_file(const char *buf, size_t sz,
+Resource::Ptr TextResource::from_file(const char *buf, size_t sz,
   Id id, const std::string& name, const std::string& path)
 {
-  TextResource text(id, TextResource::tag(), name, File, path);
+  auto text = new TextResource(id, TextResource::tag(), name, File, path);
 
-  text.fillBuffer(buf, sz);
-  text.m_loaded = true;
+  text->fillBuffer(buf, sz);
+  text->m_loaded = true;
 
-  return text;
+  return Resource::Ptr(text);
 }
 
 const std::string_view& TextResource::str() const

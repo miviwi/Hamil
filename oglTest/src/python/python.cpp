@@ -8,6 +8,7 @@
 #include <python/modules/win32module.h>
 #include <python/modules/mathmodule.h>
 #include <python/modules/yamlmodule.h>
+#include <python/modules/resmodule.h>
 
 #include <marshal.h>
 
@@ -23,6 +24,7 @@ static _inittab p_modules[] = {
   { "win32", PyInit_win32 },
   { "Math",  PyInit_math },
   { "yaml",  PyInit_yaml },
+  { "res",  PyInit_res },
 
   { nullptr }
 };

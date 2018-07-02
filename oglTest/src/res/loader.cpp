@@ -1,10 +1,13 @@
 #include <res/loader.h>
+#include <res/resource.h>
+#include <res/text.h>
 
 #include <util/format.h>
 #include <win32/file.h>
 #include <win32/panic.h>
 #include <yaml/document.h>
 #include <yaml/node.h>
+#include <yaml/schema.h>
 
 #include <cstdio>
 #include <cstring>
@@ -12,16 +15,51 @@
 
 namespace res {
 
-SimpleFsLoader::SimpleFsLoader(const char *base_path)
+SimpleFsLoader::SimpleFsLoader(const char *base_path) :
+  m_path(base_path)
 {
   win32::current_working_directory(base_path);
   
   enumAvailable("./"); // enum all resources starting from 'base_path'
 }
 
-Resource::Ptr SimpleFsLoader::load(Resource::Tag tag, Resource::Id id, LoadFlags flags)
+static yaml::Schema p_meta_schema = 
+  yaml::Schema()
+    .scalar("guid",     yaml::Scalar::Int)
+    .scalar("tag",      yaml::Scalar::String)
+    .scalar("location", yaml::Scalar::Tagged)
+  ;
+
+Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
 {
-  return Resource::Ptr();
+  auto it = m_available.find(id);
+  if(it == m_available.end()) return Resource::Ptr();  // Reource not found!
+
+  // The file was already parsed (in enumOne()) so we can assume it is valid
+  auto meta = yaml::Document::from_string(it->second.data(), it->second.size()-1 /* libyaml doesn't like '\0' */);
+
+  if(p_meta_schema.validate(meta)) throw InvalidResourceError(id);
+
+  auto tag = meta("tag")->as<yaml::Scalar>();
+  auto location = meta("location")->as<yaml::Scalar>();
+
+  Resource::Ptr r;
+
+  printf("resource(0x%.16llx): %s %s(%s)\n", id,
+    tag->as<yaml::Scalar>()->str(), location->tag().value().c_str(), location->str());
+
+  if(location->tag().value() == "!file") {
+    try {
+      win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
+      win32::FileView mapping = f.map(win32::File::ProtectRead);
+
+      r = TextResource::from_file(mapping.get<char>(), f.size(), id);
+    } catch(const win32::File::Error&) {
+      throw IOError(location->str());
+    }
+  }
+
+  return r;
 }
 
 void SimpleFsLoader::enumAvailable(std::string path)
@@ -41,7 +79,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
     enumAvailable(path + name + "/");
   });
 
-  // Now query *.meta files (asset descriptors)
+  // Now query *.meta files (resource descriptors)
   std::string meta_query_str = path + "*.meta";
   win32::FileQuery meta_query;
   try {
@@ -70,12 +108,12 @@ void SimpleFsLoader::enumAvailable(std::string path)
       auto id = enumOne(file_buf.data(), file.size(), file.fullPath());
       if(id == Resource::InvalidId) return;
 
-      printf("%s: %.16llx\n", name, id);
+      printf("resource %s: 0x%.16llx\n", name, id);
 
-      m_available.insert({
+      m_available.emplace(
         id,
-        file.fullPath()
-      });
+        std::move(file_buf)
+      );
     } catch(const win32::File::Error&) {
       // panic, there really shouldn't be an exception here
       win32::panic(util::fmt("error opening file \"%s\"", name).c_str(), -10);
@@ -94,7 +132,6 @@ Resource::Id SimpleFsLoader::enumOne(const char *meta_file, size_t sz, const cha
     return Resource::InvalidId;
   }
 
-  // query for 'guid'
   auto guid_node = meta("guid");
   if(guid_node && guid_node->type() == yaml::Node::Scalar) {
     auto guid = guid_node->as<yaml::Scalar>();

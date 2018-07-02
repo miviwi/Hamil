@@ -14,13 +14,17 @@ ResourceManager::Ptr p_manager;
 void init()
 {
   p_manager = ResourceManager::Ptr(new ResourceManager(
-    { TextResource::tag(), },
     { new SimpleFsLoader("C:/00PROJ/oglTest/x64/Debug"), }
   ));
 }
 
 void finalize()
 {
+}
+
+ResourceManager& resource()
+{
+  return *p_manager;
 }
 
 }

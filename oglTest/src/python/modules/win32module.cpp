@@ -10,9 +10,6 @@
 
 namespace python {
 
-struct Win32ModuleToken;
-static MethodDefList<Win32ModuleToken> Win32ModuleMethods;
-
 struct TimeToken;
 static MemberDefList<TimeToken> TimeMembers;
 static MethodDefList<TimeToken> TimeMethods;
@@ -385,6 +382,9 @@ static PyObject *LoopTimer_New()
 {
   return LoopTimer_Type.newObject();
 }
+
+struct Win32ModuleToken;
+static MethodDefList<Win32ModuleToken> Win32ModuleMethods;
 
 static ModuleDef Win32Module =
   ModuleDef()

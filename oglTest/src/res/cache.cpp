@@ -2,18 +2,23 @@
 
 namespace res {
 
-std::optional<ResourceCache::ResourcePtr> ResourceCache::probe(Resource::Id id)
+ResourceCache::ResourceCache(Type type) :
+  m_type(type)
 {
-#if 0
-  auto it = m.find(id);
-  return it != m.end() ? it->second : {};
-#endif
-  return {};
 }
 
-void ResourceCache::fill(const Resource::Ptr& r)
+std::optional<ResourceCache::ResourcePtr> ResourceCache::probe(Resource::Id id)
 {
-  m.insert({ r->id(), r });
+  auto it = m.find(id);
+  return it != m.end() ? std::optional<ResourcePtr>(it->second) : std::nullopt;
+}
+
+ResourceCache::ResourcePtr ResourceCache::fill(const Resource::Ptr& r)
+{
+  auto result = m.emplace(r->id(), r);
+  if(result.second) return ResourcePtr(result.first->second);
+
+  return ResourcePtr();
 }
 
 }

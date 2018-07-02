@@ -4,7 +4,11 @@
 
 namespace res {
 
+class ResourceManager;
+
 void init();
 void finalize();
+
+ResourceManager& resource();
 
 }

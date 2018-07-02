@@ -5,12 +5,10 @@
 
 namespace res {
 
-ResourceManager::ResourceManager(std::initializer_list<Resource::Tag> tags,
-  std::initializer_list<ResourceLoader *> loader_chain) :
+ResourceManager::ResourceManager(std::initializer_list<ResourceLoader *> loader_chain) :
+  m_caches({ { ResourceCache::Generic }, { ResourceCache::Static } }),
   m_loader_chain(loader_chain.size())
 {
-  for(const auto& tag : tags) m_caches.insert({ tag, ResourceCache() });
-
   // populate the loader chain in reverse to allow
   // listing the loaders in a natural order (the last loader
   // in the std::initializer_list has the highest priority)
@@ -31,17 +29,24 @@ Resource::Id ResourceManager::guid(Resource::Tag tag, const std::string& name, c
   return hash;
 }
 
-ResourceCache::ResourcePtr ResourceManager::load(Resource::Tag tag, Resource::Id id, LoadFlags flags)
+ResourceCache::ResourcePtr ResourceManager::load(Resource::Id id, LoadFlags flags)
 {
-  auto& cache = m_caches.find(tag)->second;
+  auto& cache = getCache(flags);
   if(auto r = cache.probe(id)) return *r;
 
   for(auto& loader : m_loader_chain) {
-    if(auto r = loader->load(tag, id, flags)) return r;
+    if(auto r = loader->load(id, flags)) return cache.fill(r);
   }
-  throw Error(); // if no loader manages to locate the resource throw :(
+  throw Error(); // if no loader manages to locate the resource - throw :(
 
   return ResourceCache::ResourcePtr(); // unreachable
+}
+
+ResourceCache& ResourceManager::getCache(LoadFlags flags)
+{
+  size_t idx = flags & LoadStatic ? ResourceCache::Static : ResourceCache::Generic;
+
+  return m_caches[idx];
 }
 
 }

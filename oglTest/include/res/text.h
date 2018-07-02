@@ -9,19 +9,19 @@ namespace res {
 
 class TextResource : public Resource {
 public:
-  static constexpr Tag tag() { return "TextResource"; }
+  static constexpr Tag tag() { return "text"; }
+
+  static Resource::Ptr from_memory(const char *buf, size_t sz, Id id,     // 'buf' is copied only when !is_static
+    bool is_static = false, const std::string& name = "", const std::string& path = "");
+
+  static Resource::Ptr from_file(const char *buf, size_t sz, Id id,       // 'buf' is always copied
+    const std::string& name = "", const std::string& path = "");
 
   const std::string_view& str() const;
   const std::string_view *operator->() const; // accesses str()
 
 protected:
   using Resource::Resource;
-
-  static TextResource from_memory(const char *buf, size_t sz, Id id,     // 'buf' is copied only when !is_static
-    bool is_static = false, const std::string& name = "", const std::string& path = "");
-
-  static TextResource from_file(const char *buf, size_t sz, Id id,       // 'buf' is always copied
-    const std::string& name = "", const std::string& path = "");
 
 private:
   friend class ResourceManager; 

@@ -199,6 +199,7 @@ exit /b 0</Command>
     <ClCompile Include="src\python\collections.cpp" />
     <ClCompile Include="src\python\exception.cpp" />
     <ClCompile Include="src\python\modules\mathmodule.cpp" />
+    <ClCompile Include="src\python\modules\resmodule.cpp" />
     <ClCompile Include="src\python\modules\win32module.cpp" />
     <ClCompile Include="src\python\module.cpp" />
     <ClCompile Include="src\python\modules\yamlmodule.cpp" />
@@ -233,6 +234,7 @@ exit /b 0</Command>
     <ClCompile Include="src\win32\waitable.cpp" />
     <ClCompile Include="src\yaml\node.cpp" />
     <ClCompile Include="src\yaml\document.cpp" />
+    <ClCompile Include="src\yaml\schema.cpp" />
     <ClInclude Include="extern\GL\gl3w.h" />
     <ClInclude Include="extern\GL\glcorearb.h" />
     <ClInclude Include="extern\GL\wgl.h" />
@@ -243,6 +245,7 @@ exit /b 0</Command>
     <ClInclude Include="include\python\exception.h" />
     <ClInclude Include="include\python\modules\mathmodule.h" />
     <ClInclude Include="include\python\module.h" />
+    <ClInclude Include="include\python\modules\resmodule.h" />
     <ClInclude Include="include\python\modules\yamlmodule.h" />
     <ClInclude Include="include\python\python.h" />
     <ClInclude Include="include\python\object.h" />
@@ -294,6 +297,7 @@ exit /b 0</Command>
     <ClInclude Include="include\win32\waitable.h" />
     <ClInclude Include="include\yaml\document.h" />
     <ClInclude Include="include\yaml\node.h" />
+    <ClInclude Include="include\yaml\schema.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h" />

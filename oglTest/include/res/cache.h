@@ -14,10 +14,19 @@ public:
   using Map = std::unordered_map<Resource::Id, Resource::Ptr>;
   using ResourcePtr = std::weak_ptr<Resource>;
 
+  enum Type {
+    Generic, Static,
+
+    NumTypes,
+  };
+
+  ResourceCache(Type type);
+
   std::optional<ResourcePtr> probe(Resource::Id id);
-  void fill(const Resource::Ptr& r);
+  ResourcePtr fill(const Resource::Ptr& r);
 
 private:
+  Type m_type;
   Map m;
 };
 
