@@ -158,7 +158,7 @@ FileView File::map(Protect protect, size_t offset, size_t size, const char *name
   auto mapping = CreateFileMappingA(m, nullptr, flprotect, dword_high(size), dword_low(size), name);
   if(!mapping) throw MappingCreateError(GetLastError());
 
-  return FileView(mapping, protect, offset, size);
+  return FileView(*this, mapping, protect, offset, size);
 }
 
 FileView::~FileView()
@@ -185,8 +185,8 @@ uint8_t& FileView::operator[](size_t offset)
   return ptr[offset];
 }
 
-FileView::FileView(void *mapping, File::Protect access, size_t offset, size_t size) :
-  m(mapping)
+FileView::FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size) :
+  m_file(file), m(mapping)
 {
   DWORD desired_access = 0;
   desired_access |= access & File::ProtectRead    ? FILE_MAP_READ    : 0;

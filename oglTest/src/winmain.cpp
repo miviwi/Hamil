@@ -462,8 +462,7 @@ void main() {
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame<ui::PushButtonFrame>(iface, "b")
-           .frame<ui::PushButtonFrame>(iface, "c"))
+           .frame<ui::PushButtonFrame>(iface, "b"))
     .frame(ui::create<ui::DropDownFrame>(iface, "light_no")
            .item({ "Light 1" })
            .item({ "Light 2" })
@@ -485,13 +484,10 @@ void main() {
     .frame(ui::create<ui::TextBoxFrame>(iface, "textbox").hint("Type something here!"))
     ;
 
-  auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b"),
-    btn_c = iface.getFrameByName<ui::PushButtonFrame>("c");
-
+  auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-  btn_c->caption("Call vm!");
 
   auto& light_no = *iface.getFrameByName<ui::DropDownFrame>("light_no");
 
@@ -557,11 +553,6 @@ void main() {
 
   auto doc = yaml::Document::from_string(conf.map(win32::File::ProtectRead).get<const char>());
   console.print(win32::StdStream::gets());
-
-  btn_c->onClick([&](auto target) {
-    console.print("Sorry, no VM :(");
-    console.dropped(true);
-  });
 
   auto fps_timer = win32::DeltaTimer();
 

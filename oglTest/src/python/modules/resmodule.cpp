@@ -46,8 +46,9 @@ static PyObject *Res_Load(PyObject *self, PyObject *args)
       Py_RETURN_TRUE;
     }
   } catch(const res::ResourceManager::Error&) {
-    PyErr_SetString(PyExc_ValueError,
-      util::fmt("failed to load resource with guid=0x%.16llx", guid).c_str());
+    auto err = util::fmt("failed to load resource with guid=0x%.16llx", guid);
+
+    PyErr_SetString(PyExc_ValueError, err.data());
   }
 
   return nullptr; // unreachable with no exception set

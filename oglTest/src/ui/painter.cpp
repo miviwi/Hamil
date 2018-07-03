@@ -528,7 +528,7 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
   StridePtr<ft::Position> pos_ptr((ft::Position *)&ptr->pos, sizeof(Vertex));
   StridePtr<ft::UV> uv_ptr((ft::UV *)&ptr->uv, sizeof(Vertex));
 
-  auto s = font.writeVertsAndIndices(str.c_str(), pos_ptr, uv_ptr, m_ind.data()+offset);
+  auto s = font.writeVertsAndIndices(str.data(), pos_ptr, uv_ptr, m_ind.data()+offset);
 
   unsigned num = s.num();
 

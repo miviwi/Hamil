@@ -130,7 +130,7 @@ static PyObject *Document_Repr(Document *self)
 {
   Unicode doc(self->m.get()->repr());
 
-  return Unicode::from_format("Document(%s)", doc.repr().c_str()).move();
+  return Unicode::from_format("Document(%s)", doc.repr().data()).move();
 }
 
 static PyObject *Document_Str(Document *self)

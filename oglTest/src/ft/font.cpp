@@ -220,7 +220,7 @@ Font::Font(const FontFamily& family, unsigned height) :
   if(err) {
     std::string err_message = "FreeType face creation error " + std::to_string(err) + "!";
 
-    MessageBoxA(nullptr, err_message.c_str(), "FreeTyper error!", MB_OK);
+    MessageBoxA(nullptr, err_message.data(), "FreeTyper error!", MB_OK);
     ExitProcess(-2);
   }
 
@@ -290,7 +290,7 @@ String Font::string(const char *str, size_t length) const
 
 String Font::string(const std::string& str) const
 {
-  return string(str.c_str(), str.length());
+  return string(str.data(), str.length());
 }
 
 String Font::string(const char *str) const
@@ -358,7 +358,7 @@ String Font::stringMetrics(const char *str) const
 
 String Font::stringMetrics(const std::string& str) const
 {
-  return stringMetrics(str.c_str());
+  return stringMetrics(str.data());
 }
 
 String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, StridePtr<UV> uv, u16 *inds) const
@@ -617,7 +617,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   std::string atlas_label = "FT_altas";
 
   m_atlas.init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::u8);
-  m_atlas.label((atlas_label + std::to_string(atlas_id++)).c_str());
+  m_atlas.label((atlas_label + std::to_string(atlas_id++)).data());
 
   m_sampler
     .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
@@ -755,7 +755,7 @@ FontFamily::FontFamily(const char *name)
 
 const char *FontFamily::getPath() const
 {
-  return m_path.c_str();
+  return m_path.data();
 }
 
 }

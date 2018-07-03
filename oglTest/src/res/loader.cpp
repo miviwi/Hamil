@@ -1,4 +1,5 @@
 #include <res/loader.h>
+#include <res/manager.h>
 #include <res/resource.h>
 #include <res/text.h>
 
@@ -9,9 +10,12 @@
 #include <yaml/node.h>
 #include <yaml/schema.h>
 
+#include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <vector>
+#include <unordered_map>
+#include <functional>
 
 namespace res {
 
@@ -41,28 +45,26 @@ Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
   if(p_meta_schema.validate(meta)) throw InvalidResourceError(id);
 
   auto tag      = meta("tag")->as<yaml::Scalar>();
-
-
-
   auto location = meta("location")->as<yaml::Scalar>();
 
-  Resource::Ptr r;
-
   printf("resource(0x%.16llx): %s %s(%s)\n", id,
-    tag->as<yaml::Scalar>()->str(), location->tag().value().c_str(), location->str());
+    tag->str(), location->tag().value().data(), location->str());
 
-  if(location->tag().value() == "!file") {
-    try {
-      win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
-      win32::FileView mapping = f.map(win32::File::ProtectRead);
+  static const std::unordered_map<Resource::Tag, LoaderFn, Resource::Tag::Hash> loader_fns = {
+    { TextResource::tag(), &SimpleFsLoader::loadText },
+  };
 
-      r = TextResource::from_file(mapping.get<char>(), f.size(), id);
-    } catch(const win32::File::Error&) {
-      throw IOError(location->str());
-    }
+  LoaderFn loader = nullptr;
+  if(auto t = ResourceManager::make_tag(tag->str())) {
+    auto it = loader_fns.find(t.value());
+    assert(it != loader_fns.end() && "loading function missing in SimpleFsLoader!");
+
+    loader = it->second;
+  } else {
+    throw InvalidResourceError(id);
   }
 
-  return r;
+  return (this->*loader)(id, meta);
 }
 
 void SimpleFsLoader::enumAvailable(std::string path)
@@ -71,7 +73,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
 
   // Snoop subdirectories first
   std::string dir_query_str = path + "*";
-  win32::FileQuery dir_query(dir_query_str.c_str());
+  win32::FileQuery dir_query(dir_query_str.data());
 
   dir_query.foreach([this,&path](const char *name, FileQuery::Attributes attrs) {
     // Have to manually check whether 'name' is a directory
@@ -86,7 +88,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
   std::string meta_query_str = path + "*.meta";
   win32::FileQuery meta_query;
   try {
-    meta_query = win32::FileQuery(meta_query_str.c_str());
+    meta_query = win32::FileQuery(meta_query_str.data());
   } catch(const win32::FileQuery::Error&) {
     return; // no .meta files in current directory
   }
@@ -119,7 +121,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
       );
     } catch(const win32::File::Error&) {
       // panic, there really shouldn't be an exception here
-      win32::panic(util::fmt("error opening file \"%s\"", name).c_str(), -10);
+      win32::panic(util::fmt("error opening file \"%s\"", name).data(), -10);
     }
   });
 }
@@ -131,7 +133,7 @@ Resource::Id SimpleFsLoader::enumOne(const char *meta_file, size_t sz, const cha
     meta = yaml::Document::from_string(meta_file, sz);
   } catch(const yaml::Document::Error& e) {
     printf("warning: meta file '%s' could not be parsed\n", full_path);
-    printf("         %s\n", e.what().c_str());
+    printf("         %s\n", e.what().data());
     return Resource::InvalidId;
   }
 
@@ -145,6 +147,18 @@ Resource::Id SimpleFsLoader::enumOne(const char *meta_file, size_t sz, const cha
 
   printf("warning: meta file '%s' doesn't have a 'guid' node (or it's not a Scalar)\n", full_path);
   return Resource::InvalidId;
+}
+
+Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& meta)
+{
+  // execution only reaches here when 'meta' has passed validation
+  // so we can assume it's valid
+  auto location = meta("location")->as<yaml::Scalar>();
+
+  win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
+  win32::FileView view = f.map(win32::File::ProtectRead);
+
+  return TextResource::from_file(view.get<char>(), f.size(), id, "", location->str());
 }
 
 }

@@ -40,7 +40,7 @@ void Clipboard::string(const void *ptr, size_t sz)
 
 void Clipboard::string(const std::string& str)
 {
-  string(str.c_str(), str.size());
+  string(str.data(), str.size());
 }
 
 }

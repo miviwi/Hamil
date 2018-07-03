@@ -115,8 +115,9 @@ private:
   T value(float time)
   {
     auto frame = getFrame(time);
+    auto factor = ease(m_easing, frame.factor);
 
-    return lerp(m_keyframes[frame.first], m_keyframes[frame.first+1], ease(m_easing, frame.factor));
+    return lerp(m_keyframes[frame.first], m_keyframes[frame.first+1], factor);
   }
 
   std::vector<T> m_keyframes;
@@ -146,6 +147,7 @@ public:
 
   void start();
   void stop();
+
   bool done();
 
   template <typename T>

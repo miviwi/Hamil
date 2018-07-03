@@ -234,7 +234,7 @@ Document::ParseError Parser::parseError() const
 
 std::string Document::Error::what() const
 {
-  return util::fmt("%lld, %lld: %s", line, column, reason.c_str());
+  return util::fmt("%lld, %lld: %s", line, column, reason.data());
 }
 
 Document::Document()
@@ -253,7 +253,7 @@ Document Document::from_string(const char *doc, size_t len)
 
 Document Document::from_string(const std::string& doc)
 {
-  return from_string(doc.c_str(), doc.length());
+  return from_string(doc.data(), doc.length());
 }
 
 std::string Document::toString()
@@ -274,9 +274,9 @@ Node::Ptr Document::get(const std::string& what) const
   std::string term;
   while(std::getline(stream, term, '.')) {
     char *end = nullptr;
-    auto idx = strtoull(term.c_str(), &end, 0);
+    auto idx = strtoull(term.data(), &end, 0);
 
-    if(end == term.c_str()+term.length()) { // 'term' was an index
+    if(end == term.data()+term.length()) { // 'term' was an index
       node = node->get(idx);
     } else {
       node = node->get(term);

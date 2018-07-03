@@ -82,8 +82,9 @@ public:
   File(const char *path, Access access, Share share, OpenMode open);
   File(const char *path, Access access, OpenMode open);
   File(const char *path, Access access);
-  File(const File& other) = delete;
   ~File();
+
+  File& operator=(const File& other) = delete;
 
   size_t size() const;
 
@@ -124,8 +125,9 @@ public:
 private:
   friend class File;
 
-  FileView(void *mapping, File::Protect access, size_t offset, size_t size);
+  FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size);
 
+  File m_file;
   void *m;
   void *m_ptr;
 };

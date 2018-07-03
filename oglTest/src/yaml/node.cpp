@@ -52,7 +52,7 @@ Scalar::Scalar(byte *data, size_t sz, Tag tag) :
 Scalar::Scalar(const std::string& str, Tag tag) :
   Node(NodeType, tag), m_data(str.length(), '\0')
 {
-  memcpy(m_data.data(), str.c_str(), str.length());
+  memcpy(m_data.data(), str.data(), str.length());
 }
 
 Node::Ptr Scalar::from_str(const std::string& str)

@@ -231,7 +231,7 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
     case 'X':   // Cut
     case 'C': { // Copy
       win32::Clipboard clipboard;
-      auto str = m_text.c_str() + m_selection.left();
+      auto str = m_text.data() + m_selection.left();
 
       clipboard.string(str, m_selection.size());
       if(kb->key == 'X') doDeleteSelection();

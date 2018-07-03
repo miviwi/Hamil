@@ -222,7 +222,7 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
 {
   for(unsigned i = 0; i < sz; i++) {
     const auto& o = offsets[i];
-    GLint loc = glGetUniformLocation(m, o.first.c_str());
+    GLint loc = glGetUniformLocation(m, o.first.data());
 
     locations[o.second] = loc;
   }

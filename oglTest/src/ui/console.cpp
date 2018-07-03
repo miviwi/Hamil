@@ -67,7 +67,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     if(cmd.length() && cmd.front() == '$') {
       consoleCommand(cmd);
     } else {
-      m_on_command.emit(this, cmd.c_str());
+      m_on_command.emit(this, cmd.data());
     }
 
     target->text("");
@@ -150,7 +150,7 @@ ConsoleFrame& ConsoleFrame::print(const char *str)
 
 ConsoleFrame& ConsoleFrame::print(const std::string& str)
 {
-  return print(str.c_str());
+  return print(str.data());
 }
 
 ConsoleFrame& ConsoleFrame::clear()

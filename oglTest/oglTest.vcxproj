@@ -110,6 +110,8 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <MinimalRebuild>false</MinimalRebuild>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AssemblerListingLocation>$(IntDir)%(RelativeDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -168,6 +170,8 @@ exit /b 0</Command>
       <OmitFramePointers>true</OmitFramePointers>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AssemblerListingLocation>$(IntDir)%(RelativeDir)</AssemblerListingLocation>
+      <ObjectFileName>$(IntDir)%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -194,6 +198,7 @@ exit /b 0</Command>
   <ItemGroup>
     <ClCompile Include="extern\GL\gl3w.c" />
     <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="src\ft\cache.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\python\collections.cpp" />
@@ -239,6 +244,7 @@ exit /b 0</Command>
     <ClInclude Include="extern\GL\glcorearb.h" />
     <ClInclude Include="extern\GL\wgl.h" />
     <ClInclude Include="Generated\uniforms.h" />
+    <ClInclude Include="include\ft\cache.h" />
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\python\collections.h" />
