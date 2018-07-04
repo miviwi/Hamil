@@ -57,13 +57,12 @@ public:
 
   virtual Resource::Ptr load(Resource::Id id, LoadFlags flags);
 
-private:
   using LoaderFn = Resource::Ptr (SimpleFsLoader::*)(Resource::Id, const yaml::Document&);
+  Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
 
+private:
   void enumAvailable(std::string path);
   Resource::Id enumOne(const char *meta_file, size_t sz, const char *full_path = "");
-
-  Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
 
   std::string m_path;
   std::unordered_map<Resource::Id, std::vector<char> /* meta_file */>  m_available;

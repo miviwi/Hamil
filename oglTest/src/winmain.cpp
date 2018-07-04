@@ -552,6 +552,7 @@ void main() {
   win32::File conf("conf", win32::File::Read);
 
   auto doc = yaml::Document::from_string(conf.map(win32::File::ProtectRead).get<const char>());
+  printf(doc.toString().data());
   console.print(win32::StdStream::gets());
 
   auto fps_timer = win32::DeltaTimer();

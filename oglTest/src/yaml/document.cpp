@@ -142,7 +142,7 @@ Node::Ptr Parser::node()
 
   case YAML_ALIAS_EVENT:          return alias();
 
-  default: assert(1); break;
+  default: assert(0); break;
   }
 
   return Node::Ptr(); // unreachable
@@ -232,6 +232,153 @@ Document::ParseError Parser::parseError() const
   return Document::ParseError(line, column, m_parser.problem);
 }
 
+class Emitter {
+public:
+  enum : size_t { InitialReserve = 256, };
+
+  Emitter();
+  ~Emitter();
+
+  std::string emit(const Node::Ptr& node);
+
+private:
+  static int write_handler(void *data, byte *buf, size_t sz);
+
+  void emitNode(const Node::Ptr& node);
+
+  void emitScalar(const Scalar *scalar);
+  void emitSequence(const Sequence *seq);
+  void emitMapping(const Mapping *map);
+
+  // cleans up 'event'
+  void emitEvent(yaml_event_t *event);
+
+  Document::EmitError emitError() const;
+
+  yaml_emitter_t m_emitter;
+};
+
+Emitter::Emitter()
+{
+  if(!yaml_emitter_initialize(&m_emitter)) throw Document::Error(0, 0, "failed to initialize libyaml!");
+}
+
+Emitter::~Emitter()
+{
+  yaml_emitter_delete(&m_emitter);
+}
+
+std::string Emitter::emit(const Node::Ptr& node)
+{
+  if(!node) return "";
+
+  std::string out;
+  out.reserve(InitialReserve);
+
+  yaml_emitter_set_output(&m_emitter, write_handler, &out);
+
+  yaml_event_t event;
+
+  yaml_stream_start_event_initialize(&event, YAML_UTF8_ENCODING);
+  emitEvent(&event);
+
+  yaml_document_start_event_initialize(&event,
+    nullptr,
+    nullptr, nullptr,
+    1);
+  emitEvent(&event);
+
+  emitNode(node);
+
+  yaml_document_end_event_initialize(&event, 1);
+  emitEvent(&event);
+
+  yaml_stream_end_event_initialize(&event);
+  emitEvent(&event);
+
+  yaml_emitter_flush(&m_emitter);
+  return out;
+}
+
+int Emitter::write_handler(void *data, byte *buf, size_t sz)
+{
+  auto out = (std::string *)data;
+  out->append((const char *)buf, sz);
+
+  return 1;
+}
+
+void Emitter::emitNode(const Node::Ptr& node)
+{
+  if(!node) return;
+
+  switch(node->type()) {
+  case Node::Scalar:   emitScalar(node->as<Scalar>()); break;
+  case Node::Sequence: emitSequence(node->as<Sequence>()); break;
+  case Node::Mapping:  emitMapping(node->as<Mapping>()); break;
+  }
+}
+
+void Emitter::emitScalar(const Scalar *scalar)
+{
+  yaml_event_t event;
+
+  yaml_scalar_event_initialize(&event,
+    nullptr,
+    scalar->tag() ? (yaml_char_t *)scalar->tag().value().data() : nullptr,
+    (yaml_char_t *)scalar->m_data.data(), (int)scalar->m_data.length(),
+    1, 1,
+    YAML_ANY_SCALAR_STYLE);
+  emitEvent(&event);
+}
+
+void Emitter::emitSequence(const Sequence *seq)
+{
+  yaml_event_t event;
+
+  yaml_sequence_start_event_initialize(&event,
+    nullptr,
+    seq->tag() ? (yaml_char_t *)seq->tag().value().data() : nullptr,
+    1,
+    seq->m.size() > 2 ? YAML_ANY_SEQUENCE_STYLE : YAML_FLOW_SEQUENCE_STYLE);
+  emitEvent(&event);
+
+  for(const auto& node : seq->m) emitNode(node);
+
+  yaml_sequence_end_event_initialize(&event);
+  emitEvent(&event);
+}
+
+void Emitter::emitMapping(const Mapping *map)
+{
+  yaml_event_t event;
+
+  yaml_mapping_start_event_initialize(&event,
+    nullptr,
+    map->tag() ? (yaml_char_t *)map->tag().value().data() : nullptr,
+    1,
+    YAML_ANY_MAPPING_STYLE);
+  emitEvent(&event);
+
+  for(const auto& pair : map->m) {
+    emitNode(pair.first);   // key
+    emitNode(pair.second);  // value
+  }
+
+  yaml_mapping_end_event_initialize(&event);
+  emitEvent(&event);
+}
+
+void Emitter::emitEvent(yaml_event_t *event)
+{
+  if(!yaml_emitter_emit(&m_emitter, event)) throw emitError();
+}
+
+Document::EmitError Emitter::emitError() const
+{
+  return Document::EmitError(m_emitter.line, m_emitter.column, (const char *)m_emitter.problem);
+}
+
 std::string Document::Error::what() const
 {
   return util::fmt("%lld, %lld: %s", line, column, reason.data());
@@ -241,14 +388,14 @@ Document::Document()
 {
 }
 
+Document::Document(const Node::Ptr& root) :
+  m_root(root)
+{
+}
+
 Document Document::from_string(const char *doc, size_t len)
 {
-  Document document;
-  document.m_root = Parser().input(doc, len ? len : strlen(doc)).parse();
-
- // puts(document.m_root->repr().c_str());
-
-  return document;
+  return Document(Parser().input(doc, len).parse());
 }
 
 Document Document::from_string(const std::string& doc)
@@ -258,7 +405,7 @@ Document Document::from_string(const std::string& doc)
 
 std::string Document::toString()
 {
-  return std::string();
+  return Emitter().emit(m_root);
 }
 
 Node::Ptr Document::get() const

@@ -101,6 +101,8 @@ public:
   virtual bool compare(const Node::Ptr& other) const;
 
 private:
+  friend class Emitter;
+
   template <typename T> T *probeCache() const { return std::get_if<T>(&m_cache); }
   template <typename T> T fillCache(T val) const { m_cache = val; return val; }
 
@@ -140,6 +142,8 @@ public:
   virtual void foreach(KVIterFn fn); // SLOW!
 
 private:
+  friend class Emitter;
+
   Seq m;
 };
 
@@ -172,6 +176,8 @@ public:
   Iterator end()   { return m.end(); }
 
 private:
+  friend class Emitter;
+
   Map m;
 };
 

@@ -28,6 +28,10 @@ public:
   public:
     using Error::Error;
   };
+  struct EmitError : public Error {
+  public:
+    using Error::Error;
+  };
 
   struct AliasError : public Error {
   public:
@@ -35,8 +39,9 @@ public:
   };
 
   Document();
+  Document(const Node::Ptr& root);
 
-  static Document from_string(const char *doc, size_t len = 0);
+  static Document from_string(const char *doc, size_t len);
   static Document from_string(const std::string& doc);
 
   std::string toString();

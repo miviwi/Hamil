@@ -34,6 +34,10 @@ static yaml::Schema p_meta_schema =
     .scalar("location", yaml::Scalar::Tagged)
   ;
 
+static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn, Resource::Tag::Hash> p_loader_fns = {
+  { TextResource::tag(), &SimpleFsLoader::loadText },
+};
+
 Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
 {
   auto it = m_available.find(id);
@@ -50,14 +54,10 @@ Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
   printf("resource(0x%.16llx): %s %s(%s)\n", id,
     tag->str(), location->tag().value().data(), location->str());
 
-  static const std::unordered_map<Resource::Tag, LoaderFn, Resource::Tag::Hash> loader_fns = {
-    { TextResource::tag(), &SimpleFsLoader::loadText },
-  };
-
   LoaderFn loader = nullptr;
   if(auto t = ResourceManager::make_tag(tag->str())) {
-    auto it = loader_fns.find(t.value());
-    assert(it != loader_fns.end() && "loading function missing in SimpleFsLoader!");
+    auto it = p_loader_fns.find(t.value());
+    assert(it != p_loader_fns.end() && "loading function missing in SimpleFsLoader!");
 
     loader = it->second;
   } else {
