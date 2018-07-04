@@ -150,7 +150,7 @@ vec3 phong(Light light, vec3 position, vec3 normal) {
   
   vec3 ambient = 0.1 * light.color;
   vec3 diffuse = diffuse_strength * light.color;
-  vec3 specular = 0.5 * specular_strength * light.color;
+  vec3 specular = specular_strength * light.color;
 
   return (ambient+diffuse+specular)*attenuation;
 } 
@@ -549,12 +549,6 @@ void main() {
     }
   });
 
-  win32::File conf("conf", win32::File::Read);
-
-  auto doc = yaml::Document::from_string(conf.map(win32::File::ProtectRead).get<const char>());
-  printf(doc.toString().data());
-  console.print(win32::StdStream::gets());
-
   auto fps_timer = win32::DeltaTimer();
 
   constexpr auto anim_time = 10000.0f;
@@ -565,14 +559,6 @@ void main() {
 
     vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
-    /*
-    mat4 eye_mtx = xform::identity()
-      *xform::translate(pos*2.0f)
-      *xform::roty(yaw)
-      *xform::rotx(-pitch)
-      *xform::translate(-pos)
-      ;
-      */
 
     mat4 eye_mtx = xform::Transform()
       .translate(-pos)
@@ -785,20 +771,6 @@ void main() {
 
     small_face.draw(util::fmt("time: %.8lfs", fps_timer.elapsedSecondsf()),
                     { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
-
-    //texmatrix = texmatrix.inverse();
-    std::string texmatrix_str =
-      util::fmt(
-              "%f %f %f %f\n"
-              "%f %f %f %f\n"
-              "%f %f %f %f\n"
-              "%f %f %f %f",
-              texmatrix[0], texmatrix[1], texmatrix[2], texmatrix[3],
-              texmatrix[4], texmatrix[5], texmatrix[6], texmatrix[7],
-              texmatrix[8], texmatrix[9], texmatrix[10], texmatrix[11],
-              texmatrix[12], texmatrix[13], texmatrix[14], texmatrix[15]);
-
-    if(display_tex_matrix) small_face.draw(texmatrix_str, vec2{ 30.0f, 150.0f }, vec3{ 1, 1, 1 });
 
     iface.paint();
     cursor.paint();

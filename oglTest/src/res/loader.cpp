@@ -46,6 +46,8 @@ Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
   // The file was already parsed (in enumOne()) so we can assume it is valid
   auto meta = yaml::Document::from_string(it->second.data(), it->second.size()-1 /* libyaml doesn't like '\0' */);
 
+  puts(meta.toString().data());
+
   if(p_meta_schema.validate(meta)) throw InvalidResourceError(id);
 
   auto tag      = meta("tag")->as<yaml::Scalar>();

@@ -323,11 +323,13 @@ void Emitter::emitScalar(const Scalar *scalar)
 {
   yaml_event_t event;
 
+  bool has_tag = scalar->tag().has_value();
+
   yaml_scalar_event_initialize(&event,
     nullptr,
-    scalar->tag() ? (yaml_char_t *)scalar->tag().value().data() : nullptr,
+    has_tag ? (yaml_char_t *)scalar->tag().value().data() : nullptr,
     (yaml_char_t *)scalar->m_data.data(), (int)scalar->m_data.length(),
-    1, 1,
+    !has_tag, !has_tag,     // if the Node has a tag - don't omit it 
     YAML_ANY_SCALAR_STYLE);
   emitEvent(&event);
 }
@@ -339,7 +341,7 @@ void Emitter::emitSequence(const Sequence *seq)
   yaml_sequence_start_event_initialize(&event,
     nullptr,
     seq->tag() ? (yaml_char_t *)seq->tag().value().data() : nullptr,
-    1,
+    0,
     seq->m.size() > 2 ? YAML_ANY_SEQUENCE_STYLE : YAML_FLOW_SEQUENCE_STYLE);
   emitEvent(&event);
 
@@ -356,7 +358,7 @@ void Emitter::emitMapping(const Mapping *map)
   yaml_mapping_start_event_initialize(&event,
     nullptr,
     map->tag() ? (yaml_char_t *)map->tag().value().data() : nullptr,
-    1,
+    0,
     YAML_ANY_MAPPING_STYLE);
   emitEvent(&event);
 
