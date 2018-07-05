@@ -152,7 +152,16 @@ Node::Ptr Parser::scalar()
 {
   auto data = m_event.data.scalar;
 
-  auto scalar = new Scalar(data.value, data.length, data.tag ? (const char *)data.tag : Node::Tag());
+  auto style = Node::Any;
+  switch(data.style) {
+  case YAML_SINGLE_QUOTED_SCALAR_STYLE: style = Node::SingleQuoted; break;
+  case YAML_DOUBLE_QUOTED_SCALAR_STYLE: style = Node::DoubleQuoted; break;
+
+  case YAML_FOLDED_SCALAR_STYLE:       style = Node::Folded; break;
+  case YAML_LITERAL_SCALAR_STYLE:      style = Node::Literal; break;
+  }
+
+  auto scalar = new Scalar(data.value, data.length, data.tag ? (const char *)data.tag : Node::Tag(), style);
   auto ptr = Node::Ptr(scalar);
 
   if(data.anchor) m_anchors.insert({ data.anchor, ptr });
@@ -163,8 +172,14 @@ Node::Ptr Parser::scalar()
 Node::Ptr Parser::sequence()
 {
   auto data = m_event.data.sequence_start;
+  
+  auto style = Node::Any;
+  switch(data.style) {
+  case YAML_BLOCK_SEQUENCE_STYLE: style = Node::Block; break;
+  case YAML_FLOW_SEQUENCE_STYLE:  style = Node::Flow; break;
+  }
 
-  auto seq = data.tag ? new Sequence((const char *)data.tag) : new Sequence();
+  auto seq = data.tag ? new Sequence((const char *)data.tag, style) : new Sequence(std::nullopt, style);
   auto ptr = Node::Ptr(seq);
 
   if(data.anchor) m_anchors.insert({ data.anchor, ptr });
@@ -187,7 +202,13 @@ Node::Ptr Parser::mapping()
 {
   auto data = m_event.data.mapping_start;
 
-  auto map = data.tag ? new Mapping((const char *)data.tag) : new Mapping();
+  auto style = Node::Any;
+  switch(data.style) {
+  case YAML_BLOCK_MAPPING_STYLE: style = Node::Block; break;
+  case YAML_FLOW_MAPPING_STYLE:  style = Node::Flow; break;
+  }
+
+  auto map = data.tag ? new Mapping((const char *)data.tag, style) : new Mapping(std::nullopt, style);
   auto ptr = Node::Ptr(map);
 
   if(data.anchor) m_anchors.insert({ data.anchor, ptr });
@@ -234,7 +255,7 @@ Document::ParseError Parser::parseError() const
 
 class Emitter {
 public:
-  enum : size_t { InitialReserve = 256, };
+  enum : size_t { InitialReserve = 256 };
 
   Emitter();
   ~Emitter();
@@ -276,6 +297,7 @@ std::string Emitter::emit(const Node::Ptr& node)
   out.reserve(InitialReserve);
 
   yaml_emitter_set_output(&m_emitter, write_handler, &out);
+  yaml_emitter_set_width(&m_emitter, 80);
 
   yaml_event_t event;
 
@@ -325,12 +347,24 @@ void Emitter::emitScalar(const Scalar *scalar)
 
   bool has_tag = scalar->tag().has_value();
 
+  yaml_scalar_style_t style = YAML_ANY_SCALAR_STYLE;
+  switch(scalar->style()) {
+  case Node::Any: break;
+
+  case Node::Literal:      style = YAML_LITERAL_SCALAR_STYLE; break;
+  case Node::Folded:       style = YAML_FOLDED_SCALAR_STYLE; break;
+  case Node::SingleQuoted: style = YAML_SINGLE_QUOTED_SCALAR_STYLE; break;
+  case Node::DoubleQuoted: style = YAML_DOUBLE_QUOTED_SCALAR_STYLE; break;
+
+  default: throw Document::EmitError(m_emitter.line, m_emitter.column, "invalid scalar style!");
+  }
+
   yaml_scalar_event_initialize(&event,
     nullptr,
     has_tag ? (yaml_char_t *)scalar->tag().value().data() : nullptr,
-    (yaml_char_t *)scalar->m_data.data(), (int)scalar->m_data.length(),
+    (yaml_char_t *)scalar->str(), (int)scalar->size(),
     !has_tag, !has_tag,     // if the Node has a tag - don't omit it 
-    YAML_ANY_SCALAR_STYLE);
+    style);
   emitEvent(&event);
 }
 
@@ -338,14 +372,24 @@ void Emitter::emitSequence(const Sequence *seq)
 {
   yaml_event_t event;
 
+  yaml_sequence_style_t style = YAML_ANY_SEQUENCE_STYLE;
+  switch(seq->style()) {
+  case Node::Any: style = seq->size() > 2 ? YAML_ANY_SEQUENCE_STYLE : YAML_FLOW_SEQUENCE_STYLE; break;
+
+  case Node::Flow:  style = YAML_FLOW_SEQUENCE_STYLE; break;
+  case Node::Block: style = YAML_BLOCK_SEQUENCE_STYLE; break;
+
+  default: throw Document::EmitError(m_emitter.line, m_emitter.column, "invalid sequence style!");
+  }
+
   yaml_sequence_start_event_initialize(&event,
     nullptr,
     seq->tag() ? (yaml_char_t *)seq->tag().value().data() : nullptr,
     0,
-    seq->m.size() > 2 ? YAML_ANY_SEQUENCE_STYLE : YAML_FLOW_SEQUENCE_STYLE);
+    style);
   emitEvent(&event);
 
-  for(const auto& node : seq->m) emitNode(node);
+  for(const auto& node : *seq) emitNode(node);
 
   yaml_sequence_end_event_initialize(&event);
   emitEvent(&event);
@@ -355,14 +399,22 @@ void Emitter::emitMapping(const Mapping *map)
 {
   yaml_event_t event;
 
+  yaml_mapping_style_t style = YAML_ANY_MAPPING_STYLE;
+  switch(map->style()) {
+  case Node::Flow:  style = YAML_FLOW_MAPPING_STYLE; break;
+  case Node::Block: style = YAML_BLOCK_MAPPING_STYLE; break;
+
+  default: throw Document::EmitError(m_emitter.line, m_emitter.column, "invalid mapping style!");
+  }
+
   yaml_mapping_start_event_initialize(&event,
     nullptr,
     map->tag() ? (yaml_char_t *)map->tag().value().data() : nullptr,
     0,
-    YAML_ANY_MAPPING_STYLE);
+    style);
   emitEvent(&event);
 
-  for(const auto& pair : map->m) {
+  for(const auto& pair : *map) {
     emitNode(pair.first);   // key
     emitNode(pair.second);  // value
   }

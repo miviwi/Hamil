@@ -549,6 +549,13 @@ void main() {
     }
   });
 
+  win32::File f("shader.meta", win32::File::Read, win32::File::OpenExisting);
+  auto shader_meta = yaml::Document::from_string(f.map(win32::File::ProtectRead).get<const char>(), f.size());
+
+  puts(shader_meta.toString().data());
+
+  console.print(win32::StdStream::gets());
+
   auto fps_timer = win32::DeltaTimer();
 
   constexpr auto anim_time = 10000.0f;

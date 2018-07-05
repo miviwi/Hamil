@@ -216,6 +216,7 @@ exit /b 0</Command>
     <ClCompile Include="src\res\manager.cpp" />
     <ClCompile Include="src\res\res.cpp" />
     <ClCompile Include="src\res\resource.cpp" />
+    <ClCompile Include="src\res\shader.cpp" />
     <ClCompile Include="src\res\text.cpp" />
     <ClCompile Include="src\ui\animation.cpp" />
     <ClCompile Include="src\ui\console.cpp" />
@@ -261,6 +262,7 @@ exit /b 0</Command>
     <ClInclude Include="include\res\manager.h" />
     <ClInclude Include="include\res\res.h" />
     <ClInclude Include="include\res\resource.h" />
+    <ClInclude Include="include\res\shader.h" />
     <ClInclude Include="include\res\text.h" />
     <ClInclude Include="include\ui\animation.h" />
     <ClInclude Include="include\ui\console.h" />

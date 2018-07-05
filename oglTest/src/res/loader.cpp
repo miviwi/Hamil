@@ -2,6 +2,7 @@
 #include <res/manager.h>
 #include <res/resource.h>
 #include <res/text.h>
+#include <res/shader.h>
 
 #include <util/format.h>
 #include <win32/file.h>
@@ -27,15 +28,27 @@ SimpleFsLoader::SimpleFsLoader(const char *base_path) :
   enumAvailable("./"); // enum all resources starting from 'base_path'
 }
 
-static yaml::Schema p_meta_schema = 
+static yaml::Schema p_meta_generic_schema = 
   yaml::Schema()
-    .scalar("guid",     yaml::Scalar::Int)
-    .scalar("tag",      yaml::Scalar::String)
-    .scalar("location", yaml::Scalar::Tagged)
+    .scalar("guid", yaml::Scalar::Int)
+    .scalar("tag",  yaml::Scalar::String)
+    .file("name")
+    .path("path")
   ;
 
-static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn, Resource::Tag::Hash> p_loader_fns = {
-  { TextResource::tag(), &SimpleFsLoader::loadText },
+static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
+  { TextResource::tag(),   yaml::Schema()
+                             .scalar("location", yaml::Scalar::Tagged) },
+  { ShaderResource::tag(), yaml::Schema()
+                             .sequence("vertex")
+                             .sequence("geometry", yaml::Optional)
+                             .sequence("fragment", yaml::Optional) },
+
+};
+
+static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> p_loader_fns = {
+  { TextResource::tag(),   &SimpleFsLoader::loadText   },
+  { ShaderResource::tag(), &SimpleFsLoader::loadShader },
 };
 
 Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
@@ -45,26 +58,22 @@ Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
 
   // The file was already parsed (in enumOne()) so we can assume it is valid
   auto meta = yaml::Document::from_string(it->second.data(), it->second.size()-1 /* libyaml doesn't like '\0' */);
+  if(p_meta_generic_schema.validate(meta)) throw InvalidResourceError(id);
 
   puts(meta.toString().data());
 
-  if(p_meta_schema.validate(meta)) throw InvalidResourceError(id);
+  auto tag = ResourceManager::make_tag(meta("tag")->as<yaml::Scalar>()->str());
+  if(!tag) throw InvalidResourceError(id);
 
-  auto tag      = meta("tag")->as<yaml::Scalar>();
-  auto location = meta("location")->as<yaml::Scalar>();
+  auto schema_it = p_meta_schemas.find(tag.value());
+  assert(schema_it != p_meta_schemas.end() && "schema missing in p_meta_schemas!");
 
-  printf("resource(0x%.16llx): %s %s(%s)\n", id,
-    tag->str(), location->tag().value().data(), location->str());
+  if(schema_it->second.validate(meta)) throw InvalidResourceError(id);
 
-  LoaderFn loader = nullptr;
-  if(auto t = ResourceManager::make_tag(tag->str())) {
-    auto it = p_loader_fns.find(t.value());
-    assert(it != p_loader_fns.end() && "loading function missing in SimpleFsLoader!");
+  auto loader_it = p_loader_fns.find(tag.value());
+  assert(loader_it != p_loader_fns.end() && "loading function missing in SimpleFsLoader!");
 
-    loader = it->second;
-  } else {
-    throw InvalidResourceError(id);
-  }
+  auto loader = loader_it->second;
 
   return (this->*loader)(id, meta);
 }
@@ -156,11 +165,18 @@ Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& me
   // execution only reaches here when 'meta' has passed validation
   // so we can assume it's valid
   auto location = meta("location")->as<yaml::Scalar>();
+  auto name     = meta("name")->as<yaml::Scalar>();
+  auto path     = meta("path")->as<yaml::Scalar>();
 
   win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
   win32::FileView view = f.map(win32::File::ProtectRead);
 
-  return TextResource::from_file(view.get<char>(), f.size(), id, "", location->str());
+  return TextResource::from_file(view.get<char>(), f.size(), id, name->str(), path->str());
+}
+
+Resource::Ptr SimpleFsLoader::loadShader(Resource::Id id, const yaml::Document& meta)
+{
+  return Resource::Ptr();
 }
 
 }

@@ -2,12 +2,25 @@
 
 namespace yaml {
 
-ScalarCondition::ScalarCondition(Scalar::DataType type) :
-  m_type(type)
+SchemaCondition::SchemaCondition(Flags flags) :
+  m_flags(flags)
 {
 }
 
-bool ScalarCondition::validate(const Node::Ptr& node)
+bool SchemaCondition::validate(const Node::Ptr& node) const
+{
+  if(node) return doValidate(node);
+
+  return m_flags & Optional; // if there's no value return true only when
+                             // it's optional
+}
+
+ScalarCondition::ScalarCondition(Flags flags, Scalar::DataType type) :
+  SchemaCondition(flags), m_type(type)
+{
+}
+
+bool ScalarCondition::doValidate(const Node::Ptr& node) const
 {
   if(auto scalar = node->as<Scalar>()) {
     if(m_type == Scalar::Invalid) return true;
@@ -18,7 +31,38 @@ bool ScalarCondition::validate(const Node::Ptr& node)
   return false;
 }
 
-bool SequenceCondition::validate(const Node::Ptr& node)
+RegexCondition::RegexCondition(Flags flags) :
+  SchemaCondition(flags)
+{
+}
+
+bool RegexCondition::doValidate(const Node::Ptr& node) const
+{
+  if(auto path = node->as<Scalar>()) {
+    return std::regex_match(path->str(), regex());
+  }
+
+  return false;
+}
+
+static const std::regex p_path_regex("^((/[^<>:\"/\\|?* ]*)+/?)?$", std::regex::optimize);
+const std::regex& PathCondition::regex() const
+{
+  return p_path_regex;
+}
+
+static const std::regex p_filename_regex("^[^<>;\"\\|?* ]+$", std::regex::optimize);
+const std::regex& FileCondition::regex() const
+{
+  return p_filename_regex;
+}
+
+SequenceCondition::SequenceCondition(Flags flags) :
+  SchemaCondition(flags)
+{
+}
+
+bool SequenceCondition::doValidate(const Node::Ptr& node) const
 {
   if(auto seq = node->as<Sequence>()) {
     return true;
@@ -27,7 +71,12 @@ bool SequenceCondition::validate(const Node::Ptr& node)
   return false;
 }
 
-bool MappingCondition::validate(const Node::Ptr& node)
+MappingCondition::MappingCondition(Flags flags) :
+  SchemaCondition(flags)
+{
+}
+
+bool MappingCondition::doValidate(const Node::Ptr& node) const
 {
   if(auto map = node->as<Mapping>()) {
     return true;
@@ -36,13 +85,13 @@ bool MappingCondition::validate(const Node::Ptr& node)
   return false;
 }
 
-Node::Ptr Schema::validate(const Document& doc)
+Node::Ptr Schema::validate(const Document& doc) const
 {
   for(const auto& cond : m_conditions) {
     auto node = doc(cond.first);
 
-    // bail out when the node doesn't exist or it failes validation
-    if(!node || !cond.second->validate(node)) return node;
+    // bail out when the node failes validation
+    if(!cond.second->validate(node)) return node;
   }
 
   // validation successful
@@ -55,24 +104,34 @@ Schema& Schema::condition(const std::string& node, SchemaCondition *cond)
   return *this;
 }
 
-Schema& Schema::scalar(const std::string& node, Scalar::DataType type)
+Schema& Schema::scalar(const std::string& node, Scalar::DataType type, Flags flags)
 {
-  return condition(node, new ScalarCondition(type));
+  return condition(node, new ScalarCondition(flags, type));
 }
 
-Schema& Schema::scalar(const std::string& node)
+Schema& Schema::scalar(const std::string& node, Flags flags)
 {
-  return condition(node, new ScalarCondition());
+  return condition(node, new ScalarCondition(flags));
 }
 
-Schema& Schema::sequence(const std::string& node)
+Schema& Schema::path(const std::string& node, Flags flags)
 {
-  return condition(node, new SequenceCondition());
+  return condition(node, new PathCondition(flags));
 }
 
-Schema& Schema::mapping(const std::string& node)
+Schema& Schema::file(const std::string& node, Flags flags)
 {
-  return condition(node, new MappingCondition());
+  return condition(node, new FileCondition(flags));
+}
+
+Schema& Schema::sequence(const std::string& node, Flags flags)
+{
+  return condition(node, new SequenceCondition(flags));
+}
+
+Schema& Schema::mapping(const std::string& node, Flags flags)
+{
+  return condition(node, new MappingCondition(flags));
 }
 
 }

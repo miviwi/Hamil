@@ -27,13 +27,26 @@ public:
     Invalid, Scalar, Sequence, Mapping
   };
 
-  Node(Type type, Tag tag);
+  enum Style {
+    Any,
+
+    // Mapping/Sequence styles
+    Flow, Block,
+
+    // Scalar styles
+    Literal, Folded,
+    SingleQuoted, DoubleQuoted,
+  };
+
+  Node(Type type, Tag tag, Style style = Any);
   virtual ~Node();
 
   Type type() const;
 
   const Tag& tag() const;
   std::string tagString() const;
+
+  Style style() const;
 
   template <typename T>
   const T *as() const
@@ -58,6 +71,7 @@ public:
 private:
   Type m_type;
   Tag m_tag;
+  Style m_style;
 };
 
 class Scalar : public Node {
@@ -71,8 +85,8 @@ public:
     Tagged, Invalid = ~0,
   };
   
-  Scalar(byte *data, size_t sz, Tag tag = {});
-  Scalar(const std::string& str, Tag tag = {});
+  Scalar(byte *data, size_t sz, Tag tag = {}, Style style = Any);
+  Scalar(const std::string& str, Tag tag = {}, Style style = Any);
 
   static Node::Ptr from_str(const std::string& str);
   static Node::Ptr from_i(long long i);
@@ -101,8 +115,6 @@ public:
   virtual bool compare(const Node::Ptr& other) const;
 
 private:
-  friend class Emitter;
-
   template <typename T> T *probeCache() const { return std::get_if<T>(&m_cache); }
   template <typename T> T fillCache(T val) const { m_cache = val; return val; }
 
@@ -119,8 +131,8 @@ public:
   static constexpr Type NodeType = Node::Sequence;
 
   using Seq = std::vector<Node::Ptr>;
-  using Iterator = Seq::iterator;
-  Sequence(Tag tag = {});
+  using Iterator = Seq::const_iterator;
+  Sequence(Tag tag = {}, Style = Any);
 
   virtual std::string repr() const;
 
@@ -135,15 +147,13 @@ public:
   virtual size_t hash() const;
   virtual bool compare(const Node::Ptr& other) const;
 
-  Iterator begin() { return m.begin(); }
-  Iterator end()   { return m.end(); }
+  Iterator begin() const { return m.cbegin(); }
+  Iterator end()   const { return m.cend(); }
 
   virtual void foreach(IterFn fn);
   virtual void foreach(KVIterFn fn); // SLOW!
 
 private:
-  friend class Emitter;
-
   Seq m;
 };
 
@@ -152,8 +162,8 @@ public:
   static constexpr Type NodeType = Node::Mapping;
 
   using Map = std::unordered_map<Node::Ptr, Node::Ptr, Node::Hash, Node::Compare>;
-  using Iterator = Map::iterator;
-  Mapping(Tag tag = {});
+  using Iterator = Map::const_iterator;
+  Mapping(Tag tag = {}, Style style = Any);
 
   virtual std::string repr() const;
 
@@ -172,12 +182,10 @@ public:
   virtual void foreach(IterFn fn);
   virtual void foreach(KVIterFn fn);
 
-  Iterator begin() { return m.begin(); }
-  Iterator end()   { return m.end(); }
+  Iterator begin() const { return m.cbegin(); }
+  Iterator end()   const { return m.cend(); }
 
 private:
-  friend class Emitter;
-
   Map m;
 };
 

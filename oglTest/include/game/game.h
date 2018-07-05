@@ -7,4 +7,6 @@ namespace game {
 void init();
 void finalize();
 
+void frame();
+
 }

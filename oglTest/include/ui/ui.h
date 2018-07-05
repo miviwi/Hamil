@@ -19,6 +19,7 @@
 
 namespace ui {
 
+// must be called AFTER gx::init()!
 void init();
 void finalize();
 

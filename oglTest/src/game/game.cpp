@@ -10,4 +10,8 @@ void finalize()
 {
 }
 
+void frame()
+{
+}
+
 }

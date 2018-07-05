@@ -2,6 +2,8 @@
 
 #include <common.h>
 
+#include <type_traits>
+
 namespace util {
 
 class StaticString {
@@ -30,5 +32,15 @@ inline bool operator==(const StaticString& a, const StaticString& b)
 {
   return a.get() == b.get();
 }
+
+}
+
+namespace std {
+
+template <>
+struct hash<util::StaticString> {
+public:
+  size_t operator()(const util::StaticString& s) const { return s.hash(); }
+};
 
 }

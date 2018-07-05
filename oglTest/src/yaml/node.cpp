@@ -10,8 +10,8 @@
 
 namespace yaml {
 
-Node::Node(Type type, Tag tag) :
-  m_type(type), m_tag(tag)
+Node::Node(Type type, Tag tag, Style style) :
+  m_type(type), m_tag(tag), m_style(style)
 {
   if(!m_tag) return;
 }
@@ -38,19 +38,24 @@ std::string Node::tagString() const
   return value.front() == '!' ? value: "!!"+value;
 }
 
+Node::Style Node::style() const
+{
+  return m_style;
+}
+
 bool Node::Compare::operator()(const Node::Ptr& a, const Node::Ptr& b) const
 {
   return a->compare(b);
 }
 
-Scalar::Scalar(byte *data, size_t sz, Tag tag) :
-  Node(NodeType, tag), m_data(sz, '\0')
+Scalar::Scalar(byte *data, size_t sz, Tag tag, Style style) :
+  Node(NodeType, tag, style), m_data(sz, '\0')
 {
   memcpy(m_data.data(), data, sz);
 }
 
-Scalar::Scalar(const std::string& str, Tag tag) :
-  Node(NodeType, tag), m_data(str.length(), '\0')
+Scalar::Scalar(const std::string& str, Tag tag, Style style) :
+  Node(NodeType, tag, style), m_data(str.length(), '\0')
 {
   memcpy(m_data.data(), str.data(), str.length());
 }
@@ -121,14 +126,12 @@ static const std::regex p_datatype_regexes[] = {
   std::regex(".*",                                std::regex::optimize),
 };
 
-#define YAML_CORE_URI "tag:yaml.org,2002:"
-
 static const std::unordered_map<std::string, Scalar::DataType> p_core_types = {
-  { YAML_CORE_URI "null",  Scalar::Null    },
-  { YAML_CORE_URI "int",   Scalar::Int     },
-  { YAML_CORE_URI "float", Scalar::Float   },
-  { YAML_CORE_URI "bool",  Scalar::Boolean },
-  { YAML_CORE_URI "str",   Scalar::String  },
+  { YAML_NULL_TAG,  Scalar::Null    },
+  { YAML_INT_TAG,   Scalar::Int     },
+  { YAML_FLOAT_TAG, Scalar::Float   },
+  { YAML_BOOL_TAG,  Scalar::Boolean },
+  { YAML_STR_TAG,   Scalar::String  },
 };
 
 Scalar::DataType Scalar::dataType() const
@@ -210,8 +213,8 @@ bool Scalar::compare(const Node::Ptr& other) const
   return n->size() == size() && memcmp(m_data.data(), n->m_data.data(), size()) == 0;
 }
 
-Sequence::Sequence(Tag tag) :
-  Node(NodeType, tag)
+Sequence::Sequence(Tag tag, Style style) :
+  Node(NodeType, tag, style)
 {
 }
 
@@ -275,8 +278,8 @@ void Sequence::foreach(KVIterFn fn)
   for(size_t i = 0; i < m.size(); i++) fn(Scalar::from_ui(i), m[i]);
 }
 
-Mapping::Mapping(Tag tag) :
-  Node(NodeType, tag)
+Mapping::Mapping(Tag tag, Style style) :
+  Node(NodeType, tag, style)
 {
 }
 

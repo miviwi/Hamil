@@ -59,6 +59,7 @@ public:
 
   using LoaderFn = Resource::Ptr (SimpleFsLoader::*)(Resource::Id, const yaml::Document&);
   Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
 
 private:
   void enumAvailable(std::string path);

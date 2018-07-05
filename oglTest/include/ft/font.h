@@ -13,6 +13,7 @@
 
 namespace ft {
 
+// must be called AFTER gx::init()!
 void init();
 void finalize();
 

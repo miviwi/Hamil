@@ -33,6 +33,7 @@ enum Type {
   u32_8888 = GL_UNSIGNED_INT_8_8_8_8,
 };
 
+// must be called AFTER creating a win32::Window!
 void init();
 void finalize();
 
