@@ -1,4 +1,5 @@
 #include <util/format.h>
+#include <util/opts.h>
 
 #include <math/geometry.h>
 #include <math/transform.h>
@@ -47,9 +48,22 @@
 #include <utility>
 
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-int main ()
+int main(int argc, char *argv[])
 {
   win32::init();
+
+  auto opts =
+    util::ConsoleOpts()
+    .boolean("b", "a boolean")
+    .integer("i", "an integer")
+    .string("str", "a very long description" + std::string(200, 'A'), util::Option::ShortName);
+
+  puts(opts.doc().data());
+
+  char *args[] ={
+    "", "--str", "-s=123", "--str=1234",
+  };
+  opts.parse(4, args);
 
   constexpr vec2 WindowSize = { 1280, 720 };
 

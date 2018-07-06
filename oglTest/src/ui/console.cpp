@@ -1,6 +1,7 @@
 #include <ui/console.h>
 #include <ui/animation.h>
 
+#include <util/format.h>
 #include <win32/input.h>
 
 #include <unordered_map>
@@ -273,13 +274,9 @@ void ConsoleBufferFrame::print(const std::string& str)
   std::string line;
   while(std::getline(stream, line)) {
     if(line.length() > wrap_limit) {
-      size_t pos = 0;
-      while(pos < line.length()) {
-        size_t count = pos+wrap_limit <= line.length() ? wrap_limit : std::string::npos;
-
-        m_buffer.push_front(line.substr(pos, count));
-        pos += wrap_limit;
-      }
+      util::linewrap(line, wrap_limit, [this](const std::string& str, size_t line_no) {
+        m_buffer.push_front(str);
+      });
     } else {
       m_buffer.push_front(line);
     }

@@ -199,6 +199,7 @@ exit /b 0</Command>
     <ClCompile Include="extern\GL\gl3w.c" />
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\ft\cache.cpp" />
+    <ClCompile Include="src\game\cmdline.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\python\collections.cpp" />
@@ -233,6 +234,7 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\layout.cpp" />
     <ClCompile Include="src\ft\font.cpp" />
     <ClCompile Include="src\util\hash.cpp" />
+    <ClCompile Include="src\util\opts.cpp" />
     <ClCompile Include="src\util\staticstring.cpp" />
     <ClCompile Include="src\win32\event.cpp" />
     <ClCompile Include="src\win32\handle.cpp" />
@@ -246,6 +248,7 @@ exit /b 0</Command>
     <ClInclude Include="extern\GL\wgl.h" />
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\ft\cache.h" />
+    <ClInclude Include="include\game\cmdline.h" />
     <ClInclude Include="include\math\compare.h" />
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\python\collections.h" />
@@ -298,6 +301,7 @@ exit /b 0</Command>
     <ClCompile Include="src\gx\vertex.cpp" />
     <ClCompile Include="src\winmain.cpp" />
     <ClInclude Include="include\util\hash.h" />
+    <ClInclude Include="include\util\opts.h" />
     <ClInclude Include="include\util\staticstring.h" />
     <ClInclude Include="include\win32\event.h" />
     <ClInclude Include="include\win32\handle.h" />
