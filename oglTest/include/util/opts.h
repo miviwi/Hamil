@@ -14,11 +14,11 @@ namespace util {
 
 class Option {
 public:
+  // The values correspond directly to m_val::index()
   enum Type : size_t {
     Empty,
 
-    // These values correspond directly to m_val::index()
-    Bool, Int, String,
+    Bool, Int, String, List,
   };
 
   enum Flags {
@@ -55,6 +55,8 @@ public:
     { }
   };
 
+  using StringList = std::vector<std::string>;
+
   Option(Type type, const std::string& doc = "", Flags flags = Default);
 
   bool operator==(const Option& other) const;
@@ -63,11 +65,18 @@ public:
   Flags flags() const;
   const std::string& doc() const;
 
+  // returns 'true' when the Option has a value
   operator bool() const;
 
+  // returns the Option's boolean value (throws an exception when type() != Option::Bool)
   bool b() const;
+  // returns the Option's integer value (throws an exception when type() != Option::Int)
   long i() const;
+  // returns the Option's string value (throws an exception when type() != Option::String)
   const std::string& str() const;
+  // returns the Option's StringList value (throws an exception when type() != Option::List)
+  const StringList& list() const;
+
 
 private:
   friend class ConsoleOpts;
@@ -88,10 +97,13 @@ private:
     return *this;
   }
 
+  // set Option::List value
+  void list(const std::string& str);
+
   Flags m_flags;
   Type m_type;
   std::string m_doc;
-  std::variant<std::monostate, bool, long, std::string> m_val;
+  std::variant<std::monostate, bool, long, std::string, StringList> m_val;
 };
 
 // Commandline option parser, usage:
@@ -109,7 +121,7 @@ private:
 class ConsoleOpts {
 public:
   enum {
-    DocNameMargin = 25,
+    DocNameMargin = 35,
   };
 
   using IterFn = std::function<void(const std::string& name, const Option& opt)>;
@@ -135,9 +147,14 @@ public:
     { }
   };
 
-  ConsoleOpts& boolean(const std::string& name, const std::string& doc = "", Option::Flags flags = Option::Default);
-  ConsoleOpts& integer(const std::string& name, const std::string& doc = "", Option::Flags flags = Option::Default);
-  ConsoleOpts& string(const std::string& name, const std::string& doc = "", Option::Flags flags = Option::Default);
+  ConsoleOpts& boolean(const std::string& name,
+    const std::string& doc = "", Option::Flags flags = Option::Default);
+  ConsoleOpts& integer(const std::string& name,
+    const std::string& doc = "", Option::Flags flags = Option::Default);
+  ConsoleOpts& string(const std::string& name,
+    const std::string& doc = "", Option::Flags flags = Option::Default);
+  ConsoleOpts& list(const std::string& name,
+    const std::string& doc = "", Option::Flags flags = Option::Default);
 
   // returns the name of the first required option not present
   //   or std::nullopt if parsing succeded
@@ -146,7 +163,8 @@ public:
 
   // returns a pointer if option 'name' was supplied,
   //   otherwise returns nullptr
-  const Option *get(const std::string& name);
+  const Option *get(const std::string& name) const;
+  const Option *operator()(const std::string& name) const { return get(name); }
 
   // iterates over all the supplied options
   //   - booleans always count as "supplied"
@@ -154,6 +172,8 @@ public:
 
   // returns a description of all the options
   std::string doc() const;
+
+  void debugPrintOpts() const;
 
 private:
   ConsoleOpts& option(const std::string& name, Option&& opt);

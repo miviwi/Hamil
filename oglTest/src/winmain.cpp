@@ -50,29 +50,30 @@
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
 {
-  win32::init();
+  if(argc > 1) {
+    auto opts =
+      util::ConsoleOpts()
+        .boolean("resource-gen", "generate *.meta files (resource descriptors) from images, sound files etc.")
+        .list("resources",       "list of resources for resource-gen")
+      ;
 
-  auto opts =
-    util::ConsoleOpts()
-    .boolean("b", "a boolean", util::Option::ShortName)
-    .integer("i", "an integer")
-    .string("str", "a very long description", util::Option::ShortName);
+    puts(opts.doc().data());
+    opts.parse(argc, argv);
 
-  puts(opts.doc().data());
+    opts.debugPrintOpts();
 
-  char *args[] ={
-    "", "-s", "hello", "--i=1234",
-  };
-  opts.parse(3, args);
-
-  opts.foreach([](const auto& name, const util::Option& opt) {
-    printf("%s: ", name.data());
-    switch(opt.type()) {
-    case util::Option::Bool:   puts(opt.b() ? "true" : "false"); break;
-    case util::Option::Int:    printf("%ld\n", opt.i()); break;
-    case util::Option::String: printf("'%s'\n", opt.str().data()); break;
+    if(opts("resource-gen")) {
+      if(auto resources = opts("resources")) {
+        res::resourcegen(resources->list());
+      } else {
+        res::resourcegen({});
+      }
     }
-  });
+
+    exit(1);
+  }
+
+  win32::init();
 
   constexpr vec2 WindowSize = { 1280, 720 };
 

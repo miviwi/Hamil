@@ -197,6 +197,7 @@ exit /b 0</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="extern\GL\gl3w.c" />
+    <ClCompile Include="extern\stb_image\image.c" />
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\ft\cache.cpp" />
     <ClCompile Include="src\game\cmdline.cpp" />
@@ -246,6 +247,7 @@ exit /b 0</Command>
     <ClInclude Include="extern\GL\gl3w.h" />
     <ClInclude Include="extern\GL\glcorearb.h" />
     <ClInclude Include="extern\GL\wgl.h" />
+    <ClInclude Include="extern\stb_image\stb_image.h" />
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\ft\cache.h" />
     <ClInclude Include="include\game\cmdline.h" />

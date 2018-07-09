@@ -2,6 +2,7 @@
 #include <util/format.h>
 
 #include <cassert>
+#include <cstdio>
 #include <algorithm>
 #include <sstream>
 #include <regex>
@@ -61,6 +62,24 @@ const std::string& Option::str() const
   return std::get<std::string>(m_val);
 }
 
+const Option::StringList& Option::list() const
+{
+  if(m_type != List) throw TypeError();
+
+  return std::get<StringList>(m_val);
+}
+
+void Option::list(const std::string& str)
+{
+  auto& list = m_val.emplace<StringList>();
+
+  std::istringstream ss(str);
+  std::string line;
+  while(std::getline(ss, line, ',')) {
+    list.emplace_back(std::move(line));
+  }
+}
+
 ConsoleOpts& ConsoleOpts::boolean(const std::string& name, const std::string& doc, Option::Flags flags)
 {
   return option(name, Option(Option::Bool, doc, flags));
@@ -74,6 +93,11 @@ ConsoleOpts& ConsoleOpts::integer(const std::string& name, const std::string& do
 ConsoleOpts& ConsoleOpts::string(const std::string& name, const std::string& doc, Option::Flags flags)
 {
   return option(name, Option(Option::String, doc, flags));
+}
+
+ConsoleOpts& ConsoleOpts::list(const std::string& name, const std::string& doc, Option::Flags flags)
+{
+  return option(name, Option(Option::List, doc, flags));
 }
 
 static const std::regex p_opt_regex("^(?:(-[a-z])|(--[a-z][a-z0-9-]*))(?:=(.+))?$", std::regex::optimize);
@@ -158,6 +182,16 @@ std::optional<std::string> ConsoleOpts::parse(int argc, char *argv[])
         opt = std::string(argv[i]);
       }
       break;
+
+    case Option::List: 
+      if(matches[3].matched) {
+        opt.list(matches[3].first);
+      } else {
+        if(!next_arg()) throw MissingValueError(name);
+
+        opt.list(argv[i]);
+      }
+      break;
     }
   }
 
@@ -183,10 +217,12 @@ std::optional<std::string> ConsoleOpts::finalizeParsing()
   return std::nullopt;
 }
 
-const Option *ConsoleOpts::get(const std::string& name)
+const Option *ConsoleOpts::get(const std::string& name) const
 {
   auto it = m_opts.find(name);
-  return it != m_opts.end() ? &it->second : nullptr;
+  if(it == m_opts.end()) return nullptr;
+
+  return it->second ? &it->second : nullptr;
 }
 
 void ConsoleOpts::foreach(IterFn fn) const
@@ -213,6 +249,7 @@ std::string ConsoleOpts::doc() const
     case Option::Bool:   break;
     case Option::Int:    ss << "=<number>"; break;
     case Option::String: ss << "=<string>"; break;
+    case Option::List:   ss << "=(<string>,)..."; break;
 
     default: assert(0);
     }
@@ -230,9 +267,27 @@ std::string ConsoleOpts::doc() const
     });
 
     result += ss.str();
+    result += "\n";
   }
 
   return result;
+}
+
+void ConsoleOpts::debugPrintOpts() const
+{
+  foreach([](const std::string& name, const Option& opt) {
+    printf("%s: ", name.data());
+    switch(opt.type()) {
+    case util::Option::Bool:   puts(opt.b() ? "true" : "false"); break;
+    case util::Option::Int:    printf("%ld\n", opt.i()); break;
+    case util::Option::String: printf("'%s'\n", opt.str().data()); break;
+    case util::Option::List:
+      printf("[");
+      for(auto& s : opt.list()) printf("%s, ", s.data());
+      printf("]\n");
+      break;
+    }
+  });
 }
 
 static const std::regex p_opt_name_regex("^[a-z][a-z0-9-]*$", std::regex::optimize);
