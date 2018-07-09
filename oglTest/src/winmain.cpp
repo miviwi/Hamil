@@ -54,16 +54,25 @@ int main(int argc, char *argv[])
 
   auto opts =
     util::ConsoleOpts()
-    .boolean("b", "a boolean")
+    .boolean("b", "a boolean", util::Option::ShortName)
     .integer("i", "an integer")
-    .string("str", "a very long description" + std::string(200, 'A'), util::Option::ShortName);
+    .string("str", "a very long description", util::Option::ShortName);
 
   puts(opts.doc().data());
 
   char *args[] ={
-    "", "--str", "-s=123", "--str=1234",
+    "", "-s", "hello", "--i=1234",
   };
-  opts.parse(4, args);
+  opts.parse(3, args);
+
+  opts.foreach([](const auto& name, const util::Option& opt) {
+    printf("%s: ", name.data());
+    switch(opt.type()) {
+    case util::Option::Bool:   puts(opt.b() ? "true" : "false"); break;
+    case util::Option::Int:    printf("%ld\n", opt.i()); break;
+    case util::Option::String: printf("'%s'\n", opt.str().data()); break;
+    }
+  });
 
   constexpr vec2 WindowSize = { 1280, 720 };
 

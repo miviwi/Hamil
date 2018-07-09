@@ -15,21 +15,6 @@ Option::Option(Type type, const std::string& doc, Flags flags) :
 {
 }
 
-Option::Option(bool b) :
-  m_flags(Default), m_type(Bool), m_val(b)
-{
-}
-
-Option::Option(long i) :
-  m_flags(Default), m_type(Int), m_val()
-{
-}
-
-Option::Option(const std::string& str) :
-  m_flags(Default), m_type(String), m_val(str)
-{
-}
-
 bool Option::operator==(const Option& other) const
 {
   return m_val == other.m_val;
@@ -52,7 +37,7 @@ const std::string& Option::doc() const
 
 Option::operator bool() const
 {
-  return m_val.index() != std::variant_npos;
+  return m_val.index() != Empty;
 }
 
 bool Option::b() const
@@ -94,14 +79,16 @@ ConsoleOpts& ConsoleOpts::string(const std::string& name, const std::string& doc
 static const std::regex p_opt_regex("^(?:(-[a-z])|(--[a-z][a-z0-9-]*))(?:=(.+))?$", std::regex::optimize);
 std::optional<std::string> ConsoleOpts::parse(int argc, char *argv[])
 {
-  // Preallocate some buckets
-  std::unordered_map<std::string, Option> cmdline(argc);
-
   for(int i = 1; i < argc; i++) {
-    std::string_view opt(argv[i]);
+    std::string_view arg(argv[i]);
 
+    // matches:
+    //   [0] = whole pattern
+    //   [1] = short-name
+    //   [2] = long-name
+    //   [3] = value
     std::cmatch matches;
-    if(!std::regex_match(opt.data(), matches, p_opt_regex)) throw ParseError(opt.data());
+    if(!std::regex_match(arg.data(), matches, p_opt_regex)) throw ParseError(arg.data());
 
     // need to resolve the name
     std::string name;
@@ -110,28 +97,87 @@ std::optional<std::string> ConsoleOpts::parse(int argc, char *argv[])
       auto ch = *(matches[1].first + 1);
 
       auto it = m_short_names.find(ch);
-      if(it == m_short_names.end()) throw ParseError("no such option '" + matches[1].str() + "'");
+      if(it == m_short_names.end()) throw InvalidOptionError(matches[1].str());
 
       name = it->second;
     } else {                   // matched a long-name
       name = std::string(matches[2].first + 2, matches[2].second);
     }
 
-    bool inserted = false;
+    auto it = m_opts.find(name);
+    if(it == m_opts.end()) throw InvalidOptionError(name);
 
-    // now parse the value
-    if(matches[3].matched) {    // the value is either an int or a string
-    } else {                    // the value is a bool
-      auto result = cmdline.emplace(name, Option(true));
+    auto& opt = it->second;
 
-      inserted = result.second;
+    // opt already has a value
+    if(opt) throw ParseError("option '" + name + "' specified more than once");
+
+    // tries to advance to the next argument in argv[]
+    //   returns false if there are no more arguments
+    auto next_arg = [&]() -> bool {
+      if(i+1 >= argc) return false;
+
+      i++;
+      return true;
+    };
+
+    switch(opt.type()) {
+    case Option::Bool:
+      if(matches[3].matched) throw ParseError("boolean '" + name + "' given a value!");
+
+      opt = true;
+      break;
+
+    case Option::Int:
+      if(matches[3].matched) { // the string after '=' is the value
+        char *end = nullptr;
+        auto val = std::strtol(matches[3].first, &end, 0);
+
+        // matches[3].second is the end of the whole string
+        if(end != matches[3].second) return name;
+
+        opt = val;
+      } else {                 // the next arg is the value
+        if(!next_arg()) throw MissingValueError(name);
+
+        char *end = nullptr;
+        auto val = std::strtol(argv[i], &end, 0);
+        
+        if(end != argv[i]+strlen(argv[i])) return name;
+
+        opt = val;
+      }
+      break;
+
+    case Option::String:
+      if(matches[3].matched) {
+        opt = matches[3].str();
+      } else {
+        if(!next_arg()) throw MissingValueError(name);
+
+        opt = std::string(argv[i]);
+      }
+      break;
+    }
+  }
+
+  return finalizeParsing();
+}
+
+std::optional<std::string> ConsoleOpts::finalizeParsing()
+{
+  // check if all the Required options have values and set all
+  // booleans without a value to false
+  for(auto& pair : m_opts) {
+    auto& opt = pair.second;
+
+    if(opt.type() == Option::Bool) {
+      if(!opt) opt = false; // if opt has no value - set it to false
     }
 
-    if(!inserted) throw ParseError("option '" + name + "' specified more than once");
-
-    
-
-    printf("%s: %s\n", opt.data(), name.data());
+    if(opt.flags() & Option::Required) {
+      if(!opt) return pair.first; // a required option has no value - bail out
+    }
   }
 
   return std::nullopt;
@@ -141,6 +187,16 @@ const Option *ConsoleOpts::get(const std::string& name)
 {
   auto it = m_opts.find(name);
   return it != m_opts.end() ? &it->second : nullptr;
+}
+
+void ConsoleOpts::foreach(IterFn fn) const
+{
+  for(const auto& pair : m_opts) {
+    const auto& opt = pair.second;
+
+    // if the option has a value - call 'fn'
+    if(opt) fn(pair.first, opt);
+  }
 }
 
 static const std::string p_margin(ConsoleOpts::DocNameMargin, ' ');
