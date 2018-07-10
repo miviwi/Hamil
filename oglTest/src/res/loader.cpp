@@ -104,9 +104,11 @@ void SimpleFsLoader::enumAvailable(std::string path)
     return; // no .meta files in current directory
   }
 
-  meta_query.foreach([this](const char *name, FileQuery::Attributes attrs) {
+  meta_query.foreach([this,path](const char *name, FileQuery::Attributes attrs) {
     // if there's somehow a directory that fits *.meta ignore it
     if(attrs & FileQuery::IsDirectory) return;
+
+    auto full_path = path + name;
 
     try {
       // Because we are in the middle of initializing the ResourceManager
@@ -116,7 +118,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
       //   could still be processed?
       // Regardless, a splash screen should be put up on the screen to let the
       //   user know the application is doing something and isn't just frozen
-      win32::File file(name, win32::File::Read, win32::File::OpenExisting);
+      win32::File file(full_path.data(), win32::File::Read, win32::File::OpenExisting);
 
       std::vector<char> file_buf(file.size()+1); // put '\0' at the end
       file.read(file_buf.data());
@@ -132,7 +134,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
       );
     } catch(const win32::File::Error&) {
       // panic, there really shouldn't be an exception here
-      win32::panic(util::fmt("error opening file \"%s\"", name).data(), -10);
+      win32::panic(util::fmt("error opening file \"%s\"", full_path.data()).data(), -10);
     }
   });
 }

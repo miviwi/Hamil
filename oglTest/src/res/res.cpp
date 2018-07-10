@@ -8,6 +8,7 @@
 #include <win32/file.h>
 
 #include <memory>
+#include <regex>
 
 namespace res {
 
@@ -34,8 +35,11 @@ ResourceHandle resource(size_t guid)
   return p_manager->handle(guid);
 }
 
+static const std::regex p_name_regex("^((?:[^/ ]+/)*)([^./ ]*)\\.([a-z]+)$", std::regex::optimize);
 void resourcegen(std::vector<std::string> resources)
 {
+  if(!p_manager) init();
+
   if(resources.empty()) {
     std::function<void(const std::string&)> enum_resources = [&](const std::string& path) {
       win32::FileQuery q((path + "*").data());
@@ -55,7 +59,19 @@ void resourcegen(std::vector<std::string> resources)
   }
 
   for(const auto& resource : resources) {
-    puts(resource.data());
+    // [1] = path
+    // [2] = name
+    // [3] = extension
+    std::smatch matches;
+    if(!std::regex_match(resource, matches, p_name_regex)) continue;
+
+    auto path   = matches[1].str(),
+      name      = matches[2].str(),
+      extension = matches[3].str();
+
+    printf("/%s%s(%s) = 0x%.16llx\n",
+      path.data(), name.data(), extension.data(),
+      p_manager->guid<TextResource>(name, "/" + path));
   }
 }
 
