@@ -26,7 +26,7 @@ InputDeviceManager::InputDeviceManager() :
   rid[1].hwndTarget = nullptr;
 
   if(RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE)) == FALSE) {
-    panic("couldn't register input devices!", -6);
+    panic("couldn't register input devices!", InputDeviceRegistartionError);
   }
 
   setMouseSpeed(1.0f);

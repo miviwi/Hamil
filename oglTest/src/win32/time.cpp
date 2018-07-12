@@ -12,7 +12,7 @@ static LARGE_INTEGER p_perf_counter = { 0 };
 void Timers::init()
 {
   auto result = QueryPerformanceFrequency(&p_perf_freq);
-  if(!result) panic("QueryPerformanceCounter() failed!", -5);
+  if(!result) panic("QueryPerformanceCounter() failed!", QueryPerformanceCounterError);
 
   tick();
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <common.h>
+
 #include <GL/gl3w.h>
 
 namespace gx {

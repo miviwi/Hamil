@@ -134,7 +134,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
       );
     } catch(const win32::File::Error&) {
       // panic, there really shouldn't be an exception here
-      win32::panic(util::fmt("error opening file \"%s\"", full_path.data()).data(), -10);
+      win32::panic(util::fmt("error opening file \"%s\"", full_path.data()).data(), win32::FileOpenError);
     }
   });
 }

@@ -2,7 +2,8 @@
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 
-#include <Windows.h>
+#include <win32/panic.h>
+#include <util/format.h>
 
 #include <cassert>
 #include <cstring>
@@ -213,8 +214,7 @@ void Program::link()
     std::vector<char> log(log_size);
     glGetProgramInfoLog(m, log_size, nullptr, log.data());
 
-    MessageBoxA(nullptr, log.data(), "OpenGL program linking error", MB_OK);
-    ExitProcess(-2);
+    win32::panic(util::fmt("OpenGL program linking error:\n%s", log.data()).data(), win32::ShaderLinkingError);
   }
 }
 
@@ -295,8 +295,7 @@ Shader::Shader(Type type, std::initializer_list<const char *> sources)
     std::vector<char> log(log_size);
     glGetShaderInfoLog(m, log_size, nullptr, log.data());
 
-    MessageBoxA(nullptr, log.data(), "OpenGL shader compilation error", MB_OK);
-    ExitProcess(-1);
+    win32::panic(util::fmt("OpenGL shader compilation error:\n%s", log.data()).data(), win32::ShaderCompileError);
   }
 }
 

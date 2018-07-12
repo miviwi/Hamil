@@ -25,6 +25,9 @@ public:
   static Resource::Ptr from_file(Sources&& sources, Id id,
     const std::string& name = "", const std::string& path = "");
 
+  // 
+  static Resource::Ptr from_name(const std::string& name);
+
 protected:
   using Resource::Resource;
 
