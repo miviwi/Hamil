@@ -4,10 +4,15 @@
 
 #include <string>
 #include <array>
+#include <vector>
+
+namespace yaml {
+class Document;
+}
 
 namespace res {
 
-class ShaderResource : public Resource {
+class Shader : public Resource {
 public:
   static constexpr Tag tag() { return "shader"; }
 
@@ -17,16 +22,23 @@ public:
     NumStages,
   };
 
-  using Sources = std::array<std::string, NumStages>;
+  struct Error {
+    const std::string what;
+    Error(const std::string& what_) :
+      what(what_)
+    { }
+  };
+
+  // the const char *'s refer to an internal data structure which stores
+  //   unique copies of shader sources (which are stiched together by gx::Shader)
+  using Sources = std::array<std::vector<const char *>, NumStages>;
 
   bool hasStage(Stage stage) const;
-  const std::string& source(Stage stage) const;
+  const std::vector<const char *>& source(Stage stage) const;
 
-  static Resource::Ptr from_file(Sources&& sources, Id id,
+  // 'doc' must be pre-validated!
+  static Resource::Ptr from_yaml(const yaml::Document& doc, Id id,
     const std::string& name = "", const std::string& path = "");
-
-  // 
-  static Resource::Ptr from_name(const std::string& name);
 
 protected:
   using Resource::Resource;
@@ -35,6 +47,7 @@ private:
   friend class ResourceManager;
   
   Sources m_sources;
+  std::vector<std::string> m_inline;
 };
 
 }

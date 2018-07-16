@@ -56,6 +56,14 @@ Object& Object::ref()
   return *this;
 }
 
+bool Object::deref()
+{
+  auto ref = Py_REFCNT(m);
+  Py_DECREF(m);
+
+  return ref-1;
+}
+
 PyObject *Object::move()
 {
   auto object = m;

@@ -109,6 +109,8 @@ bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void ConsoleFrame::paint(VertexPainter& painter, Geometry parent)
 {
+  if(!m_dropped) return;
+
   auto y = m_dropdown.done() ? 0.0f : m_dropdown.channel<float>(0);
   m_console->position({
     make_geometry().x,

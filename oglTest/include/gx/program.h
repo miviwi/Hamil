@@ -18,13 +18,14 @@ class Shader {
 public:
   enum Type {
     Invalid,
-    Vertex = GL_VERTEX_SHADER,
+    Vertex   = GL_VERTEX_SHADER,
     Geometry = GL_GEOMETRY_SHADER,
     Fragment = GL_FRAGMENT_SHADER,
   };
 
   Shader(Type type, const char *source);
   Shader(Type type, std::initializer_list<const char *> sources);
+  Shader(Type type, const char *const sources[], size_t count);
   Shader(const Shader&) = delete;
   ~Shader();
 
@@ -35,14 +36,14 @@ private:
 };
 
 enum Primitive {
-  Points = GL_POINTS,
+  Points        = GL_POINTS,
 
-  Lines = GL_LINES,
-  LineLoop = GL_LINE_LOOP,
-  LineStrip = GL_LINE_STRIP,
+  Lines         = GL_LINES,
+  LineLoop      = GL_LINE_LOOP,
+  LineStrip     = GL_LINE_STRIP,
 
-  Triangles = GL_TRIANGLES,
-  TriangleFan = GL_TRIANGLE_FAN,
+  Triangles     = GL_TRIANGLES,
+  TriangleFan   = GL_TRIANGLE_FAN,
   TriangleStrip = GL_TRIANGLE_STRIP,
 };
 

@@ -20,7 +20,8 @@ class Tuple;
 //     when attempting to run methods on such an Object
 //   - NEVER put Object's or any other derived types in global scope
 //     they are initialized before the interpreter and will cause 
-//     undefined behaviour to overcome this limitation do:
+//     undefined behaviour.
+//     To overcome this limitation do:
 //       Object obj = nullptr;
 //       void init_obj()
 //       {
@@ -39,6 +40,8 @@ public:
 
   static Object ref(PyObject *object);
   Object& ref();
+
+  bool deref();
 
   PyObject *move();
 

@@ -3,7 +3,7 @@
 namespace win32 {
 
 enum : int {
-  UnknownError = INT_MIN,
+  UnknownError = 1<<31,
 
   NoSSESupportError,
   QueryPerformanceCounterError,

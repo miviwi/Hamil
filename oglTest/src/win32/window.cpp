@@ -37,6 +37,8 @@ Window::Window(int width, int height) :
 
 Window::~Window()
 {
+  if(deref()) return;
+
   DestroyWindow(m_hwnd);
 }
 

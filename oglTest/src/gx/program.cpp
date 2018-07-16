@@ -276,13 +276,19 @@ Shader::Shader(Type type, const char *source) :
 {
 }
 
-Shader::Shader(Type type, std::initializer_list<const char *> sources)
+Shader::Shader(Type type, std::initializer_list<const char *> sources) :
+  Shader(type, sources.begin(), sources.size())
+{
+
+}
+
+Shader::Shader(Type type, const char *const sources[], size_t count)
 {
   m = glCreateShader(type);
 
-  memcpy(p_shader_source+1, sources.begin(), sources.size()*sizeof(const char *));
+  memcpy(p_shader_source+1, sources, count*sizeof(const char *));
 
-  glShaderSource(m, (GLsizei)sources.size()+1, p_shader_source, nullptr);
+  glShaderSource(m, (GLsizei)count+1 /* add the prelude */, p_shader_source, nullptr);
   glCompileShader(m);
 
   GLint success = 0;

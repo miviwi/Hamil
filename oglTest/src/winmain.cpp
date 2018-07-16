@@ -35,6 +35,8 @@
 #include <python/python.h>
 #include <python/object.h>
 #include <python/exception.h>
+#include <python/types.h>
+#include <python/collections.h>
 
 #include <yaml/document.h>
 #include <yaml/node.h>
@@ -42,6 +44,8 @@
 #include <res/res.h>
 
 #include <game/game.h>
+
+#include <stb_image/stb_image.h>
 
 #include <vector>
 #include <array>
@@ -89,6 +93,18 @@ int main(int argc, char *argv[])
   res::init();
   game::init();
 
+  int num_extensions = 0;
+  glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
+
+  python::List gl_extensions(num_extensions);
+
+  for(int i = 0; i < num_extensions; i++) {
+    auto ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
+    gl_extensions.set(i, python::Unicode(ext));
+  }
+
+  python::set_global("GL_EXTENSIONS", gl_extensions);
+
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
@@ -105,12 +121,8 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
-  u32 tex_image[] = {
-    0xFF000000, 0xFF000000, 0xFFFFFF00, 0xFFFFFF00,
-    0xFF000000, 0xFF000000, 0xFFFFFF00, 0xFFFFFF00,
-    0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
-    0xFFFFFF00, 0xFFFFFF00, 0xFF000000, 0xFF000000,
-  };
+  int width = 0, height = 0;
+  auto tex_image = stbi_load("tex.png", &width, &height, nullptr, 4);
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler()
@@ -119,7 +131,7 @@ int main(int argc, char *argv[])
     .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
     .param(gx::Sampler::MagFilter, gx::Sampler::Linear);
 
-  tex.init(tex_image, 0, 4, 4, gx::rgba, gx::u32_8888);
+  tex.init(tex_image, 0, width, height, gx::rgba, gx::u32_8888);
 
   gx::tex_unit(0, tex, sampler);
 
@@ -249,7 +261,7 @@ in VertexData {
   vec2 tex_coord;
 } fragment;
 
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec4 color;
 
 void main() {
   vec3 normal = normalize(fragment.normal); 
@@ -260,7 +272,7 @@ void main() {
     light += phong(lights[i], fragment.position, normal);
   }
 
-  color = toGammaSpace(light*diffuse.rgb);
+  color = vec4(toGammaSpace(light*diffuse.rgb), diffuse.a);
 }
 )FG";
 
@@ -455,34 +467,7 @@ void main() {
     .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
     .param(gx::Sampler::Anisotropy, 16.0f);
 
-  auto alpha = (byte)(255*0.95);
-  //auto color_a = ui::Color{ 45, 45, 150, alpha },
-  //  color_b = ui::Color{ 20, 20, 66, alpha };
-  
-  auto color_a = ui::Color{ 150, 150, 45, alpha },
-    color_b = ui::Color{ 66, 66, 20, alpha };
-
-  ui::Style style;
-  style.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("segoeui"), 12));
-  style.monospace = ft::Font::Ptr(new ft::Font(ft::FontFamily("consola"), 12));
-
-  style.bg.color[0] = style.bg.color[3] = color_b;
-  style.bg.color[1] = style.bg.color[2] = color_a;
-
-  style.border.color[0] = style.border.color[3] = ui::white();
-  style.border.color[1] = style.border.color[2] = ui::transparent();
-
-  style.button.color[0] = color_b; style.button.color[1] = color_b.lighten(10);
-  style.button.radius = 3.0f;
-  style.button.margin = 1;
-  
-  style.slider.color[0] = color_b; style.slider.color[1] = color_b.lighten(10);
-  style.slider.width = 10.0f;
-
-  style.combobox.color[0] = color_b; style.combobox.color[1] = color_b.lighten(10);
-  style.combobox.radius = 3.0f;
-
-  ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, style);
+  ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
@@ -816,6 +801,8 @@ void main() {
 
     frames++;
   }
+
+  gl_extensions.deref();
 
   game::finalize();
   python::finalize();

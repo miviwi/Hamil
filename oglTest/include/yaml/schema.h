@@ -95,6 +95,16 @@ private:
   virtual bool doValidate(const Node::Ptr& node) const;
 };
 
+class AllOfCondition : public SchemaCondition {
+public:
+  AllOfCondition(SchemaCondition::Ptr cond, Flags flags = Default);
+
+private:
+  virtual bool doValidate(const Node::Ptr& node) const;
+
+  SchemaCondition::Ptr m_cond;
+};
+
 // yaml::Document auto-validation, usage:
 //   auto schema =
 //     Schema()
@@ -115,6 +125,16 @@ public:
   Schema& file(const std::string& node, Flags flags = Default);
   Schema& sequence(const std::string& node, Flags flags = Default);
   Schema& mapping(const std::string& node, Flags flags = Default);
+  Schema& allOf(const std::string& node, SchemaCondition::Ptr cond, Flags flags = Default);
+  Schema& scalarSequence(const std::string& node, Scalar::DataType type, Flags flags = Default);
+
+  template <typename T, typename... Args>
+  static SchemaCondition::Ptr cond(Args... args)
+  {
+    static_assert(std::is_base_of_v<SchemaCondition, T>, "T must be a SchemaCondition!");
+
+    return SchemaCondition::Ptr(new T(std::forward<Args>(args)...));
+  }
 
 private:
   Schema& condition(const std::string& node, SchemaCondition *cond);

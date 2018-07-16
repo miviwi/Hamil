@@ -4,6 +4,7 @@
 #include <res/loader.h>
 #include <res/resource.h>
 #include <res/text.h>
+#include <res/shader.h>
 
 #include <win32/file.h>
 
@@ -69,9 +70,11 @@ void resourcegen(std::vector<std::string> resources)
       name      = matches[2].str(),
       extension = matches[3].str();
 
+    if(!path.empty()) path.pop_back();
+
     printf("/%s%s(%s) = 0x%.16llx\n",
       path.data(), name.data(), extension.data(),
-      p_manager->guid<TextResource>(name, "/" + path));
+      p_manager->guid<Shader>(name, "/" + path));
   }
 }
 

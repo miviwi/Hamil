@@ -85,6 +85,23 @@ bool MappingCondition::doValidate(const Node::Ptr& node) const
   return false;
 }
 
+
+AllOfCondition::AllOfCondition(SchemaCondition::Ptr cond, Flags flags) :
+  SchemaCondition(flags)
+{
+}
+
+bool AllOfCondition::doValidate(const Node::Ptr& node) const
+{
+  if(auto seq = node->as<Sequence>()) {
+    for(auto& elem : *seq) if(!m_cond->validate(elem)) return false;
+
+    return true; // all the seqence elements passed validation
+  }
+
+  return false;
+}
+
 Node::Ptr Schema::validate(const Document& doc) const
 {
   for(const auto& cond : m_conditions) {
@@ -132,6 +149,16 @@ Schema& Schema::sequence(const std::string& node, Flags flags)
 Schema& Schema::mapping(const std::string& node, Flags flags)
 {
   return condition(node, new MappingCondition(flags));
+}
+
+Schema& Schema::allOf(const std::string& node, SchemaCondition::Ptr cond, Flags flags)
+{
+  return condition(node, new AllOfCondition(cond, flags));
+}
+
+Schema& Schema::scalarSequence(const std::string& node, Scalar::DataType type, Flags flags)
+{
+  return allOf(node, cond<ScalarCondition>(Default, type), flags);
 }
 
 }

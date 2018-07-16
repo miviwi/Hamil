@@ -39,6 +39,8 @@ struct Style {
   } combobox;
 
   Style() { memset(this, 0, sizeof(*this)); }
+
+  static Style basic_style();
 };
 
 

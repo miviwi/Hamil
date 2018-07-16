@@ -7,7 +7,7 @@
 
 namespace res {
 
-class TextResource : public Resource {
+class Text : public Resource {
 public:
   static constexpr Tag tag() { return "text"; }
 

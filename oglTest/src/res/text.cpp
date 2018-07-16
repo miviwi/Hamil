@@ -4,10 +4,10 @@
 
 namespace res {
 
-Resource::Ptr TextResource::from_memory(const char *buf, size_t sz, Id id, bool is_static,
+Resource::Ptr Text::from_memory(const char *buf, size_t sz, Id id, bool is_static,
    const std::string& name, const std::string& path)
 {
-  auto text = new TextResource(id, TextResource::tag(), name, Memory, path);
+  auto text = new Text(id, Text::tag(), name, Memory, path);
 
   if(is_static) {
     text->m_str = std::string_view(buf, sz);
@@ -19,10 +19,10 @@ Resource::Ptr TextResource::from_memory(const char *buf, size_t sz, Id id, bool 
   return Resource::Ptr(text);
 }
 
-Resource::Ptr TextResource::from_file(const char *buf, size_t sz,
+Resource::Ptr Text::from_file(const char *buf, size_t sz,
   Id id, const std::string& name, const std::string& path)
 {
-  auto text = new TextResource(id, TextResource::tag(), name, File, path);
+  auto text = new Text(id, Text::tag(), name, File, path);
 
   text->fillBuffer(buf, sz);
   text->m_loaded = true;
@@ -30,17 +30,17 @@ Resource::Ptr TextResource::from_file(const char *buf, size_t sz,
   return Resource::Ptr(text);
 }
 
-const std::string_view& TextResource::str() const
+const std::string_view& Text::str() const
 {
   return m_str;
 }
 
-const std::string_view *TextResource::operator->() const
+const std::string_view *Text::operator->() const
 {
   return &m_str;
 }
 
-void TextResource::fillBuffer(const char *buf, size_t sz)
+void Text::fillBuffer(const char *buf, size_t sz)
 {
   m_buf = std::make_unique<char[]>(sz + 1); // for NULL-byte
   m_str = std::string_view(m_buf.get(), sz);

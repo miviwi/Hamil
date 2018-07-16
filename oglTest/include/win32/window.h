@@ -1,6 +1,7 @@
 #pragma once
 
 #include <win32/input.h>
+#include <util/ref.h>
 #include <math/geometry.h>
 
 #include <utility>
@@ -11,7 +12,7 @@
 
 namespace win32 {
 
-class Window {
+class Window : public Ref {
 public:
   Window(int width, int height);
   ~Window();
@@ -21,9 +22,12 @@ public:
 
   HWND hwnd() const { return m_hwnd; }
 
+  // Returns 'false' when a QUIT message was posted and the
+  //   application should terminate
   bool processMessages();
 
   void swapBuffers();
+  // TODO: glSwapInterval appears to only work once (?)
   void swapInterval(unsigned interval);
 
   Input::Ptr getInput();
@@ -33,6 +37,7 @@ public:
   void releaseMouse();
   void resetMouse();
 
+  // Posts a QUIT message (causes processMessages() to return false)
   void quit();
 
 private:

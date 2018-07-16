@@ -57,8 +57,8 @@ ResourceHandle ResourceManager::handle(Resource::Id id)
 }
 
 static const std::map<std::string, res::Resource::Tag> p_tags = {
-  { TextResource::tag().get(),   TextResource::tag() },
-  { ShaderResource::tag().get(), ShaderResource::tag() },
+  { Text::tag().get(),   Text::tag() },
+  { Shader::tag().get(), Shader::tag() },
 };
 
 std::optional<Resource::Tag> ResourceManager::make_tag(const char *tag)

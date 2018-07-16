@@ -37,18 +37,18 @@ static yaml::Schema p_meta_generic_schema =
   ;
 
 static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
-  { TextResource::tag(),   yaml::Schema()
+  { Text::tag(),   yaml::Schema()
                              .scalar("location", yaml::Scalar::Tagged) },
-  { ShaderResource::tag(), yaml::Schema()
-                             .sequence("vertex")
-                             .sequence("geometry", yaml::Optional)
-                             .sequence("fragment", yaml::Optional) },
+  { Shader::tag(), yaml::Schema()
+                             .scalarSequence("vertex",   yaml::Scalar::Tagged)
+                             .scalarSequence("geometry", yaml::Scalar::Tagged, yaml::Optional)
+                             .scalarSequence("fragment", yaml::Scalar::Tagged, yaml::Optional) },
 
 };
 
 static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> p_loader_fns = {
-  { TextResource::tag(),   &SimpleFsLoader::loadText   },
-  { ShaderResource::tag(), &SimpleFsLoader::loadShader },
+  { Text::tag(),   &SimpleFsLoader::loadText   },
+  { Shader::tag(), &SimpleFsLoader::loadShader },
 };
 
 Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
@@ -173,12 +173,15 @@ Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& me
   win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
   win32::FileView view = f.map(win32::File::ProtectRead);
 
-  return TextResource::from_file(view.get<char>(), f.size(), id, name->str(), path->str());
+  return Text::from_file(view.get<char>(), f.size(), id, name->str(), path->str());
 }
 
 Resource::Ptr SimpleFsLoader::loadShader(Resource::Id id, const yaml::Document& meta)
 {
-  return Resource::Ptr();
+  auto name = meta("name")->as<yaml::Scalar>();
+  auto path = meta("path")->as<yaml::Scalar>();
+
+  return Shader::from_yaml(meta, id, name->str(), path->str());
 }
 
 }
