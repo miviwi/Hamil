@@ -109,7 +109,7 @@ bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void ConsoleFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  if(!m_dropped) return;
+  if(!m_dropped && m_dropdown.done()) return;
 
   auto y = m_dropdown.done() ? 0.0f : m_dropdown.channel<float>(0);
   m_console->position({
@@ -253,8 +253,10 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
     BufferPixelMargin,
     g.h - (font.ascender() + BufferPixelMargin)
   };
-  for(auto it = m_buffer.begin()+m_scroll; it != m_buffer.end(); it++) {
-    const auto& line = *it;
+
+  auto end = std::min(m_scroll + rows(), m_buffer.size());
+  for(size_t i = m_scroll; i < end; i++) {
+    const auto& line = m_buffer.at(i);
     painter
       .text(font, line, pos, white())
       ;
@@ -275,13 +277,9 @@ void ConsoleBufferFrame::print(const std::string& str)
   std::istringstream stream(str);
   std::string line;
   while(std::getline(stream, line)) {
-    if(line.length() > wrap_limit) {
-      util::linewrap(line, wrap_limit, [this](const std::string& str, size_t line_no) {
-        m_buffer.push_front(str);
-      });
-    } else {
-      m_buffer.push_front(line);
-    }
+    util::linewrap(line, wrap_limit, [this](const std::string& str, size_t line_no) {
+      m_buffer.push_front(str);
+    });
   }
 
   while(m_buffer.size() > BufferDepth) m_buffer.pop_back();

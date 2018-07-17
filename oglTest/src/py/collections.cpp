@@ -1,8 +1,7 @@
-#include "..\..\include\python\collections.h"
-#include <python/collections.h>
-#include <python/exception.h>
+#include <py/collections.h>
+#include <py/exception.h>
 
-namespace python {
+namespace py {
 
 ObjectRef::ObjectRef(Object&& object) :
   m(object.move())

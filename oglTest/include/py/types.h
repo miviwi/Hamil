@@ -1,12 +1,12 @@
 #pragma once
 
-#include <python/python.h>
-#include <python/object.h>
+#include <py/python.h>
+#include <py/object.h>
 
 #include <functional>
 #include <string>
 
-namespace python {
+namespace py {
 
 class Type : public Object {
 public:

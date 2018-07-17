@@ -1,8 +1,8 @@
-#include <python/object.h>
-#include <python/types.h>
-#include <python/collections.h>
+#include <py/object.h>
+#include <py/types.h>
+#include <py/collections.h>
 
-namespace python {
+namespace py {
 
 Object::Object(PyObject *object) :
   m(object)
@@ -70,6 +70,13 @@ PyObject *Object::move()
   m = nullptr;
 
   return object;
+}
+
+void Object::dispose()
+{
+  if(m) Py_DECREF(m);
+
+  m = nullptr;
 }
 
 Object::operator bool() const
@@ -158,6 +165,26 @@ Object Object::doCall(PyObject *args)
   Py_DECREF(args);
 
   return result;
+}
+
+Object py(int i)
+{
+  return Long(i);
+}
+
+Object py(size_t sz)
+{
+  return Long::from_sz(sz);
+}
+
+Object py(const char *str)
+{
+  return Unicode(str);
+}
+
+Object py(const std::string& str)
+{
+  return Unicode(str);
 }
 
 }

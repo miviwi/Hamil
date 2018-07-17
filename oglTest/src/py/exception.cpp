@@ -1,9 +1,9 @@
-#include <python/exception.h>
-#include <python/object.h>
+#include <py/exception.h>
+#include <py/object.h>
 
 #include <tuple>
 
-namespace python {
+namespace py {
 
 Exception Exception::fetch()
 {

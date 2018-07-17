@@ -140,25 +140,7 @@
     <ClCompile Include="extern\GL\gl3w.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\python\python.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\object.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\module.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\win32\stdstream.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\collections.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\types.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\exception.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\yaml\node.cpp">
@@ -168,15 +150,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\util\hash.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\modules\mathmodule.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\modules\win32module.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\python\modules\yamlmodule.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\res\res.cpp">
@@ -212,9 +185,6 @@
     <ClCompile Include="src\win32\handle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\python\modules\resmodule.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\yaml\schema.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -231,6 +201,39 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="extern\stb_image\image.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\win32\mman.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\modules\mathmodule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\modules\resmodule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\modules\win32module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\modules\yamlmodule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\collections.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\exception.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\module.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\object.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\python.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\py\types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -376,25 +379,7 @@
     <ClInclude Include="extern\GL\wgl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\python\python.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\module.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\win32\stdstream.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\collections.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\types.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\exception.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\yaml\document.h">
@@ -404,15 +389,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\util\hash.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\modules\mathmodule.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\modules\win32module.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\python\modules\yamlmodule.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\res\res.h">
@@ -448,9 +424,6 @@
     <ClInclude Include="include\win32\handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\python\modules\resmodule.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\yaml\schema.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -467,6 +440,39 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="extern\stb_image\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\win32\mman.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\modules\mathmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\modules\resmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\modules\win32module.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\modules\yamlmodule.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\collections.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\exception.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\module.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\object.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\python.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\py\types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

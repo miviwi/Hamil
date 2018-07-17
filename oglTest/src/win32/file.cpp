@@ -150,9 +150,13 @@ FileView File::map(Protect protect, size_t offset, size_t size, const char *name
   DWORD flprotect = 0;
   switch(protect) {
   case ProtectRead:             flprotect = PAGE_READONLY; break;
+  case ProtectPrivate:          flprotect = PAGE_WRITECOPY; break;
   case ProtectReadWrite:        flprotect = PAGE_READWRITE; break;
   case ProtectExecuteRead:      flprotect = PAGE_EXECUTE_READ; break;
+  case ProtectExecutePrivate:   flprotect = PAGE_EXECUTE_WRITECOPY; break;
   case ProtectExecuteReadWrite: flprotect = PAGE_EXECUTE_READWRITE; break;
+
+  default: assert(0 && "File::map() invalid value for 'protect'!");
   }
 
   auto mapping = CreateFileMappingA(m, nullptr, flprotect, dword_high(size), dword_low(size), name);

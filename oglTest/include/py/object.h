@@ -1,12 +1,12 @@
 #pragma once
 
-#include <python/python.h>
+#include <py/python.h>
 
 #include <string>
 #include <utility>
 #include <type_traits>
 
-namespace python {
+namespace py {
 
 class TypeObject;
 
@@ -44,6 +44,7 @@ public:
   bool deref();
 
   PyObject *move();
+  void dispose();
 
   PyObject *py() const;
   PyObject *operator *() const;
@@ -93,5 +94,10 @@ private:
 
   PyObject *m;
 };
+
+Object py(int i);
+Object py(size_t sz);
+Object py(const char *str);
+Object py(const std::string& str);
 
 }

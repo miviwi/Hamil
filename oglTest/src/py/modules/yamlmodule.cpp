@@ -1,7 +1,7 @@
-#include <python/modules/yamlmodule.h>
-#include <python/module.h>
-#include <python/types.h>
-#include <python/collections.h>
+#include <py/modules/yamlmodule.h>
+#include <py/module.h>
+#include <py/types.h>
+#include <py/collections.h>
 
 #include <yaml/document.h>
 #include <yaml/node.h>
@@ -9,7 +9,7 @@
 #include <cassert>
 #include <utility>
 
-namespace python {
+namespace py {
 
 struct NodeToken;
 static MemberDefList<NodeToken> NodeMembers;

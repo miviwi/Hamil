@@ -107,6 +107,12 @@ Vector2<T>& operator*=(Vector2<T>& a, T u)
   return a;
 }
 
+template <typename T>
+Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
+{
+  return Vector2<T>{ -(b.y - a.y), b.x - a.x }.normalize();
+}
+
 using vec2 = Vector2<float>;
 using ivec2 = Vector2<int>;
 

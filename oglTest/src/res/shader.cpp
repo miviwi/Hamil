@@ -52,6 +52,8 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
       ptr = inline_sources.back().data();
     } else if(src->tag() == "!source") {
       ptr = p_library.get(src->str());
+
+      if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", src->str()));
     } else {
       throw Error(util::fmt("unknown shader source type '%s'", src->tag().value().data()));
     }

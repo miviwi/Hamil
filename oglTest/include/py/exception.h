@@ -1,11 +1,11 @@
 #pragma once
 
 #include <common.h>
-#include <python/object.h>
+#include <py/object.h>
 
 #include <string>
 
-namespace python {
+namespace py {
 
 class Exception {
 public:

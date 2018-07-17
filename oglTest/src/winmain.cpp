@@ -9,6 +9,7 @@
 #include <win32/time.h>
 #include <win32/file.h>
 #include <win32/stdstream.h>
+#include <win32/mman.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -32,11 +33,11 @@
 #include <ui/textbox.h>
 #include <ui/console.h>
 
-#include <python/python.h>
-#include <python/object.h>
-#include <python/exception.h>
-#include <python/types.h>
-#include <python/collections.h>
+#include <py/python.h>
+#include <py/object.h>
+#include <py/exception.h>
+#include <py/types.h>
+#include <py/collections.h>
 
 #include <yaml/document.h>
 #include <yaml/node.h>
@@ -89,21 +90,32 @@ int main(int argc, char *argv[])
   gx::init();
   ft::init();
   ui::init();
-  python::init();
+  py::init();
   res::init();
   game::init();
 
   int num_extensions = 0;
   glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
 
-  python::List gl_extensions(num_extensions);
+  py::List gl_extensions(num_extensions);
 
   for(int i = 0; i < num_extensions; i++) {
     auto ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
-    gl_extensions.set(i, python::Unicode(ext));
+    gl_extensions.set(i, py::Unicode(ext));
   }
 
-  python::set_global("GL_EXTENSIONS", gl_extensions);
+  py::set_global("GL_EXTENSIONS", gl_extensions);
+
+  win32::MemoryStatus mem_status;
+  py::set_global("MemoryStatus", py::Dict({
+    { py::py("load"), py::py((int)mem_status.loadPercentage()) },
+
+    { py::py("phys_size"),  py::py(mem_status.physicalSize()) },
+    { py::py("phys_avail"), py::py(mem_status.physicalAvailable()) },
+
+    { py::py("virt_size"),  py::py(mem_status.virtualSize()) },
+    { py::py("virt_avail"), py::py(mem_status.virtualAvailable()) },
+  }));
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -428,21 +440,21 @@ void main() {
   };
 
   std::vector<vec2> floor_vtxs = {
-    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+    { -1.0f, 1.0f },  { 0.0f,  1.0f },
     { -1.0f, -1.0f }, { 0.0f,  0.0f },
-    { 1.0f, -1.0f },  { 10.0f, 0.0f },
+    { 1.0f, -1.0f },  { 1.0f, 0.0f },
 
-    { 1.0f, -1.0f },  { 10.0f, 0.0f },
-    { 1.0f, 1.0f },   { 10.0f, 10.0f },
-    { -1.0f, 1.0f },  { 0.0f,  10.0f },
+    { 1.0f, -1.0f },  { 1.0f, 0.0f },
+    { 1.0f, 1.0f },   { 1.0f, 1.0f },
+    { -1.0f, 1.0f },  { 0.0f,  1.0f },
 
-    { -1.0f, 1.0f },  { 0.0f,  10.0f },
-    { 1.0f, -1.0f },  { 10.0f, 0.0f },
+    { -1.0f, 1.0f },  { 0.0f,  1.0f },
+    { 1.0f, -1.0f },  { 1.0f, 0.0f },
     { -1.0f, -1.0f }, { 0.0f,  0.0f },
 
-    { 1.0f, -1.0f },  { 10.0f, 0.0f },
-    { -1.0f, 1.0f },  { 0.0f,  10.0f },
-    { 1.0f, 1.0f },   { 10.0f, 10.0f },
+    { 1.0f, -1.0f },  { 1.0f, 0.0f },
+    { -1.0f, 1.0f },  { 0.0f,  1.0f },
+    { 1.0f, 1.0f },   { 1.0f, 1.0f },
 
   };
 
@@ -547,9 +559,9 @@ void main() {
 
   console.onCommand([&](auto target, const char *command) {
     try {
-      python::exec(command);
+      py::exec(command);
       console.print(">>> " + win32::StdStream::gets());
-    } catch(python::Exception e) {
+    } catch(py::Exception e) {
       std::string exception_type = e.type().attr("__name__").str();
       if(exception_type == "SystemExit") exit(0);
 
@@ -674,11 +686,11 @@ void main() {
 
     light_block.lights[0] = {
       view*light_position[0],
-      vec3{ 1.0f, 0.5f, 1.0f }
+      vec3{ 1.0f, 1.0f, 1.0f }
     };
     light_block.lights[1] = {
       view*light_position[1],
-      vec3{ 0.7f, 1.0f, 1.0f }
+      vec3{ 1.0f, 1.0f, 1.0f }
     };
     light_block.lights[2] = {
       view*light_position[2],
@@ -802,10 +814,10 @@ void main() {
     frames++;
   }
 
-  gl_extensions.deref();
+  gl_extensions.dispose();
 
   game::finalize();
-  python::finalize();
+  py::finalize();
   ui::finalize();
   ft::finalize();
   gx::finalize();

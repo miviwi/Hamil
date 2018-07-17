@@ -1,7 +1,7 @@
-#include <python/modules/mathmodule.h>
-#include <python/module.h>
-#include <python/types.h>
-#include <python/collections.h>
+#include <py/modules/mathmodule.h>
+#include <py/module.h>
+#include <py/types.h>
+#include <py/collections.h>
 
 #include <math/geometry.h>
 #include <math/transform.h>
@@ -9,7 +9,7 @@
 #include <cstring>
 #include <string>
 
-namespace python {
+namespace py {
 
 static void ArgTypeError(const char *message)
 {

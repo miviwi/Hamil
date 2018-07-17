@@ -72,7 +72,7 @@ void resourcegen(std::vector<std::string> resources)
 
     if(!path.empty()) path.pop_back();
 
-    printf("/%s%s(%s) = 0x%.16llx\n",
+    printf("/%s %s(%s) = 0x%.16llx\n",
       path.data(), name.data(), extension.data(),
       p_manager->guid<Shader>(name, "/" + path));
   }

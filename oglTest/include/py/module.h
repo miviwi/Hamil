@@ -1,14 +1,14 @@
 #pragma once
 
-#include <python/python.h>
-#include <python/object.h>
+#include <py/python.h>
+#include <py/object.h>
 
 #include <initializer_list>
 #include <string>
 
 #include <structmember.h>
 
-namespace python {
+namespace py {
 
 class TypeObject;
 

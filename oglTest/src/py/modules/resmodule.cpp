@@ -1,5 +1,5 @@
-#include <python/modules/resmodule.h>
-#include <python/module.h>
+#include <py/modules/resmodule.h>
+#include <py/module.h>
 
 #include <util/format.h>
 #include <res/res.h>
@@ -11,7 +11,7 @@
 #include <map>
 #include <optional>
 
-namespace python {
+namespace py {
 
 static PyObject *Res_Guid(PyObject *self, PyObject *args, PyObject *kwds)
 {
@@ -36,9 +36,12 @@ static PyObject *Res_Guid(PyObject *self, PyObject *args, PyObject *kwds)
 
 static PyObject *Res_Load(PyObject *self, PyObject *args)
 {
+  static_assert(sizeof(ulonglong) == sizeof(res::Resource::Id),
+    "fmt for PyArg_ParseTuple() incorrect!");
+
   auto guid = res::Resource::InvalidId;
   auto flags = res::LoadDefault;
-  if(!PyArg_ParseTuple(args, "n|i:load", &guid, &flags)) return nullptr;
+  if(!PyArg_ParseTuple(args, "K|i:load", &guid, &flags)) return nullptr;
 
   try {
     auto ptr = res::resource().load(guid, flags);

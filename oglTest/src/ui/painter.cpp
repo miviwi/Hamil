@@ -46,7 +46,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   a.x += 0.5f; b.x += 0.5f;
 
   float r = width/2.0f;
-  auto n = vec2{ -(b.y - a.y), b.x - a.x }.normalize();
+  auto n = line_normal(a, b);
 
   auto quad = [&,this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
@@ -117,7 +117,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   float r = width/2.0f;
 
-  auto n = vec2{ -(b.y - a.y), b.x - a.x }.normalize();
+  auto n = line_normal(a, b);
 
   auto square_cap = [&, this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
@@ -520,6 +520,7 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
   auto base = m_buf.size();
   auto offset = m_ind.size();
 
+  // resize the vectors to AT LEAST the required size
   m_buf.resize(m_buf.size() + (str.length()*ft::NumCharVerts));
   m_ind.resize(m_ind.size() + (str.length()*ft::NumCharIndices));
 
@@ -532,6 +533,8 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
 
   unsigned num = s.num();
 
+  // resize them again - this time to the proper size
+  //   (need to do this so garbage doesn't get drawn)
   m_buf.resize(base + (num*ft::NumCharVerts));
   m_ind.resize(offset + (num*ft::NumCharIndices));
 

@@ -1,9 +1,9 @@
-#include <python/module.h>
+#include <py/module.h>
 
 #include <cstring>
 #include <algorithm>
 
-namespace python {
+namespace py {
 
 Module::Module(PyObject *module) :
   Object(module)

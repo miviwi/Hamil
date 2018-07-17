@@ -87,7 +87,7 @@ bool MappingCondition::doValidate(const Node::Ptr& node) const
 
 
 AllOfCondition::AllOfCondition(SchemaCondition::Ptr cond, Flags flags) :
-  SchemaCondition(flags)
+  SchemaCondition(flags), m_cond(cond)
 {
 }
 

@@ -1,8 +1,8 @@
-#include <python/types.h>
+#include <py/types.h>
 
 #include <cstdarg>
 
-namespace python {
+namespace py {
 
 None::None() :
   Object(Py_None)

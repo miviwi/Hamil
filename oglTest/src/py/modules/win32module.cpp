@@ -1,14 +1,14 @@
-#include <python/modules/win32module.h>
-#include <python/module.h>
-#include <python/object.h>
-#include <python/types.h>
-#include <python/collections.h>
+#include <py/modules/win32module.h>
+#include <py/module.h>
+#include <py/object.h>
+#include <py/types.h>
+#include <py/collections.h>
 
 #include <win32/time.h>
 
 #include <type_traits>
 
-namespace python {
+namespace py {
 
 struct TimeToken;
 static MemberDefList<TimeToken> TimeMembers;

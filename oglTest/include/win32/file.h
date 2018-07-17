@@ -47,9 +47,12 @@ public:
     ProtectRead    = (1<<0),
     ProtectWrite   = (1<<1),
     ProtectExecute = (1<<2),
+    ProtectPrivate = (1<<3), // makes the mapping copy-on-write
+                             // can be combined only with ProtectExecute
 
-    ProtectReadWrite = ProtectRead|ProtectWrite,
-    ProtectExecuteRead = ProtectExecute|ProtectRead,
+    ProtectReadWrite        = ProtectRead|ProtectWrite,
+    ProtectExecuteRead      = ProtectExecute|ProtectRead,
+    ProtectExecutePrivate   = ProtectExecute|ProtectPrivate,
     ProtectExecuteReadWrite = ProtectExecute|ProtectRead|ProtectWrite,
   };
 

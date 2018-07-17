@@ -1,14 +1,14 @@
-#include <python/python.h>
-#include <python/object.h>
-#include <python/types.h>
-#include <python/collections.h>
-#include <python/module.h>
-#include <python/exception.h>
+#include <py/python.h>
+#include <py/object.h>
+#include <py/types.h>
+#include <py/collections.h>
+#include <py/module.h>
+#include <py/exception.h>
 
-#include <python/modules/win32module.h>
-#include <python/modules/mathmodule.h>
-#include <python/modules/yamlmodule.h>
-#include <python/modules/resmodule.h>
+#include <py/modules/win32module.h>
+#include <py/modules/mathmodule.h>
+#include <py/modules/yamlmodule.h>
+#include <py/modules/resmodule.h>
 
 #include <marshal.h>
 
@@ -16,7 +16,7 @@
 
 #include <win32/file.h>
 
-namespace python {
+namespace py {
 
 Dict p_globals(nullptr);
 

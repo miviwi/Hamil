@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace python {
+namespace py {
 
 class Object;
 
