@@ -29,8 +29,10 @@ void Texture::use()
 
 void Texture::init(unsigned w, unsigned h)
 {
+  GLenum format = is_color_format(m_format) ? GL_RGBA : GL_DEPTH_COMPONENT;
+
   use();
-  glTexImage2D(m_target, 0, m_format, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  glTexImage2D(m_target, 0, m_format, w, h, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
   setDefaultParameters(m_target);
 }
@@ -81,6 +83,11 @@ void Texture::swizzle(Component r, Component g, Component b, Component a)
 
   use();
   glTexParameteriv(m_target, GL_TEXTURE_SWIZZLE_RGBA, params);
+}
+
+void Texture::generateMipmaps()
+{
+  glGenerateMipmap(m_target);
 }
 
 void Texture::label(const char *lbl)

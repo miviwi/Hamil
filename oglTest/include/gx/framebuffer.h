@@ -29,9 +29,23 @@ public:
   };
 
   enum BlitMask : unsigned {
-    ColorBit = GL_COLOR_BUFFER_BIT,
-    DepthBit = GL_DEPTH_BUFFER_BIT,
+    ColorBit   = GL_COLOR_BUFFER_BIT,
+    DepthBit   = GL_DEPTH_BUFFER_BIT,
     StencilBit = GL_STENCIL_BUFFER_BIT,
+  };
+
+  enum Status {
+    Complete = GL_FRAMEBUFFER_COMPLETE,
+
+    Undefined   = GL_FRAMEBUFFER_UNDEFINED,
+    Unsupported = GL_FRAMEBUFFER_UNDEFINED,
+
+    IncompleteAttachement  = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+    MissingAttachement     = GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT,
+    IncompleteDrawBuffer   = GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER,
+    IncompleteReadBuffer   = GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER,
+    IncompleteMultisample  = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE,
+    IncompleteLayerTargets = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS,
   };
 
   static Attachment Color(int index);
@@ -52,9 +66,12 @@ public:
   void blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
   void blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
 
+  Status status();
   bool complete();
 
   static void bind_window(BindTarget target);
+
+  void label(const char *label);
 
 private:
   enum {

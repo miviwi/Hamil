@@ -108,10 +108,15 @@ void Framebuffer::blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Par
   doBlit(0, src, dst, mask, filter);
 }
 
-bool Framebuffer::complete()
+Framebuffer::Status Framebuffer::status()
 {
   use();
-  return glCheckFramebufferStatus(m_bound);
+  return (Status)glCheckFramebufferStatus(m_bound);
+}
+
+bool Framebuffer::complete()
+{
+  return status() == Complete;
 }
 
 void Framebuffer::doBlit(GLuint fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)
@@ -135,6 +140,13 @@ void Framebuffer::doBlit(GLuint fb, ivec4 src, ivec4 dst, unsigned mask, Sampler
 void Framebuffer::bind_window(BindTarget target)
 {
   glBindFramebuffer((GLenum)target, 0);
+}
+
+void Framebuffer::label(const char *label)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_FRAMEBUFFER, m, -1, label);
+#endif
 }
 
 GLenum Framebuffer::attachement(Attachment att)

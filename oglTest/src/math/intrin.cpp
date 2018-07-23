@@ -190,4 +190,41 @@ void vec3_cross(const float *a, const float *b, float *out)
   _mm_store_ps(out, _mm_sub_ps(z, w));
 }
 
+void quat_cross(const float *a, const float *b, float *out)
+{
+  __m128 x = _mm_load_ps(a);
+  __m128 y = _mm_load_ps(b);
+
+  __m128 f = _mm_set_ps(-1.0f, 1.0f, 1.0f, 1.0f);
+
+  __m128 z = _mm_mul_ps(
+    _mm_shuffle_ps(x, x, _MM_SHUFFLE(3, 3, 3, 3)),
+    _mm_shuffle_ps(y, y, _MM_SHUFFLE(3, 0, 1, 2))
+  );
+
+  __m128 w = _mm_mul_ps(
+    _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 1, 2)),
+    _mm_shuffle_ps(y, y, _MM_SHUFFLE(0, 3, 3, 3))
+  );
+
+  w = _mm_mul_ps(w, f);
+  z = _mm_add_ps(z, w);
+
+  w = _mm_mul_ps(
+    _mm_shuffle_ps(x, x, _MM_SHUFFLE(1, 1, 2, 0)),
+    _mm_shuffle_ps(y, y, _MM_SHUFFLE(1, 2, 0, 1))
+  );
+
+  w = _mm_mul_ps(w, f);
+  z = _mm_add_ps(z, w);
+
+  w = _mm_mul_ps(
+    _mm_shuffle_ps(x, x, _MM_SHUFFLE(2, 2, 0, 1)),
+    _mm_shuffle_ps(y, y, _MM_SHUFFLE(2, 1, 2, 0))
+  );
+
+  z = _mm_sub_ps(z, w);
+  _mm_store_ps(out, z);
+}
+
 }

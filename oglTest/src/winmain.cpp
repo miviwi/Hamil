@@ -5,6 +5,7 @@
 #include <math/transform.h>
 
 #include <win32/win32.h>
+#include <win32/panic.h>
 #include <win32/window.h>
 #include <win32/time.h>
 #include <win32/file.h>
@@ -43,6 +44,10 @@
 #include <yaml/node.h>
 
 #include <res/res.h>
+#include <res/manager.h>
+#include <res/resource.h>
+#include <res/text.h>
+#include <res/shader.h>
 
 #include <game/game.h>
 
@@ -125,6 +130,8 @@ int main(int argc, char *argv[])
   float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
 
+  vec3 sun{ -80.0f, 70.0f, 150.0f };
+
   bool constrained = true;
 
   int animate = -1;
@@ -133,8 +140,12 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
+  win32::File tex_image_f("tex.jpg", win32::File::Read, win32::File::OpenExisting);
+  auto tex_image_data = tex_image_f.map(win32::File::ProtectRead);
+
   int width = 0, height = 0;
-  auto tex_image = stbi_load("tex.png", &width, &height, nullptr, 4);
+  auto tex_image = stbi_load_from_memory(tex_image_data.get<byte>(), tex_image_f.size(),
+    &width, &height, nullptr, 4);
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler()
@@ -143,7 +154,8 @@ int main(int argc, char *argv[])
     .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
     .param(gx::Sampler::MagFilter, gx::Sampler::Linear);
 
-  tex.init(tex_image, 0, width, height, gx::rgba, gx::u32_8888);
+  tex.init(tex_image, 0, width, height, gx::rgba, gx::u8);
+  tex.generateMipmaps();
 
   gx::tex_unit(0, tex, sampler);
 
@@ -288,17 +300,8 @@ void main() {
 }
 )FG";
 
-  gx::Shader vtx_shader(gx::Shader::Vertex, vs_src);
-  gx::Shader frag_shader(gx::Shader::Fragment, { phong_src, fs_src });
-
-  gx::Shader tex_vtx_shader(gx::Shader::Vertex, tex_vs_src);
-  gx::Shader tex_frag_shader(gx::Shader::Fragment, { phong_src, tex_fs_src });
-
-  gx::Program program(vtx_shader, frag_shader);
-  gx::Program tex_program(tex_vtx_shader, tex_frag_shader);
-
-  program.getUniformsLocations(U::program);
-  tex_program.getUniformsLocations(U::tex);
+  auto program     = gx::make_program({ vs_src },     { phong_src, fs_src },     U::program);
+  auto tex_program = gx::make_program({ tex_vs_src }, { phong_src, tex_fs_src }, U::tex);
 
   program.label("program");
   tex_program.label("TEX_program");
@@ -313,11 +316,43 @@ void main() {
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
     .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::depth24, gx::Framebuffer::Depth);
+  if(fb.status() != gx::Framebuffer::Complete) {
+    win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
+  }
 
-  gx::Framebuffer resolved_fb;
+  fb.label("FB");
 
-  resolved_fb.use()
+  gx::Texture2D shadowmap(gx::depthf);
+  gx::Framebuffer fb_shadow;
+
+  shadowmap.init(1024, 1024);
+  shadowmap.label("shadowmap");
+
+  fb_shadow.use()
+    .tex(shadowmap, 0, gx::Framebuffer::Depth);
+  if(fb_shadow.status() != gx::Framebuffer::Complete) {
+    win32::panic("couldn't create shadowmap Framebuffer!", win32::FramebufferError);
+  }
+
+  fb_shadow.label("FB_shadow");
+
+  gx::Framebuffer fb_resolve;
+
+  fb_resolve.use()
     .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::rgb8, gx::Framebuffer::Color(0));
+  if(fb_resolve.status() != gx::Framebuffer::Complete) {
+    win32::panic("couldn't create MSAA resaolve Framebuffer!", win32::FramebufferError);
+  }
+
+  fb_resolve.label("FB_resolve");
+
+  auto shadow_pipeline = gx::Pipeline{}
+    .viewport(0, 0, 1024, 1024)
+    .depthTest(gx::Pipeline::LessEqual)
+    .cull(gx::Pipeline::Front)
+    .writeDepthOnly()
+    .clearDepth(1.0f)
+    ;
 
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
@@ -328,7 +363,7 @@ void main() {
   float r = 1280.0f;
   float b = 720.0f;
 
-  mat4 ortho = xform::ortho(0, 0, b, r, 0.1f, 100.0f);
+  mat4 ortho = xform::ortho(0, 0, b, r, 0.1f, 1000.0f);
 
   mat4 zoom_mtx = xform::identity();
   mat4 rot_mtx = xform::identity();
@@ -440,20 +475,20 @@ void main() {
   };
 
   std::vector<vec2> floor_vtxs = {
-    { -1.0f, 1.0f },  { 0.0f,  1.0f },
-    { -1.0f, -1.0f }, { 0.0f,  0.0f },
+    { -1.0f, 1.0f },  { 0.0f, 1.0f },
+    { -1.0f, -1.0f }, { 0.0f, 0.0f },
     { 1.0f, -1.0f },  { 1.0f, 0.0f },
 
     { 1.0f, -1.0f },  { 1.0f, 0.0f },
     { 1.0f, 1.0f },   { 1.0f, 1.0f },
-    { -1.0f, 1.0f },  { 0.0f,  1.0f },
+    { -1.0f, 1.0f },  { 0.0f, 1.0f },
 
-    { -1.0f, 1.0f },  { 0.0f,  1.0f },
+    { -1.0f, 1.0f },  { 0.0f, 1.0f },
     { 1.0f, -1.0f },  { 1.0f, 0.0f },
-    { -1.0f, -1.0f }, { 0.0f,  0.0f },
+    { -1.0f, -1.0f }, { 0.0f, 0.0f },
 
     { 1.0f, -1.0f },  { 1.0f, 0.0f },
-    { -1.0f, 1.0f },  { 0.0f,  1.0f },
+    { -1.0f, 1.0f },  { 0.0f, 1.0f },
     { 1.0f, 1.0f },   { 1.0f, 1.0f },
 
   };
@@ -473,8 +508,8 @@ void main() {
   gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
 
   auto floor_sampler = gx::Sampler()
-    .param(gx::Sampler::MinFilter, gx::Sampler::Nearest)
-    .param(gx::Sampler::MagFilter, gx::Sampler::Nearest)
+    .param(gx::Sampler::MinFilter, gx::Sampler::LinearMipmapLinear)
+    .param(gx::Sampler::MagFilter, gx::Sampler::LinearMipmapLinear)
     .param(gx::Sampler::WrapS, gx::Sampler::Repeat)
     .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
     .param(gx::Sampler::Anisotropy, 16.0f);
@@ -530,7 +565,7 @@ void main() {
       pos.x, (float)target->value(), pos.z
     };
   });
-  auto& slider_z = iface.getFrameByName<ui::HSliderFrame>("z")->range(-8.0f, 4.0f)
+  auto& slider_z = iface.getFrameByName<ui::HSliderFrame>("z")->range(-14.0f, 8.0f)
     .onChange([&](auto target) {
     auto light_id = light_no.selected();
     auto pos = light_position[light_id];
@@ -569,11 +604,6 @@ void main() {
       console.print(e.value().str());
     }
   });
-
-//  win32::File f("shader.meta", win32::File::Read, win32::File::OpenExisting);
-//  auto shader_meta = yaml::Document::from_string(f.map(win32::File::ProtectRead).get<const char>(), f.size());
-
-//  puts(shader_meta.toString().data());
 
   console.print(win32::StdStream::gets());
 
@@ -649,13 +679,6 @@ void main() {
 
     display_tex_matrix = checkbox.value();
 
-    gx::tex_unit(0, tex, sampler);
-
-    fb.use();
-    pipeline.use();
-
-    gx::clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
-
     if(animate > 0) {
       rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
         *xform::rotz(lerp(0.0f, 3.1415f, anim_timer.elapsedf()))
@@ -674,30 +697,9 @@ void main() {
     auto persp = !ortho_projection ? xform::perspective(70, 16.0f/9.0f, 0.1f, 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f)*xform::scale(zoom*2.0f);
 
-    //yaw = lerp(0.0f, 2.0f*PIf, anim_factor);
-    //pitch = sin(2.0f*PIf * anim_factor) * PIf/2.0f;
-
-    //vec3 eye{ (float)pitch/1280.0f*150.0f, (float)yaw/720.0f*150.0f, 60.0f/zoom };
-    auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
+    auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });
 
     vec4 color;
-
-    light_block.num_lights = 3;
-
-    light_block.lights[0] = {
-      view*light_position[0],
-      vec3{ 1.0f, 1.0f, 1.0f }
-    };
-    light_block.lights[1] = {
-      view*light_position[1],
-      vec3{ 1.0f, 1.0f, 1.0f }
-    };
-    light_block.lights[2] = {
-      view*light_position[2],
-      vec3{ 1.0f, 1.0f, 1.0f }
-    };
-
-    light_ubo.upload(&light_block, 0, 1);
 
     auto drawcube = [&]()
     {
@@ -710,19 +712,75 @@ void main() {
         .draw(gx::Triangles, arr, vtxs.size());
     };
 
+    shadow_pipeline.use();
+
+    fb_shadow.use();
+    gx::clear(gx::Framebuffer::DepthBit);
+
+    model = xform::Transform()
+      .translate(0.0f, 3.0f, 0.0f)
+      .matrix();
+    drawcube();
+
+    model = xform::Transform()
+      .translate(3.0f, 0.0f, -6.0f)
+      .matrix();
+    drawcube();
+
+    model = xform::Transform()
+      .translate(-3.0f, 0.0f, -6.0f)
+      .matrix();
+    drawcube();
+
+    model = xform::identity()
+      *xform::translate(0.0f, -1.01f, -6.0f)
+      *xform::scale(10.0f)
+      *xform::rotx(PIf/2.0f)
+      ;
+
+    mat4 modelview = view*model;
+
+    gx::tex_unit(0, tex, floor_sampler);
+    tex_program.use()
+      .uniformMatrix4x4(U::tex.uProjection, persp)
+      .uniformMatrix4x4(U::tex.uModelView, modelview)
+      .uniformMatrix3x3(U::tex.uNormal, modelview.inverse().transpose())
+      .uniformSampler(U::tex.uTex, 0)
+      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
+
+    pipeline.use();
+    gx::tex_unit(0, tex, sampler);
+
+    fb.use();
+    gx::clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
+
+    view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
+
+    light_block.num_lights = 3;
+
+    light_block.lights[0] ={
+      view*light_position[0],
+      vec3{ 1.0f, 1.0f, 1.0f }
+    };
+    light_block.lights[1] ={
+      view*light_position[1],
+      vec3{ 1.0f, 1.0f, 1.0f }
+    };
+    light_block.lights[2] ={
+      view*light_position[2],
+      vec3{ 1.0f, 1.0f, 1.0f }
+    };
+
+    light_ubo.upload(&light_block, 0, 1);
+
     auto rot = xform::identity()
-      //*xform::rotz(lerp(0.0, PI, anim_factor))*0.5f
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
-      //*xform::rotz(lerp(0.0, PI, anim_factor))
       ;
 
     color = { 1.0f, 1.0f, 1.0f, -1.0f };
     model = xform::identity()
       *xform::translate(0.0f, 3.0f, 0.0f)
-      //*xform::rotx(lerp(0.0f, PIf, anim_factor))
-      //*xform::roty(lerp(0.0f, PIf, anim_factor))
       *xform::scale(1.5f)
-      //*xform::translate(0.0f, 0.0f, -30.0f)
       ;
     drawcube();
 
@@ -754,7 +812,7 @@ void main() {
       .matrix()
       ;
 
-    mat4 modelview = view*model;
+    modelview = view*model;
 
     gx::tex_unit(0, tex, floor_sampler);
     tex_program.use()
@@ -803,10 +861,10 @@ void main() {
     iface.paint();
     cursor.paint();
 
-    fb.blit(resolved_fb, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y },
+    fb.blit(fb_resolve, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y },
             gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 
-    resolved_fb.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
+    fb_resolve.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
                     gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();

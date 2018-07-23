@@ -206,12 +206,9 @@ void CursorDriver::init()
 
   p->tex.label("CURSOR_tex");
 
-  gx::Shader vtx_shader(gx::Shader::Vertex, vs_src);
-  gx::Shader frag_shader(gx::Shader::Fragment, fs_src);
-
-  cursor_program = std::make_unique<gx::Program>(vtx_shader, frag_shader);
-  cursor_program->getUniformsLocations(U::cursor);
-
+  cursor_program = std::make_unique<gx::Program>(gx::make_program(
+    { vs_src }, { fs_src }, U::cursor
+  ));
   cursor_program->label("CURSOR_program");
 
   cursor_program->use()

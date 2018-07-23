@@ -19,6 +19,11 @@ Pipeline::Pipeline()
   m_cull.front = GL_CCW;
   m_clear.stencil = ~0;
   m_restart.index = 0;
+
+  m_enabled[Mask] = true;
+  m_mask.red = m_mask.green = m_mask.blue = m_mask.alpha = true;
+  m_mask.depth   = true;
+  m_mask.stencil = ~0;
 }
 
 void Pipeline::use() const
@@ -222,6 +227,49 @@ Pipeline& Pipeline::primitiveRestart(unsigned index)
   return *this;
 }
 
+Pipeline& Pipeline::writeDepthOnly()
+{
+  m_enabled[Mask] = true;
+
+  m_mask.red = m_mask.green = m_mask.blue = m_mask.alpha = false;
+
+  m_mask.depth   = true;
+  m_mask.stencil = 0;
+
+  return *this;
+}
+
+Pipeline& Pipeline::depthStencilMask(bool depth, uint stencil)
+{
+  m_enabled[Mask] = true;
+
+  m_mask.depth   = depth;
+  m_mask.stencil = stencil;
+
+  return *this;
+}
+
+Pipeline& Pipeline::writeColorOnly()
+{
+  m_enabled[Mask] = true;
+
+  m_mask.red = m_mask.green = m_mask.blue = m_mask.alpha = true;
+
+  m_mask.depth   = false;
+  m_mask.stencil = 0;
+
+  return *this;
+}
+
+Pipeline& Pipeline::colorMask(bool red, bool green, bool blue, bool alpha)
+{
+  m_enabled[Mask] = true;
+
+  m_mask.red = red; m_mask.green = green; m_mask.blue = blue; m_mask.alpha = alpha;
+
+  return *this;
+}
+
 void Pipeline::disable(ConfigType config) const
 {
   switch(config) {
@@ -234,6 +282,7 @@ void Pipeline::disable(ConfigType config) const
   case Clear:     break;
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
   case PrimitiveRestart: glDisable(GL_PRIMITIVE_RESTART); break;
+  case Mask:      break;
 
   default: break;
   }
@@ -246,9 +295,10 @@ void Pipeline::enable(ConfigType config) const
     if(!p_current.isEnabled(config)) glEnable(cap);
   };
 
-  const auto& v = m_viewport;
+  const auto& v  = m_viewport;
   const auto& sc = m_scissor;
-  const auto& c = m_clear;
+  const auto& c  = m_clear;
+  const auto& m  = m_mask;
 
   switch(config) {
   case Viewport: glViewport(v.x, v.y, v.width, v.height); break;
@@ -286,6 +336,11 @@ void Pipeline::enable(ConfigType config) const
     do_enable(PrimitiveRestart, GL_PRIMITIVE_RESTART);
     glPrimitiveRestartIndex(m_restart.index);
     break;
+  case Mask:
+    glColorMask(m.red, m.green, m.blue, m.alpha);
+    glDepthMask(m.depth);
+    glStencilMask(m.stencil);
+    break;
 
   default: break;
   }
@@ -308,6 +363,7 @@ bool Pipeline::compare(const ConfigType config) const
   case Clear:            return do_compare(m_clear, p_current.m_clear);
   case Wireframe:        return false;
   case PrimitiveRestart: return do_compare(m_restart, p_current.m_restart);
+  case Mask:             return do_compare(m_mask, p_current.m_mask);
   }
 
   return false;

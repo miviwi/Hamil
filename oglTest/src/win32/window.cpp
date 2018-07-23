@@ -201,6 +201,8 @@ HGLRC Window::ogl_create_context(HWND hWnd)
   glDebugMessageCallback((GLDEBUGPROC)ogl_debug_callback, nullptr);
 #endif
 
+  glGetError(); // clear the error indicator
+
   return context;
 }
 

@@ -14,17 +14,15 @@
 
 #include <vector>
 
-#include <win32/file.h>
-
 namespace py {
 
 Dict p_globals(nullptr);
 
 static _inittab p_modules[] = {
   { "win32", PyInit_win32 },
-  { "Math",  PyInit_math },
-  { "yaml",  PyInit_yaml },
-  { "res",  PyInit_res },
+  { "Math",  PyInit_math  },
+  { "yaml",  PyInit_yaml  },
+  { "res",   PyInit_res   },
 
   { nullptr }
 };

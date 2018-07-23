@@ -5,6 +5,19 @@ namespace gx {
 GLuint p_last_array = ~0u;
 GLuint p_dummy_vao;
 
+bool is_color_format(Format fmt)
+{
+  switch(fmt) {
+  case depth:
+  case depth_stencil:
+  case depth16: case depth24: case depth32: case depthf:
+  case depth24_stencil8:
+    return false;
+  }
+
+  return true;
+}
+
 void init()
 {
   // 'p_dummy_vao' is created beacuse the GL spec forbids binding

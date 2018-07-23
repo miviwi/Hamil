@@ -113,7 +113,7 @@ Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
   return Vector2<T>{ -(b.y - a.y), b.x - a.x }.normalize();
 }
 
-using vec2 = Vector2<float>;
+using vec2  = Vector2<float>;
 using ivec2 = Vector2<int>;
 
 template <typename T>
@@ -213,7 +213,7 @@ Vector3<T>& operator*=(Vector3<T>& a, T u)
   return a;
 }
 
-using vec3 = Vector3<float>;
+using vec3  = Vector3<float>;
 using ivec3 = Vector3<int>;
 
 inline vec3 vec3::cross(const vec3& v) const
@@ -303,7 +303,7 @@ Vector4<T>& operator*=(Vector4<T>& a, T u)
   return a;
 }
 
-using vec4 = Vector4<float>;
+using vec4  = Vector4<float>;
 using ivec4 = Vector4<int>;
 
 inline vec4 operator*(vec4 a, float u)
@@ -312,6 +312,52 @@ inline vec4 operator*(vec4 a, float u)
 
   intrin::vec4_const_mult(a, u, b);
   return b;
+}
+
+struct alignas(16) Quaternion {
+  float x, y, z, w;
+
+  static Quaternion from_axis(vec3 axis, float angle)
+  {
+    float half_angle = angle / 2.0f;
+    float s = sinf(half_angle);
+
+    axis *= s;
+
+    return { axis.x, axis.y, axis.z, cosf(half_angle) };
+  }
+
+  static Quaternion from_euler(float x, float y, float z)
+  {
+  }
+
+  float dot(const Quaternion& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
+
+  inline Quaternion cross(Quaternion b) const;
+
+  operator float *() { return (float *)this; }
+  operator const float *() const { return (const float *)this; }
+};
+
+inline Quaternion operator*(Quaternion a, Quaternion b)
+{
+  return { a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w };
+}
+
+inline Quaternion operator*(Quaternion a, float u)
+{
+  Quaternion b;
+
+  intrin::vec4_const_mult(a, u, b);
+  return b;
+}
+
+inline Quaternion Quaternion::cross(Quaternion b) const
+{
+  Quaternion c;
+
+  intrin::quat_cross((const float *)this, b, c);
+  return c;
 }
 
 template <typename T>
@@ -333,7 +379,7 @@ Matrix2<T> operator*(Matrix2<T> a, Matrix2<T> b)
   };
 }
 
-using mat2 = Matrix2<float>;
+using mat2  = Matrix2<float>;
 using imat2 = Matrix2<int>;
 
 template <typename T>
@@ -356,7 +402,7 @@ Matrix3<T> operator*(Matrix3<T> a, Matrix3<T> b)
   };
 }
 
-using mat3 = Matrix3<float>;
+using mat3  = Matrix3<float>;
 using imat3 = Matrix3<int>;
 
 template <typename T>
@@ -443,7 +489,7 @@ inline Matrix4<T> Matrix4<T>::inverse() const
   return x;
 }
 
-using mat4 = Matrix4<float>;
+using mat4  = Matrix4<float>;
 using imat4 = Matrix4<int>;
 
 inline mat4 operator*(mat4 a, mat4 b)
@@ -462,7 +508,7 @@ mat4 mat4::transpose() const
   return b;
 }
 
-//// Must be non-singular!
+// Must be non-singular!
 mat4 mat4::inverse() const
 {
   mat4 b;

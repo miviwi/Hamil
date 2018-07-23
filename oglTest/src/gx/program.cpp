@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cstring>
 #include <vector>
+#include <utility>
 
 namespace gx {
 
@@ -45,9 +46,27 @@ Program::Program(const Shader& vertex, const Shader& geometry, const Shader& fra
   getUniformBlockOffsets();
 }
 
+Program::Program(Program&& other) :
+  m(other.m), m_ubo_offsets(std::move(other.m_ubo_offsets))
+{
+  other.m = 0;
+}
+
 Program::~Program()
 {
   glDeleteProgram(m);
+}
+
+Program& Program::operator=(Program&& other)
+{
+  this->~Program();
+
+  m = other.m;
+  m_ubo_offsets = std::move(other.m_ubo_offsets);
+
+  other.m = 0;
+
+  return *this;
 }
 
 GLint Program::getUniformLocation(const char *name)

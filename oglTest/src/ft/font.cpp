@@ -192,12 +192,9 @@ void init()
   p->buf.init(sizeof(Vertex)*4, pFt::NumBufferChars);
   p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
 
-  gx::Shader vtx(gx::Shader::Vertex, vs_src);
-  gx::Shader frag(gx::Shader::Fragment, { Font::frag_shader, fs_src });
-
-  font_program = std::make_unique<gx::Program>(vtx, frag);
-  font_program->getUniformsLocations(U::font);
-  
+  font_program = std::make_unique<gx::Program>(gx::make_program(
+    { vs_src }, { Font::frag_shader, fs_src }, U::font
+  ));
   font_program->label("FT_program");
 
   font_program->use()

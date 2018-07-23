@@ -95,12 +95,9 @@ void init()
 {
   CursorDriver::init();
 
-  gx::Shader vtx(gx::Shader::Vertex, { shader_uType_defs, vs_src });
-  gx::Shader frag(gx::Shader::Fragment, { ft::Font::frag_shader, shader_uType_defs, fs_src });
-
-  ui_program = std::make_unique<gx::Program>(vtx, frag);
-  ui_program->getUniformsLocations(U::ui);
-  
+  ui_program = std::make_unique<gx::Program>(gx::make_program(
+    { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U::ui
+  ));
   ui_program->label("UI_program");
 }
 

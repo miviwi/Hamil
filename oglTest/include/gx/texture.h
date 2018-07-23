@@ -15,6 +15,7 @@ public:
 
   void use();
 
+  // Initializes MipMap level 0
   void init(unsigned w, unsigned h);
   void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
@@ -26,6 +27,8 @@ public:
               unsigned w, unsigned h, unsigned d, Format format, Type type);
 
   void swizzle(Component r, Component g, Component b, Component a);
+
+  void generateMipmaps();
 
   // Can only be called after init[Multisample]()
   void label(const char *lbl);

@@ -13,6 +13,7 @@ public:
     Depth, Stencil, Cull,
     Clear, Wireframe,
     PrimitiveRestart,
+    Mask,
 
     NumConfigTypes,
   };
@@ -59,6 +60,11 @@ public:
   Pipeline& clear(vec4 color, float depth);
   Pipeline& wireframe();
   Pipeline& primitiveRestart(unsigned index);
+
+  Pipeline& writeDepthOnly();
+  Pipeline& depthStencilMask(bool depth, uint stencil);
+  Pipeline& writeColorOnly();
+  Pipeline& colorMask(bool red, bool green, bool blue, bool alpha);
 
   Pipeline& noScissor();
   Pipeline& noBlend();
@@ -108,6 +114,12 @@ private:
   struct RestartConfig {
     unsigned index;
   } m_restart;
+
+  struct MaskConfig {
+    bool red, green, blue, alpha;
+    bool depth;
+    uint stencil;
+  } m_mask;
 
   void disable(ConfigType config) const;
   void enable(ConfigType config) const;
