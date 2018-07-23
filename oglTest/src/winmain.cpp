@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
   float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
 
-  vec3 sun{ -80.0f, 70.0f, 150.0f };
+  vec3 sun{ -120.0f, 160.0f, 140.0f };
 
   bool constrained = true;
 
@@ -206,7 +206,7 @@ vec3 phong(Light light, vec3 position, vec3 normal) {
   vec3 V = normalize(-position);
   vec3 H = normalize(L + V);
 
-  float specular_strength = pow(max(dot(V, H), 0.0), 32);
+  float specular_strength = pow(max(dot(V, H), 0.0), 8);
   
   vec3 ambient = 0.1 * light.color;
   vec3 diffuse = diffuse_strength * light.color;
@@ -694,7 +694,7 @@ void main() {
       *rot_mtx
       ;
 
-    auto persp = !ortho_projection ? xform::perspective(70, 16.0f/9.0f, 0.1f, 1000.0f) :
+    auto persp = !ortho_projection ? xform::perspective(70, (float)FB_DIMS.x/(float)FB_DIMS.y, 0.1f, 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f)*xform::scale(zoom*2.0f);
 
     auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });

@@ -98,7 +98,7 @@ public:
   void draw(Primitive p, const IndexedVertexArray& vtx, size_t num);
 
   void drawBaseVertex(Primitive p,
- const IndexedVertexArray& vtx, size_t base, size_t offset, size_t num);
+    const IndexedVertexArray& vtx, size_t base, size_t offset, size_t num);
 
   void label(const char *lbl);
 
@@ -127,5 +127,20 @@ static Program make_program(
   return prog;
 }
 
+template <typename T>
+static Program make_program(
+  Shader::SourcesList vs_src, Shader::SourcesList gs_src, Shader::SourcesList fs_src,
+  T& uniforms)
+{
+  Shader vs(gx::Shader::Vertex,   vs_src);
+  Shader gs(gx::Shader::Geometry, gs_src);
+  Shader fs(gx::Shader::Fragment, fs_src);
+
+  Program prog(vs, gs, fs);
+
+  prog.getUniformsLocations(uniforms);
+
+  return prog;
+}
 
 }
