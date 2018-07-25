@@ -47,7 +47,7 @@ out VertexData {
 
 void main() {
   vec2 pos = iPos;
-  if(uType != TypeText) pos *= fixed_factor;
+  if(uType != TypeText) pos *= fixed_factor; // TypeText vertices are already normalized
 
   vertex.uv = iUV;
   vertex.color = iColor;

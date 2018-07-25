@@ -65,7 +65,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     const auto& cmd = target->text();
 
     m_buffer->input(cmd);
-    if(cmd.length() && cmd.front() == '$') {
+    if(cmd.length() && cmd.front() == '.') {
       consoleCommand(cmd);
     } else {
       m_on_command.emit(this, cmd.data());
@@ -193,7 +193,7 @@ constexpr Geometry ConsoleFrame::make_geometry()
 void ConsoleFrame::consoleCommand(const std::string& cmd)
 {
   std::unordered_map<std::string, std::function<void()>> fns = {
-    { "$cls", [this]() { m_buffer->clear(); } },
+    { ".cls", [this]() { m_buffer->clear(); } },
   };
   fns[cmd]();
 }
@@ -203,6 +203,9 @@ bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
   if(auto mouse = input->get<win32::Mouse>()) {
     using win32::Mouse;
     if(mouse->event != Mouse::Wheel) return false;
+
+    if(m_buffer.size() < rows()) return true; // don't scroll if the screen
+                                              // hasn't been filled yet
 
     auto direction = mouse->ev_data > 0 ? 1 : -1;
     if(direction > 0 && m_buffer.size()) {
@@ -245,6 +248,7 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
     .rect(scrollbar_g, grey().opacity(0.8))
     ;
 
+  // Paint the text
   if(m_buffer.empty()) return;
 
   float line_height = font.height();

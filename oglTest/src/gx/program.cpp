@@ -295,7 +295,7 @@ Shader::Shader(Type type, const char *source) :
 {
 }
 
-Shader::Shader(Type type, std::initializer_list<const char *> sources) :
+Shader::Shader(Type type, SourcesList sources) :
   Shader(type, sources.begin(), sources.size())
 {
 
