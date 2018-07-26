@@ -25,7 +25,35 @@ void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
   Geometry g = parent.clip(geometry());
   calculateFrameGeometries();
 
-  for(const auto& frame : m_frames) frame->paint(painter, g);
+  auto pipeline = gx::Pipeline()
+    .alphaBlend()
+    .primitiveRestart(Vertex::RestartIndex)
+    .noScissor()
+    ;
+
+  if(m_dbg_bboxes) {
+    painter
+      .pipeline(pipeline)
+      .border(g.expand(1), 2.0f, red())
+      ;
+  }
+
+  for(const auto& frame : m_frames) {
+    if(m_dbg_bboxes && !frame->isLayout()) {
+      painter
+        .pipeline(pipeline)
+        .border(frame->geometry(), 1.0f, green())
+        ;
+    }
+
+    frame->paint(painter, g);
+  }
+}
+
+LayoutFrame& LayoutFrame::dbg_DrawBBoxes(bool enabled)
+{
+  m_dbg_bboxes = enabled;
+  return *this;
 }
 
 LayoutFrame& LayoutFrame::frame(Frame *frame)

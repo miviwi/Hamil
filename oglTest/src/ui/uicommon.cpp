@@ -34,6 +34,11 @@ Geometry Geometry::contract(float factor) const
   );
 }
 
+Geometry Geometry::expand(float factor) const
+{
+  return contract(-factor);
+}
+
 bool Geometry::intersect(vec2 p) const
 {
   vec2 a = { x, y },

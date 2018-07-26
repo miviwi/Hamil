@@ -230,7 +230,7 @@ Font::Font(const FontFamily& family, unsigned height) :
   err = FT_Stroker_New(ft, &stroker);
   assert(!err && "FreeType stroker creation error!");
 
-  FT_Stroker_Set(stroker, 0<<6, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
+  FT_Stroker_Set(stroker, 2<<6, FT_STROKER_LINECAP_ROUND, FT_STROKER_LINEJOIN_ROUND, 0);
 
   // Load glyphs (TODO!!)
   std::vector<pGlyph> glyphs;

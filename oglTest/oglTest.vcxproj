@@ -117,7 +117,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;yaml_d.lib;python37_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalOptions>/IGNORE:4049,4075 /LTCG</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4049,4075 </AdditionalOptions>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <Bscmake>
@@ -199,6 +199,7 @@ exit /b 0</Command>
     <ClCompile Include="extern\GL\gl3w.c" />
     <ClCompile Include="extern\stb_image\image.c" />
     <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="src\cli\cli.cpp" />
     <ClCompile Include="src\ft\cache.cpp" />
     <ClCompile Include="src\game\cmdline.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
@@ -214,6 +215,7 @@ exit /b 0</Command>
     <ClCompile Include="src\py\object.cpp" />
     <ClCompile Include="src\py\types.cpp" />
     <ClCompile Include="src\res\cache.cpp" />
+    <ClCompile Include="src\res\cli.cpp" />
     <ClCompile Include="src\res\loader.cpp" />
     <ClCompile Include="src\res\manager.cpp" />
     <ClCompile Include="src\res\res.cpp" />
@@ -250,6 +252,7 @@ exit /b 0</Command>
     <ClInclude Include="extern\GL\wgl.h" />
     <ClInclude Include="extern\stb_image\stb_image.h" />
     <ClInclude Include="Generated\uniforms.h" />
+    <ClInclude Include="include\cli\cli.h" />
     <ClInclude Include="include\ft\cache.h" />
     <ClInclude Include="include\game\cmdline.h" />
     <ClInclude Include="include\math\compare.h" />
@@ -264,6 +267,7 @@ exit /b 0</Command>
     <ClInclude Include="include\py\object.h" />
     <ClInclude Include="include\py\types.h" />
     <ClInclude Include="include\res\cache.h" />
+    <ClInclude Include="include\res\cli.h" />
     <ClInclude Include="include\res\loader.h" />
     <ClInclude Include="include\res\manager.h" />
     <ClInclude Include="include\res\res.h" />

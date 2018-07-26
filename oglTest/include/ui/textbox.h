@@ -44,6 +44,9 @@ public:
   virtual void losingCapture();
   virtual void attached();
 
+  const ft::Font::Ptr& font() const;
+  TextBoxFrame& font(const ft::Font::Ptr& font);
+
   const std::string& text() const;
   TextBoxFrame& text(const std::string& s);
 
@@ -90,7 +93,12 @@ private:
 
   void cursor(size_t x);
 
+  // returns 'true' when a selection was present
   bool doDeleteSelection();
+
+  // this member is not to be used directly, instead
+  //   use the font() method when you need access
+  ft::Font::Ptr m_font = nullptr;
 
   State m_state = Default;
 

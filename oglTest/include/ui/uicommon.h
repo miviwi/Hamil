@@ -34,6 +34,7 @@ struct Geometry {
 
   Geometry clip(const Geometry& g) const;
   Geometry contract(float factor) const;
+  Geometry expand(float factor) const;
 
   bool intersect(vec2 p) const;
 
@@ -67,6 +68,9 @@ static Color transparent() { return Color{ 0, 0, 0, 0 }; }
 static Color black()       { return Color{ 0, 0, 0, 255 }; }
 static Color grey()        { return Color{ 128, 128, 128, 255 }; }
 static Color white()       { return Color{ 255, 255, 255, 255 }; }
+static Color red()         { return Color{ 255, 0, 0, 255 }; }
+static Color green()       { return Color{ 0, 255, 0, 255 }; }
+static Color blue()        { return Color{ 0, 0, 255, 255 }; }
 
 struct Position : public Vector2<i16> {
   Position();

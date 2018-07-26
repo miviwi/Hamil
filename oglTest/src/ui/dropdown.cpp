@@ -85,7 +85,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
   auto pipeline = gx::Pipeline()
     .scissor(Ui::scissor_rect(parent.clip(g)))
     .alphaBlend()
-    .primitiveRestart(0xFFFF)
+    .primitiveRestart(Vertex::RestartIndex)
     ;
 
   painter
@@ -111,7 +111,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
     auto pipeline = gx::Pipeline()
       .scissor(Ui::scissor_rect(dropdown_g))
       .alphaBlend()
-      .primitiveRestart(0xFFFF)
+      .primitiveRestart(Vertex::RestartIndex)
       ;
 
     painter

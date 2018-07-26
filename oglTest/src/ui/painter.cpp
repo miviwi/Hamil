@@ -219,18 +219,25 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, 
 {
   auto offset = m_ind.size();
 
-  appendVertices({
-    { { g.x, g.y, }, a },
-    { { g.x, g.y+g.h, }, b },
-    { { g.x+g.w, g.y+g.h, }, c },
-    { { g.x+g.w, g.y, }, d }
-  });
+  if(width <= 1.0f) {        // Fast path
+    appendVertices({
+      { { g.x, g.y, }, a },
+      { { g.x, g.y+g.h, }, b },
+      { { g.x+g.w, g.y+g.h, }, c },
+      { { g.x+g.w, g.y, }, d }
+    });
 
-  appendCommand(Command::primitive(
-    gx::LineLoop,
-    0, offset,
-    4
-  ));
+    appendCommand(Command::primitive(
+      gx::LineLoop,
+      0, offset,
+      4
+    ));
+  } else {                   // Slow path...
+    line(g.pos(),                  g.pos()+vec2{ 0,   g.h }, width, LineCap::CapButt, a, a);
+    line(g.pos()+vec2{ 0,   g.h }, g.pos()+vec2{ g.w, g.h }, width, LineCap::CapButt, b, b);
+    line(g.pos()+vec2{ g.w, g.h }, g.pos()+vec2{ g.w, 0   }, width, LineCap::CapButt, c, c);
+    line(g.pos()+vec2{ g.w, 0   }, g.pos(),                  width, LineCap::CapButt, d, d);
+  }
 
   return *this;
 }

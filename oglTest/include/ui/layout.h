@@ -18,6 +18,8 @@ public:
   virtual bool input(CursorDriver& cursor, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
+  LayoutFrame& dbg_DrawBBoxes(bool enabled = true);
+
   LayoutFrame& frame(Frame *frame);
   LayoutFrame& frame(Frame& frame);
   template <typename T, typename... Args>
@@ -29,10 +31,13 @@ public:
 
   Frame& getFrameByIndex(unsigned idx);
 
+  virtual bool isLayout() const { return true; }
+
 protected:
   virtual void calculateFrameGeometries() = 0;
 
   std::vector<Frame *> m_frames;
+  bool m_dbg_bboxes = true;
 };
 
 // Frame Geometry:

@@ -52,6 +52,8 @@ public:
 
   virtual vec2 sizeHint() const;
 
+  virtual bool isLayout() const { return false; }
+
 protected:
   friend class Ui;
   Ui *m_ui;

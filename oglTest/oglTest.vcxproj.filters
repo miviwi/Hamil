@@ -236,6 +236,12 @@
     <ClCompile Include="src\py\types.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\cli\cli.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\res\cli.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -473,6 +479,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\py\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cli\cli.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\cli.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

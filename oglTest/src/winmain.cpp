@@ -51,6 +51,8 @@
 
 #include <game/game.h>
 
+#include <cli/cli.h>
+
 #include <stb_image/stb_image.h>
 
 #include <vector>
@@ -60,28 +62,7 @@
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
 {
-  if(argc > 1) {
-    auto opts =
-      util::ConsoleOpts()
-        .boolean("resource-gen", "generate *.meta files (resource descriptors) from images, sound files etc.")
-        .list("resources",       "list of resources for resource-gen")
-      ;
-
-    puts(opts.doc().data());
-    opts.parse(argc, argv);
-
-    opts.debugPrintOpts();
-
-    if(opts("resource-gen")) {
-      if(auto resources = opts("resources")) {
-        res::resourcegen(resources->list());
-      } else {
-        res::resourcegen({});
-      }
-    }
-
-    exit(1);
-  }
+  if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
 
   win32::init();
 
@@ -98,29 +79,6 @@ int main(int argc, char *argv[])
   py::init();
   res::init();
   game::init();
-
-  int num_extensions = 0;
-  glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
-
-  py::List gl_extensions(num_extensions);
-
-  for(int i = 0; i < num_extensions; i++) {
-    auto ext = (const char *)glGetStringi(GL_EXTENSIONS, i);
-    gl_extensions.set(i, py::Unicode(ext));
-  }
-
-  py::set_global("GL_EXTENSIONS", gl_extensions);
-
-  win32::MemoryStatus mem_status;
-  py::set_global("MemoryStatus", py::Dict({
-    { py::py("load"), py::py((int)mem_status.loadPercentage()) },
-
-    { py::py("phys_size"),  py::py(mem_status.physicalSize()) },
-    { py::py("phys_avail"), py::py(mem_status.physicalAvailable()) },
-
-    { py::py("virt_size"),  py::py(mem_status.virtualSize()) },
-    { py::py("virt_avail"), py::py(mem_status.virtualAvailable()) },
-  }));
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -144,7 +102,7 @@ int main(int argc, char *argv[])
   auto tex_image_data = tex_image_f.map(win32::File::ProtectRead);
 
   int width = 0, height = 0;
-  auto tex_image = stbi_load_from_memory(tex_image_data.get<byte>(), tex_image_f.size(),
+  auto tex_image = stbi_load_from_memory(tex_image_data.get<byte>(), (int)tex_image_f.size(),
     &width, &height, nullptr, 4);
 
   gx::Texture2D tex(gx::rgb);
@@ -517,27 +475,11 @@ void main() {
   ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
-    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame<ui::PushButtonFrame>(iface, "b"))
-    .frame(ui::create<ui::DropDownFrame>(iface, "light_no")
-           .item({ "Light 1" })
-           .item({ "Light 2" })
-           .item({ "Light 3" })
-           .selected(0))
-    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Light X:"))
-           .frame<ui::HSliderFrame>(iface, "x"))
-    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Light Y:"))
-           .frame<ui::HSliderFrame>(iface, "y"))
-    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Light Z:"))
-           .frame<ui::HSliderFrame>(iface, "z"))
+    .frame<ui::PushButtonFrame>(iface, "b")
     .frame(ui::create<ui::ColumnLayoutFrame>(iface)
            .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
-           .gravity(ui::Frame::Left))
-    .frame(ui::create<ui::TextBoxFrame>(iface, "textbox").hint("Type something here!"))
+             .gravity(ui::Frame::Left))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");
@@ -545,45 +487,7 @@ void main() {
     window.quit();
   });
 
-  auto& light_no = *iface.getFrameByName<ui::DropDownFrame>("light_no");
-
-  auto& slider_x = iface.getFrameByName<ui::HSliderFrame>("x")->range(-5.0f, 5.0f)
-    .onChange([&](auto target) {
-    auto light_id = light_no.selected();
-    auto pos = light_position[light_id];
-
-    light_position[light_id] = {
-      (float)target->value(), pos.y, pos.z
-    };
-  });
-  auto& slider_y = iface.getFrameByName<ui::HSliderFrame>("y")->range(0.0f, 12.0f)
-    .onChange([&](auto target) {
-    auto light_id = light_no.selected();
-    auto pos = light_position[light_id];
-
-    light_position[light_id] = {
-      pos.x, (float)target->value(), pos.z
-    };
-  });
-  auto& slider_z = iface.getFrameByName<ui::HSliderFrame>("z")->range(-14.0f, 8.0f)
-    .onChange([&](auto target) {
-    auto light_id = light_no.selected();
-    auto pos = light_position[light_id];
-
-    light_position[light_id] = {
-      pos.x, pos.y, (float)target->value()
-    };
-  });
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
-
-  light_no.onChange([&](auto target) {
-    auto light_id = target->selected();
-    auto pos = light_position[light_id];
-
-    slider_x.value(pos.x);
-    slider_y.value(pos.y);
-    slider_z.value(pos.z);
-  });
 
   iface
     .frame(layout, { 30.0f, 500.0f })
@@ -871,8 +775,6 @@ void main() {
 
     frames++;
   }
-
-  gl_extensions.dispose();
 
   game::finalize();
   py::finalize();

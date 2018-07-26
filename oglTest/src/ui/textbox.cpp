@@ -79,7 +79,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
   Geometry g = geometry();
 
   const auto& style = m_ui->style();
-  auto& font = *style.font;
+  auto& fnt = *font();
 
   Color cursor_color = transparent();
   switch(m_state) {
@@ -90,12 +90,12 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
   switch(m_state) {
   case Editing:
   case Selecting:
-    border_color = Color(112, 112, 255); break;
+    border_color = Color(6, 70, 173); break;
   }
 
   vec2 text_pos = {
     g.x + TextPixelMargin,
-    g.y + font.bearingY() + TextPixelMargin
+    g.y + fnt.bearingY() + TextPixelMargin
   };
 
   float cursor_x = text_pos.x + cursorX(m_cursor);
@@ -108,23 +108,23 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
   auto text_pipeline = gx::Pipeline()
     .alphaBlend()
     .scissor(Ui::scissor_rect(parent.clip(g)))
-    .primitiveRestart(0xFFFF)
+    .primitiveRestart(Vertex::RestartIndex)
     ;
 
   painter
     .pipeline(text_pipeline)
-    .rect(g, white())
+    .rect(g.contract(1), white())
     .rect(cursor_g, cursor_color)
-    .border(g, 1.0f, border_color)
+    .border(g.contract(1), 2.0f, border_color)
     ;
 
   if(m_text.empty() && !m_hint.empty()) { // Draw hint
     painter
-      .text(font, m_hint, text_pos, black().opacity(0.35))
+      .text(fnt, m_hint, text_pos, black().opacity(0.35))
       ;
   } else {
     painter
-      .text(font, m_text, text_pos, black())
+      .text(fnt, m_text, text_pos, black())
       ;
   }
 
@@ -153,6 +153,17 @@ void TextBoxFrame::losingCapture()
 void TextBoxFrame::attached()
 {
   m_cursor_blink.start();
+}
+
+const ft::Font::Ptr& TextBoxFrame::font() const
+{
+  return m_font ? m_font : m_ui->style().font;
+}
+
+TextBoxFrame& TextBoxFrame::font(const ft::Font::Ptr& font)
+{
+  m_font = font;
+  return *this;
 }
 
 const std::string& TextBoxFrame::text() const
@@ -207,9 +218,7 @@ TextBoxFrame::OnSubmit& TextBoxFrame::submit()
 
 vec2 TextBoxFrame::sizeHint() const
 {
-  const auto& font = *m_ui->style().font;
-
-  return { 0, font.height() + TextPixelMargin };
+  return { 0, font()->height() + TextPixelMargin*2 };
 }
 
 bool TextBoxFrame::keyboardDown(CursorDriver& cursor, win32::Keyboard *kb)
@@ -326,22 +335,22 @@ bool TextBoxFrame::specialInput(win32::Keyboard *kb)
 
 float TextBoxFrame::cursorX(size_t index) const
 {
-  auto& font = *m_ui->style().font;
+  auto& fnt = *font();
 
   float x = 0.0f;
-  for(size_t i = 0; i < index; i++) x += font.charAdvance(m_text[i]);
+  for(size_t i = 0; i < index; i++) x += fnt.charAdvance(m_text[i]);
 
   return x;
 }
 
 size_t TextBoxFrame::placeCursor(vec2 pos) const
 {
-  auto& font = *m_ui->style().font;
+  auto& fnt = *font();
 
   float x = TextPixelMargin;
   size_t cursor = 0;
   for(; cursor < m_text.size(); cursor++) {
-    float advance = font.charAdvance(m_text[cursor]);
+    float advance = fnt.charAdvance(m_text[cursor]);
 
     if(x + advance/2.0f > pos.x) break;
 

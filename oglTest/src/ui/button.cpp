@@ -76,7 +76,7 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
   auto pipeline = gx::Pipeline()
     .alphaBlend()
     .scissor(Ui::scissor_rect(parent.clip({ g.x, g.y, g.w+1, g.h+1 })))
-    .primitiveRestart(0xFFFF)
+    .primitiveRestart(Vertex::RestartIndex)
     ;
 
   painter
@@ -156,7 +156,7 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
   auto pipeline = gx::Pipeline()
     .scissor(Ui::scissor_rect(parent.clip(g)))
     .alphaBlend()
-    .primitiveRestart(0xFFFF)
+    .primitiveRestart(Vertex::RestartIndex)
     ;
 
   painter

@@ -173,7 +173,7 @@ public:
   // returns a description of all the options
   std::string doc() const;
 
-  void debugPrintOpts() const;
+  void dbg_PrintOpts() const;
 
 private:
   ConsoleOpts& option(const std::string& name, Option&& opt);

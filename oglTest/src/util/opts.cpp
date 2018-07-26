@@ -273,7 +273,7 @@ std::string ConsoleOpts::doc() const
   return result;
 }
 
-void ConsoleOpts::debugPrintOpts() const
+void ConsoleOpts::dbg_PrintOpts() const
 {
   foreach([](const std::string& name, const Option& opt) {
     printf("%s: ", name.data());

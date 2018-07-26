@@ -17,6 +17,10 @@
 namespace ui {
 
 struct Vertex {
+  enum : unsigned {
+    RestartIndex = 0xFFFF,
+  };
+
   Position pos;
   union {
     Color color;

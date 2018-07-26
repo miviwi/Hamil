@@ -52,6 +52,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   Frame(ui, name, make_geometry()),
   m_prompt(new TextBoxFrame(ui)), m_buffer(new ConsoleBufferFrame(ui))
 {
+  m_prompt->font(ui.style().monospace);
   m_prompt->hint("Type commands here...");
 
   auto& console = create<RowLayoutFrame>(ui, name, geometry())
@@ -239,7 +240,7 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
   auto pipeline = gx::Pipeline()
     .scissor(Ui::scissor_rect(parent.clip(g)))
     .alphaBlend()
-    .primitiveRestart(0xFFFF)
+    .primitiveRestart(Vertex::RestartIndex)
     ;
 
   painter
