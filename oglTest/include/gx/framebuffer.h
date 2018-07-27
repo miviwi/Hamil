@@ -15,6 +15,8 @@ class Renderbuffer;
 //   - layout(location = 1) == Color(1)
 //   - layout(location = 5) == Color(5)
 //   - etc... up to Color(7)
+//
+// Checking for completeness (via status()/complete()) must be done manually!
 class Framebuffer {
 public:
   enum BindTarget {
@@ -57,9 +59,15 @@ public:
   Framebuffer& use();
   Framebuffer& use(BindTarget target);
 
+  // The width and height are inferred from the Texture
   Framebuffer& tex(const Texture2D& tex, unsigned level, Attachment att);
+
+  // The width and height are inferred from the Color(0) attachemenet
+  //   - Errors will occur if it doesn't exist!
   Framebuffer& renderbuffer(Format fmt, Attachment att);
   Framebuffer& renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att);
+
+  // See the note for renderbuffer(fmt, att)...
   Framebuffer& renderbufferMultisample(unsigned samples, Format fmt, Attachment att);
   Framebuffer& renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att);
 
@@ -102,6 +110,7 @@ private:
   std::vector<GLuint> m_rb;
 };
 
+// FIXME: no idea where to put this...
 void clear(unsigned mask);
 
 }

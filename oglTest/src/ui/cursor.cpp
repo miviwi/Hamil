@@ -194,11 +194,7 @@ void CursorDriver::init()
   auto vtx = generate_verts(p_cursors);
   p->buf.init(vtx.data(), vtx.size());
 
-  p->sampler = gx::Sampler()
-    .param(gx::Sampler::MinFilter, gx::Sampler::Nearest)
-    .param(gx::Sampler::MagFilter, gx::Sampler::Nearest)
-    .param(gx::Sampler::WrapS, gx::Sampler::EdgeClamp)
-    .param(gx::Sampler::WrapT, gx::Sampler::EdgeClamp);
+  p->sampler = gx::Sampler::edgeclamp2d();
 
   auto tex = decode_texture(p_tex);
   p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::u8);

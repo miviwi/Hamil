@@ -8,6 +8,8 @@
 
 namespace gx {
 
+// Even though the code utilizes only glSampler's the texture
+//   parameters must be set or the texture will be 'incomplete'
 static void setDefaultParameters(GLenum target);
 
 Texture::Texture(GLenum target, Format format) :
@@ -25,7 +27,6 @@ void Texture::use()
 {
   glBindTexture(m_target, m);
 }
-
 
 void Texture::init(unsigned w, unsigned h)
 {
@@ -127,8 +128,65 @@ Sampler::~Sampler()
   glDeleteSamplers(1, &m);
 }
 
+Sampler Sampler::repeat2d()
+{
+  return Sampler()
+    .param(WrapS, Repeat)
+    .param(WrapT, Repeat)
+    .param(MinFilter, Nearest)
+    .param(MagFilter, Nearest);
+}
+
+Sampler Sampler::repeat2d_linear()
+{
+  return Sampler()
+    .param(WrapS, Repeat)
+    .param(WrapT, Repeat)
+    .param(MinFilter, Linear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::repeat2d_mipmap()
+{
+  return Sampler()
+    .param(WrapS, Repeat)
+    .param(WrapT, Repeat)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::edgeclamp2d()
+{
+  return Sampler()
+    .param(WrapS, EdgeClamp)
+    .param(WrapT, EdgeClamp)
+    .param(MinFilter, Nearest)
+    .param(MagFilter, Nearest);
+}
+
+Sampler Sampler::edgeclamp2d_linear()
+{
+  return Sampler()
+    .param(WrapS, EdgeClamp)
+    .param(WrapT, EdgeClamp)
+    .param(MinFilter, Linear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::edgeclamp2d_mipmap()
+{
+  return Sampler()
+    .param(WrapS, EdgeClamp)
+    .param(WrapT, EdgeClamp)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
 Sampler& Sampler::param(ParamName name, Param p)
 {
+  assert((name == MagFilter ? p != LinearMipmapLinear : true)
+    && "invalid MagFilter value!");
+
   glSamplerParameteri(m, pname(name), param(p));
 
   return *this;

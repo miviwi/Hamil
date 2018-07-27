@@ -106,16 +106,10 @@ int main(int argc, char *argv[])
     &width, &height, nullptr, 4);
 
   gx::Texture2D tex(gx::rgb);
-  auto sampler = gx::Sampler()
-    .param(gx::Sampler::WrapS, gx::Sampler::Repeat)
-    .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
-    .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
-    .param(gx::Sampler::MagFilter, gx::Sampler::Linear);
+  auto sampler = gx::Sampler::repeat2d_linear();
 
   tex.init(tex_image, 0, width, height, gx::rgba, gx::u8);
   tex.generateMipmaps();
-
-  gx::tex_unit(0, tex, sampler);
 
   unsigned cp = 0;
 
@@ -273,7 +267,7 @@ void main() {
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
-    .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::depth24, gx::Framebuffer::Depth);
+    .renderbuffer(gx::depth24, gx::Framebuffer::Depth);
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
@@ -299,7 +293,7 @@ void main() {
   fb_resolve.use()
     .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::rgb8, gx::Framebuffer::Color(0));
   if(fb_resolve.status() != gx::Framebuffer::Complete) {
-    win32::panic("couldn't create MSAA resaolve Framebuffer!", win32::FramebufferError);
+    win32::panic("couldn't create MSAA resolve Framebuffer!", win32::FramebufferError);
   }
 
   fb_resolve.label("FB_resolve");
@@ -329,7 +323,6 @@ void main() {
   window.captureMouse();
 
   int frames = 0;
-  auto start_time = GetTickCount();
 
   float old_fps;
 
@@ -465,11 +458,7 @@ void main() {
 
   gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
 
-  auto floor_sampler = gx::Sampler()
-    .param(gx::Sampler::MinFilter, gx::Sampler::LinearMipmapLinear)
-    .param(gx::Sampler::MagFilter, gx::Sampler::LinearMipmapLinear)
-    .param(gx::Sampler::WrapS, gx::Sampler::Repeat)
-    .param(gx::Sampler::WrapT, gx::Sampler::Repeat)
+  auto floor_sampler = gx::Sampler::repeat2d_mipmap()
     .param(gx::Sampler::Anisotropy, 16.0f);
 
   ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());

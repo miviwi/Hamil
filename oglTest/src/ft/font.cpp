@@ -616,11 +616,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
   m_atlas.init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::u8);
   m_atlas.label((atlas_label + std::to_string(atlas_id++)).data());
 
-  m_sampler
-    .param(gx::Sampler::MinFilter, gx::Sampler::Linear)
-    .param(gx::Sampler::MagFilter, gx::Sampler::Linear)
-    .param(gx::Sampler::WrapS, gx::Sampler::EdgeClamp)
-    .param(gx::Sampler::WrapT, gx::Sampler::EdgeClamp);
+  m_sampler = gx::Sampler::edgeclamp2d_linear();
 
   // Populate render data
   for(unsigned i = 0; i < glyphs.size(); i++) {

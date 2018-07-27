@@ -13,13 +13,16 @@ public:
   Texture(const Texture& other) = delete;
   virtual ~Texture();
 
-  void use();
+  /* --------------- Texture2D init methods ---------------- */
 
-  // Initializes MipMap level 0
-  void init(unsigned w, unsigned h);
+  void init(unsigned w, unsigned h); // Initializes MipMap level 0
+
   void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type type);
+
+
+  /* -------- Texture3D/Texture2DArray init methods -------- */
 
   void init(unsigned w, unsigned h, unsigned d /* num_layers */);
   void init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d, Format format, Type type);
@@ -36,11 +39,15 @@ public:
 protected:
   Texture(GLenum target, Format format);
 
+  void use();
+
   friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
   friend class Framebuffer;
 
   GLenum m_target;
   Format m_format;
+
+private:
   GLenum m;
 };
 
@@ -70,6 +77,10 @@ private:
   unsigned m_samples;
 };
 
+// - param() DOES NOT check the validity of it's arguments
+//   (it has an assertion for MagFiler && LinearMipmapLinear
+//      that is the only exception, however).
+//   Tread lightly!
 class Sampler : public Ref {
 public:
   enum ParamName {
@@ -86,6 +97,16 @@ public:
 
   Sampler();
   ~Sampler();
+
+  /* Helpers for creating common Sampler configurations */
+
+  static Sampler repeat2d();
+  static Sampler repeat2d_linear();
+  static Sampler repeat2d_mipmap();
+
+  static Sampler edgeclamp2d();
+  static Sampler edgeclamp2d_linear();
+  static Sampler edgeclamp2d_mipmap();
 
   Sampler& param(ParamName name, Param p);
   Sampler& param(ParamName name, float value);
