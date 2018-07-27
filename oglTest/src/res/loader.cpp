@@ -40,7 +40,7 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
   { Text::tag(),   yaml::Schema()
                              .scalar("location", yaml::Scalar::Tagged) },
   { Shader::tag(), yaml::Schema()
-                             .scalarSequence("vertex",   yaml::Scalar::Tagged)
+                             .scalarSequence("vertex",   yaml::Scalar::Tagged, yaml::Optional)
                              .scalarSequence("geometry", yaml::Scalar::Tagged, yaml::Optional)
                              .scalarSequence("fragment", yaml::Scalar::Tagged, yaml::Optional) },
 

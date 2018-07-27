@@ -61,31 +61,19 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     return ptr;
   };
 
+  auto do_stage = [&](const char *name, std::vector<const char *>& dst) -> void
   {
-    // the vertex stage is required ('doc' was pre-validated so
-    //   it must be present)
-    auto vertex = doc("vertex");
-
-    for(const auto& src : *vertex->as<yaml::Sequence>()) {
-      auto ptr = get_ptr(src);
-      vertex_sources.push_back(ptr);
+    if(auto stage = doc(name)) {
+      for(const auto& src : *stage->as<yaml::Sequence>()) {
+        auto ptr = get_ptr(src);
+        dst.push_back(ptr);
+      }
     }
-  }
+  };
 
-  // the rest of the stages are optional
-  if(auto geometry = doc("geometry")) {
-    for(const auto& src : *geometry->as<yaml::Sequence>()) {
-      auto ptr = get_ptr(src);
-      geometry_sources.push_back(ptr);
-    }
-  }
-
-  if(auto fragment = doc("fragment")) {
-    for(const auto& src : *fragment->as<yaml::Sequence>()) {
-      auto ptr = get_ptr(src);
-      fragment_sources.push_back(ptr);
-    }
-  }
+  do_stage("vertex", vertex_sources);
+  do_stage("geometry", geometry_sources);
+  do_stage("fragment", fragment_sources);
 
   shader->m_loaded  = true;
 
