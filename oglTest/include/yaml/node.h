@@ -67,8 +67,8 @@ public:
   struct Hash { size_t operator()(const Node::Ptr& n) const { return n->hash(); } };
   struct Compare { bool operator()(const Node::Ptr& a, const Node::Ptr& b) const; };
 
-  virtual void foreach(IterFn fn) { }
-  virtual void foreach(KVIterFn fn) { }
+  virtual void foreach(IterFn fn) const   { }
+  virtual void foreach(KVIterFn fn) const { }
 
 private:
   Type m_type;
@@ -152,8 +152,8 @@ public:
   Iterator begin() const { return m.cbegin(); }
   Iterator end()   const { return m.cend(); }
 
-  virtual void foreach(IterFn fn);
-  virtual void foreach(KVIterFn fn); // SLOW!
+  virtual void foreach(IterFn fn) const;
+  virtual void foreach(KVIterFn fn) const; // SLOW!
 
 private:
   Seq m;
@@ -164,12 +164,16 @@ public:
   static constexpr Type NodeType = Node::Mapping;
 
   using Map = std::unordered_map<Node::Ptr, Node::Ptr, Node::Hash, Node::Compare>;
-  using Iterator = Map::const_iterator;
   Mapping(Tag tag = {}, Style style = Any);
 
   virtual std::string repr() const;
 
   void append(Node::Ptr key, Node::Ptr value);
+
+  // Makes the mapping retain the insertion order
+  //   of the keys when iterating
+  void retainOrder(bool enable = true);
+  bool ordered() const;
 
   virtual Node::Ptr get(const std::string& key) const;
   virtual Node::Ptr get(size_t idx) const { return Node::Ptr(); }
@@ -181,19 +185,34 @@ public:
   virtual size_t hash() const;
   virtual bool compare(const Node::Ptr& other) const;
 
-  virtual void foreach(IterFn fn);
-  virtual void foreach(KVIterFn fn);
-
-  Iterator begin() const { return m.cbegin(); }
-  Iterator end()   const { return m.cend(); }
+  virtual void foreach(IterFn fn) const;
+  virtual void foreach(KVIterFn fn) const;
 
 private:
   Map m;
+
+  using NodeVector = std::vector<std::pair<Node::Ptr, Node::Ptr>>;
+  std::unique_ptr<NodeVector> m_ordered;
 };
 
 static Mapping *string_mapping(std::initializer_list<std::pair<std::string, std::string>> items)
 {
   auto map = new Mapping;
+  for(const auto& item : items) {
+    map->append(
+      Scalar::from_str(item.first),
+      Scalar::from_str(item.second)
+    );
+  }
+
+  return map;
+}
+
+static Mapping *ordered_string_mapping(std::initializer_list<std::pair<std::string, std::string>> items)
+{
+  auto map = new Mapping;
+  map->retainOrder();
+
   for(const auto& item : items) {
     map->append(
       Scalar::from_str(item.first),

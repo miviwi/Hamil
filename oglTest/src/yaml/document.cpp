@@ -416,10 +416,10 @@ void Emitter::emitMapping(const Mapping *map)
     style);
   emitEvent(&event);
 
-  for(const auto& pair : *map) {
-    emitNode(pair.first);   // key
-    emitNode(pair.second);  // value
-  }
+  map->foreach([&](Node::Ptr key, Node::Ptr value) {
+    emitNode(key); 
+    emitNode(value);
+  });
 
   yaml_mapping_end_event_initialize(&event);
   emitEvent(&event);

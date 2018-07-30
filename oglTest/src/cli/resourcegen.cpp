@@ -95,9 +95,9 @@ yaml::Mapping *make_meta(const std::string& name, const std::string& path)
 {
   auto guid = res::resource().guid<T>(name, path);
 
-  return yaml::string_mapping({
-    { "tag",  T::tag().get() },
+  return yaml::ordered_string_mapping({
     { "guid", util::fmt("0x%.16llx", guid) },
+    { "tag",  T::tag().get() },
     { "name", name },
     { "path", path.empty() ? "" : "/" + path },
   });

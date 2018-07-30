@@ -268,12 +268,12 @@ bool Sequence::compare(const Node::Ptr& other) const
   return true;
 }
 
-void Sequence::foreach(IterFn fn)
+void Sequence::foreach(IterFn fn) const
 {
   for(const auto& value : m) fn(value);
 }
 
-void Sequence::foreach(KVIterFn fn)
+void Sequence::foreach(KVIterFn fn) const
 {
   for(size_t i = 0; i < m.size(); i++) fn(Scalar::from_ui(i), m[i]);
 }
@@ -296,7 +296,25 @@ std::string Mapping::repr() const
 
 void Mapping::append(Node::Ptr key, Node::Ptr value)
 {
-  m.insert({ key, value });
+  m.emplace(key, value);
+
+  if(m_ordered) m_ordered->emplace_back(key, value);
+}
+
+void Mapping::retainOrder(bool enable)
+{
+  if(enable) {
+    if(m_ordered) return;
+
+    m_ordered.reset(new NodeVector(m.begin(), m.end()));
+  } else {
+    m_ordered.reset();
+  }
+}
+
+bool Mapping::ordered() const
+{
+  return m_ordered.get();
 }
 
 Node::Ptr Mapping::get(const std::string& key) const
@@ -344,14 +362,22 @@ bool Mapping::compare(const Node::Ptr& other) const
   return true;
 }
 
-void Mapping::foreach(IterFn fn)
+void Mapping::foreach(IterFn fn) const
 {
-  for(const auto& item : m) fn(item.first);
+  if(m_ordered) {
+    for(const auto& item : *m_ordered) fn(item.first);
+  } else {
+    for(const auto& item : m) fn(item.first);
+  }
 }
 
-void Mapping::foreach(KVIterFn fn)
+void Mapping::foreach(KVIterFn fn) const
 {
-  for(const auto& item : m) fn(item.first, item.second);
+  if(m_ordered) {
+    for(const auto& item : *m_ordered) fn(item.first, item.second);
+  } else {
+    for(const auto& item : m) fn(item.first, item.second);
+  }
 }
 
 }

@@ -245,6 +245,6 @@ ModelManifest.xml
 
 oglTest/Generated/
 uniforms.*
-uniformgen.db
+**/uniformgen.db
 
 *.exe
