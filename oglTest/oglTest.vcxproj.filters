@@ -239,7 +239,13 @@
     <ClCompile Include="src\cli\cli.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\res\cli.cpp">
+    <ClCompile Include="src\ui\event.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\cli\resourcegen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\str.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -484,7 +490,13 @@
     <ClInclude Include="include\cli\cli.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\res\cli.h">
+    <ClInclude Include="include\ui\event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cli\resourcegen.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\util\str.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

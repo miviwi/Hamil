@@ -2,6 +2,7 @@
 
 #include <common.h>
 
+#include <string>
 #include <type_traits>
 
 namespace util {
@@ -31,6 +32,16 @@ private:
 inline bool operator==(const StaticString& a, const StaticString& b)
 {
   return a.get() == b.get();
+}
+
+inline bool operator==(const StaticString& a, const std::string& b)
+{
+  return a.get() == b;
+}
+
+inline bool operator==(const std::string& a, const StaticString& b)
+{
+  return a == b.get();
 }
 
 }

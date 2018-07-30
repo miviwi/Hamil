@@ -5,6 +5,7 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/cursor.h>
+#include <ui/event.h>
 #include <ui/animation.h>
 #include <math/geometry.h>
 #include <win32/input.h>
@@ -58,6 +59,19 @@ protected:
   friend class Ui;
   Ui *m_ui;
 
+  // All the ev* functions return a bool which stops event
+  //   bubbling when true
+
+  virtual bool evMouseEnter(const MouseMoveEvent& e);
+  virtual bool evMouseLeave(const MouseMoveEvent& e);
+
+  virtual bool evMouseMove(const MouseMoveEvent& e);
+
+  virtual bool evMouseDown(const MouseButtonEvent& e);
+  virtual bool evMouseUp(const MouseButtonEvent& e);
+
+  virtual bool evMouseDrag(const MouseDragEvent& e);
+  
 private:
   const char *m_name;
   Gravity m_gravity;

@@ -4,6 +4,7 @@
 
 #include <ui/uicommon.h>
 #include <ui/cursor.h>
+#include <ui/event.h>
 #include <ui/style.h>
 #include <math/geometry.h>
 #include <win32/input.h>

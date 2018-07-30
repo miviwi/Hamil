@@ -187,6 +187,7 @@ bool Ui::input(CursorDriver& cursor, const InputPtr& input)
     if(mouse->event == win32::Mouse::Move && !cursor.visible()) cursor.visible(true);
   }
 
+  // The cursor is outside the Ui, so don't consume the input
   if(!m_geom.intersect(cursor.pos())) return false;
 
   if(m_keyboard) {

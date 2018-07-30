@@ -28,7 +28,7 @@ Resource::Id ResourceManager::guid(Resource::Tag tag, const std::string& name, c
   size_t hash = 0;
   util::hash_combine<Resource::Tag::Hash>(hash, tag);
   util::hash_combine<util::XXHash<std::string>>(hash, name);
-  util::hash_combine<util::XXHash<std::string>>(hash, path);
+  util::hash_combine<util::XXHash<std::string>>(hash, path == "/" ? "" : path);
 
   return hash;
 }

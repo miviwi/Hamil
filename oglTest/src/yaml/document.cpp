@@ -401,6 +401,8 @@ void Emitter::emitMapping(const Mapping *map)
 
   yaml_mapping_style_t style = YAML_ANY_MAPPING_STYLE;
   switch(map->style()) {
+  case Node::Any:   break;
+
   case Node::Flow:  style = YAML_FLOW_MAPPING_STYLE; break;
   case Node::Block: style = YAML_BLOCK_MAPPING_STYLE; break;
 

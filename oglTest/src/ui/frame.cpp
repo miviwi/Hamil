@@ -96,6 +96,36 @@ vec2 Frame::sizeHint() const
   return { 0, 0 };
 }
 
+bool Frame::evMouseEnter(const MouseMoveEvent& e)
+{
+  return false;
+}
+
+bool Frame::evMouseLeave(const MouseMoveEvent& e)
+{
+  return false;
+}
+
+bool Frame::evMouseMove(const MouseMoveEvent& e)
+{
+  return false;
+}
+
+bool Frame::evMouseDown(const MouseButtonEvent& e)
+{
+  return false;
+}
+
+bool Frame::evMouseUp(const MouseButtonEvent& e)
+{
+  return false;
+}
+
+bool Frame::evMouseDrag(const MouseDragEvent& e)
+{
+  return false;
+}
+
 void Frame::position(vec2 pos)
 {
   m_geom.x = pos.x;

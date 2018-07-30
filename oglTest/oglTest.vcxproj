@@ -200,6 +200,7 @@ exit /b 0</Command>
     <ClCompile Include="extern\stb_image\image.c" />
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\cli\cli.cpp" />
+    <ClCompile Include="src\cli\resourcegen.cpp" />
     <ClCompile Include="src\ft\cache.cpp" />
     <ClCompile Include="src\game\cmdline.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
@@ -215,7 +216,6 @@ exit /b 0</Command>
     <ClCompile Include="src\py\object.cpp" />
     <ClCompile Include="src\py\types.cpp" />
     <ClCompile Include="src\res\cache.cpp" />
-    <ClCompile Include="src\res\cli.cpp" />
     <ClCompile Include="src\res\loader.cpp" />
     <ClCompile Include="src\res\manager.cpp" />
     <ClCompile Include="src\res\res.cpp" />
@@ -225,6 +225,7 @@ exit /b 0</Command>
     <ClCompile Include="src\ui\animation.cpp" />
     <ClCompile Include="src\ui\console.cpp" />
     <ClCompile Include="src\ui\drawable.cpp" />
+    <ClCompile Include="src\ui\event.cpp" />
     <ClCompile Include="src\ui\textbox.cpp" />
     <ClCompile Include="src\util\allocator.cpp" />
     <ClCompile Include="src\util\format.cpp" />
@@ -238,6 +239,7 @@ exit /b 0</Command>
     <ClCompile Include="src\ft\font.cpp" />
     <ClCompile Include="src\util\hash.cpp" />
     <ClCompile Include="src\util\opts.cpp" />
+    <ClCompile Include="src\util\str.cpp" />
     <ClCompile Include="src\util\staticstring.cpp" />
     <ClCompile Include="src\win32\event.cpp" />
     <ClCompile Include="src\win32\handle.cpp" />
@@ -253,6 +255,7 @@ exit /b 0</Command>
     <ClInclude Include="extern\stb_image\stb_image.h" />
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\cli\cli.h" />
+    <ClInclude Include="include\cli\resourcegen.h" />
     <ClInclude Include="include\ft\cache.h" />
     <ClInclude Include="include\game\cmdline.h" />
     <ClInclude Include="include\math\compare.h" />
@@ -267,7 +270,6 @@ exit /b 0</Command>
     <ClInclude Include="include\py\object.h" />
     <ClInclude Include="include\py\types.h" />
     <ClInclude Include="include\res\cache.h" />
-    <ClInclude Include="include\res\cli.h" />
     <ClInclude Include="include\res\loader.h" />
     <ClInclude Include="include\res\manager.h" />
     <ClInclude Include="include\res\res.h" />
@@ -277,6 +279,7 @@ exit /b 0</Command>
     <ClInclude Include="include\ui\animation.h" />
     <ClInclude Include="include\ui\console.h" />
     <ClInclude Include="include\ui\drawable.h" />
+    <ClInclude Include="include\ui\event.h" />
     <ClInclude Include="include\ui\textbox.h" />
     <ClInclude Include="include\util\allocator.h" />
     <ClInclude Include="include\util\bit.h" />
@@ -309,6 +312,7 @@ exit /b 0</Command>
     <ClCompile Include="src\winmain.cpp" />
     <ClInclude Include="include\util\hash.h" />
     <ClInclude Include="include\util\opts.h" />
+    <ClInclude Include="include\util\str.h" />
     <ClInclude Include="include\util\staticstring.h" />
     <ClInclude Include="include\win32\event.h" />
     <ClInclude Include="include\win32\handle.h" />

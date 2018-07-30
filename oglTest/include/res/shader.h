@@ -2,6 +2,8 @@
 
 #include <res/resource.h>
 
+#include <util/staticstring.h>
+
 #include <string>
 #include <array>
 #include <vector>
@@ -15,6 +17,9 @@ namespace res {
 class Shader : public Resource {
 public:
   static constexpr Tag tag() { return "shader"; }
+
+  static constexpr util::StaticString InlineSource = "!inline";
+  static constexpr util::StaticString LibSource    = "!lib";
 
   enum Stage : size_t {
     Vertex, Geometry, Fragment,

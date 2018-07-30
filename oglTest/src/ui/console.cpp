@@ -312,25 +312,28 @@ void ConsoleBufferFrame::clear()
 std::string ConsoleBufferFrame::historyPrevious()
 {
   if(m_history == CursorNotSet) {
+    if(m_input.empty()) return "";
+    
     m_history = 0;
-  } else if(m_history+1 < m_input.size()) {
-    m_history++;
-    return m_input[m_history];
-  }
+    return m_input.front();
+  } 
 
-  return "";
+  std::string s = m_input[m_history];
+  m_history = clamp((int)m_history+1, 0, (int)m_input.size()-1);
+
+  return s;
 }
 
 std::string ConsoleBufferFrame::historyNext()
 {
   if(m_history == CursorNotSet) {
-    m_history = m_input.size()-1;
-  } else if(m_history > 0) {
-    m_history--;
-    return m_input[m_history];
+    return "";
   }
 
-  return "";
+  std::string s = m_input[m_history];
+  m_history = clamp((int)m_history-1, 0, (int)m_input.size()-1);
+
+  return s;
 }
 
 size_t ConsoleBufferFrame::rows() const

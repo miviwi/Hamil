@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cassert>
 
 typedef unsigned char byte;
 
@@ -17,6 +18,8 @@ typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
+
+#define STUB() assert(0 && "stub " __FUNCSIG__ "!");
 
 template <typename T>
 class StridePtr {

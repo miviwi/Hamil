@@ -46,11 +46,11 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     auto src = src_node->as<yaml::Scalar>();
 
     const char *ptr = nullptr;
-    if(src->tag() == "!inline") {
+    if(src->tag() == InlineSource) {
       inline_sources.emplace_back(src->str());
 
       ptr = inline_sources.back().data();
-    } else if(src->tag() == "!lib") {
+    } else if(src->tag() == LibSource) {
       ptr = p_library.get(src->str());
 
       if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", src->str()));
