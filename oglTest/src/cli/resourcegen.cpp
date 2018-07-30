@@ -23,20 +23,16 @@ namespace cli {
 static yaml::Document shadergen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
-using GenFunc = std::function<yaml::Document(win32::File& file,
-  const std::string& name, const std::string& path, const std::string& extension)>;
+using GenFunc = std::function<
+  yaml::Document(win32::File& file,
+    const std::string& name, const std::string& path, const std::string& extension)
+  >;
 static const std::map<std::string, GenFunc> p_gen_fns = {
-  // GPU program (multiple shaders)
-  { "glsl", shadergen },
-
-  // Vertex Shader
-  { "vert", shadergen },
-
-  // Geometry Shader
-  { "geom", shadergen },
-
-  // Fragment Shader
-  { "frag", shadergen },
+  { "glsl", shadergen }, // GPU program (multiple shaders)
+  
+  { "vert", shadergen }, // Vertex Shader   (can contain other shaders!)
+  { "geom", shadergen }, // Geometry Shader        ---- || ----
+  { "frag", shadergen }, // Fragment Shader        ---- || ----
 };
 
 static const std::regex p_name_regex("^((?:[^/ ]+/)*)([^./ ]*)\\.([a-z]+)$", std::regex::optimize);
@@ -94,6 +90,19 @@ void resourcegen(std::vector<std::string> resources)
   }
 }
 
+template <typename T>
+yaml::Mapping *make_meta(const std::string& name, const std::string& path)
+{
+  auto guid = res::resource().guid<T>(name, path);
+
+  return yaml::string_mapping({
+    { "tag",  T::tag().get() },
+    { "guid", util::fmt("0x%.16llx", guid) },
+    { "name", name },
+    { "path", path.empty() ? "" : "/" + path },
+  });
+}
+
 enum PragmaType {
   PragmaInvalid,
 
@@ -105,21 +114,23 @@ enum PragmaType {
 
   PragmaExport,     // Must be the first non-empty line in the file!
                     //   #pragma export(myfunc.frag)
-
 };
 
 struct PragmaInfo {
-  std::regex r;
   PragmaType type;
+  std::regex r;
+
+  PragmaInfo(PragmaType type_, const std::string& name, const std::string& args_regex) :
+    type(type_),
+    r("^#pragma\\s+" + name + "\\s*\\(\\s*" + args_regex + "\\s*\\)$", std::regex::optimize)
+  { }
 };
 
 static const std::vector<PragmaInfo> p_pragmas = {
-  { std::regex("^#pragma\\s+shader\\s*\\(\\s*(?:(vertex)|(geometry)|(fragment))\\s*\\)$",
-    std::regex::optimize), PragmaShader },
+  { PragmaShader, "shader", "(?:(vertex)|(geometry)|(fragment))" },
 
-  { std::regex("^#pragma\\s+import\\s*\\(\\s*([^ ]+)\\s*\\)$", std::regex::optimize), PragmaImport },
-  { std::regex("^#pragma\\s+export\\s*\\(\\s*([^ ]+)\\s*\\)$", std::regex::optimize), PragmaExport },
-
+  { PragmaImport, "import", "([^ ]+)" },
+  { PragmaExport, "export", "([^ ]+)" },
 };
 
 static yaml::Document shadergen(win32::File& file,
@@ -128,26 +139,39 @@ static yaml::Document shadergen(win32::File& file,
   auto view = file.map(win32::File::ProtectRead);
   auto source = view.get<const char>();
 
-  auto guid = res::resource().guid<res::Shader>(name, path);
-
   // count non-preprocessor lines
   size_t line_no = 0;
 
   yaml::Node::Ptr pvert, pgeom, pfrag;
 
-  auto meta = new yaml::Mapping;
-  meta->append(yaml::Scalar::from_str("tag"),  yaml::Scalar::from_str("shader"));
-  meta->append(yaml::Scalar::from_str("guid"), yaml::Scalar::from_str(util::fmt("0x%.16llx", guid)));
-  meta->append(yaml::Scalar::from_str("name"), yaml::Scalar::from_str(name));
-  meta->append(yaml::Scalar::from_str("path"), yaml::Scalar::from_str(path.empty() ? "" : "/" + path));
+  auto meta = make_meta<res::Shader>(name, path);
 
   yaml::Sequence *section = nullptr;
+  std::string inline_source;
 
-  auto init_section = [&](yaml::Node::Ptr& p) -> bool
-  {
+  auto append_source = [&](const std::string& src, auto tag) {
+    if(src.empty()) return;
+
+    if(tag == res::Shader::InlineSource) {
+      section->append(yaml::Node::Ptr(
+        new yaml::Scalar(src, tag.get(), yaml::Node::Folded)
+      ));
+    } else {
+      section->append(yaml::Node::Ptr(
+        new yaml::Scalar(src, tag.get())
+      ));
+    }
+  };
+
+  auto init_section = [&](yaml::Node::Ptr& p) -> bool {
     if(p) return false;
 
-    section = new yaml::Sequence;
+    if(section) {
+      append_source(inline_source, res::Shader::InlineSource);
+      inline_source.clear();
+    }
+
+    section = new yaml::Sequence({}, yaml::Node::Block);
     p = yaml::Node::Ptr(section);
 
     return true;
@@ -161,12 +185,18 @@ static yaml::Document shadergen(win32::File& file,
     init_section(pfrag);
   }
 
+  auto error_message = [&](const char *message) -> std::string {
+    return util::fmt("%s/%s.%s: %s", path.data(), name.data(), extension.data(), message);
+  };
+
   util::splitlines(source, [&](const std::string& line) {
     auto stripped = util::strip(line);
     if(stripped.empty()) return;
 
     if(stripped.front() != '#') {
       // a non-preprocessor line
+      inline_source += line;
+
       line_no++;
       return;
     }
@@ -179,35 +209,36 @@ static yaml::Document shadergen(win32::File& file,
 
       switch(p.type) {
       case PragmaShader:
-        puts("    Shader");
         if(matches[1].matched /* vertex */) {
-          if(!init_section(pvert)) throw GenError("shader(vertex) specified twice!");
+          if(!init_section(pvert)) throw GenError(error_message("shader(vertex) specified twice!"));
         } else if(matches[2].matched /* geometry */) {
-          if(!init_section(pgeom)) throw GenError("shader(geometry) specified twice!");
+          if(!init_section(pgeom)) throw GenError(error_message("shader(geometry) specified twice!"));
         } else if(matches[3].matched /* fragment */) {
-          if(!init_section(pfrag)) throw GenError("shader(fragment) specified twice!");
+          if(!init_section(pfrag)) throw GenError(error_message("shader(fragment) specified twice!"));
         }
         break;
 
       case PragmaImport:
-        printf("    Import(%s)\n", matches[1].str().data());
-        if(!section) break;
+        if(!section) throw GenError(error_message("importing into undefined section!"));
 
-        section->append(yaml::Node::Ptr(
-          new yaml::Scalar(matches[1].str(), yaml::Node::Tag(res::Shader::LibSource.get()))
-        ));
-        break;
+        append_source(inline_source, res::Shader::InlineSource);
+        inline_source.clear();
+
+        append_source(matches[1].str(), res::Shader::LibSource);
+        return; // Prevent import #pragma's from begin added to the source
 
       case PragmaExport:
-        printf("    Export(%s)\n", matches[1].str().data());
         break;
 
       default: assert(0); // unreachable
       }
-
     }
 
+    inline_source += line; // add non-import preprocessor lines
   });
+
+  // Append left-over lines
+  if(section) append_source(inline_source, res::Shader::InlineSource);
 
   if(pvert) meta->append(yaml::Scalar::from_str("vertex"),   pvert);
   if(pgeom) meta->append(yaml::Scalar::from_str("geometry"), pgeom);

@@ -14,6 +14,7 @@ struct GenError {
   { }
 };
 
+
 void resourcegen(std::vector<std::string> resources);
 
 }

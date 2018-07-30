@@ -5,11 +5,13 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <utility>
 #include <functional>
 #include <variant>
 #include <optional>
 #include <memory>
 #include <type_traits>
+#include <initializer_list>
 
 namespace yaml {
 
@@ -188,5 +190,18 @@ public:
 private:
   Map m;
 };
+
+static Mapping *string_mapping(std::initializer_list<std::pair<std::string, std::string>> items)
+{
+  auto map = new Mapping;
+  for(const auto& item : items) {
+    map->append(
+      Scalar::from_str(item.first),
+      Scalar::from_str(item.second)
+    );
+  }
+
+  return map;
+}
 
 }

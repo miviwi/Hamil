@@ -13,7 +13,9 @@ void split(const std::string& str, char delim, std::function<void(const std::str
   std::string line;
 
   while(std::getline(ss, line, delim)) {
-    callback(line);
+    if(delim == '\n' && line.back() == '\r') line.pop_back();
+
+    callback(line + delim);
   }
 }
 
