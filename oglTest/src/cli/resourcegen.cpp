@@ -85,7 +85,7 @@ void resourcegen(std::vector<std::string> resources)
 
     win32::File f_meta(f_name.data(), win32::File::Write, win32::File::CreateAlways);
 
-    // If there's more then ULONG_MAX bytes of data - oh well
+    // If there's more than ULONG_MAX bytes of data - oh well
     f_meta.write(meta_data.data(), (ulong)meta_data.size());
   }
 }
@@ -111,9 +111,6 @@ enum PragmaType {
                     //   #pragma shader(<Vertex, Geometry, Fragment>)
 
   PragmaImport,     // #pragma import(shader.frag)
-
-  PragmaExport,     // Must be the first non-empty line in the file!
-                    //   #pragma export(myfunc.frag)
 };
 
 struct PragmaInfo {
@@ -130,7 +127,6 @@ static const std::vector<PragmaInfo> p_pragmas = {
   { PragmaShader, "shader", "(?:(vertex)|(geometry)|(fragment))" },
 
   { PragmaImport, "import", "([^ ]+)" },
-  { PragmaExport, "export", "([^ ]+)" },
 };
 
 static yaml::Document shadergen(win32::File& file,
@@ -154,7 +150,7 @@ static yaml::Document shadergen(win32::File& file,
 
     if(tag == res::Shader::InlineSource) {
       section->append(yaml::Node::Ptr(
-        new yaml::Scalar(src, tag.get(), yaml::Node::Folded)
+        new yaml::Scalar(src, tag.get(), yaml::Node::Literal)
       ));
     } else {
       section->append(yaml::Node::Ptr(
@@ -191,17 +187,14 @@ static yaml::Document shadergen(win32::File& file,
 
   util::splitlines(source, [&](const std::string& line) {
     auto stripped = util::strip(line);
-    if(stripped.empty()) return;
 
-    if(stripped.front() != '#') {
+    if(stripped.empty() || stripped.front() != '#') {
       // a non-preprocessor line
       inline_source += line;
 
       line_no++;
       return;
     }
-
-    puts(stripped.data());
 
     for(const auto& p : p_pragmas) {
       std::smatch matches;
@@ -226,9 +219,6 @@ static yaml::Document shadergen(win32::File& file,
 
         append_source(matches[1].str(), res::Shader::LibSource);
         return; // Prevent import #pragma's from begin added to the source
-
-      case PragmaExport:
-        break;
 
       default: assert(0); // unreachable
       }
