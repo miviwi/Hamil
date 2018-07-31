@@ -1,4 +1,4 @@
-#include <cli/cli.h>
+#include <cli/resourcegen.h>
 
 #include <yaml/document.h>
 #include <yaml/node.h>
@@ -79,7 +79,7 @@ void resourcegen(std::vector<std::string> resources)
     auto meta = it->second(f, name, path, extension);
     auto meta_data = meta.toString();
 
-    auto f_name = util::fmt("./%s%s.meta",
+    auto f_name = util::fmt("./%s/%s.meta",
       meta("path")->as<yaml::Scalar>()->str(),
       meta("name")->as<yaml::Scalar>()->str());
 
@@ -93,24 +93,28 @@ void resourcegen(std::vector<std::string> resources)
 template <typename T>
 yaml::Mapping *make_meta(const std::string& name, const std::string& path)
 {
-  auto guid = res::resource().guid<T>(name, path);
+  auto full_path = path.empty() ? "" : "/" + path;
+  auto guid = res::resource().guid<T>(name, full_path);
 
   return yaml::ordered_string_mapping({
     { "guid", util::fmt("0x%.16llx", guid) },
     { "tag",  T::tag().get() },
     { "name", name },
-    { "path", path.empty() ? "" : "/" + path },
+    { "path", full_path },
   });
 }
 
 enum PragmaType {
   PragmaInvalid,
 
-  PragmaShader,     // Marks the start of a Vertex/Geometry/Fragment shader
+  PragmaShader,     // Marks the start of a Vertex/Geometry/Fragment section
                     // in a file
                     //   #pragma shader(<Vertex, Geometry, Fragment>)
 
-  PragmaImport,     // #pragma import(shader.frag)
+  PragmaImport,     //   #pragma import(shader.frag)
+
+  PragmaExport,     // Exports the current section
+                    //   #pragma export()
 };
 
 struct PragmaInfo {
@@ -127,6 +131,7 @@ static const std::vector<PragmaInfo> p_pragmas = {
   { PragmaShader, "shader", "(?:(vertex)|(geometry)|(fragment))" },
 
   { PragmaImport, "import", "([^ ]+)" },
+  { PragmaExport, "export", ""        },
 };
 
 static yaml::Document shadergen(win32::File& file,
@@ -145,9 +150,7 @@ static yaml::Document shadergen(win32::File& file,
   yaml::Sequence *section = nullptr;
   std::string inline_source;
 
-  auto append_source = [&](const std::string& src, auto tag) {
-    if(src.empty()) return;
-
+  auto append_source = [&](std::string src, auto tag) {
     if(tag == res::Shader::InlineSource) {
       section->append(yaml::Node::Ptr(
         new yaml::Scalar(src, tag.get(), yaml::Node::Literal)
@@ -188,8 +191,7 @@ static yaml::Document shadergen(win32::File& file,
   util::splitlines(source, [&](const std::string& line) {
     auto stripped = util::strip(line);
 
-    if(stripped.empty() || stripped.front() != '#') {
-      // a non-preprocessor line
+    if(stripped.empty() || stripped.front() != '#') { // a non-preprocessor line
       inline_source += line;
 
       line_no++;
@@ -217,8 +219,14 @@ static yaml::Document shadergen(win32::File& file,
         append_source(inline_source, res::Shader::InlineSource);
         inline_source.clear();
 
-        append_source(matches[1].str(), res::Shader::LibSource);
+        append_source(matches[1].str(), res::Shader::ImportSource);
         return; // Prevent import #pragma's from begin added to the source
+
+      case PragmaExport:
+        if(!section) throw GenError(error_message("exporting undefined section!"));
+
+        section->tag(yaml::Node::Tag(res::Shader::ExportSource.get()));
+        break;
 
       default: assert(0); // unreachable
       }

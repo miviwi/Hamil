@@ -23,7 +23,7 @@ public:
     Fragment = GL_FRAGMENT_SHADER,
   };
 
-  using SourcesList = std::initializer_list<const char *>;
+  using SourcesList = std::vector<const char *>;
 
   Shader(Type type, const char *source);
   Shader(Type type, SourcesList sources);

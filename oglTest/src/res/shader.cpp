@@ -6,6 +6,7 @@
 
 #include <unordered_map>
 #include <utility>
+#include <sstream>
 
 namespace res {
 
@@ -50,7 +51,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
       inline_sources.emplace_back(src->str());
 
       ptr = inline_sources.back().data();
-    } else if(src->tag() == LibSource) {
+    } else if(src->tag() == ImportSource) {
       ptr = p_library.get(src->str());
 
       if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", src->str()));
@@ -61,12 +62,30 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     return ptr;
   };
 
-  auto do_stage = [&](const char *name, std::vector<const char *>& dst) -> void
+  auto export_source = [&](const std::string& lib_name, std::vector<const char *>& src) -> void
   {
-    if(auto stage = doc(name)) {
+    std::ostringstream ss;
+    for(const auto& s : src) ss << s;
+
+    p_library.set(lib_name, ss.str());
+  };
+
+  auto do_stage = [&](const char *stage_name, std::vector<const char *>& dst) -> void
+  {
+    if(auto stage = doc(stage_name)) {
       for(const auto& src : *stage->as<yaml::Sequence>()) {
         auto ptr = get_ptr(src);
         dst.push_back(ptr);
+      }
+
+      if(auto tag = stage->tag()) {
+        if(tag == ExportSource) {
+          // format the name as <program>.(vert|geom|frag)
+          // ex.
+          //     - wireframe.geom
+          //     - blinnphong.frag
+          export_source(util::fmt("%s.%.4s", name.data(), stage_name), dst);
+        }
       }
     }
   };

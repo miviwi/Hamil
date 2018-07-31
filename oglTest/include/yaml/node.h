@@ -36,6 +36,7 @@ public:
     Flow, Block,
 
     // Scalar styles
+    Plain,
     Literal, Folded,
     SingleQuoted, DoubleQuoted,
   };
@@ -46,6 +47,7 @@ public:
   Type type() const;
 
   const Tag& tag() const;
+  void tag(const Tag& t);
   std::string tagString() const;
 
   Style style() const;

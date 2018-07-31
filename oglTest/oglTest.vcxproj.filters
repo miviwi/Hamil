@@ -248,6 +248,9 @@
     <ClCompile Include="src\util\str.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\cli\sh.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -497,6 +500,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\util\str.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cli\sh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

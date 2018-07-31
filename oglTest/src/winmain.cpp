@@ -62,7 +62,9 @@
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
 {
-  if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
+  if(argc > 1) {
+    if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
+  }
 
   win32::init();
 
@@ -113,147 +115,22 @@ int main(int argc, char *argv[])
 
   unsigned cp = 0;
 
-  const char *vs_src = R"VTX(
-uniform mat4 uModelView;
-uniform mat4 uProjection;
-uniform mat3 uNormal;
+  auto r_phong = res::resource().load(
+    res::resource().guid<res::Shader>("phong", "/shaders")
+  ).lock()->as<res::Shader>();
 
-layout(location = 0) in vec3 iPosition;
-layout(location = 1) in vec3 iNormal;
+  auto r_program = res::resource().load(
+    res::resource().guid<res::Shader>("program", "/shaders")
+  ).lock()->as<res::Shader>();
 
-out VertexData {
-  vec3 position;
-  vec3 normal;
-} vertex;
+  auto r_tex = res::resource().load(
+    res::resource().guid<res::Shader>("tex", "/shaders")
+  ).lock()->as<res::Shader>();
 
-void main() {
-  vertex.position = vec3(uModelView * vec4(iPosition, 1.0));
-  vertex.normal = uNormal * iNormal;
-
-  gl_Position = uProjection * vec4(vertex.position, 1.0);
-}
-)VTX";
-
-  const char *phong_src = R"GLSL(
-const float gamma = 2.2;
-
-struct Light {
-  vec3 position;
-  vec3 color;
-};
-
-uniform LightBlock {
-  Light lights[4];
-  int num_lights;
-};
-
-vec3 phong(Light light, vec3 position, vec3 normal) {
-  vec3 L = normalize(light.position - position);
-  float distance = length(light.position - position);
-
-  float attenuation = 1.0 / (1 + 0.35*distance + 0.44*(distance*distance));
-
-  float diffuse_strength = max(dot(normal, L), 0.0);
-  
-  vec3 V = normalize(-position);
-  vec3 H = normalize(L + V);
-
-  float specular_strength = pow(max(dot(V, H), 0.0), 8);
-  
-  vec3 ambient = 0.1 * light.color;
-  vec3 diffuse = diffuse_strength * light.color;
-  vec3 specular = specular_strength * light.color;
-
-  return (ambient+diffuse+specular)*attenuation;
-} 
-
-vec3 toGammaSpace(vec3 color) {
-  return pow(color, vec3(1.0/gamma));
-}
-
-vec4 toGammaSpace(vec4 color) {
-  return vec4(pow(color.rgb, vec3(1.0/gamma)), color.a);
-}
-
-)GLSL";
-
-  const char *fs_src = R"FG(
-uniform vec4 uCol;
-
-in VertexData {
-  vec3 position;
-  vec3 normal;
-} fragment;
-
-layout(location = 0) out vec3 color;
-
-void main() {
-  vec3 normal = normalize(fragment.normal);
-
-  vec3 light = vec3(0, 0, 0);
-  for(int i = 0; i < num_lights; i++) {
-    light += phong(lights[i], fragment.position, normal);
-  }
-
-  if(uCol.a < 0.0) {
-    color = toGammaSpace(light*uCol.rgb);
-  } else {
-    int index = int(uCol.a);
-    color = lights[index].color;
-  }
-}
-)FG";
-
-  const char *tex_vs_src = R"VTX(
-uniform mat4 uModelView;
-uniform mat4 uProjection;
-uniform mat3 uNormal;
-uniform mat4 uTexMatrix;
-
-layout(location = 0) in vec2 iPosition;
-layout(location = 1) in vec2 iTexCoord;
-
-out VertexData {
-  vec3 position;
-  vec3 normal;
-  vec2 tex_coord;
-} vertex;
-
-void main() {
-  vertex.position = vec3(uModelView * vec4(iPosition, 0.0, 1.0));
-  vertex.normal = uNormal * vec3(0.0, 0.0, -1.0);
-  vertex.tex_coord = (uTexMatrix * vec4(iTexCoord, 0.0f, 1.0f)).st;
-
-  gl_Position = uProjection * vec4(vertex.position, 1.0f);
-}
-)VTX";
-
-  const char *tex_fs_src = R"FG(
-uniform sampler2D uTex;
-
-in VertexData {
-  vec3 position;
-  vec3 normal;
-  vec2 tex_coord;
-} fragment;
-
-layout(location = 0) out vec4 color;
-
-void main() {
-  vec3 normal = normalize(fragment.normal); 
-  vec4 diffuse = texture(uTex, fragment.tex_coord);
-
-  vec3 light = vec3(0, 0, 0);
-  for(int i = 0; i < num_lights; i++) {
-    light += phong(lights[i], fragment.position, normal);
-  }
-
-  color = vec4(toGammaSpace(light*diffuse.rgb), diffuse.a);
-}
-)FG";
-
-  auto program     = gx::make_program({ vs_src },     { phong_src, fs_src },     U::program);
-  auto tex_program = gx::make_program({ tex_vs_src }, { phong_src, tex_fs_src }, U::tex);
+  auto program     = gx::make_program(
+    r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U::program);
+  auto tex_program = gx::make_program(
+    r_tex->source(res::Shader::Vertex), r_tex->source(res::Shader::Fragment), U::tex);
 
   program.label("program");
   tex_program.label("TEX_program");

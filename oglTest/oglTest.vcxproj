@@ -201,6 +201,7 @@ exit /b 0</Command>
     <ClCompile Include="Generated\uniforms.cpp" />
     <ClCompile Include="src\cli\cli.cpp" />
     <ClCompile Include="src\cli\resourcegen.cpp" />
+    <ClCompile Include="src\cli\sh.cpp" />
     <ClCompile Include="src\ft\cache.cpp" />
     <ClCompile Include="src\game\cmdline.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
@@ -256,6 +257,7 @@ exit /b 0</Command>
     <ClInclude Include="Generated\uniforms.h" />
     <ClInclude Include="include\cli\cli.h" />
     <ClInclude Include="include\cli\resourcegen.h" />
+    <ClInclude Include="include\cli\sh.h" />
     <ClInclude Include="include\ft\cache.h" />
     <ClInclude Include="include\game\cmdline.h" />
     <ClInclude Include="include\math\compare.h" />

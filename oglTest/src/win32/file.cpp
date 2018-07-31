@@ -70,7 +70,7 @@ const char *File::fullPath() const
   auto result = GetFileInformationByHandleEx(m, FileNameInfo, &temp_name_info, sizeof(FILE_NAME_INFO));
 
   assert(!result && "FullPath was less than 2 characters long!");
-  
+
   // assumming the full path will be more than 2 characters long
   switch(GetLastError()) {
   case ERROR_MORE_DATA: {

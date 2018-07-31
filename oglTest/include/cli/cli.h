@@ -2,8 +2,6 @@
 
 #include <common.h>
 
-#include <cli/resourcegen.h>
-
 namespace cli {
 
 // DO NOT init() any subsystem before calling this function!

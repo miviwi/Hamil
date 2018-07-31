@@ -30,6 +30,11 @@ const Node::Tag& Node::tag() const
   return m_tag;
 }
 
+void Node::tag(const Tag& t)
+{
+  m_tag = t;
+}
+
 std::string Node::tagString() const
 {
   if(!m_tag) return "";

@@ -14,6 +14,9 @@ class Object;
 void init();
 void finalize();
 
+// Do not call init() before or finalize() after this!
+int main(int argc, char *argv[]);
+
 void exec(const char *input);
 Object eval(const char *input);
 

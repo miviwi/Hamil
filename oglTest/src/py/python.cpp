@@ -48,6 +48,25 @@ void finalize()
   Py_Finalize();
 }
 
+int main(int argc, char *argv[])
+{
+  wchar_t **wargv = new wchar_t*[argc];
+  for(int i = 0; i < argc; i++) {
+    wargv[i] = Py_DecodeLocale(argv[i], nullptr);
+  }
+
+  PyImport_ExtendInittab(p_modules);
+
+  auto exit_code = Py_Main(argc, wargv);
+
+  for(int i = 0; i < argc; i++) {
+    PyMem_RawFree(wargv[i]);
+  }
+  delete[] wargv;
+
+  return exit_code;
+}
+
 Object p_compile_string(const char *src, int start)
 {
   Object co = Py_CompileString(src, "$", start);

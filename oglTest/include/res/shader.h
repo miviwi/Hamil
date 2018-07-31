@@ -19,7 +19,8 @@ public:
   static constexpr Tag tag() { return "shader"; }
 
   static constexpr util::StaticString InlineSource = "!inline";
-  static constexpr util::StaticString LibSource    = "!lib";
+  static constexpr util::StaticString ImportSource = "!import";
+  static constexpr util::StaticString ExportSource = "!export";
 
   enum Stage : size_t {
     Vertex, Geometry, Fragment,

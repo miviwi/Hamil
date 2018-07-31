@@ -154,6 +154,8 @@ Node::Ptr Parser::scalar()
 
   auto style = Node::Any;
   switch(data.style) {
+  case YAML_PLAIN_SCALAR_STYLE:         style = Node::Plain; break;
+
   case YAML_SINGLE_QUOTED_SCALAR_STYLE: style = Node::SingleQuoted; break;
   case YAML_DOUBLE_QUOTED_SCALAR_STYLE: style = Node::DoubleQuoted; break;
 
@@ -351,6 +353,7 @@ void Emitter::emitScalar(const Scalar *scalar)
   switch(scalar->style()) {
   case Node::Any: break;
 
+  case Node::Plain:        style = YAML_PLAIN_SCALAR_STYLE; break;
   case Node::Literal:      style = YAML_LITERAL_SCALAR_STYLE; break;
   case Node::Folded:       style = YAML_FOLDED_SCALAR_STYLE; break;
   case Node::SingleQuoted: style = YAML_SINGLE_QUOTED_SCALAR_STYLE; break;

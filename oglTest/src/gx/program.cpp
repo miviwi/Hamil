@@ -296,7 +296,7 @@ Shader::Shader(Type type, const char *source) :
 }
 
 Shader::Shader(Type type, SourcesList sources) :
-  Shader(type, sources.begin(), sources.size())
+  Shader(type, sources.data(), sources.size())
 {
 
 }
