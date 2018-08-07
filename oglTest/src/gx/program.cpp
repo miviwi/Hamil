@@ -290,15 +290,9 @@ static const char *p_shader_source[256] = {
   nullptr,
 };
 
-Shader::Shader(Type type, const char *source) :
-  Shader(type, { source })
-{
-}
-
 Shader::Shader(Type type, SourcesList sources) :
   Shader(type, sources.data(), sources.size())
 {
-
 }
 
 Shader::Shader(Type type, const char *const sources[], size_t count)

@@ -7,6 +7,7 @@
 #include <res/shader.h>
 
 #include <win32/file.h>
+#include <util/staticstring.h>
 
 #include <memory>
 #include <regex>
@@ -18,7 +19,7 @@ ResourceManager::Ptr p_manager;
 void init()
 {
   p_manager = ResourceManager::Ptr(new ResourceManager(
-    { new SimpleFsLoader("C:/00PROJ/oglTest/x64/Debug"), }
+    { new SimpleFsLoader(__PROJECT_DIR), }
   ));
 }
 

@@ -25,7 +25,6 @@ public:
 
   using SourcesList = std::vector<const char *>;
 
-  Shader(Type type, const char *source);
   Shader(Type type, SourcesList sources);
   Shader(Type type, const char *const sources[], size_t count);
   Shader(const Shader&) = delete;

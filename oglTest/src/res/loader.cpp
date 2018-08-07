@@ -60,8 +60,6 @@ Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
   auto meta = yaml::Document::from_string(it->second.data(), it->second.size()-1 /* libyaml doesn't like '\0' */);
   if(p_meta_generic_schema.validate(meta)) throw InvalidResourceError(id);
 
-  puts(meta.toString().data());
-
   auto tag = ResourceManager::make_tag(meta("tag")->as<yaml::Scalar>()->str());
   if(!tag) throw InvalidResourceError(id);
 
@@ -126,7 +124,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
       auto id = enumOne(file_buf.data(), file.size(), file.fullPath());
       if(id == Resource::InvalidId) return;
 
-      printf("resource %s: 0x%.16llx\n", name, id);
+      printf("found resource %-20s: 0x%.16llx\n", name, id);
 
       m_available.emplace(
         id,
