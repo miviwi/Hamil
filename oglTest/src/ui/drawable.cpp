@@ -1,18 +1,50 @@
 #include <ui/drawable.h>
 #include <ft/font.h>
 
+#include <array>
+
 namespace ui {
 
 struct pDrawable {
   Drawable::Type type;
+
+  virtual const Vertex *vertices() const   = 0;
+  virtual size_t numVertices() const = 0;
+
+  virtual const u16 *indices() const      = 0;
+  virtual size_t numIndices() const = 0;
 };
 
 struct pDrawableText : public pDrawable {
   ft::Font::Ptr font;
   ft::String string;
+
+  std::vector<Vertex> verts;
+  std::vector<u16> inds;
+
+  pDrawableText(const ft::Font::Ptr& font_, const char *str);
+
+  virtual const Vertex *vertices() const { return verts.data(); }
+  virtual size_t numVertices()     const { return verts.size(); }
+
+  virtual const u16 *indices() const { return inds.data(); }
+  virtual size_t numIndices()  const { return inds.size(); }
 };
 
 struct pDrawableImage : public pDrawable {
+  uvec4 coords;
+  unsigned page;
+
+  std::array<Vertex, 4> verts;
+  std::array<u16, 4> inds;
+
+  pDrawableImage(uvec4 coords_, unsigned page);
+
+  virtual const Vertex *vertices() const { return verts.data(); }
+  virtual size_t numVertices()     const { return verts.size(); }
+
+  virtual const u16 *indices() const { return inds.data(); }
+  virtual size_t numIndices()  const { return inds.size(); }
 };
 
 Drawable::Drawable(pDrawable *p) :
@@ -28,6 +60,37 @@ Drawable::~Drawable()
 pDrawable *Drawable::get() const
 {
   return m;
+}
+
+DrawableManager::DrawableManager() :
+  m_local_atlas(AtlasSize.x*AtlasSize.y * InitialPages),
+  m_atlas(gx::rgba8)
+{
+  m_atlas.init(AtlasSize.x, AtlasSize.y, InitialPages);
+}
+
+unsigned DrawableManager::numAtlasPages()
+{
+  return m_local_atlas.size() / PageSize;
+}
+
+Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)
+{
+  size_t off = page*PageSize + (coords.x + coords.y*AtlasSize.x);
+
+  return m_local_atlas.data() + off;
+}
+
+void DrawableManager::reuploadAtlas()
+{
+  m_atlas.init(m_local_atlas.data(), /* level */0,
+    AtlasSize.x, AtlasSize.y, numAtlasPages(), gx::rgba, gx::u8);
+}
+
+void DrawableManager::uploadAtlas(uvec4 coords, unsigned page)
+{
+  m_atlas.upload(localAtlasData(coords, page), /* level */0,
+    coords.x, coords.y, page, coords.z, coords.w, 1, gx::rgba, gx::u8);
 }
 
 }

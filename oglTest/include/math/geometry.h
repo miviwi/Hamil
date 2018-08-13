@@ -115,6 +115,7 @@ Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
 
 using vec2  = Vector2<float>;
 using ivec2 = Vector2<int>;
+using uvec2 = Vector2<unsigned>;
 
 template <typename T>
 struct Vector3 {
@@ -215,6 +216,7 @@ Vector3<T>& operator*=(Vector3<T>& a, T u)
 
 using vec3  = Vector3<float>;
 using ivec3 = Vector3<int>;
+using uvec3 = Vector3<unsigned>;
 
 inline vec3 vec3::cross(const vec3& v) const
 {
@@ -305,6 +307,7 @@ Vector4<T>& operator*=(Vector4<T>& a, T u)
 
 using vec4  = Vector4<float>;
 using ivec4 = Vector4<int>;
+using uvec4 = Vector4<unsigned>;
 
 inline vec4 operator*(vec4 a, float u)
 {
