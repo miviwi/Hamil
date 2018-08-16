@@ -54,13 +54,13 @@ bool Node::Compare::operator()(const Node::Ptr& a, const Node::Ptr& b) const
 }
 
 Scalar::Scalar(byte *data, size_t sz, Tag tag, Style style) :
-  Node(NodeType, tag, style), m_data(sz, '\0')
+  Node(NodeType, tag, style), m_data(sz, '\0'), m_cache(std::monostate())
 {
   memcpy(m_data.data(), data, sz);
 }
 
 Scalar::Scalar(const std::string& str, Tag tag, Style style) :
-  Node(NodeType, tag, style), m_data(str.length(), '\0')
+  Node(NodeType, tag, style), m_data(str.length(), '\0'), m_cache(std::monostate())
 {
   memcpy(m_data.data(), str.data(), str.length());
 }
@@ -234,9 +234,11 @@ std::string Sequence::repr() const
   return str += "]";
 }
 
-void Sequence::append(const Node::Ptr &node)
+Sequence *Sequence::append(const Node::Ptr &node)
 {
   m.push_back(node);
+
+  return this;
 }
 
 Node::Ptr Sequence::get(size_t idx) const
@@ -299,11 +301,13 @@ std::string Mapping::repr() const
   return str += "}";
 }
 
-void Mapping::append(Node::Ptr key, Node::Ptr value)
+Mapping *Mapping::append(Node::Ptr key, Node::Ptr value)
 {
   m.emplace(key, value);
 
   if(m_ordered) m_ordered->emplace_back(key, value);
+
+  return this;
 }
 
 void Mapping::retainOrder(bool enable)

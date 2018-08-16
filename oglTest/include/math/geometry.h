@@ -108,6 +108,18 @@ Vector2<T>& operator*=(Vector2<T>& a, T u)
 }
 
 template <typename T>
+bool operator==(Vector2<T> a, Vector2<T> b)
+{
+  return a.x == b.x && a.y == b.y;
+}
+
+template <typename T>
+bool operator!=(Vector2<T> a, Vector2<T> b)
+{
+  return a.x != b.x && a.y != b.y;
+}
+
+template <typename T>
 Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ -(b.y - a.y), b.x - a.x }.normalize();
@@ -214,6 +226,18 @@ Vector3<T>& operator*=(Vector3<T>& a, T u)
   return a;
 }
 
+template <typename T>
+bool operator==(Vector3<T> a, Vector3<T> b)
+{
+  return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+template <typename T>
+bool operator!=(Vector3<T> a, Vector3<T> b)
+{
+  return a.x != b.x && a.y != b.y && a.z != b.z;
+}
+
 using vec3  = Vector3<float>;
 using ivec3 = Vector3<int>;
 using uvec3 = Vector3<unsigned>;
@@ -303,6 +327,18 @@ Vector4<T>& operator*=(Vector4<T>& a, T u)
 {
   a = a*u;
   return a;
+}
+
+template <typename T>
+bool operator==(Vector4<T> a, Vector4<T> b)
+{
+  return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+}
+
+template <typename T>
+bool operator!=(Vector4<T> a, Vector4<T> b)
+{
+  return a.x != b.x && a.y != b.y && a.z != b.z && a.w != b.w;
 }
 
 using vec4  = Vector4<float>;

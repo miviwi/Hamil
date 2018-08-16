@@ -3,6 +3,7 @@
 #include <res/resource.h>
 #include <res/text.h>
 #include <res/shader.h>
+#include <res/image.h>
 
 #include <util/format.h>
 #include <win32/file.h>
@@ -15,6 +16,7 @@
 #include <cstdio>
 #include <cstring>
 #include <vector>
+#include <map>
 #include <unordered_map>
 #include <functional>
 
@@ -43,12 +45,16 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
                              .scalarSequence("vertex",   yaml::Scalar::Tagged, yaml::Optional)
                              .scalarSequence("geometry", yaml::Scalar::Tagged, yaml::Optional)
                              .scalarSequence("fragment", yaml::Scalar::Tagged, yaml::Optional) },
-
+  { Image::tag(),  yaml::Schema()
+                             .scalar("location", yaml::Scalar::Tagged)
+                             .scalar("channels", yaml::Scalar::String, yaml::Optional)
+                             .scalarSequence("dimensions", yaml::Scalar::Int) },
 };
 
 static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> p_loader_fns = {
   { Text::tag(),   &SimpleFsLoader::loadText   },
   { Shader::tag(), &SimpleFsLoader::loadShader },
+  { Image::tag(),  &SimpleFsLoader::loadImage  },
 };
 
 Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
@@ -124,7 +130,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
       auto id = enumOne(file_buf.data(), file.size(), file.fullPath());
       if(id == Resource::InvalidId) return;
 
-      printf("found resource %-20s: 0x%.16llx\n", name, id);
+      printf("found resource %-25s: 0x%.16llx\n", full_path.data(), id);
 
       m_available.emplace(
         id,
@@ -160,13 +166,29 @@ Resource::Id SimpleFsLoader::enumOne(const char *meta_file, size_t sz, const cha
   return Resource::InvalidId;
 }
 
+SimpleFsLoader::NamePathTuple SimpleFsLoader::name_path(const yaml::Document& meta)
+{
+  return std::make_tuple(
+    meta("name")->as<yaml::Scalar>(),
+    meta("path")->as<yaml::Scalar>()
+  );
+}
+
+SimpleFsLoader::NamePathLocationTuple SimpleFsLoader::name_path_location(const yaml::Document& meta)
+{
+  return std::make_tuple(
+    meta("name")->as<yaml::Scalar>(),
+    meta("path")->as<yaml::Scalar>(),
+    meta("location")->as<yaml::Scalar>()
+  );
+}
+
 Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& meta)
 {
   // execution only reaches here when 'meta' has passed validation
   // so we can assume it's valid
-  auto location = meta("location")->as<yaml::Scalar>();
-  auto name     = meta("name")->as<yaml::Scalar>();
-  auto path     = meta("path")->as<yaml::Scalar>();
+  const yaml::Scalar *name, *path, *location;
+  std::tie(name, path, location) = name_path_location(meta);
 
   win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
   win32::FileView view = f.map(win32::File::ProtectRead);
@@ -176,10 +198,55 @@ Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& me
 
 Resource::Ptr SimpleFsLoader::loadShader(Resource::Id id, const yaml::Document& meta)
 {
-  auto name = meta("name")->as<yaml::Scalar>();
-  auto path = meta("path")->as<yaml::Scalar>();
+  const yaml::Scalar *name, *path;
+  std::tie(name, path) = name_path(meta);
 
   return Shader::from_yaml(meta, id, name->str(), path->str());
+}
+
+static const std::map<std::string, unsigned> p_num_channels = {
+  { "i",    1 },
+  { "ia",   2 },
+  { "rgb",  3 },
+  { "rgba", 4 },
+};
+
+Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& meta)
+{
+  const yaml::Scalar *name, *path, *location;
+  std::tie(name, path, location) = name_path_location(meta);
+
+  auto channels_node = meta("channels");
+  auto dims          = meta("dimensions")->as<yaml::Sequence>();
+  auto flip_vertical = meta("flip_vertical"); // TODO
+
+  unsigned num_channels = 0;
+  if(channels_node) {
+    auto channels = channels_node->as<yaml::Scalar>()->str();
+    auto it = p_num_channels.find(channels);
+    if(it == p_num_channels.end()) throw InvalidResourceError(id);
+
+    num_channels = it->second;
+  }
+
+  auto width  = (int)dims->get<yaml::Scalar>(0)->i();
+  auto height = (int)dims->get<yaml::Scalar>(1)->i();
+
+  unsigned flags = 0;
+  if(flip_vertical && flip_vertical->as<yaml::Scalar>()->b()) flags |= Image::FlipVertical; // TODO
+
+  win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
+  win32::FileView view = f.map(win32::File::ProtectRead);
+
+  auto img = Image::from_file(view.get(), f.size(), num_channels, flags, id, name->str(), path->str());
+
+  if(img->as<Image>()->dimensions() != ivec2{ width, height }) {
+    throw InvalidResourceError(id);
+  }
+
+  printf("loaded image(0x%.16llx)...\n", id);
+
+  return img;
 }
 
 }

@@ -1,9 +1,11 @@
 #include <res/manager.h>
 #include <res/text.h>
 #include <res/shader.h>
+#include <res/image.h>
 
 #include <util/hash.h>
 
+#include <cstring>
 #include <map>
 #include <utility>
 
@@ -59,6 +61,7 @@ ResourceHandle ResourceManager::handle(Resource::Id id)
 static const std::map<std::string, res::Resource::Tag> p_tags = {
   { Text::tag().get(),   Text::tag() },
   { Shader::tag().get(), Shader::tag() },
+  { Image::tag().get(),  Image::tag() },
 };
 
 std::optional<Resource::Tag> ResourceManager::make_tag(const char *tag)

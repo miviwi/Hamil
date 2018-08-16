@@ -48,12 +48,11 @@
 #include <res/resource.h>
 #include <res/text.h>
 #include <res/shader.h>
+#include <res/image.h>
 
 #include <game/game.h>
 
 #include <cli/cli.h>
-
-#include <stb_image/stb_image.h>
 
 #include <vector>
 #include <array>
@@ -100,17 +99,14 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
-  win32::File tex_image_f("tex.jpg", win32::File::Read, win32::File::OpenExisting);
-  auto tex_image_data = tex_image_f.map(win32::File::ProtectRead);
-
-  int width = 0, height = 0;
-  auto tex_image = stbi_load_from_memory(tex_image_data.get<byte>(), (int)tex_image_f.size(),
-    &width, &height, nullptr, 4);
+  auto r_texture = res::resource().load(
+    res::resource().guid<res::Image>("tex", "")
+  ).lock()->as<res::Image>();
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler::repeat2d_linear();
 
-  tex.init(tex_image, 0, width, height, gx::rgba, gx::u8);
+  tex.init(r_texture->data(), 0, r_texture->dimensions().x, r_texture->dimensions().y, gx::rgba, gx::u8);
   tex.generateMipmaps();
 
   unsigned cp = 0;

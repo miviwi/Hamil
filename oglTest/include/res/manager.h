@@ -32,10 +32,12 @@ public:
   template <typename T>
   Resource::Id guid(const std::string& name, const std::string& path)
   {
-    static_assert(Resource::is_resource<T>(), "T must be derived from Resource!");
+    Resource::is_resource<T>();
+
     return guid(T::tag(), name, path);
   }
   Resource::Id guid(Resource::Tag tag, const std::string& name, const std::string& path) const;
+  Resource::Id guid(Resource::Tag tag, const char *resource) const;
 
   ResourceHandle load(Resource::Id id, LoadFlags flags = LoadDefault);
   // Gets handle to an already loaded resource

@@ -45,6 +45,11 @@ public:
 
   DrawableManager();
 
+  Drawable fromText();
+  Drawable fromImage();
+
+  void finalize(Drawable d);
+
 private:
   unsigned numAtlasPages();
 

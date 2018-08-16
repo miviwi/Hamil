@@ -11,6 +11,7 @@
 #include <res/resource.h>
 #include <res/text.h>
 #include <res/shader.h>
+#include <res/image.h>
 
 #include <string>
 #include <vector>
@@ -18,9 +19,14 @@
 #include <functional>
 #include <regex>
 
+#include <stb_image/stb_image.h>
+
 namespace cli {
 
 static yaml::Document shadergen(win32::File& file,
+  const std::string& name, const std::string& path, const std::string& extension);
+
+static yaml::Document imagegen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
 using GenFunc = std::function<
@@ -28,11 +34,23 @@ using GenFunc = std::function<
     const std::string& name, const std::string& path, const std::string& extension)
   >;
 static const std::map<std::string, GenFunc> p_gen_fns = {
+  // ------------------ Shaders -----------------------------
   { "glsl", shadergen }, // GPU program (multiple shaders)
   
   { "vert", shadergen }, // Vertex Shader   (can contain other shaders!)
   { "geom", shadergen }, // Geometry Shader        ---- || ----
   { "frag", shadergen }, // Fragment Shader        ---- || ----
+
+  // ------------------ Images  -----------------------------
+  { "jpg",  imagegen },  // JPEG Image
+  { "jpeg", imagegen },  // -- || --
+
+  { "png",  imagegen },  // PNG Image
+
+  { "bmp",  imagegen },  // BMP Image
+
+  { "tif",  imagegen },  // TIFF Image
+  { "tiff", imagegen },  // -- || -- 
 };
 
 static const std::regex p_name_regex("^((?:[^/ ]+/)*)([^./ ]*)\\.([a-z]+)$", std::regex::optimize);
@@ -242,8 +260,57 @@ static yaml::Document shadergen(win32::File& file,
   if(pgeom) meta->append(yaml::Scalar::from_str("geometry"), pgeom);
   if(pfrag) meta->append(yaml::Scalar::from_str("fragment"), pfrag);
 
+  return yaml::Document(yaml::Node::Ptr(meta));
+}
+
+static yaml::Document imagegen(win32::File& file,
+  const std::string& name, const std::string& path, const std::string& extension)
+{
+  auto location = util::fmt(".%s/%s.%s", path.data(), name.data(), extension.data());
+  std::optional<yaml::Document> params = std::nullopt;
+
+  printf("processing image: .%s...\n", location.data());
+
+  try {
+    auto fname = util::fmt(".%s/%s.imageparams", path.data(), name.data());
+    win32::File f_params(fname.data(), win32::File::Read, win32::File::OpenExisting);
+
+    auto f_params_view = f_params.map(win32::File::ProtectRead);
+
+    params = yaml::Document::from_string(f_params_view.get<const char>(), f_params.size());
+  } catch(const win32::File::Error&) {
+    // No additional params...
+  }
+
+  if(params) {
+    printf("    found params:\n\n%s\n", params->toString().data());
+  } else {
+    printf("    no params\n");
+  }
+
+  int width, height, channels;
+
+  auto image_view = file.map(win32::File::ProtectRead);
+  auto image      = stbi_load_from_memory(image_view.get<byte>(), (int)file.size(), &width, &height, &channels, 0);
+
+  auto meta = make_meta<res::Image>(name, path)->append(
+    yaml::Scalar::from_str("location"),
+    yaml::Node::Ptr(new yaml::Scalar(location, yaml::Node::Tag("!file")))
+  )->append(
+    yaml::Scalar::from_str("dimensions"),
+    yaml::Node::Ptr(yaml::isequence({ width, height }))
+  );
+  // TODO:    ->append( yaml::Scalar::from_str("flip_vertical"), ... )
+
+  params->get()->foreach([&](yaml::Node::Ptr key, yaml::Node::Ptr value) {
+    meta->append(key, value);
+  });
+
+  printf("        ...done!\n\n");
+
   auto doc = yaml::Document(yaml::Node::Ptr(meta));
   puts(doc.toString().data());
+
 
   return doc;
 }

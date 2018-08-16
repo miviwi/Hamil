@@ -25,11 +25,12 @@ public:
   };
 
   Resource(Id id, Tag tag, const std::string& name, Source source, const std::string& path);
+  virtual ~Resource() = default;
 
   template <typename T>
-  static constexpr bool is_resource()
+  static constexpr void is_resource()
   {
-    return std::is_base_of_v<Resource, T>;
+    static_assert(std::is_base_of_v<Resource, T>, "T must be derived from Resource!");
   }
 
   static constexpr Tag tag() { return "Resource"; }
@@ -37,7 +38,7 @@ public:
   template <typename T>
   T *as()
   {
-    static_assert(is_resource<T>(), "T must be derived from Resource!");
+    is_resource<T>();
     return getTag() == T::tag() ? (T *)this : nullptr;
   }
 

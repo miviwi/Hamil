@@ -94,7 +94,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
   do_stage("geometry", geometry_sources);
   do_stage("fragment", fragment_sources);
 
-  shader->m_loaded  = true;
+  shader->m_loaded = true;
 
   return Resource::Ptr(shader);
 }

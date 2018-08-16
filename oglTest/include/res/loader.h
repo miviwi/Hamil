@@ -5,6 +5,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <tuple>
 #include <memory>
 
 namespace win32 {
@@ -13,6 +14,7 @@ class FileQuery;
 
 namespace yaml {
 class Document;
+class Scalar;
 }
 
 namespace res {
@@ -60,10 +62,20 @@ public:
   using LoaderFn = Resource::Ptr (SimpleFsLoader::*)(Resource::Id, const yaml::Document&);
   Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadImage(Resource::Id id, const yaml::Document& meta);
 
 private:
   void enumAvailable(std::string path);
   Resource::Id enumOne(const char *meta_file, size_t sz, const char *full_path = "");
+
+  using NamePathTuple         = std::tuple<const yaml::Scalar* /* name */, const yaml::Scalar* /* path */>;
+  using NamePathLocationTuple = std::tuple<
+    const yaml::Scalar* /* name */, const yaml::Scalar* /* path */, const yaml::Scalar* /* location */
+  >;
+
+  // Does NOT perform validation!
+  static NamePathTuple name_path(const yaml::Document& meta);
+  static NamePathLocationTuple name_path_location(const yaml::Document& meta);
 
   std::string m_path;
   std::unordered_map<Resource::Id, std::vector<char> /* meta_file */>  m_available;

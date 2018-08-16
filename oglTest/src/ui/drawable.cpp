@@ -8,11 +8,11 @@ namespace ui {
 struct pDrawable {
   Drawable::Type type;
 
-  virtual const Vertex *vertices() const   = 0;
-  virtual size_t numVertices() const = 0;
+  virtual const Vertex *vertices() const = 0;
+  virtual size_t numVertices() const     = 0;
 
-  virtual const u16 *indices() const      = 0;
-  virtual size_t numIndices() const = 0;
+  virtual const u16 *indices() const = 0;
+  virtual size_t numIndices() const  = 0;
 };
 
 struct pDrawableText : public pDrawable {
@@ -71,7 +71,7 @@ DrawableManager::DrawableManager() :
 
 unsigned DrawableManager::numAtlasPages()
 {
-  return m_local_atlas.size() / PageSize;
+  return (unsigned)m_local_atlas.size() / PageSize;
 }
 
 Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)

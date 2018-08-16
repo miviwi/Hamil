@@ -125,7 +125,7 @@ private:
   string m_data;
 
   using CacheStorage = std::variant<
-    long long, unsigned long long, double, bool
+    std::monostate, long long, unsigned long long, double, bool
   >;
   mutable CacheStorage m_cache;
  };
@@ -140,11 +140,17 @@ public:
 
   virtual std::string repr() const;
 
-  void append(const Node::Ptr &node);
+  Sequence *append(const Node::Ptr &node);
 
   virtual Node::Ptr get(const std::string& key) const { return Node::Ptr(); }
   virtual Node::Ptr get(size_t idx) const;
   Node::Ptr operator[](size_t idx) const { return get(idx); }
+
+  template <typename T>
+  const T *get(size_t key) const
+  {
+    return get(key)->as<T>();
+  }
 
   size_t size() const;
 
@@ -170,7 +176,7 @@ public:
 
   virtual std::string repr() const;
 
-  void append(Node::Ptr key, Node::Ptr value);
+  Mapping *append(Node::Ptr key, Node::Ptr value);
 
   // Makes the mapping retain the insertion order
   //   of the keys when iterating
@@ -223,6 +229,17 @@ static Mapping *ordered_string_mapping(std::initializer_list<std::pair<std::stri
   }
 
   return map;
+}
+
+static Sequence *isequence(std::initializer_list<long long> items)
+{
+  auto seq = new Sequence;
+
+  for(const auto& item : items) {
+    seq->append(Scalar::from_i(item));
+  }
+
+  return seq;
 }
 
 }
