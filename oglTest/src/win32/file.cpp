@@ -189,8 +189,24 @@ uint8_t& FileView::operator[](size_t offset)
   return ptr[offset];
 }
 
+size_t FileView::size() const
+{
+  return m_size;
+}
+
+void FileView::unmap()
+{
+  if(deref()) return;
+
+  UnmapViewOfFile(m_ptr);
+  CloseHandle(m);
+
+  m_ptr = nullptr;
+  m = nullptr;
+}
+
 FileView::FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size) :
-  m_file(file), m(mapping)
+  m_file(file), m_size(size), m(mapping)
 {
   DWORD desired_access = 0;
   desired_access |= access & File::ProtectRead    ? FILE_MAP_READ    : 0;

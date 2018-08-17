@@ -205,6 +205,10 @@ static yaml::Document shadergen(win32::File& file,
   auto error_message = [&](const char *message) -> std::string {
     return util::fmt("%s/%s.%s: %s", path.data(), name.data(), extension.data(), message);
   };
+  
+  auto error_specified_twice = [&](const char *stage) -> std::string {
+    return error_message(util::fmt("shader(%s) specified twice!").data());
+  };
 
   util::splitlines(source, [&](const std::string& line) {
     auto stripped = util::strip(line);
@@ -223,11 +227,11 @@ static yaml::Document shadergen(win32::File& file,
       switch(p.type) {
       case PragmaShader:
         if(matches[1].matched /* vertex */) {
-          if(!init_section(pvert)) throw GenError(error_message("shader(vertex) specified twice!"));
+          if(!init_section(pvert)) throw GenError(error_specified_twice("vertex"));
         } else if(matches[2].matched /* geometry */) {
-          if(!init_section(pgeom)) throw GenError(error_message("shader(geometry) specified twice!"));
+          if(!init_section(pgeom)) throw GenError(error_specified_twice("geometry"));
         } else if(matches[3].matched /* fragment */) {
-          if(!init_section(pfrag)) throw GenError(error_message("shader(fragment) specified twice!"));
+          if(!init_section(pfrag)) throw GenError(error_specified_twice("fragment"));
         }
         break;
 
@@ -238,7 +242,7 @@ static yaml::Document shadergen(win32::File& file,
         inline_source.clear();
 
         append_source(matches[1].str(), res::Shader::ImportSource);
-        return; // Prevent import #pragma's from begin added to the source
+        return; // Prevent import #pragma's from being added to the source
 
       case PragmaExport:
         if(!section) throw GenError(error_message("exporting undefined section!"));
@@ -293,6 +297,8 @@ static yaml::Document imagegen(win32::File& file,
   auto image_view = file.map(win32::File::ProtectRead);
   auto image      = stbi_load_from_memory(image_view.get<byte>(), (int)file.size(), &width, &height, &channels, 0);
 
+  if(!image) throw GenError(util::fmt("%s: invalid image file!", location.data()));
+
   auto meta = make_meta<res::Image>(name, path)->append(
     yaml::Scalar::from_str("location"),
     yaml::Node::Ptr(new yaml::Scalar(location, yaml::Node::Tag("!file")))
@@ -300,11 +306,8 @@ static yaml::Document imagegen(win32::File& file,
     yaml::Scalar::from_str("dimensions"),
     yaml::Node::Ptr(yaml::isequence({ width, height }))
   );
-  // TODO:    ->append( yaml::Scalar::from_str("flip_vertical"), ... )
 
-  params->get()->foreach([&](yaml::Node::Ptr key, yaml::Node::Ptr value) {
-    meta->append(key, value);
-  });
+  meta->concat(params->get());
 
   printf("        ...done!\n\n");
 

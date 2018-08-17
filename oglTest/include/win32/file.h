@@ -120,10 +120,13 @@ public:
 
   void *get() const;
   template <typename T> T *get() const { return (T *)get(); }
+  uint8_t& operator[](size_t offset);
+
+  size_t size() const;
 
   void flush(File::Size sz = 0);
 
-  uint8_t& operator[](size_t offset);
+  void unmap();
 
 private:
   friend class File;
@@ -131,6 +134,7 @@ private:
   FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size);
 
   File m_file;
+  size_t m_size;
   void *m;
   void *m_ptr;
 };

@@ -109,8 +109,6 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->dimensions().x, r_texture->dimensions().y, gx::rgba, gx::u8);
   tex.generateMipmaps();
 
-  unsigned cp = 0;
-
   auto r_phong = res::resource().load(
     res::resource().guid<res::Shader>("phong", "/shaders")
   ).lock()->as<res::Shader>();
@@ -383,7 +381,6 @@ int main(int argc, char *argv[])
 
     vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
-
     mat4 eye_mtx = xform::Transform()
       .translate(-pos)
       .rotx(-pitch)
@@ -409,6 +406,8 @@ int main(int argc, char *argv[])
           window.quit();
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
+        } else if(kb->keyDown('W')) {
+          pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
         } else if(kb->keyDown('`')) {
           console.toggle();
         }

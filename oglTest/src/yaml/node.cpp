@@ -241,6 +241,27 @@ Sequence *Sequence::append(const Node::Ptr &node)
   return this;
 }
 
+Sequence *Sequence::concat(const Sequence *seq)
+{
+  seq->foreach([this](Node::Ptr val) {
+    append(val);
+  });
+
+  return this;
+}
+
+Sequence *Sequence::concat(const Node::Ptr& node)
+{
+  switch(node->type()) {
+  case Node::Scalar:   return append(node);
+  case Node::Sequence: return concat(node->as<Sequence>());
+
+  default: assert(0 && "invalid Node type for Sequence::concat()!");
+  }
+
+  return this;
+}
+
 Node::Ptr Sequence::get(size_t idx) const
 {
   return idx < size() ? m[idx] : Node::Ptr();
@@ -306,6 +327,26 @@ Mapping *Mapping::append(Node::Ptr key, Node::Ptr value)
   m.emplace(key, value);
 
   if(m_ordered) m_ordered->emplace_back(key, value);
+
+  return this;
+}
+
+Mapping *Mapping::concat(const Mapping *map)
+{
+  map->foreach([this](Node::Ptr key, Node::Ptr value) {
+    append(key, value);
+  });
+
+  return this;
+}
+
+Mapping *Mapping::concat(const Node::Ptr& node)
+{
+  switch(node->type()) {
+  case Node::Mapping: return concat(node->as<Mapping>());
+
+  default: assert(0 && "invalid Node type for Mapping::concat()!");
+  }
 
   return this;
 }

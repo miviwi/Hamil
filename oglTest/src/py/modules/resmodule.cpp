@@ -1,4 +1,5 @@
 #include <py/modules/resmodule.h>
+#include <py/types.h>
 #include <py/module.h>
 
 #include <util/format.h>
@@ -46,7 +47,8 @@ static PyObject *Res_Load(PyObject *self, PyObject *args)
   try {
     auto ptr = res::resource().load(guid, flags);
     if(auto r = ptr.lock()) {
-      Py_RETURN_TRUE;
+      return Unicode::from_format("%s/%s (0x%.16llx): %s",
+        r->path().data(), r->name().data(), r->id(), r->getTag().get()).move();
     }
   } catch(const res::ResourceManager::Error&) {
     auto err = util::fmt("failed to load resource with guid=0x%.16llx", guid);

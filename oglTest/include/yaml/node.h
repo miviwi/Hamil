@@ -63,6 +63,12 @@ public:
   virtual Node::Ptr get(const std::string& key) const = 0;
   virtual Node::Ptr get(size_t idx) const = 0;
 
+  template <typename T, typename U>
+  const T *get(const U& key) const
+  {
+    return get(key)->as<T>();
+  }
+
   virtual size_t hash() const = 0;
   virtual bool compare(const Node::Ptr& other) const = 0;
 
@@ -140,7 +146,12 @@ public:
 
   virtual std::string repr() const;
 
+  // Returns 'this'
   Sequence *append(const Node::Ptr &node);
+
+  // Returns 'this
+  Sequence *concat(const Sequence *seq);
+  Sequence *concat(const Node::Ptr& node);
 
   virtual Node::Ptr get(const std::string& key) const { return Node::Ptr(); }
   virtual Node::Ptr get(size_t idx) const;
@@ -176,7 +187,12 @@ public:
 
   virtual std::string repr() const;
 
+  // Returns 'this'
   Mapping *append(Node::Ptr key, Node::Ptr value);
+
+  // Returns 'this'
+  Mapping *concat(const Mapping *map);
+  Mapping *concat(const Node::Ptr& node);
 
   // Makes the mapping retain the insertion order
   //   of the keys when iterating
@@ -187,6 +203,12 @@ public:
   virtual Node::Ptr get(size_t idx) const { return Node::Ptr(); }
   virtual Node::Ptr get(Node::Ptr key) const;
   Node::Ptr operator[](Node::Ptr key) const { return get(key); }
+
+  template <typename T, typename U>
+  const T *get(const U& key) const
+  {
+    return get(key)->as<T>();
+  }
 
   size_t size() const;
 

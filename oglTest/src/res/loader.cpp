@@ -48,6 +48,7 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
   { Image::tag(),  yaml::Schema()
                              .scalar("location", yaml::Scalar::Tagged)
                              .scalar("channels", yaml::Scalar::String, yaml::Optional)
+                             .scalar("flip_vertical", yaml::Scalar::Boolean, yaml::Optional)
                              .scalarSequence("dimensions", yaml::Scalar::Int) },
 };
 
@@ -217,8 +218,8 @@ Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& m
   std::tie(name, path, location) = name_path_location(meta);
 
   auto channels_node = meta("channels");
-  auto dims          = meta("dimensions")->as<yaml::Sequence>();
-  auto flip_vertical = meta("flip_vertical"); // TODO
+  auto dims          = meta("dimensions");
+  auto flip_vertical = meta("flip_vertical");
 
   unsigned num_channels = 0;
   if(channels_node) {
@@ -233,7 +234,7 @@ Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& m
   auto height = (int)dims->get<yaml::Scalar>(1)->i();
 
   unsigned flags = 0;
-  if(flip_vertical && flip_vertical->as<yaml::Scalar>()->b()) flags |= Image::FlipVertical; // TODO
+  if(flip_vertical && flip_vertical->as<yaml::Scalar>()->b()) flags |= Image::FlipVertical;
 
   win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
   win32::FileView view = f.map(win32::File::ProtectRead);
