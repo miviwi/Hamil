@@ -122,9 +122,9 @@ int main(int argc, char *argv[])
   ).lock()->as<res::Shader>();
 
   auto program     = gx::make_program(
-    r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U::program);
+    r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);
   auto tex_program = gx::make_program(
-    r_tex->source(res::Shader::Vertex), r_tex->source(res::Shader::Fragment), U::tex);
+    r_tex->source(res::Shader::Vertex), r_tex->source(res::Shader::Fragment), U.tex);
 
   program.label("program");
   tex_program.label("TEX_program");
@@ -470,10 +470,10 @@ int main(int argc, char *argv[])
     {
       mat4 modelview = view*model;
       program.use()
-        .uniformMatrix4x4(U::program.uProjection, persp)
-        .uniformMatrix4x4(U::program.uModelView, modelview)
-        .uniformMatrix3x3(U::program.uNormal, modelview.inverse().transpose())
-        .uniformVector4(U::program.uCol, color)
+        .uniformMatrix4x4(U.program.uProjection, persp)
+        .uniformMatrix4x4(U.program.uModelView, modelview)
+        .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
+        .uniformVector4(U.program.uCol, color)
         .draw(gx::Triangles, arr, vtxs.size());
     };
 
@@ -507,10 +507,10 @@ int main(int argc, char *argv[])
 
     gx::tex_unit(0, tex, floor_sampler);
     tex_program.use()
-      .uniformMatrix4x4(U::tex.uProjection, persp)
-      .uniformMatrix4x4(U::tex.uModelView, modelview)
-      .uniformMatrix3x3(U::tex.uNormal, modelview.inverse().transpose())
-      .uniformSampler(U::tex.uTex, 0)
+      .uniformMatrix4x4(U.tex.uProjection, persp)
+      .uniformMatrix4x4(U.tex.uModelView, modelview)
+      .uniformMatrix3x3(U.tex.uNormal, modelview.inverse().transpose())
+      .uniformSampler(U.tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
     pipeline.use();
@@ -581,11 +581,11 @@ int main(int argc, char *argv[])
 
     gx::tex_unit(0, tex, floor_sampler);
     tex_program.use()
-      .uniformMatrix4x4(U::tex.uProjection, persp)
-      .uniformMatrix4x4(U::tex.uModelView, modelview)
-      .uniformMatrix3x3(U::tex.uNormal, modelview.inverse().transpose())
-      .uniformMatrix4x4(U::tex.uTexMatrix, display_tex_matrix ? texmatrix : xform::identity())
-      .uniformSampler(U::tex.uTex, 0)
+      .uniformMatrix4x4(U.tex.uProjection, persp)
+      .uniformMatrix4x4(U.tex.uModelView, modelview)
+      .uniformMatrix3x3(U.tex.uNormal, modelview.inverse().transpose())
+      .uniformMatrix4x4(U.tex.uTexMatrix, display_tex_matrix ? texmatrix : xform::identity())
+      .uniformSampler(U.tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
     gx::Pipeline()

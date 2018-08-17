@@ -203,12 +203,12 @@ void CursorDriver::init()
   p->tex.label("CURSOR_tex");
 
   cursor_program = std::make_unique<gx::Program>(gx::make_program(
-    { vs_src }, { fs_src }, U::cursor
+    { vs_src }, { fs_src }, U.cursor
   ));
   cursor_program->label("CURSOR_program");
 
   cursor_program->use()
-    .uniformSampler(U::cursor.uTex, pCursorDriver::TexImageUnit);
+    .uniformSampler(U.cursor.uTex, pCursorDriver::TexImageUnit);
 }
 
 void CursorDriver::finalize()
@@ -242,7 +242,7 @@ void CursorDriver::paint()
 
   gx::tex_unit(pCursorDriver::TexImageUnit, p->tex, p->sampler);
   cursor_program->use()
-    .uniformMatrix4x4(U::cursor.uModelViewProjection, modelviewprojection)
+    .uniformMatrix4x4(U.cursor.uModelViewProjection, modelviewprojection)
     .draw(gx::Triangles, p->vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);
 }
 

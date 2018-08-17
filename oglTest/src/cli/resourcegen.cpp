@@ -307,7 +307,7 @@ static yaml::Document imagegen(win32::File& file,
     yaml::Node::Ptr(yaml::isequence({ width, height }))
   );
 
-  meta->concat(params->get());
+  if(params) meta->concat(params->get());
 
   printf("        ...done!\n\n");
 

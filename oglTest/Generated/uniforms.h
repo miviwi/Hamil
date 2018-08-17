@@ -2,82 +2,84 @@
 #include <string>
 #include <utility>
 
-namespace U {
+struct U__ {
 
-using Location = std::pair<std::string, unsigned>;
+  using Location = std::pair<std::string, unsigned>;
 
-struct program_klass {
-  union { struct {
-    int uModelView;
-    int uProjection;
-    int uNormal;
-    int uCol;
-    int uLightPosition;
+  struct program__ {
+    union { struct {
+      int uModelView;
+      int uProjection;
+      int uNormal;
+      int uCol;
+      int uLightPosition;
+      };
+
+      int locations[5];
     };
 
-    int locations[5];
+    static const std::array<Location, 5> offsets;
   };
+  static program__ program;
 
-  static const std::array<Location, 5> offsets;
-};
-extern program_klass program;
+  struct tex__ {
+    union { struct {
+      int uModelView;
+      int uProjection;
+      int uNormal;
+      int uTexMatrix;
+      int uTex;
+      };
 
-struct tex_klass {
-  union { struct {
-    int uModelView;
-    int uProjection;
-    int uNormal;
-    int uTexMatrix;
-    int uTex;
+      int locations[5];
     };
 
-    int locations[5];
+    static const std::array<Location, 5> offsets;
   };
+  static tex__ tex;
 
-  static const std::array<Location, 5> offsets;
-};
-extern tex_klass tex;
+  struct font__ {
+    union { struct {
+      int uModelViewProjection;
+      int uAtlas;
+      int uColor;
+      };
 
-struct font_klass {
-  union { struct {
-    int uModelViewProjection;
-    int uAtlas;
-    int uColor;
+      int locations[3];
     };
 
-    int locations[3];
+    static const std::array<Location, 3> offsets;
   };
+  static font__ font;
 
-  static const std::array<Location, 3> offsets;
-};
-extern font_klass font;
+  struct cursor__ {
+    union { struct {
+      int uModelViewProjection;
+      int uTex;
+      };
 
-struct cursor_klass {
-  union { struct {
-    int uModelViewProjection;
-    int uTex;
+      int locations[2];
     };
 
-    int locations[2];
+    static const std::array<Location, 2> offsets;
   };
+  static cursor__ cursor;
 
-  static const std::array<Location, 2> offsets;
-};
-extern cursor_klass cursor;
+  struct ui__ {
+    union { struct {
+      int uModelViewProjection;
+      int uType;
+      int uFontAtlas;
+      int uTextColor;
+      };
 
-struct ui_klass {
-  union { struct {
-    int uModelViewProjection;
-    int uType;
-    int uFontAtlas;
-    int uTextColor;
+      int locations[4];
     };
 
-    int locations[4];
+    static const std::array<Location, 4> offsets;
   };
+  static ui__ ui;
 
-  static const std::array<Location, 4> offsets;
 };
-extern ui_klass ui;
 
-}
+extern U__ U;

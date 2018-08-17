@@ -96,7 +96,7 @@ void init()
   CursorDriver::init();
 
   ui_program = std::make_unique<gx::Program>(gx::make_program(
-    { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U::ui
+    { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U.ui
   ));
   ui_program->label("UI_program");
 }
@@ -221,24 +221,24 @@ void Ui::paint()
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
   ui_program->use()
-    .uniformSampler(U::ui.uFontAtlas, ft::TexImageUnit);
+    .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit);
 
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
     switch(cmd.type) {
     case VertexPainter::Primitive:
       ui_program->use()
-        .uniformMatrix4x4(U::ui.uModelViewProjection, projection)
-        .uniformInt(U::ui.uType, Shader_TypeShape)
+        .uniformMatrix4x4(U.ui.uModelViewProjection, projection)
+        .uniformInt(U.ui.uType, Shader_TypeShape)
         .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
       break;
 
     case VertexPainter::Text:
       cmd.font->bindFontAltas();
       ui_program->use()
-        .uniformMatrix4x4(U::ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
-        .uniformInt(U::ui.uType, Shader_TypeText)
-        .uniformVector4(U::ui.uTextColor, cmd.color.normalize())
+        .uniformMatrix4x4(U.ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
+        .uniformInt(U.ui.uType, Shader_TypeText)
+        .uniformVector4(U.ui.uTextColor, cmd.color.normalize())
         .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
       break;
 

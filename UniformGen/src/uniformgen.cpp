@@ -61,26 +61,26 @@ error:
   }
 
   fprintf(header,
-    "struct %s_klass {\n"
-    "  union { struct {\n",
+    "  struct %s__ {\n"
+    "    union { struct {\n",
 
     cname.c_str()
   );
 
   //Generate Class
   for(auto& u : uniforms) {
-    fprintf(header, "    %sint %s;\n", u.has_dot ? "//" : "", u.str.c_str());
+    fprintf(header, "      %sint %s;\n", u.has_dot ? "//" : "", u.str.c_str());
   }
 
   fprintf(header,
+    "      };\n"
+    "\n"
+    "      int locations[%d];\n"
     "    };\n"
     "\n"
-    "    int locations[%d];\n"
+    "    static const std::array<Location, %d> offsets;\n"
     "  };\n"
-    "\n"
-    "  static const std::array<Location, %d> offsets;\n"
-    "};\n"
-    "extern %s_klass %s;\n"
+    "  static %s__ %s;\n"
     "\n",
 
     (int)uniforms.size(), (int)uniforms.size(), cname.c_str(), cname.c_str()
@@ -88,8 +88,8 @@ error:
 
   fprintf(src,
     "\n"
-    "%s_klass %s;\n"
-    "const std::array<Location, %d> %s_klass::offsets = {\n",
+    "U__::%s__ U__::%s;\n"
+    "const std::array<U__::Location, %d> U__::%s__::offsets = {\n",
 
     cname.c_str(), cname.c_str(), (int)uniforms.size(), cname.c_str()
   );
@@ -100,10 +100,7 @@ error:
     fprintf(src, "  %sLocation{ \"%s\", %u },\n", u.has_dot ? "//" : "", u.str.c_str(), i);
   }
 
-  fprintf(src,
-    "};\n"
-    "\n"
-  );
+  fprintf(src, "};\n");
 }
 
 int main(int argc, char *argv[])
@@ -155,16 +152,14 @@ int main(int argc, char *argv[])
     //"\n"
     // "#include <GL/glew.h>\n"
     "\n"
-    "namespace U {\n"
+    "struct U__ {\n"
     "\n"
-    "using Location = std::pair<std::string, unsigned>;\n"
+    "  using Location = std::pair<std::string, unsigned>;\n"
     "\n"
   );
 
   fprintf(src,
     "#include \"uniforms.h\"\n"
-    "\n"
-    "namespace U {\n"
   );
 
   // Generate
@@ -187,8 +182,15 @@ int main(int argc, char *argv[])
     FindClose(handle);
   }
 
-  fprintf(header, "}");
-  fprintf(src, "}");
+  fprintf(header,
+    "};\n"
+    "\n"
+    "extern U__ U;"
+  );
+  fprintf(src,
+    "\n"
+    "U__ U;"
+  );
 
   fclose(header);
   fclose(src);

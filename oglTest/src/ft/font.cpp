@@ -193,12 +193,12 @@ void init()
   p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
 
   font_program = std::make_unique<gx::Program>(gx::make_program(
-    { vs_src }, { Font::frag_shader, fs_src }, U::font
+    { vs_src }, { Font::frag_shader, fs_src }, U.font
   ));
   font_program->label("FT_program");
 
   font_program->use()
-    .uniformSampler(U::font.uAtlas, TexImageUnit);
+    .uniformSampler(U.font.uAtlas, TexImageUnit);
 }
 
 void finalize()
@@ -452,8 +452,8 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
   bindFontAltas();
 
   font_program->use()
-    .uniformMatrix4x4(U::font.uModelViewProjection, mvp)
-    .uniformVector4(U::font.uColor, color)
+    .uniformMatrix4x4(U.font.uModelViewProjection, mvp)
+    .uniformVector4(U.font.uColor, color)
     .drawBaseVertex(gx::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
   p->vtx.end();
 }
