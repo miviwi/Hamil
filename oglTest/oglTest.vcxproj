@@ -125,7 +125,7 @@
     </Bscmake>
     <CustomBuildStep>
       <Message>Generate Uniform Location</Message>
-      <Command>"$(OutDir)uniformgen" "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui" "$(ProjectDir)src\game"
+      <Command>"$(OutDir)eugene" "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui" "$(ProjectDir)src\game"
 if not errorlevel 1 (
   move uniforms.* Generated\
 )

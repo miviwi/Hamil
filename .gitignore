@@ -245,6 +245,9 @@ ModelManifest.xml
 
 oglTest/Generated/
 uniforms.*
-**/uniformgen.db
+**/eugene.db
 
 *.exe
+
+__pycache__
+*.pyd
