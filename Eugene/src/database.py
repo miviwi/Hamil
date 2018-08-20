@@ -20,6 +20,12 @@ class Database:
 
         print(f"Successfully loaded Database `{fname}'...")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.serialize()
+
     def serialize(self):
         with open(self.fname, 'wb') as f: self._write_db(f)
 

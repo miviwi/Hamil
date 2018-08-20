@@ -254,6 +254,9 @@
     <ClCompile Include="src\res\image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Generated\resources.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -509,6 +512,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\res\image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Generated\resources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

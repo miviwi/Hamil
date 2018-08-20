@@ -43,6 +43,7 @@
 #include <yaml/document.h>
 #include <yaml/node.h>
 
+#include <resources.h>
 #include <res/res.h>
 #include <res/manager.h>
 #include <res/resource.h>
@@ -99,9 +100,7 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
-  auto r_texture = res::resource().load(
-    res::resource().guid<res::Image>("tex", "")
-  ).lock()->as<res::Image>();
+  auto r_texture = res::resource().load(R.image.tex).lock()->as<res::Image>();
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler::repeat2d_linear();
@@ -109,17 +108,11 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->dimensions().x, r_texture->dimensions().y, gx::rgba, gx::u8);
   tex.generateMipmaps();
 
-  auto r_phong = res::resource().load(
-    res::resource().guid<res::Shader>("phong", "/shaders")
-  ).lock()->as<res::Shader>();
+  auto r_phong = res::resource().load(R.shader.shaders.phong).lock()->as<res::Shader>();
 
-  auto r_program = res::resource().load(
-    res::resource().guid<res::Shader>("program", "/shaders")
-  ).lock()->as<res::Shader>();
+  auto r_program = res::resource().load(R.shader.shaders.program).lock()->as<res::Shader>();
 
-  auto r_tex = res::resource().load(
-    res::resource().guid<res::Shader>("tex", "/shaders")
-  ).lock()->as<res::Shader>();
+  auto r_tex = res::resource().load(R.shader.shaders.tex).lock()->as<res::Shader>();
 
   auto program     = gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);

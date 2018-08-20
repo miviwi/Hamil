@@ -243,8 +243,9 @@ ModelManifest.xml
 
 *.raw
 
-oglTest/Generated/
+**/[Gg]enerated/
 uniforms.*
+resources.*
 **/eugene.db
 
 *.exe

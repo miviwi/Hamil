@@ -1,5 +1,6 @@
 import sys
 import database
+import eugene_util as util
 import eugene_win32 as win32
 
 from pprint import pprint
@@ -7,45 +8,30 @@ from pprint import pprint
 class ParseError(Exception):
     pass
 
-def gen(header, src, fname):
-    uniform = {
-        'has_dot': False,
-        'str':     '',
-    }
-
-    u = uniform.copy()
+def _gen(header, src, fname):
+    def uniform(s):
+        return {
+            'has_dot': '.' in s,
+            'str':     s,
+        }
 
     uniforms = []
 
-    f = open(fname, 'r')
-    while True:
-        ch = f.read(1)
+    for line in open(fname, 'r').readlines():
+        line = line.strip()
 
-        if ch.isspace(): continue
+        # Strip comments
+        comment_pos = line.find('//')
+        if comment_pos >= 0: line = line[:comment_pos]
 
-        if ch.isalnum() or ch == '_':
-            u['str'] += ch
-        elif ch == '.':
-            u['str'] += ch
-            u['has_dot'] = True
-        elif ch == ',':
-            uniforms.append(u)
+        line = filter(lambda s: s, line.split(','))
+        line = map(lambda s: s.strip(), line)
 
-            u = uniform.copy()
-        elif ch == '/':
-            ch = f.read(1)
-            if ch != '/': raise ParseError()
+        u = list(map(uniform, line))
+        if u: uniforms += u
 
-            while ch != '\n': ch = f.read(1)
-        elif not ch:
-            break
-
-    f.close()
-
-    if u['str']: uniforms.append(u)
-
-    fname = fname[fname.rfind('\\')+1:]  # get everythign after the last '\\'
-    cname = fname[:fname.find('.')]
+    fname = fname[fname.rfind('\\')+1:]  # get everything after the last '\\'
+    cname = fname[:fname.find('.')]      # get everything before the file extension
 
     for u in uniforms:
         print(f"    name: `{u['str']}' has_dot?: {u['has_dot']}")
@@ -73,7 +59,7 @@ def gen(header, src, fname):
     src.write(
     f"""
 U__::{cname}__ U__::{cname};
-const std::array<U__::Location, {len(uniforms)}> U__::{cname}))::offsets = {{\n""")
+const std::array<U__::Location, {len(uniforms)}> U__::{cname}__::offsets = {{\n""")
 
     for (i, u) in enumerate(uniforms):
         src.write(" "*2)
@@ -82,30 +68,10 @@ const std::array<U__::Location, {len(uniforms)}> U__::{cname}))::offsets = {{\n"
 
     src.write("};\n")
 
-def main():
+def main(db, args):
     pattern = lambda dir: f"{dir}\\*.uniform"
 
-    db = database.Database('eugene.db')
-
-    up_to_date = True
-    for arg in sys.argv[1:]:
-        find_data = None
-        try:
-            find_data = win32.FindFiles(pattern(arg))
-        except ValueError:
-            print(f"couldn't open directory {arg} or no suitable files found within...")
-            continue
-
-        for file in find_data:
-            key    = file['cFileName']
-            record = file['ftLastWriteTime']
-
-            if not db.compareWithRecord(key, record):
-                print(f"`{key}' not up to date ({record})...\n")
-                up_to_date = False
-                break
-
-    if up_to_date: return 1
+    if util.up_to_date(db, args, pattern): return 1
 
     with open('uniforms.h', 'w') as header, open('uniforms.cpp', 'w') as src:
         header.write(
@@ -119,7 +85,7 @@ struct U__ {
 
         src.write('#include "uniforms.h"\n')
 
-        for arg in sys.argv[1:]:
+        for arg in args:
             find_data = None
             try:
                 find_data = win32.FindFiles(pattern(arg))
@@ -133,7 +99,7 @@ struct U__ {
                 fname = f"{arg}\\{key}"
 
                 db.writeRecord(key, record)
-                gen(header, src, fname)
+                _gen(header, src, fname)
 
         header.write(
         """};
@@ -144,13 +110,7 @@ extern U__ U;""")
         """
 U__ U;""")
 
-    db.serialize()
-
     return 0
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("usage: eugene <directory1> <directory2>...")
-        sys.exit(-1)
-
-    sys.exit(main())
+    util.exec_module('uniformgen', main)

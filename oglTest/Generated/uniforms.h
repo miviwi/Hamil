@@ -79,7 +79,6 @@ struct U__ {
     static const std::array<Location, 4> offsets;
   };
   static ui__ ui;
-
 };
 
 extern U__ U;
