@@ -28,10 +28,14 @@ class Database:
 
     def serialize(self):
         with open(self.fname, 'wb') as f: self._write_db(f)
+        print("        ...wrote db")
 
     def compareWithRecord(self, key, record):
         entry = self.records.get(key.encode(), 0)
         return entry == record
+
+    def readRecord(self, key):
+        return self.records.get(key.encode(), 0)
 
     def writeRecord(self, key, record):
         self.records[key.encode()] = record

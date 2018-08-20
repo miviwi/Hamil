@@ -17,7 +17,9 @@ def up_to_date(db, args, pattern):
             record = file['ftLastWriteTime']
 
             if not db.compareWithRecord(key, record):
-                print(f"`{key}' not up to date ({record})...\n")
+                db_record = db.readRecord(key)
+
+                print(f"`{key}' not up to date ({db_record} -> {record})...\n")
                 result = False
                 break
 
@@ -33,3 +35,20 @@ def exec_module(name, main):
         exit_code = main(db, args)
 
         sys.exit(exit_code)
+
+def subdirectories(path):
+    find_data = None
+    try:
+        find_data = win32.FindFiles(f"{path}\\*")
+    except ValueError:
+        return []
+
+    find_data = find_data[2:]   # Don't traverse current and previous directory
+    find_data = filter(lambda d: d['bIsDirectory'], find_data)
+    find_data = map(lambda d: f"{path}\\{d['cFileName']}", find_data)
+
+    subdirs = [path]
+    for d in find_data:
+        subdirs += subdirectories(d)
+
+    return subdirs

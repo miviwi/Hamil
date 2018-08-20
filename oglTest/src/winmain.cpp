@@ -105,14 +105,12 @@ int main(int argc, char *argv[])
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler::repeat2d_linear();
 
-  tex.init(r_texture->data(), 0, r_texture->dimensions().x, r_texture->dimensions().y, gx::rgba, gx::u8);
+  tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
 
-  auto r_phong = res::resource().load(R.shader.shaders.phong).lock()->as<res::Shader>();
-
+  auto r_phong   = res::resource().load(R.shader.shaders.phong).lock()->as<res::Shader>();
   auto r_program = res::resource().load(R.shader.shaders.program).lock()->as<res::Shader>();
-
-  auto r_tex = res::resource().load(R.shader.shaders.tex).lock()->as<res::Shader>();
+  auto r_tex     = res::resource().load(R.shader.shaders.tex).lock()->as<res::Shader>();
 
   auto program     = gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);

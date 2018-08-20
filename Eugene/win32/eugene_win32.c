@@ -28,15 +28,19 @@ PyObject *eugene_win32_FindFiles(PyObject *self, PyObject *arg)
     size.LowPart  = find_data.nFileSizeLow;
     size.HighPart = find_data.nFileSizeHigh;
 
+    long is_directory = find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+
     PyObject *file_data = PyDict_New();
 
     PyObject *cFileName       = PyUnicode_FromString(find_data.cFileName);
     PyObject *ftLastWriteTime = PyLong_FromUnsignedLongLong(last_write.QuadPart);
     PyObject *nFileSize       = PyLong_FromUnsignedLongLong(size.QuadPart);
+    PyObject *bIsDirectory    = PyBool_FromLong(is_directory);
 
     PyDict_SetItemString(file_data, "cFileName", cFileName);
     PyDict_SetItemString(file_data, "ftLastWriteTime", ftLastWriteTime);
     PyDict_SetItemString(file_data, "nFileSize", nFileSize);
+    PyDict_SetItemString(file_data, "bIsDirectory", bIsDirectory);
 
     PyList_Append(result, file_data);
 
@@ -44,6 +48,7 @@ PyObject *eugene_win32_FindFiles(PyObject *self, PyObject *arg)
     Py_XDECREF(cFileName);
     Py_XDECREF(ftLastWriteTime);
     Py_XDECREF(nFileSize);
+    Py_XDECREF(bIsDirectory);
   } while(FindNextFileA(handle, &find_data));
 
   FindClose(handle);
@@ -69,7 +74,6 @@ int exec_eugene_win32(PyObject *module)
 
     PyModule_AddStringConstant(module, "__author__", "bruneron");
     PyModule_AddStringConstant(module, "__version__", "1.0.0");
-    PyModule_AddIntConstant(module, "year", 2018);
 
     return 0; /* success */
 }

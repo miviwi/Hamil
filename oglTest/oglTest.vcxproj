@@ -128,12 +128,12 @@
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 
 (
-  "%eugene%" uniformgen "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui" "$(ProjectDir)src\game"
+  "%eugene%" uniformgen "$(ProjectDir)src"
   if not errorlevel 1 (
     move uniforms.* "$(ProjectDir)Generated\"
   )
 
-  "%eugene%" resourcegen "$(OutDir)." "$(OutDir)shaders"
+  "%eugene%" resourcegen "$(OutDir)."
   if not errorlevel 1 (
     move resources.* "$(ProjectDir)Generated\"
   )
@@ -197,12 +197,12 @@ exit /b 0</Command>
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 
 (
-  "%eugene%" uniformgen "$(ProjectDir)src"  "$(ProjectDir)src\ft"  "$(ProjectDir)src\ui" "$(ProjectDir)src\game"
+  "%eugene%" uniformgen "$(ProjectDir)src"
   if not errorlevel 1 (
     move uniforms.* "$(ProjectDir)Generated\"
   )
 
-  "%eugene%" resourcegen "$(OutDir)." "$(OutDir)shaders"
+  "%eugene%" resourcegen "$(OutDir)."
   if not errorlevel 1 (
     move resources.* "$(ProjectDir)Generated\"
   )

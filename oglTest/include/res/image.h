@@ -28,6 +28,9 @@ public:
   int channels() const { return m_channels; }
   ivec2 dimensions() const { return m_dims; }
 
+  int width() const  { return m_dims.x; }
+  int height() const { return m_dims.y; }
+
   template <typename T = void>
   T *data() const
   {
