@@ -1,3 +1,5 @@
+import os
+import os.path
 import struct
 
 _GOOD_HEADER = b'00DB'
@@ -9,10 +11,16 @@ _Record     = 'Q'
 class InvalidDatabaseError(Exception):
     pass
 
+class DatabaseAlreadyOpenError(Exception):
+    pass
+
 class Database:
     def __init__(self, fname):
         self.fname   = fname
         self.records = {}
+
+        self._lock_db()
+
         try:
             with open(fname, 'rb') as f: self._read_db(f)
         except FileNotFoundError:
@@ -24,26 +32,48 @@ class Database:
         return self
 
     def __exit__(self, *args):
-        self.serialize()
+        self.close()
+
+    def close(self):
+        self._unlock_db()
 
     def serialize(self):
         with open(self.fname, 'wb') as f: self._write_db(f)
-        print("        ...wrote db")
+
+        return self
 
     def compareWithRecord(self, key, record):
         entry = self.records.get(key.encode(), 0)
-        return entry == record
+        return entry >= record
 
     def readRecord(self, key):
         return self.records.get(key.encode(), 0)
 
     def writeRecord(self, key, record):
-        self.records[key.encode()] = record
+        db_record = self.readRecord(key)
+
+        if record > db_record:                   # Deal with win32 FindFirstFile returning dates
+            self.records[key.encode()] = record  #   which are in the past...
+
+    def _lockfile(self):
+        return f"{self.fname}.lock"
+
+    def _lock_db(self):
+        if os.path.isfile(self._lockfile()):
+            raise DatabaseAlreadyOpenError()
+
+        self.lock = open(self._lockfile(), 'a')
+
+    def _unlock_db(self):
+        self.lock.close()
+        self.lock = None
+
+        os.remove(self._lockfile())
 
     def _read_db(self, f):
         header = f.read(len(_GOOD_HEADER))
         if header != _GOOD_HEADER:
-            raise InvalidDatabaseError
+            raise InvalidDatabaseError()
 
         num_records = self._unpack(f, _NumRecords)
         for i in range(num_records):
@@ -53,7 +83,7 @@ class Database:
     def _write_db(self, f):
         f.write(_GOOD_HEADER)
 
-        buf = struct.pack(f"{_NumRecords}", len(self.records))
+        buf = struct.pack(_NumRecords, len(self.records))
         f.write(buf)
 
         for (key, record) in self.records.items():

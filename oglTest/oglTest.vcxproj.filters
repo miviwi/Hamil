@@ -257,6 +257,9 @@
     <ClCompile Include="Generated\uniforms.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\res\handle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -515,6 +518,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Generated\uniforms.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\res\handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

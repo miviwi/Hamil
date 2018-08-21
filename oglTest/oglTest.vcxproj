@@ -127,16 +127,14 @@
       <Message>Run Eugene</Message>
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 
-(
-  "%eugene%" uniformgen "$(ProjectDir)src"
-  if not errorlevel 1 (
-    move uniforms.* "$(ProjectDir)Generated\"
-  )
+call "%eugene%" uniformgen "$(ProjectDir)src"
+if not errorlevel 1 (
+  move uniforms.* "$(ProjectDir)Generated\"
+)
 
-  "%eugene%" resourcegen "$(OutDir)."
-  if not errorlevel 1 (
-    move resources.* "$(ProjectDir)Generated\"
-  )
+call "%eugene%" resourcegen "$(OutDir)."
+if not errorlevel 1 (
+  move resources.* "$(ProjectDir)Generated\"
 )
 
 exit /b 0</Command>
@@ -196,16 +194,14 @@ exit /b 0</Command>
       <Outputs>uniforms.cpp;uniforms.h;resources.cpp;resources.h;%(Outputs)</Outputs>
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 
-(
-  "%eugene%" uniformgen "$(ProjectDir)src"
-  if not errorlevel 1 (
-    move uniforms.* "$(ProjectDir)Generated\"
-  )
+call "%eugene%" uniformgen "$(ProjectDir)src"
+if not errorlevel 1 (
+  move uniforms.* "$(ProjectDir)Generated\"
+)
 
-  "%eugene%" resourcegen "$(OutDir)."
-  if not errorlevel 1 (
-    move resources.* "$(ProjectDir)Generated\"
-  )
+call "%eugene%" resourcegen "$(OutDir)."
+if not errorlevel 1 (
+  move resources.* "$(ProjectDir)Generated\"
 )
 
 exit /b 0</Command>
@@ -238,6 +234,7 @@ exit /b 0</Command>
     <ClCompile Include="src\py\object.cpp" />
     <ClCompile Include="src\py\types.cpp" />
     <ClCompile Include="src\res\cache.cpp" />
+    <ClCompile Include="src\res\handle.cpp" />
     <ClCompile Include="src\res\image.cpp" />
     <ClCompile Include="src\res\loader.cpp" />
     <ClCompile Include="src\res\manager.cpp" />
@@ -295,6 +292,7 @@ exit /b 0</Command>
     <ClInclude Include="include\py\object.h" />
     <ClInclude Include="include\py\types.h" />
     <ClInclude Include="include\res\cache.h" />
+    <ClInclude Include="include\res\handle.h" />
     <ClInclude Include="include\res\image.h" />
     <ClInclude Include="include\res\loader.h" />
     <ClInclude Include="include\res\manager.h" />

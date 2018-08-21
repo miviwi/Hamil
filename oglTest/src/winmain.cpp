@@ -47,6 +47,7 @@
 #include <res/res.h>
 #include <res/manager.h>
 #include <res/resource.h>
+#include <res/handle.h>
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
@@ -82,6 +83,9 @@ int main(int argc, char *argv[])
   res::init();
   game::init();
 
+  res::load(R.shader.shaders.ids);
+  res::load(R.image.ids);
+
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
 
@@ -100,7 +104,7 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
-  auto r_texture = res::resource().load(R.image.tex).lock()->as<res::Image>();
+  res::Handle<res::Image> r_texture = R.image.tex;
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler::repeat2d_linear();
@@ -108,9 +112,9 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
 
-  auto r_phong   = res::resource().load(R.shader.shaders.phong).lock()->as<res::Shader>();
-  auto r_program = res::resource().load(R.shader.shaders.program).lock()->as<res::Shader>();
-  auto r_tex     = res::resource().load(R.shader.shaders.tex).lock()->as<res::Shader>();
+  res::Handle<res::Shader> r_phong = R.shader.shaders.phong,
+    r_program = R.shader.shaders.program,
+    r_tex = R.shader.shaders.tex;
 
   auto program     = gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);

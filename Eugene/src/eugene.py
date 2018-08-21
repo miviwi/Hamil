@@ -25,10 +25,10 @@ if __name__ == "__main__":
 
     args = []
     for arg in sys.argv[2:]:
-        args += eugene_util.subdirectories(arg)
+        args += eugene_util.subdirectories(arg)  # Use += to flatten the lists
 
-    db = database.Database('eugene.db')
-
-    exit_code = _MODULES[module](db, args)
+    exit_code = None
+    with database.Database('eugene.db') as db:
+        exit_code = _MODULES[module](db, args)
 
     sys.exit(exit_code)

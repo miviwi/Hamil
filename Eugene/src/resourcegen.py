@@ -48,24 +48,33 @@ class ResourceGen:
         self._init_path(doc, path[slash_pos:], node=node[dir])
 
     _PAD = " "*20
-
     def _emit_node(self, node, header, src, level):
         name, guid = node
         name += self._PAD[len(name) + level*2:] # Align all GUIDs nicely :)
         header.write(f"{'  '*level}static constexpr size_t {name} = {guid};\n")
+
+    def _emit_ids(self, ids, header, src, level):
+        header.write(f"\n{'  '*level}// The order of the ids is UNDEFINED!\n")
+        header.write(f"{'  '*level}static constexpr std::array<size_t, {len(ids)}> ids = {{\n")
+
+        for _, guid in ids:
+            header.write(f"{'  '*(level+1)}{guid},\n")
+
+        header.write(f"{'  '*level}}};\n")
 
     def _emit_path(self, path, header, src, level=1):
         indent = lambda: header.write("  "*level)
 
         for (key, val) in path.items():
             if key == '$':
-                for node in val: self._emit_node(node, header, src, level+1)
+                for node in val: self._emit_node(node, header, src, level)
                 continue
 
             indent()
             header.write(f"struct {key}__ {{\n")
 
             self._emit_path(val, header, src, level+1)
+            if '$' in val: self._emit_ids(val['$'], header, src, level+1)
 
             indent()
             header.write(f"}} {key};\n")
@@ -87,6 +96,7 @@ def main(db, args):
     with open('resources.h', 'w') as header, open('resources.cpp', 'w') as src:
         header.write(
         """#include <cstddef>
+#include <array>
 
 struct R__ {
 
@@ -103,16 +113,10 @@ struct R__ {
                 continue
 
             for file in find_data:
-                key    = file['cFileName']
-                record = file['ftLastWriteTime']
-
-                db.writeRecord(key, record)
-
-                with open(f"{arg}\\{key}", 'r') as f:
+                with open(f"{arg}\\{file['cFileName']}", 'r') as f:
                     docs.append(yaml.load(f))
 
         r = ResourceGen(docs)
-
         r.emit(header, src)
 
         header.write(

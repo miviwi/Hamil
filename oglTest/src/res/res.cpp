@@ -32,6 +32,25 @@ ResourceManager& resource()
   return *p_manager;
 }
 
+ResourceManager& load(std::initializer_list<size_t> ids)
+{
+  for(auto id : ids) {
+    p_manager->load(id);
+  }
+
+  return *p_manager;
+}
+
+ResourceManager& load(const size_t *ids, size_t sz)
+{
+  for(size_t i = 0; i < sz; i++) {
+    auto id = ids[i];
+    p_manager->load(id);
+  }
+
+  return *p_manager;
+}
+
 ResourceHandle resource(size_t guid)
 {
   return p_manager->handle(guid);

@@ -3,6 +3,11 @@ import database
 import eugene_win32 as win32
 
 def up_to_date(db, args, pattern):
+    """
+        The database is updated with the newest ftLastWriteTime value
+          automatically by this function
+    """
+
     result = True
     for arg in args:
         find_data = None
@@ -18,10 +23,10 @@ def up_to_date(db, args, pattern):
 
             if not db.compareWithRecord(key, record):
                 db_record = db.readRecord(key)
+                db.writeRecord(key, record)
 
                 print(f"`{key}' not up to date ({db_record} -> {record})...\n")
                 result = False
-                break
 
     return result
 
@@ -41,7 +46,7 @@ def subdirectories(path):
     try:
         find_data = win32.FindFiles(f"{path}\\*")
     except ValueError:
-        return []
+        return []  # path either wasn't a directory or readable - don't return it
 
     find_data = find_data[2:]   # Don't traverse current and previous directory
     find_data = filter(lambda d: d['bIsDirectory'], find_data)
