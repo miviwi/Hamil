@@ -65,7 +65,7 @@ class ResourceGen:
     def _emit_path(self, path, header, src, level=1):
         indent = lambda: header.write("  "*level)
 
-        for (key, val) in path.items():
+        for key, val in path.items():
             if key == '$':
                 for node in val: self._emit_node(node, header, src, level)
                 continue

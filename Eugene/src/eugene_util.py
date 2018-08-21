@@ -2,6 +2,7 @@ import sys
 import database
 import eugene_win32 as win32
 
+_PAD = " "*35
 def up_to_date(db, args, pattern):
     """
         The database is updated with the newest ftLastWriteTime value
@@ -25,7 +26,13 @@ def up_to_date(db, args, pattern):
                 db_record = db.readRecord(key)
                 db.writeRecord(key, record)
 
-                print(f"`{key}' not up to date ({db_record} -> {record})...\n")
+                old = win32.GetDateTimeFormat(db_record) if db_record > 0 else "(null)"
+                new = win32.GetDateTimeFormat(record)
+
+                msg = f"`{key}' not up to date"
+                msg += _PAD[len(msg):]
+
+                print(f"{msg} ({old} -> {new})...")
                 result = False
 
     return result

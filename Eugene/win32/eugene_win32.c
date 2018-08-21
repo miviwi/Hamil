@@ -56,11 +56,52 @@ PyObject *eugene_win32_FindFiles(PyObject *self, PyObject *arg)
   return result;
 }
 
+char p_local_date[256];
+char p_local_time[256];
+PyObject *eugene_win32_GetDateTimeFormat(PyObject *self, PyObject *arg)
+{
+  if(!PyLong_Check(arg)) {
+    PyErr_SetString(PyExc_ValueError, "GetDateTimeFormat() accepts a single 'int' arguemnt!");
+    return NULL;
+  }
+
+  ULARGE_INTEGER time;
+  time.QuadPart = PyLong_AsUnsignedLongLong(arg);
+
+  FILETIME ft;
+  ft.dwLowDateTime  = time.LowPart;
+  ft.dwHighDateTime = time.HighPart;
+
+  SYSTEMTIME st;
+
+  FileTimeToLocalFileTime(&ft, &ft);
+  FileTimeToSystemTime(&ft, &st);
+  GetDateFormatA(LOCALE_USER_DEFAULT, DATE_SHORTDATE,
+    &st, NULL, p_local_date, sizeof(p_local_date));
+  GetTimeFormatA(LOCALE_USER_DEFAULT, 0,
+    &st, NULL, p_local_time, sizeof(p_local_time));
+
+  PyObject *datetime = PyUnicode_FromFormat("%s %s", p_local_date, p_local_time);
+
+  return datetime;
+}
+
 /*
  * List of functions to add to eugene_win32 in exec_eugene_win32().
  */
 static PyMethodDef eugene_win32_functions[] = {
-    { "FindFiles", (PyCFunction)eugene_win32_FindFiles, METH_O, "win32 FindFirstFile()" },
+    {
+      "FindFiles",
+      (PyCFunction)eugene_win32_FindFiles, METH_O,
+      "win32 FindFirstFile()"
+    },
+
+    {
+      "GetDateTimeFormat",
+      (PyCFunction)eugene_win32_GetDateTimeFormat, METH_O,
+      "win32 Get<Date/Time>Format()"
+    },
+
     { NULL, NULL, 0, NULL } /* marks end of array */
 };
 

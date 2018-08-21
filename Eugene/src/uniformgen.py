@@ -61,7 +61,7 @@ def _gen(header, src, fname):
 U__::{cname}__ U__::{cname};
 const std::array<U__::Location, {len(uniforms)}> U__::{cname}__::offsets = {{\n""")
 
-    for (i, u) in enumerate(uniforms):
+    for i, u in enumerate(uniforms):
         src.write(" "*2)
         if u['has_dot']: src.write('//')
         src.write(f"Location{{ \"{u['str']}\", {i} }},\n")

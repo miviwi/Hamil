@@ -3,4 +3,14 @@
 
 namespace res {
 
+HandleBase::HandleBase(Resource::Id id) :
+  m(resource().handle(id))
+{
+}
+
+Resource::Ptr& HandleBase::lock()
+{
+  return m_locked ? m_locked : m_locked = m.lock();
+}
+
 }
