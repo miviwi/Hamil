@@ -128,8 +128,6 @@ extern R__ R;""")
         """
 R__ R;""")
 
-    db.serialize()
-
     return 0
 
 if __name__ == "__main__":

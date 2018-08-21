@@ -110,8 +110,6 @@ extern U__ U;""")
         """
 U__ U;""")
 
-    db.serialize()
-
     return 0
 
 if __name__ == "__main__":

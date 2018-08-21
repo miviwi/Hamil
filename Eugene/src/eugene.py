@@ -1,13 +1,7 @@
 import sys
 import database
-import uniformgen
-import resourcegen
+import eugene_modules
 import eugene_util
-
-_MODULES = {
-    "uniformgen":  uniformgen.main,
-    "resourcegen": resourcegen.main,
-}
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
@@ -16,7 +10,7 @@ if __name__ == "__main__":
 
     module = sys.argv[1]
 
-    if module not in _MODULES:
+    if module not in eugene_modules.MODULES:
         print(f"<module> must be one of ('{module}' specified):\n")
         for m in _MODULES:
             print(f"        {m}")
@@ -24,11 +18,13 @@ if __name__ == "__main__":
         sys.exit(-2)
 
     args = []
-    for arg in sys.argv[2:]:
-        args += eugene_util.subdirectories(arg)  # Use += to flatten the lists
+    if module != "run":
+        args = eugene_util.expand_args(sys.argv[2:])
+    else:
+        args = sys.argv[2:]
 
     exit_code = None
     with database.Database('eugene.db') as db:
-        exit_code = _MODULES[module](db, args)
+        exit_code = eugene_modules.MODULES[module](db, args)
 
     sys.exit(exit_code)

@@ -64,3 +64,10 @@ def subdirectories(path):
         subdirs += subdirectories(d)
 
     return subdirs
+
+def expand_args(args):
+    expanded = []
+    for arg in args:
+        expanded += subdirectories(arg) # Use += to flatten the list
+
+    return expanded

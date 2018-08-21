@@ -35,6 +35,7 @@ class Database:
         self.close()
 
     def close(self):
+        self.serialize()
         self._unlock_db()
 
     def serialize(self):
