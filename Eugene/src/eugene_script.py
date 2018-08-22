@@ -96,4 +96,7 @@ def main(db, args):
 
         exit_code = eugene_modules.MODULES[module](db, args)
 
+    print(f"Last command returned: {exit_code}")
+    print("        ...Exiting")
+
     return 0

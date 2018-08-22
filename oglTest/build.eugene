@@ -1,5 +1,7 @@
+#    -------- Uniforms  --------
 (uniformgen ${Solution}oglTest\src)
 (move-if-newer uniforms.* ${Generated})
 
+#    -------- Resources --------
 (resourcegen ${Solution}x64\Debug)
 (move-if-newer resources.* ${Generated})

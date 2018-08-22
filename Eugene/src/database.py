@@ -24,9 +24,9 @@ class Database:
         try:
             with open(fname, 'rb') as f: self._read_db(f)
         except FileNotFoundError:
-            print(f"No database `{fname}' found...\n")
-
-        print(f"Successfully loaded Database `{fname}'...")
+            print(f"No database `{fname}' found...")
+        else:
+            print(f"Successfully loaded Database `{fname}'...")
 
     def __enter__(self):
         return self

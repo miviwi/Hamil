@@ -73,7 +73,7 @@
       <Command>Build eugene_win32 module</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>call "$(ProjectDir)build"</Message>
+      <Message>call "$(ProjectDir)build " :: Need the trailing space because MSBuild...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -100,7 +100,7 @@
       <Command>Build eugene_win32 module</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>call "$(ProjectDir)build"</Message>
+      <Message>call "$(ProjectDir)build " :: Need the trailing space because MSBuild...</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
