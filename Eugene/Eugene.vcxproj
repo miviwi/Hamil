@@ -104,8 +104,12 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include="build.bat" />
+    <None Include="README.md" />
     <None Include="src\eugene.bat" />
     <None Include="src\eugene.py" />
+    <None Include="src\eugene_modules.py" />
+    <None Include="src\eugene_script.py" />
     <None Include="src\eugene_util.py" />
     <None Include="src\resourcegen.py" />
     <None Include="win32\eugene_win32.c">

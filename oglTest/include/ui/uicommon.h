@@ -29,6 +29,7 @@ struct Geometry {
   { }
 
   vec2 pos() const;
+  vec2 size() const;
 
   Geometry translate(vec2 t) const;
 

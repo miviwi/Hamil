@@ -37,7 +37,9 @@ public:
 
   Ui& operator=(const Ui& other) = delete;
 
-  static ivec4 scissor_rect(Geometry g);
+  ivec4 scissorRect(Geometry g);
+
+  Ui& realSize(vec2 real_size);
 
   Ui& frame(Frame *frame, vec2 pos);
   Ui& frame(Frame *frame);
@@ -67,6 +69,8 @@ public:
   void keyboard(Frame *frame);
 
 private:
+  vec2 m_real_size;
+
   Geometry m_geom;
   Style m_style;
   std::vector<Frame *> m_frames;

@@ -106,6 +106,7 @@ void finalize()
 }
 
 Ui::Ui(Geometry geom, const Style& style) :
+  m_real_size(geom.size()),
   m_geom(geom), m_style(style), m_repaint(true),
   m_capture(nullptr),
   m_keyboard(nullptr),
@@ -127,12 +128,22 @@ Ui::~Ui()
   for(const auto& frame : m_frames) delete frame;
 }
 
-ivec4 Ui::scissor_rect(Geometry g)
+ivec4 Ui::scissorRect(Geometry g)
 {
-  auto ga = ivec2{ (int)g.x, (int)g.y },
-    gb = ivec2{ ga.x+(int)g.w, ga.y+(int)g.h };
+  auto ratio = m_real_size * FramebufferSize.recip();   // == m_real_size / FramebufferSize
 
-  return ivec4{ (int)g.x, (int)FramebufferSize.y - gb.y, (int)g.w, (int)g.h };
+  auto pos = g.pos() * ratio,
+    size = g.size() * ratio;
+
+  auto gb = pos + size;
+
+  return ivec4{ (int)pos.x, (int)(m_real_size.y - gb.y), (int)size.x, (int)size.y };
+}
+
+Ui& Ui::realSize(vec2 real_size)
+{
+  m_real_size = real_size;
+  return *this;
 }
 
 Ui& Ui::frame(Frame *f, vec2 pos)

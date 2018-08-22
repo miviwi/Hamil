@@ -71,6 +71,8 @@ const std::array<U__::Location, {len(uniforms)}> U__::{cname}__::offsets = {{\n"
 def main(db, args):
     pattern = lambda dir: f"{dir}\\*.uniform"
 
+    print("\nGenerating Uniforms...")
+
     if util.up_to_date(db, args, pattern): return 1
 
     with open('uniforms.h', 'w') as header, open('uniforms.cpp', 'w') as src:

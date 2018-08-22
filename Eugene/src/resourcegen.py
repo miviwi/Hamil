@@ -88,6 +88,8 @@ class ResourceGen:
 def main(db, args):
     pattern = lambda dir: f"{dir}\\*.meta"
 
+    print("\nGenerating Resources...")
+
     if util.up_to_date(db, args, pattern): return 1
 
     # Fix yaml.constructor.ConstructorError (ignore tags)
@@ -113,8 +115,8 @@ struct R__ {
                 continue
 
             for file in find_data:
-                with open(f"{arg}\\{file['cFileName']}", 'r') as f:
-                    docs.append(yaml.load(f))
+                fname = f"{arg}\\{file['cFileName']}"
+                with open(fname, 'r') as f: docs.append(yaml.load(f))
 
         r = ResourceGen(docs)
         r.emit(header, src)

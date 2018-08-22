@@ -39,7 +39,7 @@ struct pDrawableImage : public pDrawable {
   unsigned page;
 
   std::array<Vertex, 4> verts;
-  std::array<u16, 4> inds;
+  std::array<u16, 5> inds;
 
   pDrawableImage(uvec4 coords_, unsigned page_);
 
@@ -72,9 +72,23 @@ pDrawableText::pDrawableText(const ft::Font::Ptr& font_, const char *str, size_t
 
 pDrawableImage::pDrawableImage(uvec4 coords_, unsigned page_) :
   coords(coords_), page(page_),
-  inds({ 0, 1, 2, 3 })
+  inds({ 0, 1, 2, 3, Vertex::RestartIndex })
 {
+  auto make_vert = [](unsigned x, unsigned y, unsigned u, unsigned v) -> Vertex
+  {
+    Vertex vtx;
+    vtx.pos = vec2{ (float)x, (float)y };
+    vtx.uv  = { (u16)u, (u16)v };
 
+    return vtx;
+  };
+
+  verts = {
+    make_vert(0, 0,               coords.x, coords.y),
+    make_vert(0, coords.w,        coords.x, coords.y+coords.w),
+    make_vert(coords.z, coords.w, coords.x+coords.z, coords.y+coords.w),
+    make_vert(coords.z, 0,        coords.x+coords.z, coords.y)
+  };
 }
 
 Drawable::Drawable(pDrawable *p) :

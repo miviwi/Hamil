@@ -10,10 +10,10 @@ from pprint import pprint
 class UnknownOperatorError(Exception):
     pass
 
-# Regex for an s-expression (list of tokens wrapped in parentheses)
+"""S-expression (list of tokens wrapped in parentheses) -> (x y z...)"""
 _COMMAND = re.compile(r"\(\s*((?:[\w\\/\-.\*${}]+\s*)*)\)")
 
-# Regex for a variable -> ${}
+"""Variable substitution -> ${var}"""
 _VAR = re.compile(r"\${\s*(\w+)\s*}")
 
 _COMMENT_DELIM = "#"

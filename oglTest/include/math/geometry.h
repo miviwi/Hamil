@@ -59,6 +59,8 @@ struct Vector2 {
     return sqrt(distance2(v));
   };
 
+  Vector2 recip() const { return { (T)1 / x, (T)1 / y }; }
+
   template <typename U>
   Vector2<U> cast() const
   {
@@ -97,6 +99,13 @@ template <typename T>
 Vector2<T>& operator+=(Vector2<T>& a, Vector2<T> b)
 {
   a = a+b;
+  return a;
+}
+
+template <typename T>
+Vector2<T>& operator*=(Vector2<T>& a, Vector2<T>& b)
+{
+  a = a*b;
   return a;
 }
 
@@ -170,6 +179,8 @@ struct Vector3 {
   {
     return sqrt(distance2(v));
   }
+
+  Vector3 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z }; }
 
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }
@@ -286,6 +297,8 @@ struct Vector4 {
 
   T length() const { return (T)sqrt((x*x) + (y*y) + (z*z) + (w*w)); }
   T dot(const Vector4& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
+
+  Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }
 
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }

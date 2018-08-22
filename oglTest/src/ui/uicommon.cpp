@@ -7,6 +7,11 @@ vec2 Geometry::pos() const
   return { x, y };
 }
 
+vec2 Geometry::size() const
+{
+  return { w, h };
+}
+
 Geometry Geometry::translate(vec2 t) const
 {
   return {

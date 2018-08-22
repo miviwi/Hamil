@@ -345,6 +345,7 @@ int main(int argc, char *argv[])
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
 
   iface
+    .realSize(FB_DIMS.cast<float>())
     .frame(layout, { 30.0f, 500.0f })
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;

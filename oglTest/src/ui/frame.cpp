@@ -176,7 +176,7 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(Ui::scissor_rect(parent.clip(g)))
+    .scissor(m_ui->scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;
 
