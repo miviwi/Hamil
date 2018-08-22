@@ -251,13 +251,13 @@
     <ClCompile Include="src\res\image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\res\handle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="Generated\resources.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Generated\uniforms.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\res\handle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -514,13 +514,13 @@
     <ClInclude Include="include\res\image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\res\handle.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Generated\resources.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Generated\uniforms.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\res\handle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -540,5 +540,6 @@
     <None Include="src\ui\cursor.uniform">
       <Filter>Uniform Definitions</Filter>
     </None>
+    <None Include="build.eugene" />
   </ItemGroup>
 </Project>
