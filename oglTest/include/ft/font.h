@@ -45,6 +45,7 @@ private:
 
 struct String : public Ref {
 public:
+  String() : m(nullptr) { }
   String(pString *p) : m(p) { }
   ~String();
 

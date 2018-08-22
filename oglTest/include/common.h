@@ -24,8 +24,8 @@ typedef int64_t i64;
 template <typename T>
 class StridePtr {
 public:
-  StridePtr(T *ptr, size_t stride) :
-    m_ptr(ptr), m_stride(stride)
+  StridePtr(void *ptr, size_t stride) :
+    m_ptr((T *)ptr), m_stride(stride)
   { }
 
   T& operator*() { return *m_ptr; }

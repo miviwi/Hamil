@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     { { 1.0f, -1.0f, 1.0f }, normals[1] },
     { { 1.0f, 1.0f, 1.0f }, normals[1] },
     { { -1.0f, 1.0f, 1.0f }, normals[1] },
-    
+
     // TOP
     { { -1.0f, 1.0f, -1.0f }, normals[2] },
     { { -1.0f, 1.0f, 1.0f }, normals[2] },
@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
     { { 1.0f, 1.0f, 1.0f }, normals[2] },
     { { 1.0f, 1.0f, -1.0f }, normals[2] },
     { { -1.0f, 1.0f, -1.0f }, normals[2] },
-    
+
     // BOTTOM
     { { -1.0f, -1.0f, -1.0f }, normals[3] },
     { { 1.0f, -1.0f, 1.0f }, normals[3] },

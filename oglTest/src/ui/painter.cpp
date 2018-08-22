@@ -533,8 +533,8 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
 
   Vertex *ptr = m_buf.data() + base;
 
-  StridePtr<ft::Position> pos_ptr((ft::Position *)&ptr->pos, sizeof(Vertex));
-  StridePtr<ft::UV> uv_ptr((ft::UV *)&ptr->uv, sizeof(Vertex));
+  StridePtr<ft::Position> pos_ptr(&ptr->pos, sizeof(Vertex));
+  StridePtr<ft::UV> uv_ptr(&ptr->uv, sizeof(Vertex));
 
   auto s = font.writeVertsAndIndices(str.data(), pos_ptr, uv_ptr, m_ind.data()+offset);
 
@@ -542,8 +542,8 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
 
   // resize them again - this time to the proper size
   //   (need to do this so garbage doesn't get drawn)
-  m_buf.resize(base + (num*ft::NumCharVerts));
-  m_ind.resize(offset + (num*ft::NumCharIndices));
+  m_buf.resize(base + (num / ft::NumCharIndices * ft::NumCharVerts));
+  m_ind.resize(offset + (num));
 
   return s;
 }
