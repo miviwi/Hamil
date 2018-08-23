@@ -98,7 +98,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
     .roundedBorder(g, combobox.radius, VertexPainter::All, black())
     ;
 
-  if(m_selected) painter.textLeft(m_selected->caption, { g.x+10, g.y, g.w, g.h });
+  if(m_selected) painter.drawableLeft(m_selected->caption, { g.x+10, g.y, g.w, g.h });
 
   if(m_dropped) {
     Geometry dropdown_g = {
@@ -130,7 +130,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
       } else if(item.id == m_highlighted) {
         painter.rect(item_g, dropdown_color.lighten(80));
       }
-      painter.textLeft(item.caption, item_g.translate({ 10, 0 }));
+      painter.drawableLeft(item.caption, item_g.translate({ 10, 0 }));
     }
 
     painter.endOverlay();
