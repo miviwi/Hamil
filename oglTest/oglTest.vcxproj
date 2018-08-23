@@ -203,7 +203,12 @@ call "%eugene%" run "$(ProjectDir)build.eugene" "Solution=%Solution% " "Generate
     <ClCompile Include="extern\GL\gl3w.c" />
     <ClCompile Include="extern\stb_image\image.c" />
     <ClCompile Include="Generated\resources.cpp" />
-    <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="Generated\uniforms.cpp">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </DeploymentContent>
+    </ClCompile>
     <ClCompile Include="src\cli\cli.cpp" />
     <ClCompile Include="src\cli\resourcegen.cpp" />
     <ClCompile Include="src\cli\sh.cpp" />

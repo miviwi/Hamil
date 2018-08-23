@@ -74,7 +74,7 @@ public:
       c.num = num;
 
       return c;
-   }
+    }
 
     static Command text(ft::Font& font, vec2 pos, Color color, size_t base, size_t offset, size_t num)
     {
@@ -159,11 +159,17 @@ public:
   VertexPainter& textCentered(ft::Font& font, const std::string& str, Geometry g, Color c);
   VertexPainter& textLeft(ft::Font& font, const std::string& str, Geometry g, Color c);
 
+  VertexPainter& drawable(const Drawable& drawable, vec2 pos);
+  VertexPainter& drawableCentered(const Drawable& drawable, Geometry g);
+  VertexPainter& drawableLeft(const Drawable& drawable, Geometry g);
+
   VertexPainter& text(const Drawable& text, vec2 pos);
   VertexPainter& textCentered(const Drawable& text, Geometry g);
   VertexPainter& textLeft(const Drawable& text, Geometry g);
 
   VertexPainter& image(const Drawable& image, vec2 pos);
+  VertexPainter& imageCentered(const Drawable& image, Geometry g);
+  VertexPainter& imageLeft(const Drawable& image, Geometry g);
 
   VertexPainter& pipeline(const gx::Pipeline& pipeline);
 

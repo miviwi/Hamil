@@ -34,11 +34,11 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
     ;
 
   if(gravity() == Center) {
-    painter.textCentered(m_caption, g);
+    painter.drawableCentered(m_caption, g);
   } else {
     switch(gravity()) {
-    case Left:   painter.text(m_caption, { g.x, center.y }); break;
-    case Right:  painter.text(m_caption, { g.x + (g.w-m_caption.size().x), center.y }); break;
+    case Left:   painter.drawable(m_caption, { g.x, center.y }); break;
+    case Right:  painter.drawable(m_caption, { g.x + (g.w-m_caption.size().x), center.y }); break;
     }
   }
 }

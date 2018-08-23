@@ -625,8 +625,52 @@ VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, G
   return *this;
 }
 
+VertexPainter& VertexPainter::drawable(const Drawable& drawable, vec2 pos)
+{
+  switch(drawable.type()) {
+  case Drawable::Invalid: break; // Drawable wasn't initialized - nothing to draw
+
+  case Drawable::Text:  return text(drawable, pos);
+  case Drawable::Image: return image(drawable, pos);
+  }
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::drawableCentered(const Drawable& drawable, Geometry g)
+{
+  switch(drawable.type()) {
+  case Drawable::Invalid: break; // Drawable wasn't initialized - nothing to draw
+
+  case Drawable::Text:  return textCentered(drawable, g);
+  case Drawable::Image: return imageCentered(drawable, g);
+  }
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::drawableLeft(const Drawable& drawable, Geometry g)
+{
+  // TODO: insert return statement here
+  switch(drawable.type()) {
+  case Drawable::Invalid: break; // Drawable wasn't initialized - nothing to draw
+
+  case Drawable::Text:  return textLeft(drawable, g);
+  case Drawable::Image: return imageLeft(drawable, g);
+  }
+
+  return *this;
+}
+
+static void assert_text(const Drawable& text)
+{
+  assert(text.type() == Drawable::Text && "non-text Drawable passed to VertexPainter::text()!");
+}
+
 VertexPainter& VertexPainter::text(const Drawable& text, vec2 pos)
 {
+  assert_text(text);
+
   auto base = m_buf.size();
   auto offset = m_ind.size();
 
@@ -647,6 +691,8 @@ VertexPainter& VertexPainter::text(const Drawable& text, vec2 pos)
 
 VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
 {
+  assert_text(text);
+
   auto base = m_buf.size();
   auto offset = m_ind.size();
 
@@ -673,6 +719,8 @@ VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
 
 VertexPainter& VertexPainter::textLeft(const Drawable& text, Geometry g)
 {
+  assert_text(text);
+
   auto base = m_buf.size();
   auto offset = m_ind.size();
 
@@ -691,9 +739,14 @@ VertexPainter& VertexPainter::textLeft(const Drawable& text, Geometry g)
   return *this;
 }
 
-VertexPainter& VertexPainter::image(const Drawable& image, vec2 pos)
+static void assert_image(const Drawable& image)
 {
   assert(image.type() == Drawable::Image && "non-image Drawable passed to VertexPainter::image()!");
+}
+
+VertexPainter& VertexPainter::image(const Drawable& image, vec2 pos)
+{
+  assert_image(image);
 
   auto base = m_buf.size();
   auto offset = m_ind.size();
@@ -702,6 +755,55 @@ VertexPainter& VertexPainter::image(const Drawable& image, vec2 pos)
     .appendVertices(m_buf)
     .appendIndices(m_ind)
     ;
+
+  appendCommand(Command::image(
+    pos, image.imageAtlasPage(),
+    base, offset, image.num()
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::imageCentered(const Drawable& image, Geometry g)
+{
+  assert_image(image);
+
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
+
+  image
+    .appendVertices(m_buf)
+    .appendIndices(m_ind)
+    ;
+
+  vec2 center = g.center();
+  vec2 pos = center*0.5f - image.size()*0.5f;
+
+  appendCommand(Command::image(
+    pos, image.imageAtlasPage(),
+    base, offset, image.num()
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::imageLeft(const Drawable& image, Geometry g)
+{
+  assert_image(image);
+
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
+
+  image
+    .appendVertices(m_buf)
+    .appendIndices(m_ind)
+    ;
+
+  vec2 center = g.center();
+  vec2 pos ={
+    center.x,
+    center.y*0.5f - image.size().y*0.5f
+  };
 
   appendCommand(Command::image(
     pos, image.imageAtlasPage(),

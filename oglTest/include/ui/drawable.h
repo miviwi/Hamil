@@ -19,7 +19,6 @@ public:
   enum Type {
     Invalid,
 
-    Blank,
     Text,
     Image,
   };
@@ -28,7 +27,7 @@ public:
 
   struct TypeError : public Error { };
 
-  Drawable();
+  Drawable() : Drawable(nullptr, nullptr) { }
   ~Drawable();
 
   Type type() const;
@@ -49,7 +48,7 @@ public:
 private:
   friend class DrawableManager;
 
-  Drawable(pDrawable *p);
+  Drawable(pDrawable *p, DrawableManager *man);
 
   pDrawable *operator->() const { return get(); }
   pDrawable *get() const;
@@ -57,6 +56,7 @@ private:
   pDrawableText *getText() const;
   pDrawableImage *getImage() const;
 
+  DrawableManager *m_man;
   pDrawable *m;
 };
 
@@ -76,11 +76,12 @@ public:
   Drawable fromText(const ft::Font::Ptr& font, const std::string& str, Color color);
   Drawable fromImage();
 
-  void finalize(Drawable d);
+  void finalize(Drawable *d);
 
   void bindImageAtlas(int unit = TexImageUnit) const;
 
 private:
+  // Convert to OpenGL uv space (bottom-left corner origin)
   uvec4 atlasCoords(uvec4 coords) const;
 
   unsigned numAtlasPages();

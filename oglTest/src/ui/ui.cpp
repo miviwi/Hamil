@@ -79,22 +79,31 @@ in VertexData {
 
 layout(location = 0) out vec4 color;
 
-vec4 sampleImageAtlas(in sampler2DArray atlas, vec2 uv, float page)
+vec4 text()
 {
-  ivec3 atlas_sz = textureSize(atlas, 0);
-  vec4 sample    = texture(atlas, vec3(uv / atlas_sz.st, page));
+  vec4 sample = sampleFontAtlas(uFontAtlas, fragment.uv);
+
+  return uTextColor * sample;
+}
+
+vec4 shape()
+{
+  return fragment.color;
+}
+
+vec4 image()
+{
+  ivec3 atlas_sz = textureSize(uImageAtlas, 0);
+  vec4 sample    = texture(uImageAtlas, vec3(fragment.uv / atlas_sz.st, uImagePage));
 
   return sample;
 }
 
 void main() {
-  vec4 font_sample  = sampleFontAtlas(uFontAtlas, fragment.uv);
-  vec4 image_sample = sampleImageAtlas(uImageAtlas, fragment.uv, uImagePage);
-
   switch(uType) {
-    case TypeText:  color = uTextColor * font_sample; break;
-    case TypeShape: color = fragment.color; break;
-    case TypeImage: color = image_sample; break;
+    case TypeText:  color = text(); break;
+    case TypeShape: color = shape(); break;
+    case TypeImage: color = image(); break;
 
     default: color = vec4(0); break;
   }

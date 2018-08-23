@@ -23,20 +23,6 @@ struct pDrawable {
   virtual size_t numIndices() const  = 0;
 };
 
-struct pBlankDrawable : public pDrawable {
-  pBlankDrawable() :
-    pDrawable(Drawable::Blank)
-  { }
-
-  virtual vec2 size() const { return { 0, 0 }; }
-
-  virtual const Vertex *vertices() const { return nullptr; }
-  virtual size_t numVertices() const { return 0; }
-
-  virtual const u16 *indices() const { return nullptr; }
-  virtual size_t numIndices() const { return 0; }
-};
-
 struct pDrawableText : public pDrawable {
   ft::Font::Ptr font;
   ft::String string;
@@ -129,29 +115,25 @@ vec2 pDrawableImage::size() const
   return uvec2(coords.z, coords.w).cast<float>();
 }
 
-Drawable::Drawable(pDrawable *p) :
-  m(p)
-{
-}
-
-static pBlankDrawable p_blank_drawable;
-Drawable::Drawable() :
-  Drawable(&p_blank_drawable)
+Drawable::Drawable(pDrawable *p, DrawableManager *man) :
+  m_man(man), m(p)
 {
 }
 
 Drawable::~Drawable()
 {
-  if(!deref() && type() != Blank) delete m;
+  if(get() && !deref()) m_man->finalize(this);
 }
 
 Drawable::Type Drawable::type() const
 {
-  return get()->type;
+  return get() ? get()->type : Invalid;
 }
 
 const Drawable& Drawable::appendVertices(std::vector<Vertex>& buf) const
 {
+  if(!get()) return *this;
+
   auto verts = get()->vertices();
   buf.insert(buf.end(), verts, verts+get()->numVertices());
 
@@ -160,6 +142,8 @@ const Drawable& Drawable::appendVertices(std::vector<Vertex>& buf) const
 
 const Drawable& Drawable::appendIndices(std::vector<u16>& buf) const
 {
+  if(!get()) return *this;
+
   auto inds = get()->indices();
   buf.insert(buf.end(), inds, inds+get()->numIndices());
 
@@ -168,12 +152,12 @@ const Drawable& Drawable::appendIndices(std::vector<u16>& buf) const
 
 size_t Drawable::num() const
 {
-  return get()->numIndices();
+  return get() ? get()->numIndices() : 0;
 }
 
 vec2 Drawable::size() const
 {
-  return get()->size();
+  return get() ? get()->size() : vec2{ 0, 0 };
 }
 
 unsigned Drawable::imageAtlasPage() const
@@ -224,14 +208,19 @@ Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string&
 {
   auto text = new pDrawableText(font, str.data(), str.size(), color);
 
-  return Drawable(text);
+  return Drawable(text, this);
 }
 
 Drawable DrawableManager::fromImage()
 {
   auto image = new pDrawableImage({ 0, 0, 128, 128 }, 1);
 
-  return Drawable(image);
+  return Drawable(image, this);
+}
+
+void DrawableManager::finalize(Drawable *d)
+{
+  delete d->get();
 }
 
 void DrawableManager::bindImageAtlas(int unit) const
@@ -241,7 +230,6 @@ void DrawableManager::bindImageAtlas(int unit) const
 
 uvec4 DrawableManager::atlasCoords(uvec4 coords) const
 {
-  // Convert to OpenGL uv space (bottom-left corner origin)
   coords.y = AtlasSize.y - coords.y;
 
   return coords;
