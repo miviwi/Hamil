@@ -1,6 +1,7 @@
 #include <ui/ui.h>
 #include <ui/frame.h>
 #include <ui/painter.h>
+#include <ui/drawable.h>
 
 #include <gx/pipeline.h>
 #include <gx/buffer.h>
@@ -19,6 +20,7 @@ static const char *shader_uType_defs = R"DEFS(
 
 const int TypeShape = 0;
 const int TypeText  = 1;
+const int TypeImage = 2;
 
 )DEFS";
 
@@ -26,6 +28,7 @@ const int TypeText  = 1;
 enum Shader_uType {
   Shader_TypeShape = 0,
   Shader_TypeText  = 1,
+  Shader_TypeImage = 2,
 };
 
 static const char *vs_src = R"VTX(
@@ -61,8 +64,11 @@ static const char *fs_src = R"FRAG(
 
 uniform sampler2D uFontAtlas;
 
+uniform sampler2DArray uImageAtlas;
+
 uniform int uType;
 uniform vec4 uTextColor;
+uniform float uImagePage;
 
 const float UiGamma = 1.2f;
 
@@ -73,12 +79,22 @@ in VertexData {
 
 layout(location = 0) out vec4 color;
 
+vec4 sampleImageAtlas(in sampler2DArray atlas, vec2 uv, float page)
+{
+  ivec3 atlas_sz = textureSize(atlas, 0);
+  vec4 sample    = texture(atlas, vec3(uv / atlas_sz.st, page));
+
+  return sample;
+}
+
 void main() {
-  vec4 font_sample = sampleFontAtlas(uFontAtlas, fragment.uv);
+  vec4 font_sample  = sampleFontAtlas(uFontAtlas, fragment.uv);
+  vec4 image_sample = sampleImageAtlas(uImageAtlas, fragment.uv, uImagePage);
 
   switch(uType) {
     case TypeText:  color = uTextColor * font_sample; break;
     case TypeShape: color = fragment.color; break;
+    case TypeImage: color = image_sample; break;
 
     default: color = vec4(0); break;
   }
@@ -192,6 +208,11 @@ const Style& Ui::style() const
   return m_style;
 }
 
+DrawableManager& Ui::drawable()
+{
+  return m_drawable;
+}
+
 bool Ui::input(CursorDriver& cursor, const InputPtr& input)
 {
   if(auto mouse = input->get<win32::Mouse>()) {
@@ -232,7 +253,8 @@ void Ui::paint()
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
   ui_program->use()
-    .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit);
+    .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit)
+    .uniformSampler(U.ui.uImageAtlas, DrawableManager::TexImageUnit);
 
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
@@ -250,6 +272,15 @@ void Ui::paint()
         .uniformMatrix4x4(U.ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
         .uniformInt(U.ui.uType, Shader_TypeText)
         .uniformVector4(U.ui.uTextColor, cmd.color.normalize())
+        .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
+      break;
+
+    case VertexPainter::Image:
+      m_drawable.bindImageAtlas();
+      ui_program->use()
+        .uniformMatrix4x4(U.ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
+        .uniformInt(U.ui.uType, Shader_TypeImage)
+        .uniformFloat(U.ui.uImagePage, (float)cmd.page)
         .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
       break;
 

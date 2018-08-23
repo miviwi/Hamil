@@ -1,7 +1,11 @@
 #include <ui/painter.h>
+#include <ui/drawable.h>
 
+#include <cassert>
 #include <cmath>
 #include <cstring>
+
+#include <iterator>
 #include <unordered_map>
 
 namespace ui {
@@ -548,6 +552,28 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
   return s;
 }
 
+vec2 VertexPainter::textAlignCenter(ft::Font& font, Geometry g, vec2 text_size) const
+{
+  vec2 center = g.center();
+  vec2 pos = {
+    floor(center.x - text_size.x/2.0f),
+    floor(center.y - font.descender())
+  };
+
+  return { floor(pos.x), floor(pos.y) };
+}
+
+vec2 VertexPainter::textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) const
+{
+  vec2 center = g.center();
+  vec2 pos = {
+    g.x,
+    floor(center.y - font.descender())
+  };
+
+  return { floor(pos.x), floor(pos.y) };
+}
+
 VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 pos, Color c)
 {
   auto base = m_buf.size();
@@ -572,15 +598,9 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
 
   auto s = appendTextVertices(font, str);
 
-  vec2 center = g.center();
-  vec2 pos = {
-    floor(center.x - s.width()/2.0f),
-    floor(center.y - font.descender())
-  };
-
   appendCommand(Command::text(
     font,
-    { floor(pos.x), floor(pos.y) }, c,
+    textAlignCenter(font, g, { s.width(), s.height() }), c,
     base, offset,
     s.num()
   ));
@@ -595,17 +615,97 @@ VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, G
 
   auto s = appendTextVertices(font, str);
 
+  appendCommand(Command::text(
+    font,
+    textAlignLeft(font, g, { s.width(), s.height() }), c,
+    base, offset,
+    s.num()
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::text(const Drawable& text, vec2 pos)
+{
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
+
+  text
+    .appendVertices(m_buf)
+    .appendIndices(m_ind)
+    ;
+
+  appendCommand(Command::text(
+    text.textFont(),
+    { floor(pos.x), floor(pos.y) }, text.textColor(),
+    base, offset,
+    text.num()
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
+{
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
+
+  text
+    .appendVertices(m_buf)
+    .appendIndices(m_ind)
+    ;
+
   vec2 center = g.center();
-  vec2 pos = {
-    g.x,
-    floor(center.y - font.descender())
+  vec2 pos ={
+    floor(center.x - text.size().x/2.0f),
+    floor(center.y - text.textFont().descender())
   };
 
   appendCommand(Command::text(
-    font,
-    { floor(pos.x), floor(pos.y) }, c,
+    text.textFont(),
+    textAlignCenter(text.textFont(), g, text.size()), text.textColor(),
     base, offset,
-    s.num()
+    text.num()
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::textLeft(const Drawable& text, Geometry g)
+{
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
+
+  text
+    .appendVertices(m_buf)
+    .appendIndices(m_ind)
+    ;
+
+  appendCommand(Command::text(
+    text.textFont(),
+    textAlignLeft(text.textFont(), g, text.size()), text.textColor(),
+    base, offset,
+    text.num()
+  ));
+
+  return *this;
+}
+
+VertexPainter& VertexPainter::image(const Drawable& image, vec2 pos)
+{
+  assert(image.type() == Drawable::Image && "non-image Drawable passed to VertexPainter::image()!");
+
+  auto base = m_buf.size();
+  auto offset = m_ind.size();
+
+  image
+    .appendVertices(m_buf)
+    .appendIndices(m_ind)
+    ;
+
+  appendCommand(Command::image(
+    pos, image.imageAtlasPage(),
+    base, offset, image.num()
   ));
 
   return *this;

@@ -98,7 +98,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
     .roundedBorder(g, combobox.radius, VertexPainter::All, black())
     ;
 
-  if(m_selected) painter.textLeft(*style.font, m_selected->caption, { g.x+10, g.y, g.w, g.h }, white());
+  if(m_selected) painter.textLeft(m_selected->caption, { g.x+10, g.y, g.w, g.h });
 
   if(m_dropped) {
     Geometry dropdown_g = {
@@ -130,7 +130,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
       } else if(item.id == m_highlighted) {
         painter.rect(item_g, dropdown_color.lighten(80));
       }
-      painter.textLeft(*style.font, item.caption, item_g.translate({ 10, 0 }), white());
+      painter.textLeft(item.caption, item_g.translate({ 10, 0 }));
     }
 
     painter.endOverlay();
@@ -188,9 +188,7 @@ vec2 DropDownFrame::sizeHint() const
   float width = 110.0f;
 
   for(auto& item : m_items) {
-    auto s = font.stringMetrics(item.caption);
-
-    width = std::max(s.width(), width);
+    width = std::max(item.caption.size().x, width);
   }
 
   return { width+ButtonWidth+20, font.height()*1.4f };

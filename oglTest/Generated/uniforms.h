@@ -69,14 +69,16 @@ struct U__ {
     union { struct {
       int uModelViewProjection;
       int uType;
+      int uImagePage;
       int uFontAtlas;
+      int uImageAtlas;
       int uTextColor;
       };
 
-      int locations[4];
+      int locations[6];
     };
 
-    static const std::array<Location, 4> offsets;
+    static const std::array<Location, 6> offsets;
   };
   static ui__ ui;
 };

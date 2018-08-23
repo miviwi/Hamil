@@ -3,6 +3,7 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/frame.h>
+#include <ui/drawable.h>
 
 #include <string>
 
@@ -17,12 +18,11 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   LabelFrame& caption(const std::string& caption);
-  const std::string& caption() const;
 
   virtual vec2 sizeHint() const;
 
 private:
-  std::string m_caption;
+  Drawable m_caption;
 };
 
 }

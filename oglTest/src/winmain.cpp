@@ -104,10 +104,11 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
-  res::Handle<res::Image> r_texture = R.image.tex;
+  res::Handle<res::Image> r_texture = R.image.hahabenis;
 
   gx::Texture2D tex(gx::rgb);
-  auto sampler = gx::Sampler::repeat2d_linear();
+  auto sampler = gx::Sampler::repeat2d_linear()
+    .param(gx::Sampler::Anisotropy, 16.0f);
 
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();

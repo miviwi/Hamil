@@ -16,6 +16,8 @@
 
 namespace ui {
 
+class Drawable;
+
 struct Vertex {
   enum : unsigned {
     RestartIndex = 0xFFFF,
@@ -40,7 +42,7 @@ public:
   enum { NumBufferElements = 256*1024 };
 
   enum CommandType {
-    Text, Primitive, Pipeline,
+    Text, Image, Primitive, Pipeline,
   };
 
   struct Command {
@@ -54,6 +56,8 @@ public:
 
         ft::Font *font;
         vec2 pos; Color color;
+
+        unsigned page;
       };
 
       gx::Pipeline pipeline;
@@ -82,6 +86,20 @@ public:
       
       c.font = &font;
       c.pos = pos; c.color = color;
+
+      return c;
+    }
+
+    static Command image(vec2 pos, unsigned page, size_t base, size_t offset, size_t num)
+    {
+      Command c;
+      c.type = Image;
+      c.p = gx::TriangleFan;
+      c.base = base; c.offset = offset;
+      c.num = num;
+
+      c.pos = pos;
+      c.page = page;
 
       return c;
     }
@@ -141,6 +159,12 @@ public:
   VertexPainter& textCentered(ft::Font& font, const std::string& str, Geometry g, Color c);
   VertexPainter& textLeft(ft::Font& font, const std::string& str, Geometry g, Color c);
 
+  VertexPainter& text(const Drawable& text, vec2 pos);
+  VertexPainter& textCentered(const Drawable& text, Geometry g);
+  VertexPainter& textLeft(const Drawable& text, Geometry g);
+
+  VertexPainter& image(const Drawable& image, vec2 pos);
+
   VertexPainter& pipeline(const gx::Pipeline& pipeline);
 
   VertexPainter& beginOverlay();
@@ -168,6 +192,9 @@ private:
   void restartPrimitive();
 
   ft::String appendTextVertices(ft::Font& font, const std::string& str);
+
+  vec2 textAlignCenter(ft::Font& font, Geometry g, vec2 text_size) const;
+  vec2 textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) const;
 
   bool m_overlay;
 

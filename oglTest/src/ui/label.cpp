@@ -34,35 +34,25 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
     ;
 
   if(gravity() == Center) {
-    painter.textCentered(font, m_caption, g, white());
+    painter.textCentered(m_caption, g);
   } else {
-    auto s = font.stringMetrics(m_caption);
-
     switch(gravity()) {
-    case Left:   painter.text(font, m_caption, { g.x, center.y }, white()); break;
-    case Right:  painter.text(font, m_caption, { g.x + (g.w-s.width()), center.y }, white()); break;
+    case Left:   painter.text(m_caption, { g.x, center.y }); break;
+    case Right:  painter.text(m_caption, { g.x + (g.w-m_caption.size().x), center.y }); break;
     }
   }
 }
 
 LabelFrame& LabelFrame::caption(const std::string& caption)
 {
-  m_caption = caption;
+  m_caption = m_ui->drawable().fromText(m_ui->style().font, caption, white());
 
   return *this;
 }
 
-const std::string& LabelFrame::caption() const
-{
-  return m_caption;
-}
-
 vec2 LabelFrame::sizeHint() const
 {
-  const ft::Font& font = *m_ui->style().font;
-  auto s = font.stringMetrics(m_caption);
-
-  return { s.width(), s.height() };
+  return m_caption.size();
 }
 
 }

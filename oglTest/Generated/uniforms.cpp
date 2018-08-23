@@ -32,11 +32,13 @@ const std::array<U__::Location, 2> U__::cursor__::offsets = {
 };
 
 U__::ui__ U__::ui;
-const std::array<U__::Location, 4> U__::ui__::offsets = {
+const std::array<U__::Location, 6> U__::ui__::offsets = {
   Location{ "uModelViewProjection", 0 },
   Location{ "uType", 1 },
-  Location{ "uFontAtlas", 2 },
-  Location{ "uTextColor", 3 },
+  Location{ "uImagePage", 2 },
+  Location{ "uFontAtlas", 3 },
+  Location{ "uImageAtlas", 4 },
+  Location{ "uTextColor", 5 },
 };
 
 U__ U;

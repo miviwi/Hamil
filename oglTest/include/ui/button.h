@@ -3,7 +3,7 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/frame.h>
-#include <ft/font.h>
+#include <ui/drawable.h>
 
 #include <string>
 
@@ -51,7 +51,7 @@ protected:
   virtual void emitClicked();
 
 private:
-  std::string m_caption;
+  Drawable m_caption;
   OnClick m_on_click;
 };
 

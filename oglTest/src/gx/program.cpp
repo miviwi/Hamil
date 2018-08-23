@@ -124,6 +124,13 @@ Program& Program::uniformSampler(int location, int i)
   return uniformInt(location, i);
 }
 
+Program& Program::uniformFloat(int location, float f)
+{
+  glUniform1f(location, f);
+
+  return *this;
+}
+
 Program& Program::uniformVector3(int location, size_t size, const vec3 *v)
 {
   glUniform3fv(location, (GLsizei)size, (const float *)v);

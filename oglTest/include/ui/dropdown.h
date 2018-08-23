@@ -3,6 +3,7 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/frame.h>
+#include <ui/drawable.h>
 #include <math/geometry.h>
 
 #include <string>
@@ -19,12 +20,12 @@ struct DropDownItem {
   DropDownItem() :
     id(Invalid)
   { }
-  DropDownItem(const std::string& c) :
+  DropDownItem(Drawable c) :
     id(Invalid), caption(c)
   { }
 
   Id id;
-  std::string caption;
+  Drawable caption;
 };
 
 class DropDownFrame : public Frame {

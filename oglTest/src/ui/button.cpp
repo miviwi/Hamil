@@ -84,13 +84,13 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
     .roundedRect(g, button.radius, VertexPainter::All, color[0])
     .roundedRect(highlight_g, button.radius, VertexPainter::All, color[1])
     .roundedBorder(g, button.radius, VertexPainter::All, black())
-    .textCentered(*style.font, m_caption, g, white())
+    .textCentered(m_caption, g)
     ;
 }
 
 PushButtonFrame& PushButtonFrame::caption(std::string caption)
 {
-  m_caption = std::move(caption);
+  m_caption = m_ui->drawable().fromText(m_ui->style().font, caption, white());
 
   return *this;
 }
@@ -109,14 +109,12 @@ PushButtonFrame::OnClick& PushButtonFrame::click()
 
 vec2 PushButtonFrame::sizeHint() const
 {
-  const ft::Font& font = *m_ui->style().font;
-  auto s = font.stringMetrics(m_caption);
-
-  float font_height = font.height();
+  auto font = m_ui->style().font;
+  float font_height = font->height();
 
   return {
-    std::max(s.width()+20, 110.0f),
-    s.height() + font_height*0.8f
+    std::max(m_caption.size().x+20, 110.0f),
+    m_caption.size().y + font_height*0.8f
   };
 }
 

@@ -82,6 +82,7 @@ public:
 
   Program& uniformInt(int location, int i);
   Program& uniformSampler(int location, int i);
+  Program& uniformFloat(int location, float f);
   Program& uniformVector3(int location, size_t size, const vec3 *v);
   Program& uniformVector3(int location, vec3 v);
   Program& uniformVector4(int location, size_t size, const vec4 *v);

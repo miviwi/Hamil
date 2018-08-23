@@ -6,6 +6,7 @@
 #include <ui/cursor.h>
 #include <ui/event.h>
 #include <ui/style.h>
+#include <ui/drawable.h>
 #include <math/geometry.h>
 #include <win32/input.h>
 #include <win32/window.h>
@@ -62,6 +63,8 @@ public:
 
   const Style& style() const;
 
+  DrawableManager& drawable();
+
   bool input(CursorDriver& cursor, const InputPtr& input);
   void paint();
 
@@ -78,6 +81,8 @@ private:
 
   Frame *m_capture;
   Frame *m_keyboard;
+
+  DrawableManager m_drawable;
 
   VertexPainter m_painter;
   bool m_repaint;
