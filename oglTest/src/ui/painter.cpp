@@ -777,7 +777,7 @@ VertexPainter& VertexPainter::imageCentered(const Drawable& image, Geometry g)
     ;
 
   vec2 center = g.center();
-  vec2 pos = center*0.5f - image.size()*0.5f;
+  vec2 pos = center - image.size()*0.5f;
 
   appendCommand(Command::image(
     pos, image.imageAtlasPage(),
@@ -800,9 +800,9 @@ VertexPainter& VertexPainter::imageLeft(const Drawable& image, Geometry g)
     ;
 
   vec2 center = g.center();
-  vec2 pos ={
-    center.x,
-    center.y*0.5f - image.size().y*0.5f
+  vec2 pos = {
+    g.x,
+    center.y - image.size().y*0.5f
   };
 
   appendCommand(Command::image(

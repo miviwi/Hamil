@@ -23,7 +23,7 @@ bool LayoutFrame::input(CursorDriver& cursor, const InputPtr& input)
 void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = parent.clip(geometry());
-  calculateFrameGeometries();
+  reflow();
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
@@ -91,7 +91,7 @@ vec2 RowLayoutFrame::sizeHint() const
   return size;
 }
 
-void RowLayoutFrame::calculateFrameGeometries()
+void RowLayoutFrame::reflow()
 {
   Geometry g = geometry();
   vec2 center = g.center();
@@ -133,7 +133,7 @@ vec2 ColumnLayoutFrame::sizeHint() const
   return size;
 }
 
-void ColumnLayoutFrame::calculateFrameGeometries()
+void ColumnLayoutFrame::reflow()
 {
   Geometry g = geometry();
   vec2 center = g.center();

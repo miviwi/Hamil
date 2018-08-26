@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
-  res::Handle<res::Image> r_texture = R.image.hahabenis;
+  res::Handle<res::Image> r_texture = R.image.tex;
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler::repeat2d_linear()

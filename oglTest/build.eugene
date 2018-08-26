@@ -1,3 +1,5 @@
+(mkdir ${Generated})
+
 #    -------- Uniforms  --------
 (uniformgen ${Solution}oglTest\src)
 (move-if-newer uniforms.* ${Generated})

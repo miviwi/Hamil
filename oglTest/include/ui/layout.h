@@ -34,7 +34,7 @@ public:
   virtual bool isLayout() const { return true; }
 
 protected:
-  virtual void calculateFrameGeometries() = 0;
+  virtual void reflow() = 0;
 
   std::vector<Frame *> m_frames;
   bool m_dbg_bboxes = true;
@@ -53,7 +53,7 @@ public:
   vec2 sizeHint() const;
 
 protected:
-  virtual void calculateFrameGeometries();
+  virtual void reflow();
 };
 
 // Frame Geometry:
@@ -69,7 +69,7 @@ public:
   vec2 sizeHint() const;
 
 protected:
-  virtual void calculateFrameGeometries();
+  virtual void reflow();
 };
 
 }

@@ -202,6 +202,9 @@ DrawableManager::DrawableManager() :
 
   m_atlas.init(AtlasSize.x, AtlasSize.y, InitialPages);
   m_atlas.label("UI_drawable_atlas");
+
+  std::fill(localAtlasData({ 0, 0, 0, 0 }, 0), localAtlasData({ 0, 0, 0, 0 }, 1), green());
+  reuploadAtlas();
 }
 
 Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string& str, Color color)
@@ -213,7 +216,7 @@ Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string&
 
 Drawable DrawableManager::fromImage()
 {
-  auto image = new pDrawableImage({ 0, 0, 128, 128 }, 1);
+  auto image = new pDrawableImage({ 0, 0, 128, 128 }, 0);
 
   return Drawable(image, this);
 }

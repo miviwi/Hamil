@@ -131,7 +131,7 @@ set "Generated=$(ProjectDir)Generated"
 
 :: Need space before end-quote because MSBuild is rubbish...
 
-call "%eugene%" run "$(ProjectDir)build.eugene" "Solution=%Solution% " "Generated=%Generated% "</Command>
+call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% "</Command>
       <Outputs>uniforms.cpp;uniforms.h;resources.cpp;resources.h;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
@@ -192,7 +192,7 @@ set "Generated=$(ProjectDir)Generated"
 
 :: Need space before end-quote because MSBuild is rubbish...
 
-call "%eugene%" run "$(ProjectDir)build.eugene" "Solution=%Solution% " "Generated=%Generated% "</Command>
+call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% "</Command>
     </CustomBuildStep>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)extern\freetype2\win64\freetype271MT.dll" "$(OutDir)"</Command>
