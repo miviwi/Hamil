@@ -59,6 +59,9 @@ protected:
   friend class Ui;
   Ui *m_ui;
 
+  Ui& ui();
+  const Ui& ui() const;
+
   // All the ev* functions return a bool which stops event
   //   bubbling when true
 

@@ -15,7 +15,7 @@ bool LabelFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 { 
-  const Style& style = m_ui->style();
+  const Style& style = ui().style();
   auto& font = *style.font;
 
   Geometry g = geometry();
@@ -25,7 +25,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;
 
@@ -45,7 +45,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 
 LabelFrame& LabelFrame::caption(const std::string& caption)
 {
-  m_caption = m_ui->drawable().fromText(m_ui->style().font, caption, white());
+  m_caption = ui().drawable().fromText(ui().style().font, caption, white());
 
   return *this;
 }

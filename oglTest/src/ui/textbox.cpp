@@ -44,7 +44,7 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
         m_cursor = placeCursor(pos);
         m_selection = SelectionRange::begin(m_cursor);
 
-        m_ui->keyboard(this);
+        ui().keyboard(this);
         break;
 
       case Mouse::Up: m_state = Editing; break;
@@ -59,7 +59,7 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
       case Mouse::Down:
         m_state = Default;
 
-        m_ui->keyboard(nullptr);
+        ui().keyboard(nullptr);
         return false;
       }
     }
@@ -78,7 +78,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = geometry();
 
-  const auto& style = m_ui->style();
+  const auto& style = ui().style();
   auto& fnt = *font();
 
   Color cursor_color = transparent();
@@ -107,7 +107,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto text_pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;
 
@@ -157,7 +157,7 @@ void TextBoxFrame::attached()
 
 const ft::Font::Ptr& TextBoxFrame::font() const
 {
-  return m_font ? m_font : m_ui->style().font;
+  return m_font ? m_font : ui().style().font;
 }
 
 TextBoxFrame& TextBoxFrame::font(const ft::Font::Ptr& font)

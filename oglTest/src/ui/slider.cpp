@@ -10,11 +10,11 @@ bool SliderFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
   bool mouse_inside = geometry().intersect(cursor.pos());
   if(!mouse_inside && m_state != Pressed) {
-    m_ui->capture(nullptr);
+    ui().capture(nullptr);
     return false;
   }
 
-  bool over_head = headPos().distance(cursor.pos()) < m_ui->style().slider.width*1.05f;
+  bool over_head = headPos().distance(cursor.pos()) < ui().style().slider.width*1.05f;
 
   if(m_state != Pressed) m_state = over_head ? Hover : Default;
 
@@ -24,14 +24,14 @@ bool SliderFrame::input(CursorDriver& cursor, const InputPtr& input)
   using win32::Mouse;
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
-    m_ui->capture(this);
-    m_ui->keyboard(nullptr);
+    ui().capture(this);
+    ui().keyboard(nullptr);
   } else if(mouse->buttonUp(Mouse::Left)) {
     if(mouse_inside) {
       m_state = Hover;
     } else {
       m_state = Default;
-      m_ui->capture(nullptr);
+      ui().capture(nullptr);
     }
   } 
   
@@ -95,7 +95,7 @@ double SliderFrame::clampedValue(double value) const
 
 void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = m_ui->style();
+  const Style& style = ui().style();
   const auto& slider = style.slider;
 
   Geometry g = geometry();
@@ -139,7 +139,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;
 
@@ -156,7 +156,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 
 vec2 HSliderFrame::sizeHint() const
 {
-  const auto& slider = m_ui->style().slider;
+  const auto& slider = ui().style().slider;
 
   return { 150, slider.width*3 };
 }

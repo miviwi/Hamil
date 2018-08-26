@@ -1,7 +1,9 @@
 #include <ui/console.h>
+#include <ui/drawable.h>
 #include <ui/animation.h>
 
 #include <util/format.h>
+#include <util/str.h>
 #include <win32/input.h>
 
 #include <unordered_map>
@@ -12,7 +14,8 @@ namespace ui {
 
 class ConsoleBufferFrame : public Frame {
 public:
-  using LineBuffer = std::deque<std::string>;
+  using LineBuffer   = std::deque<std::string>;
+  using RenderBuffer = std::deque<Drawable>;
 
   static constexpr float BufferHeight = ConsoleFrame::ConsoleSize.y - 20.0f,
     BufferPixelMargin = 5.0f,
@@ -42,7 +45,7 @@ private:
   size_t rows() const;
   size_t columns() const;
 
-  LineBuffer m_buffer;
+  RenderBuffer m_buffer;
   LineBuffer m_input;
   size_t m_history = CursorNotSet;
   size_t m_scroll = 0;
@@ -224,7 +227,7 @@ bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  auto& font = *m_ui->style().monospace;
+  auto& font = *ui().style().monospace;
 
   Geometry g = geometry();
 
@@ -238,7 +241,7 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
   };
 
   auto pipeline = gx::Pipeline()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .alphaBlend()
     .primitiveRestart(Vertex::RestartIndex)
     ;
@@ -263,7 +266,7 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
   for(size_t i = m_scroll; i < end; i++) {
     const auto& line = m_buffer.at(i);
     painter
-      .text(font, line, pos, white())
+      .drawable(line, pos)
       ;
 
     pos.y -= line_height;
@@ -277,15 +280,16 @@ vec2 ConsoleBufferFrame::sizeHint() const
 
 void ConsoleBufferFrame::print(const std::string& str)
 {
+  auto font = ui().style().monospace;
   auto wrap_limit = columns();
   
-  std::istringstream stream(str);
-  std::string line;
-  while(std::getline(stream, line)) {
-    util::linewrap(line, wrap_limit, [this](const std::string& str, size_t line_no) {
-      m_buffer.push_front(str);
+  util::splitlines(str, [&](const std::string& line) {
+    util::linewrap(line, wrap_limit, [this,&font](const std::string& str, size_t line_no) {
+      auto text = ui().drawable().fromText(font, str, white());
+
+      m_buffer.push_front(text);
     });
-  }
+  });
 
   while(m_buffer.size() > BufferDepth) m_buffer.pop_back();
 
@@ -338,7 +342,7 @@ std::string ConsoleBufferFrame::historyNext()
 
 size_t ConsoleBufferFrame::rows() const
 {
-  const auto& font = *m_ui->style().monospace;
+  const auto& font = *ui().style().monospace;
   auto height = BufferHeight - BufferPixelMargin;
 
   return (size_t)(height / font.height());
@@ -346,7 +350,7 @@ size_t ConsoleBufferFrame::rows() const
 
 size_t ConsoleBufferFrame::columns() const
 {
-  const auto& font = *m_ui->style().monospace;
+  const auto& font = *ui().style().monospace;
   auto width = ConsoleFrame::ConsoleSize.x - (BufferPixelMargin+ScrollBarWidth);
 
   return (size_t)floor(width / font.monospaceWidth())-1;

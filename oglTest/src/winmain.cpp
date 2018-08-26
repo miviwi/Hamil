@@ -336,6 +336,10 @@ int main(int argc, char *argv[])
            .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
              .gravity(ui::Frame::Left))
+    .frame(ui::create<ui::LabelFrame>(iface, "near_val", ui::Geometry(100.0f, 20.0f))
+           .gravity(ui::Frame::Center))
+    .frame(ui::create<ui::HSliderFrame>(iface, "near")
+           .range(1.0f, 100.0f))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");
@@ -344,6 +348,14 @@ int main(int argc, char *argv[])
   });
 
   auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
+
+  auto& near_slider = *iface.getFrameByName<ui::HSliderFrame>("near");
+  auto& near_val = *iface.getFrameByName<ui::LabelFrame>("near_val");
+
+  near_slider.onChange([&](ui::SliderFrame *target) {
+    near_val.caption(std::to_string(target->value()));
+  });
+  near_slider.value(1.0);
 
   iface
     .realSize(FB_DIMS.cast<float>())
@@ -456,8 +468,8 @@ int main(int argc, char *argv[])
       *rot_mtx
       ;
 
-    auto persp = !ortho_projection ? xform::perspective(70, (float)FB_DIMS.x/(float)FB_DIMS.y, 0.1f, 1000.0f) :
-      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 0.1f, 1000.0f)*xform::scale(zoom*2.0f);
+    auto persp = !ortho_projection ? xform::perspective(70, (float)FB_DIMS.x/(float)FB_DIMS.y, near_slider.value(), 1000.0f) :
+      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 10.0f, 1000.0f)*xform::scale(zoom*2.0f);
 
     auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });
 

@@ -96,6 +96,16 @@ vec2 Frame::sizeHint() const
   return { 0, 0 };
 }
 
+Ui& Frame::ui()
+{
+  return *m_ui;
+}
+
+const Ui& Frame::ui() const
+{
+  return *m_ui;
+}
+
 bool Frame::evMouseEnter(const MouseMoveEvent& e)
 {
   return false;
@@ -135,7 +145,7 @@ void Frame::position(vec2 pos)
 void Frame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = m_geom;
-  auto style = m_ui->style();
+  auto style = ui().style();
 
   auto ga = vec2{ g.x, g.y },
     gb = vec2{ g.x+g.w, g.y+g.h };
@@ -176,7 +186,7 @@ void Frame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;
 

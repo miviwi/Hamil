@@ -12,13 +12,13 @@ bool ButtonFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
   bool mouse_over = getSolidGeometry().intersect(cursor.pos());
   if(!mouse_over && m_state != Pressed) {
-    m_ui->capture(nullptr);
+    ui().capture(nullptr);
     return false;
   }
 
   if(m_state == Default) {
     m_state = Hover;
-    m_ui->capture(this);
+    ui().capture(this);
   }
 
   auto mouse = input->get<win32::Mouse>();
@@ -27,14 +27,14 @@ bool ButtonFrame::input(CursorDriver& cursor, const InputPtr& input)
   using win32::Mouse;
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
-    m_ui->keyboard(nullptr);
+    ui().keyboard(nullptr);
   } else if(m_state == Pressed && mouse->buttonUp(Mouse::Left)) {
     if(mouse_over) {
       m_state = Hover;
 
       emitClicked();
     } else {
-      m_ui->capture(nullptr);
+      ui().capture(nullptr);
     }
   }
 
@@ -48,7 +48,7 @@ void ButtonFrame::losingCapture()
 
 void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = m_ui->style();
+  const Style& style = ui().style();
   const auto& button = style.button;
 
   auto margin = button.margin;
@@ -75,7 +75,7 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
-    .scissor(m_ui->scissorRect(parent.clip({ g.x, g.y, g.w+1, g.h+1 })))
+    .scissor(ui().scissorRect(parent.clip({ g.x, g.y, g.w+1, g.h+1 })))
     .primitiveRestart(Vertex::RestartIndex)
     ;
 
@@ -90,7 +90,7 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
 PushButtonFrame& PushButtonFrame::caption(std::string caption)
 {
-  m_caption = m_ui->drawable().fromText(m_ui->style().font, caption, white());
+  m_caption = ui().drawable().fromText(ui().style().font, caption, white());
 
   return *this;
 }
@@ -109,7 +109,7 @@ PushButtonFrame::OnClick& PushButtonFrame::click()
 
 vec2 PushButtonFrame::sizeHint() const
 {
-  auto font = m_ui->style().font;
+  auto font = ui().style().font;
   float font_height = font->height();
 
   return {
@@ -130,7 +130,7 @@ void PushButtonFrame::emitClicked()
 
 void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = m_ui->style();
+  const Style& style = ui().style();
   const auto& button = style.button;
 
   Geometry g = geometry();
@@ -152,7 +152,7 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
   };
 
   auto pipeline = gx::Pipeline()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .alphaBlend()
     .primitiveRestart(Vertex::RestartIndex)
     ;

@@ -13,13 +13,13 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
   bool mouse_over = geometry().intersect(cursor.pos());
   if(!mouse_over && !m_dropped && m_state != Pressed) {
-    m_ui->capture(nullptr);
+    ui().capture(nullptr);
     return false;
   }
 
   if(m_state == Default) {
     m_state = Hover;
-    m_ui->capture(this);
+    ui().capture(this);
   }
 
   auto mouse = input->get<win32::Mouse>();
@@ -33,9 +33,9 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
   if(mouse->event == Mouse::Down) {
     if(mouse_over && (mouse->buttons & Mouse::Left)) {
       m_state = Pressed;
-      m_ui->keyboard(nullptr);
+      ui().keyboard(nullptr);
     } else {
-      m_ui->capture(nullptr);
+      ui().capture(nullptr);
     }
   } else if(m_state == Pressed && mouse->buttonUp(Mouse::Left)) {
     if(mouse_over) {
@@ -45,7 +45,7 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
     } else if(m_dropped) {
       m_state = mouse_over ? Hover : Default;
     } else {
-      m_ui->capture(nullptr);
+      ui().capture(nullptr);
     }
   }
 
@@ -54,7 +54,7 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = m_ui->style();
+  const Style& style = ui().style();
   const auto& combobox = style.combobox;
 
   Geometry g = geometry();
@@ -83,7 +83,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
   };
 
   auto pipeline = gx::Pipeline()
-    .scissor(m_ui->scissorRect(parent.clip(g)))
+    .scissor(ui().scissorRect(parent.clip(g)))
     .alphaBlend()
     .primitiveRestart(Vertex::RestartIndex)
     ;
@@ -109,7 +109,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
     Color dropdown_color = black().opacity(0.9);
 
     auto pipeline = gx::Pipeline()
-      .scissor(m_ui->scissorRect(dropdown_g))
+      .scissor(ui().scissorRect(dropdown_g))
       .alphaBlend()
       .primitiveRestart(Vertex::RestartIndex)
       ;
@@ -184,7 +184,7 @@ void DropDownFrame::losingCapture()
 
 vec2 DropDownFrame::sizeHint() const
 {
-  const ft::Font& font = *m_ui->style().font;
+  const ft::Font& font = *ui().style().font;
   float width = 110.0f;
 
   for(auto& item : m_items) {
