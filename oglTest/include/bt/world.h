@@ -15,14 +15,17 @@ public:
 
   static constexpr int SimulationMaxSubsteps = 10;
 
+  using CollisionObjectIter = std::function<void(btCollisionObject *)>;
+  using RigidBodyIter       = std::function<void(btRigidBody *)>;
+
   DynamicsWorld();
   ~DynamicsWorld();
 
-  void runDbgSimulation();
+  void initDbgSimulation();
+  void startDbgSimulation();
+  void stepDbgSimulation(RigidBodyIter fn);
 
 private:
-  using CollisionObjectIter = std::function<void(btCollisionObject *)>;
-  using RigidBodyIter       = std::function<void(btRigidBody *)>;
 
   // Iterates BACKWARDS
   void foreachObject(CollisionObjectIter fn);

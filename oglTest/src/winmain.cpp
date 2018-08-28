@@ -46,6 +46,9 @@
 #include <bt/bullet.h>
 #include <bt/world.h>
 
+#include <btBulletCollisionCommon.h>
+#include <btBulletDynamicsCommon.h>
+
 #include <resources.h>
 #include <res/res.h>
 #include <res/manager.h>
@@ -54,6 +57,8 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+
+#include <mesh/util.h>
 
 #include <game/game.h>
 
@@ -88,7 +93,7 @@ int main(int argc, char *argv[])
   game::init();
 
   auto world = bt::DynamicsWorld();
-  world.runDbgSimulation();
+  world.initDbgSimulation();
 
   res::load(R.shader.shaders.ids);
   res::load(R.image.ids);
@@ -102,8 +107,6 @@ int main(int argc, char *argv[])
   float zoom = 1.0f, rot = 0.0f;
 
   vec3 sun{ -120.0f, 160.0f, 140.0f };
-
-  bool constrained = true;
 
   int animate = -1;
 
@@ -203,74 +206,10 @@ int main(int argc, char *argv[])
   bool display_tex_matrix = false,
     ortho_projection = false;
 
-  struct Vertex {
-    vec3 pos, normal;
-  };
+  auto sphere = mesh::sphere(16, 16);
 
-  vec3 normals[] = {
-    {0.0f, 0.0f, -1.0f},
-    {0.0f, 0.0f, 1.0f},
-    {0.0f, 1.0f, 0.0f},
-    {0.0f, -1.0f, 0.0f},
-    {-1.0f, 0.0f, 0.0f},
-    {1.0f, 0.0f, 0.0f},
-  };
-
-  std::vector<Vertex> vtxs = {
-    // BACK
-    { { -1.0f, 1.0f, -1.0f }, normals[0] },
-    { { 1.0f, -1.0f, -1.0f }, normals[0] },
-    { { -1.0f, -1.0f, -1.0f }, normals[0] },
-
-    { { 1.0f, -1.0f, -1.0f }, normals[0] },
-    { { -1.0f, 1.0f, -1.0f }, normals[0] },
-    { { 1.0f, 1.0f, -1.0f }, normals[0] },
-
-    // FRONT
-    { { -1.0f, 1.0f, 1.0f }, normals[1] },
-    { { -1.0f, -1.0f, 1.0f }, normals[1] },
-    { { 1.0f, -1.0f, 1.0f }, normals[1] },
-
-    { { 1.0f, -1.0f, 1.0f }, normals[1] },
-    { { 1.0f, 1.0f, 1.0f }, normals[1] },
-    { { -1.0f, 1.0f, 1.0f }, normals[1] },
-
-    // TOP
-    { { -1.0f, 1.0f, -1.0f }, normals[2] },
-    { { -1.0f, 1.0f, 1.0f }, normals[2] },
-    { { 1.0f, 1.0f, 1.0f }, normals[2] },
-
-    { { 1.0f, 1.0f, 1.0f }, normals[2] },
-    { { 1.0f, 1.0f, -1.0f }, normals[2] },
-    { { -1.0f, 1.0f, -1.0f }, normals[2] },
-
-    // BOTTOM
-    { { -1.0f, -1.0f, -1.0f }, normals[3] },
-    { { 1.0f, -1.0f, 1.0f }, normals[3] },
-    { { -1.0f, -1.0f, 1.0f }, normals[3] },
-
-    { { 1.0f, -1.0f, 1.0f }, normals[3] },
-    { { -1.0f, -1.0f, -1.0f }, normals[3] },
-    { { 1.0f, -1.0f, -1.0f }, normals[3] },
-
-    // LEFT
-    { { -1.0f, 1.0f, -1.0f }, normals[4] },
-    { { -1.0f, -1.0f, -1.0f }, normals[4] },
-    { { -1.0f, -1.0f, 1.0f }, normals[4] },
-
-    { { -1.0f, -1.0f, 1.0f }, normals[4] },
-    { { -1.0f, 1.0f, 1.0f }, normals[4] },
-    { { -1.0f, 1.0f, -1.0f }, normals[4] },
-
-    // RIGHT
-    { { 1.0f, 1.0f, -1.0f }, normals[5] },
-    { { 1.0f, -1.0f, 1.0f }, normals[5] },
-    { { 1.0f, -1.0f, -1.0f }, normals[5] },
-
-    { { 1.0f, -1.0f, 1.0f }, normals[5] },
-    { { 1.0f, 1.0f, -1.0f }, normals[5] },
-    { { 1.0f, 1.0f, 1.0f }, normals[5] },
-  };
+  auto& sphere_verts = std::get<0>(sphere);
+  auto& sphere_inds  = std::get<1>(sphere);
 
   struct Light {
     vec4 position, color;
@@ -319,9 +258,14 @@ int main(int argc, char *argv[])
   };
 
   gx::VertexBuffer vbuf(gx::Buffer::Static);
-  vbuf.init(vtxs.data(), vtxs.size());
+  gx::IndexBuffer  ibuf(gx::Buffer::Static, gx::u16);
 
-  gx::VertexArray arr(fmt, vbuf);
+  vbuf.init(sphere_verts.data(), sphere_verts.size());
+  ibuf.init(sphere_inds.data(), sphere_inds.size());
+
+  gx::IndexedVertexArray arr(fmt, vbuf, ibuf);
+
+  gx::VertexArray point_arr(fmt, vbuf);
 
   auto floor_fmt = gx::VertexFormat()
     .attr(gx::f32, 2)
@@ -415,10 +359,8 @@ int main(int argc, char *argv[])
       if(auto kb = input->get<win32::Keyboard>()) {
         using win32::Keyboard;
 
-        if(kb->keyDown('U')) {
-          animate = animate < 0 ? win32::Timers::time_ms() : -1;
-        } else if(kb->keyDown('N')) {
-          normals[0] = normals[0]+vec3{ 0.05f, 0.05f, 0.05f };
+        if(kb->keyDown('S')) {
+          world.startDbgSimulation();
         } else if(kb->keyDown('Q')) {
           window.quit();
         } else if(kb->keyDown('O')) {
@@ -459,6 +401,15 @@ int main(int argc, char *argv[])
       }
     }
 
+    world.stepDbgSimulation([&](btRigidBody *rb) {
+      auto motion_state = rb->getMotionState();
+
+      btTransform transform;
+      motion_state->getWorldTransform(transform);
+
+      vec3 origin = transform.getOrigin();
+    });
+
     display_tex_matrix = checkbox.value();
 
     if(animate > 0) {
@@ -483,7 +434,9 @@ int main(int argc, char *argv[])
 
     vec4 color;
 
-    auto drawcube = [&]()
+    glPointSize(5.0f);
+
+    auto drawsphere = [&]()
     {
       mat4 modelview = view*model;
       program.use()
@@ -491,7 +444,8 @@ int main(int argc, char *argv[])
         .uniformMatrix4x4(U.program.uModelView, modelview)
         .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
         .uniformVector4(U.program.uCol, color)
-        .draw(gx::Triangles, arr, vtxs.size());
+        .draw(gx::Triangles, arr, sphere_inds.size());
+      arr.end();
     };
 
     shadow_pipeline.use();
@@ -502,17 +456,7 @@ int main(int argc, char *argv[])
     model = xform::Transform()
       .translate(0.0f, 3.0f, 0.0f)
       .matrix();
-    drawcube();
-
-    model = xform::Transform()
-      .translate(3.0f, 0.0f, -6.0f)
-      .matrix();
-    drawcube();
-
-    model = xform::Transform()
-      .translate(-3.0f, 0.0f, -6.0f)
-      .matrix();
-    drawcube();
+    drawsphere();
 
     model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
@@ -559,30 +503,29 @@ int main(int argc, char *argv[])
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
       ;
 
-    color = { 1.0f, 1.0f, 1.0f, -1.0f };
-    model = xform::identity()
-      *xform::translate(0.0f, 3.0f, 0.0f)
-      *xform::scale(1.5f)
-      ;
-    drawcube();
+    float y = 150.0f;
+    world.stepDbgSimulation([&](btRigidBody *rb) {
+      btTransform transform;
+      rb->getMotionState()->getWorldTransform(transform);
 
-    color = { 1.0f, 1.0f, 1.0f, -1.0f };
-    model = xform::identity()
-      *xform::translate(3.0f, 0.0f, -6.0f)
-      *rot
-      ;
-    drawcube();
+      vec3 origin = transform.getOrigin();
 
-    color = { 1.0f, 0.5f, 1.0f, -1.0f };
-    model = xform::identity()
-      *xform::translate(-3.0f, 0.0f, -6.0f)
-      *rot
-      ;
-    drawcube();
+      small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }", rb, origin.x, origin.y, origin.z),
+        { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
+      y += small_face.height();
+
+      if(rb->getLocalInertia() == btVector3{ 0, 0, 0 }) return;
+
+      color ={ 1.0f, 1.0f, 1.0f, -1.0f };
+
+      transform.getOpenGLMatrix(model);
+      model = model.transpose();
+      drawsphere();
+    });
 
     model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
-      *xform::scale(10.0f)
+      *xform::scale(20.0f)
       *xform::rotx(PIf/2.0f)
       ;
 
@@ -617,7 +560,7 @@ int main(int argc, char *argv[])
         .translate(pos)
         .matrix()
         ;
-      drawcube();
+      drawsphere();
 
       vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FramebufferSize);
       screen.y -= 10;

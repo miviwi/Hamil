@@ -193,7 +193,7 @@ HGLRC Window::ogl_create_context(HWND hWnd)
 
   wglMakeCurrent(hdc, context);
 
-  SwapIntervalEXT(0);
+  SwapIntervalEXT(1);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 #if !defined(NDEBUG)

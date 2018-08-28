@@ -43,24 +43,23 @@ DynamicsWorld::~DynamicsWorld()
   delete m_collision_config;
 }
 
-void DynamicsWorld::runDbgSimulation()
+void DynamicsWorld::initDbgSimulation()
 {
-  m_world->setGravity({ 0.0f, -10.0f, 0.0f });
-
   btAlignedObjectArray<btCollisionShape *> shapes;
   {
-    auto ground_shape = new btBoxShape({ 50.0f, 50.0f, 50.0f, });
+    auto ground_shape = new btBoxShape({ 20.0f, 0.5f, 20.0f, });
     shapes.push_back(ground_shape);
 
     btTransform transform;
     transform.setIdentity();
-    transform.setOrigin({ 0.0f, -56.0f, 0.0f });
+    transform.setOrigin({ 0.0f, -1.5f, -6.0f });
 
     auto motion_state = new btDefaultMotionState(transform);
     auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
       0.0f, motion_state, ground_shape
     );
     auto body = new btRigidBody(rb_info);
+    body->setActivationState(DISABLE_SIMULATION);
 
     m_world->addRigidBody(body);
   }
@@ -69,40 +68,59 @@ void DynamicsWorld::runDbgSimulation()
     auto sphere_shape = new btSphereShape(1.0f);
     shapes.push_back(sphere_shape);
 
-    btTransform transform;
-    transform.setIdentity();
+    std::vector<btVector3> spheres = {
+      { 2.0f, 40.0f, 0.0f },
+      { 2.5f, 42.0f, 0.0f },
+      { 2.0f, 42.0f, -0.5f },
+      { 2.0f, 40.0f, -4.0f },
+      { 2.5f, 42.0f, -4.0f },
+      { 2.0f, 42.0f, -4.5f },
 
-    btScalar  mass          = 1.0f;
-    btVector3 local_inertia = { 0.0f, 0.0f, 0.0f };
+      { 2.0f, 50.0f, 0.0f },
+      { 2.5f, 52.0f, 0.0f },
+      { 2.0f, 52.0f, -0.5f },
+      { 2.0f, 50.0f, -4.0f },
+      { 2.5f, 52.0f, -4.0f },
+      { 2.0f, 52.0f, -4.5f },
+    };
 
-    sphere_shape->calculateLocalInertia(mass, local_inertia);
-
-    transform.setOrigin({ 2.0f, 10.0f, 0.0f });
-
-    auto motion_state = new btDefaultMotionState(transform);
-    auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
-      mass, motion_state, sphere_shape, local_inertia
-    );
-    auto body = new btRigidBody(rb_info);
-
-    m_world->addRigidBody(body);
-  }
-
-  for(int i = 0; i < 10; i++) {
-    m_world->stepSimulation(SimulationStep, SimulationMaxSubsteps);
-
-    foreachRigidBody([this](btRigidBody *rb) {
-      auto motion_state = rb->getMotionState();
-
+    for(auto sphere : spheres) {
       btTransform transform;
-      motion_state->getWorldTransform(transform);
+      transform.setIdentity();
 
-      vec3 origin = transform.getOrigin();
+      btScalar  mass          = 1.0f;
+      btVector3 local_inertia ={ 0.0f, 0.0f, 0.0f };
 
-      printf("object(0x%p) at { %.2f, %.2f, %.2f }\n", rb,
-        origin.x, origin.y, origin.z);
-    });
+      sphere_shape->calculateLocalInertia(mass, local_inertia);
+
+      transform.setOrigin(sphere);
+
+      auto motion_state = new btDefaultMotionState(transform);
+      auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
+        mass, motion_state, sphere_shape, local_inertia
+      );
+      auto body = new btRigidBody(rb_info);
+      body->setActivationState(DISABLE_SIMULATION);
+
+      m_world->addRigidBody(body);
+    }
   }
+
+}
+
+void DynamicsWorld::startDbgSimulation()
+{
+  foreachRigidBody([this](btRigidBody *rb) {
+    rb->activate();
+    rb->forceActivationState(ACTIVE_TAG);
+  });
+}
+
+void DynamicsWorld::stepDbgSimulation(RigidBodyIter fn) 
+{
+  m_world->stepSimulation(SimulationStep, SimulationMaxSubsteps);
+
+  foreachRigidBody(fn);
 }
 
 void DynamicsWorld::foreachObject(CollisionObjectIter fn)
