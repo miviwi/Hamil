@@ -43,6 +43,9 @@
 #include <yaml/document.h>
 #include <yaml/node.h>
 
+#include <bt/bullet.h>
+#include <bt/world.h>
+
 #include <resources.h>
 #include <res/res.h>
 #include <res/manager.h>
@@ -74,14 +77,18 @@ int main(int argc, char *argv[])
   using win32::Window;
   Window window(WindowSize.x, WindowSize.y);
 
-  constexpr ivec2 FB_DIMS{ 1280, 720 };
+  constexpr ivec2 FramebufferSize{ 1280, 720 };
 
   gx::init();
   ft::init();
   ui::init();
   py::init();
+  bt::init();
   res::init();
   game::init();
+
+  auto world = bt::DynamicsWorld();
+  world.runDbgSimulation();
 
   res::load(R.shader.shaders.ids);
   res::load(R.image.ids);
@@ -128,7 +135,7 @@ int main(int argc, char *argv[])
   gx::Texture2D fb_tex(gx::rgb8);
   gx::Framebuffer fb;
 
-  fb_tex.initMultisample(2, FB_DIMS.x, FB_DIMS.y);
+  fb_tex.initMultisample(2, FramebufferSize.x, FramebufferSize.y);
   //fb_tex.init(FB_DIMS.x, FB_DIMS.y);
   fb_tex.label("FB_tex");
 
@@ -158,7 +165,7 @@ int main(int argc, char *argv[])
   gx::Framebuffer fb_resolve;
 
   fb_resolve.use()
-    .renderbuffer(FB_DIMS.x, FB_DIMS.y, gx::rgb8, gx::Framebuffer::Color(0));
+    .renderbuffer(FramebufferSize.x, FramebufferSize.y, gx::rgb8, gx::Framebuffer::Color(0));
   if(fb_resolve.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create MSAA resolve Framebuffer!", win32::FramebufferError);
   }
@@ -174,7 +181,7 @@ int main(int argc, char *argv[])
     ;
 
   auto pipeline = gx::Pipeline()
-    .viewport(0, 0, FB_DIMS.x, FB_DIMS.y)
+    .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
     .depthTest(gx::Pipeline::LessEqual)
     .cull(gx::Pipeline::Back)
     .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f);
@@ -336,7 +343,8 @@ int main(int argc, char *argv[])
            .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
            .frame<ui::CheckBoxFrame>(iface, "e")
              .gravity(ui::Frame::Left))
-    .frame(ui::create<ui::LabelFrame>(iface, "near_val", ui::Geometry(100.0f, 20.0f))
+    .frame(ui::create<ui::LabelFrame>(iface, "near_val")
+           .caption(util::fmt("Near: %.2f  ", 0.0f))
            .gravity(ui::Frame::Center))
     .frame(ui::create<ui::HSliderFrame>(iface, "near")
            .range(1.0f, 100.0f))
@@ -353,12 +361,12 @@ int main(int argc, char *argv[])
   auto& near_val = *iface.getFrameByName<ui::LabelFrame>("near_val");
 
   near_slider.onChange([&](ui::SliderFrame *target) {
-    near_val.caption(std::to_string(target->value()));
+    near_val.caption(util::fmt("Near: %.2lf", target->value()));
   });
   near_slider.value(1.0);
 
   iface
-    .realSize(FB_DIMS.cast<float>())
+    .realSize(FramebufferSize.cast<float>())
     .frame(layout, { 30.0f, 500.0f })
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;
@@ -468,7 +476,7 @@ int main(int argc, char *argv[])
       *rot_mtx
       ;
 
-    auto persp = !ortho_projection ? xform::perspective(70, (float)FB_DIMS.x/(float)FB_DIMS.y, near_slider.value(), 1000.0f) :
+    auto persp = !ortho_projection ? xform::perspective(70, (float)FramebufferSize.x/(float)FramebufferSize.y, near_slider.value(), 1000.0f) :
       xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 10.0f, 1000.0f)*xform::scale(zoom*2.0f);
 
     auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });
@@ -611,7 +619,7 @@ int main(int argc, char *argv[])
         ;
       drawcube();
 
-      vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FB_DIMS);
+      vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FramebufferSize);
       screen.y -= 10;
 
       small_face.draw(util::fmt("Light %d", i+1), screen, { 1, 1, 1 });
@@ -635,10 +643,10 @@ int main(int argc, char *argv[])
     iface.paint();
     cursor.paint();
 
-    fb.blit(fb_resolve, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y },
+    fb.blit(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y }, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
             gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 
-    fb_resolve.blitToWindow(ivec4{ 0, 0, FB_DIMS.x, FB_DIMS.y }, ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
+    fb_resolve.blitToWindow(ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y }, ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
                     gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
@@ -647,6 +655,8 @@ int main(int argc, char *argv[])
   }
 
   game::finalize();
+  res::finalize();
+  bt::finalize();
   py::finalize();
   ui::finalize();
   ft::finalize();

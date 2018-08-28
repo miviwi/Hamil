@@ -71,15 +71,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(ProjectDir)extern\libyaml\include;$(ProjectDir)extern\xxhash;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(ProjectDir)extern\libyaml\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(ProjectDir)extern\libyaml\include;$(ProjectDir)extern\xxhash;$(ProjectDir)extern\bullet3\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(ProjectDir)extern\libyaml\win64;$(ProjectDir)\extern\bullet3\win64;$(LibraryPath)</LibraryPath>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
     <SourcePath>$(ProjectDir)Generated;C:\Python\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(ProjectDir)extern\libyaml\include;$(ProjectDir)extern\xxhash;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(ProjectDir)extern\libyaml\win64;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(ProjectDir)Generated;$(ProjectDir)include;$(ProjectDir)extern;$(ProjectDir)extern\freetype2\include;$(ProjectDir)extern\python37\include;$(ProjectDir)extern\libyaml\include;$(ProjectDir)extern\xxhash;$(ProjectDir)extern\bullet3\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)extern\freetype2\win64;$(ProjectDir)extern\python37\win64;$(ProjectDir)extern\libyaml\win64;$(ProjectDir)\extern\bullet3\win64;$(LibraryPath)</LibraryPath>
     <SourcePath>$(ProjectDir)Generated;$(SourcePath)</SourcePath>
     <CustomBuildBeforeTargets>PreBuildEvent</CustomBuildBeforeTargets>
   </PropertyGroup>
@@ -116,7 +116,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;yaml_d.lib;python37_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;glu32.lib;freetype271MT.lib;yaml_d.lib;python37_d.lib;BulletCollision_d.lib;BulletDynamics_d.lib;Bullet3Common_d.lib;Bullet3Collision_d.lib;Bullet3Dynamics_d.lib;LinearMath_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/IGNORE:4049,4075 </AdditionalOptions>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
@@ -204,6 +204,8 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClCompile Include="extern\stb_image\image.c" />
     <ClCompile Include="Generated\resources.cpp" />
     <ClCompile Include="Generated\uniforms.cpp" />
+    <ClCompile Include="src\bt\bullet.cpp" />
+    <ClCompile Include="src\bt\world.cpp" />
     <ClCompile Include="src\cli\cli.cpp" />
     <ClCompile Include="src\cli\resourcegen.cpp" />
     <ClCompile Include="src\cli\sh.cpp" />
@@ -263,6 +265,8 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClInclude Include="extern\stb_image\stb_image.h" />
     <ClInclude Include="Generated\resources.h" />
     <ClInclude Include="Generated\uniforms.h" />
+    <ClInclude Include="include\bt\bullet.h" />
+    <ClInclude Include="include\bt\world.h" />
     <ClInclude Include="include\cli\cli.h" />
     <ClInclude Include="include\cli\resourcegen.h" />
     <ClInclude Include="include\cli\sh.h" />

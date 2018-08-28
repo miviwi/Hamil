@@ -37,7 +37,7 @@ protected:
   virtual void reflow() = 0;
 
   std::vector<Frame *> m_frames;
-  bool m_dbg_bboxes = true;
+  bool m_dbg_bboxes = false;
 };
 
 // Frame Geometry:

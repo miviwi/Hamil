@@ -30,6 +30,10 @@ struct Vector2 {
   constexpr Vector2(T x_, T y_) :
     x(x_), y(y_)
   { }
+  Vector2(const T *v) :
+    x(v[0]), y(v[1])
+  {
+  }
   Vector2() :
     x(0), y(0)
   { }
@@ -142,6 +146,9 @@ template <typename T>
 struct Vector3 {
   constexpr Vector3(T x_, T y_, T z_) :
     x(x_), y(y_), z(z_)
+  { }
+  Vector3(const T *v) :
+    x(v[0]), y(v[1]), z(v[2])
   { }
   Vector3() :
     x(0), y(0), z(0)
@@ -282,6 +289,9 @@ struct Vector4 {
   { }
   Vector4(Vector3<T> xyz, T w_) :
     x(xyz.x), y(xyz.y), z(xyz.z), w(w_)
+  { }
+  Vector4(const T *v) :
+    x(v[0]), y(v[1]), z(v[2]), w(v[3])
   { }
   Vector4() :
     x(0), y(0), z(0), w(1)
