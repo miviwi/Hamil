@@ -47,7 +47,7 @@ void DynamicsWorld::initDbgSimulation()
 {
   btAlignedObjectArray<btCollisionShape *> shapes;
   {
-    auto ground_shape = new btBoxShape({ 20.0f, 0.5f, 20.0f, });
+    auto ground_shape = new btBoxShape({ 50.0f, 0.5f, 50.0f, });
     shapes.push_back(ground_shape);
 
     btTransform transform;
@@ -69,19 +69,19 @@ void DynamicsWorld::initDbgSimulation()
     shapes.push_back(sphere_shape);
 
     std::vector<btVector3> spheres = {
-      { 2.0f, 40.0f, 0.0f },
-      { 2.5f, 42.0f, 0.0f },
-      { 2.0f, 42.0f, -0.5f },
-      { 2.0f, 40.0f, -4.0f },
-      { 2.5f, 42.0f, -4.0f },
-      { 2.0f, 42.0f, -4.5f },
+      { 2.0f, 0.0f, 0.0f },
+      { 2.5f, 32.0f, 0.0f },
+      { 2.0f, 32.0f, -0.5f },
+      { 2.0f, 30.0f, -4.0f },
+      { 2.5f, 32.0f, -4.0f },
+      { 2.0f, 32.0f, -4.5f },
 
-      { 2.0f, 50.0f, 0.0f },
-      { 2.5f, 52.0f, 0.0f },
-      { 2.0f, 52.0f, -0.5f },
-      { 2.0f, 50.0f, -4.0f },
-      { 2.5f, 52.0f, -4.0f },
-      { 2.0f, 52.0f, -4.5f },
+      { 2.0f, 10.0f, 0.0f },
+      { 2.5f, 12.0f, 0.0f },
+      { 2.0f, 12.0f, -0.5f },
+      { 2.0f, 10.0f, -4.0f },
+      { 2.5f, 12.0f, -4.0f },
+      { 2.0f, 12.0f, -4.5f },
     };
 
     for(auto sphere : spheres) {

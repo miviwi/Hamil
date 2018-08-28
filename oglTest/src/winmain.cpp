@@ -234,8 +234,8 @@ int main(int argc, char *argv[])
 
   vec3 light_position[] = {
     { 0, 6, 0 },
-    { -5, 6, 0 },
-    { 5, 6, 0 },
+    { -10, 6, -10 },
+    { 20, 6, 0 },
   };
 
   std::vector<vec2> floor_vtxs = {
@@ -486,15 +486,15 @@ int main(int argc, char *argv[])
 
     light_block.lights[0] ={
       view*light_position[0],
-      vec3{ 1.0f, 1.0f, 1.0f }
+      vec3{ 1.0f, 0.0f, 0.0f }
     };
     light_block.lights[1] ={
       view*light_position[1],
-      vec3{ 1.0f, 1.0f, 1.0f }
+      vec3{ 0.0f, 1.0f, 0.0f }
     };
     light_block.lights[2] ={
       view*light_position[2],
-      vec3{ 1.0f, 1.0f, 1.0f }
+      vec3{ 0.0f, 0.0f, 1.0f }
     };
 
     light_ubo.upload(&light_block, 0, 1);
@@ -503,16 +503,12 @@ int main(int argc, char *argv[])
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
       ;
 
-    float y = 150.0f;
+    std::vector<btRigidBody *> bodies;
     world.stepDbgSimulation([&](btRigidBody *rb) {
       btTransform transform;
       rb->getMotionState()->getWorldTransform(transform);
 
       vec3 origin = transform.getOrigin();
-
-      small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }", rb, origin.x, origin.y, origin.z),
-        { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
-      y += small_face.height();
 
       if(rb->getLocalInertia() == btVector3{ 0, 0, 0 }) return;
 
@@ -521,19 +517,18 @@ int main(int argc, char *argv[])
       transform.getOpenGLMatrix(model);
       model = model.transpose();
       drawsphere();
+
+      bodies.push_back(rb);
     });
 
     model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
-      *xform::scale(20.0f)
+      *xform::scale(50.0f)
       *xform::rotx(PIf/2.0f)
       ;
 
     auto texmatrix = xform::Transform()
-      .translate(-5.0f, -5.0f, 0.0f)
-      .scale(1.0f/(sin(win32::Timers::timef_s() * PI/2.0) + 2.0f))
-      .rotz(lerp(0.0f, PIf, anim_timer.elapsedf()))
-      .translate(5.0f, 5.0f, 0.0f)
+      .scale(3.0f)
       .matrix()
       ;
 
@@ -544,7 +539,7 @@ int main(int argc, char *argv[])
       .uniformMatrix4x4(U.tex.uProjection, persp)
       .uniformMatrix4x4(U.tex.uModelView, modelview)
       .uniformMatrix3x3(U.tex.uNormal, modelview.inverse().transpose())
-      .uniformMatrix4x4(U.tex.uTexMatrix, display_tex_matrix ? texmatrix : xform::identity())
+      .uniformMatrix4x4(U.tex.uTexMatrix, texmatrix)
       .uniformSampler(U.tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
@@ -576,12 +571,20 @@ int main(int argc, char *argv[])
 
     face.draw(util::fmt("FPS: %d", fps), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
 
-    small_face.draw(util::fmt("anim_factor: %.2f eye: (%.2f, %.2f, %.2f)",
-                              anim_timer.elapsedf(), eye.x, eye.y, eye.z),
-                    { 30.0f, 100.0f }, { 1.0f, 1.0f, 1.0f });
-
     small_face.draw(util::fmt("time: %.8lfs", fps_timer.elapsedSecondsf()),
                     { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+
+    float y = 150.0f;
+    for(auto rb : bodies) {
+      btTransform transform;
+      rb->getMotionState()->getWorldTransform(transform);
+
+      vec3 origin = transform.getOrigin();
+
+      small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }", rb, origin.x, origin.y, origin.z),
+        { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
+      y += small_face.height();
+    }
 
     iface.paint();
     cursor.paint();
