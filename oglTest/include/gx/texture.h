@@ -24,10 +24,21 @@ public:
 
   /* -------- Texture3D/Texture2DArray init methods -------- */
 
-  void init(unsigned w, unsigned h, unsigned d /* num_layers */);
+  void init(unsigned w, unsigned h, unsigned d /* num_layers */); // Initializes MipMap level 0
+
   void init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
               unsigned w, unsigned h, unsigned d, Format format, Type type);
+
+  /* ------------- TextureCubeMap init methods ------------- */
+
+  void init(Face face, unsigned w, unsigned h); // Initializes MipMap level 0
+  void initAllFaces(unsigned w, unsigned h);    // Initializes all Faces
+
+  void init(const void *data, unsigned mip, Face face, unsigned w, unsigned h, Format format, Type type);
+  void upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y, unsigned w, unsigned h,
+              Format format, Type type);
+
 
   void swizzle(Component r, Component g, Component b, Component a);
 
@@ -75,6 +86,13 @@ public:
 
 private:
   unsigned m_samples;
+};
+
+class TextureCubeMap : public Texture {
+public:
+  TextureCubeMap(Format format);
+  TextureCubeMap(const TextureCubeMap& other) = delete;
+  virtual ~TextureCubeMap();
 };
 
 // - param() DOES NOT check the validity of it's arguments

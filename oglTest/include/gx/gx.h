@@ -4,6 +4,8 @@
 
 #include <GL/gl3w.h>
 
+#include <array>
+
 namespace gx {
 
 enum Component {
@@ -35,6 +37,19 @@ enum Type {
 
   u16_565 = GL_UNSIGNED_SHORT_5_6_5, u16_5551 = GL_UNSIGNED_SHORT_5_5_5_1,
   u32_8888 = GL_UNSIGNED_INT_8_8_8_8,
+};
+
+enum Face {
+  PosX = GL_TEXTURE_CUBE_MAP_POSITIVE_X, NegX = GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+  PosY = GL_TEXTURE_CUBE_MAP_POSITIVE_Y, NegY = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+  PosZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z, NegZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+};
+
+// Ordered according to CubeMap FBO layer indices
+static constexpr std::array<Face, 6> Faces = {
+  PosX, NegX,
+  PosY, NegY,
+  PosZ, NegZ,
 };
 
 bool is_color_format(Format fmt);

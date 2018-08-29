@@ -4,8 +4,6 @@
 #include <cstring>
 #include <cstdio>
 
-#include <windows.h>
-
 namespace gx {
 
 // Even though the code utilizes only glSampler's the texture
@@ -74,6 +72,38 @@ void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, uns
 {
   use();
   glTexSubImage3D(m_target, mip, x, y, z, w, h, d, format, type, data);
+}
+
+void Texture::init(Face face, unsigned w, unsigned h)
+{
+  use();
+  glTexImage2D(face, 0, m_format, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::initAllFaces(unsigned w, unsigned h)
+{
+  use();
+  for(auto face : Faces) {
+    glTexImage2D(face, 0, m_format, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  }
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::init(const void *data, unsigned mip, Face face, unsigned w, unsigned h, Format format, Type type)
+{
+  use();
+  glTexImage2D(face, mip, m_format, w, h, 0, format, type, data);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y, unsigned w, unsigned h, Format format, Type type)
+{
+  use();
+  glTexSubImage2D(face, mip, x, y, w, h, format, type, data);
 }
 
 void Texture::swizzle(Component r, Component g, Component b, Component a)
@@ -265,6 +295,15 @@ void Texture2DArray::initMultisample(unsigned samples, unsigned w, unsigned h, u
 
   use();
   glTexImage3DMultisample(m_target, m_samples, m_format, w, h, layers, GL_TRUE);
+}
+
+TextureCubeMap::TextureCubeMap(Format format) :
+  Texture(GL_TEXTURE_CUBE_MAP, format)
+{
+}
+
+TextureCubeMap::~TextureCubeMap()
+{
 }
 
 }

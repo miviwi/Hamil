@@ -42,4 +42,23 @@ std::tuple<std::vector<PNVertex>, std::vector<u16>> sphere(uint rings, uint sect
   return std::make_tuple(std::move(verts), std::move(inds));
 }
 
+std::tuple<std::vector<PVertex>, std::vector<u16>> box(float w, float h, float d)
+{
+  std::vector<PVertex> verts = {
+    { -w, h, d },  { -w, -h, d },  { w, -h, d, },  { w, h, d },
+    { -w, h, -d }, { -w, -h, -d }, { w, -h, -d, }, { w, h, -d },
+  };
+
+  std::vector<u16> inds = {
+    0, 1, 2, 2, 0, 3, // Back
+    0, 1, 4, 4, 1, 5, // Left
+    0, 4, 7, 7, 0, 3, // Top
+    3, 2, 6, 6, 3, 7, // Right
+    4, 5, 6, 6, 4, 7, // Front
+    1, 5, 6, 6, 1, 2, // Bottom
+  };
+
+  return std::make_tuple(std::move(verts), std::move(inds));
+}
+
 }

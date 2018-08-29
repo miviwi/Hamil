@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
   float pitch = 0, yaw = 0;
   float zoom = 1.0f, rot = 0.0f;
 
-  vec3 sun{ -120.0f, 160.0f, 140.0f };
+  vec3 sun { -120.0f, 160.0f, 140.0f };
 
   int animate = -1;
 
@@ -120,17 +120,62 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
 
+  byte cubemap_colors[][3] ={
+    { 0x80, 0x80, 0x80 },
+    { 0x80, 0x80, 0x80 },
+    { 0xFF, 0xFF, 0xFF },
+    { 0x00, 0x00, 0x00 },
+    { 0x40, 0x40, 0x40 },
+    { 0x40, 0x40, 0x40 },
+  };
+
+  gx::TextureCubeMap cubemap(gx::rgb);
+  for(size_t i = 0; i < gx::Faces.size(); i++) {
+    auto face  = gx::Faces[i];
+    void *data = cubemap_colors[i];
+
+    cubemap.init(data, 0, face, 1, 1, gx::rgb, gx::u8);
+  }
+
+  cubemap.label("SKYBOX_cubemap");
+
+  auto cubemap_sampler = gx::Sampler::repeat2d_linear();
+
+  auto skybox_fmt = gx::VertexFormat()
+    .attr(gx::f32, 3);
+
+  auto skybox_mesh = mesh::box(1, 1, 1);
+
+  auto& skybox_verts = std::get<0>(skybox_mesh);
+  auto& skybox_inds  = std::get<1>(skybox_mesh);
+
+  gx::VertexBuffer skybox_vbuf(gx::Buffer::Static);
+  gx::IndexBuffer  skybox_ibuf(gx::Buffer::Static, gx::u16);
+  skybox_vbuf.init(skybox_verts.data(), skybox_verts.size());
+  skybox_ibuf.init(skybox_inds.data(), skybox_inds.size());
+
+  gx::IndexedVertexArray skybox_arr(skybox_fmt, skybox_vbuf, skybox_ibuf);
+
+  skybox_arr.label("SKYBOX");
+  skybox_arr.end();
+
   res::Handle<res::Shader> r_phong = R.shader.shaders.phong,
     r_program = R.shader.shaders.program,
-    r_tex = R.shader.shaders.tex;
+    r_tex = R.shader.shaders.tex,
+    r_skybox = R.shader.shaders.skybox;
 
   auto program     = gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);
   auto tex_program = gx::make_program(
     r_tex->source(res::Shader::Vertex), r_tex->source(res::Shader::Fragment), U.tex);
 
+  auto skybox_program = gx::make_program(
+    r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox);
+
   program.label("program");
   tex_program.label("TEX_program");
+
+  skybox_program.label("SKYBOX_program");
 
   gx::Texture2D fb_tex(gx::rgb8);
   gx::Framebuffer fb;
@@ -178,8 +223,7 @@ int main(int argc, char *argv[])
 
   float old_fps;
 
-  bool display_tex_matrix = false,
-    ortho_projection = false;
+  bool ortho_projection = false;
 
   auto sphere = mesh::sphere(16, 16);
 
@@ -240,8 +284,6 @@ int main(int argc, char *argv[])
 
   gx::IndexedVertexArray arr(fmt, vbuf, ibuf);
 
-  gx::VertexArray point_arr(fmt, vbuf);
-
   auto floor_fmt = gx::VertexFormat()
     .attr(gx::f32, 2)
     .attr(gx::f32, 2);
@@ -258,23 +300,17 @@ int main(int argc, char *argv[])
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame<ui::PushButtonFrame>(iface, "b")
-    .frame(ui::create<ui::ColumnLayoutFrame>(iface)
-           .frame(ui::create<ui::LabelFrame>(iface).caption("Toggle texmatrix:"))
-           .frame<ui::CheckBoxFrame>(iface, "e")
-             .gravity(ui::Frame::Left))
+    .frame(ui::create<ui::HSliderFrame>(iface, "near")
+           .range(1.0f, 100.0f))
     .frame(ui::create<ui::LabelFrame>(iface, "near_val")
            .caption(util::fmt("Near: %.2f  ", 0.0f))
            .gravity(ui::Frame::Center))
-    .frame(ui::create<ui::HSliderFrame>(iface, "near")
-           .range(1.0f, 100.0f))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");
   btn_b->caption("Quit Application").onClick([&](auto target) {
     window.quit();
   });
-
-  auto& checkbox = iface.getFrameByName<ui::CheckBoxFrame>("e")->value(false);
 
   auto& near_slider = *iface.getFrameByName<ui::HSliderFrame>("near");
   auto& near_val = *iface.getFrameByName<ui::LabelFrame>("near_val");
@@ -383,8 +419,6 @@ int main(int argc, char *argv[])
       }
     }
 
-    display_tex_matrix = checkbox.value();
-
     if(animate > 0) {
       rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
         *xform::rotz(lerp(0.0f, 3.1415f, anim_timer.elapsedf()))
@@ -486,10 +520,6 @@ int main(int argc, char *argv[])
       .uniformSampler(U.tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
 
-    gx::Pipeline()
-      .additiveBlend()
-      .depthTest(gx::Pipeline::LessEqual)
-      .use();
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
       color = { 0, 0, 0, (float)i };
@@ -505,6 +535,21 @@ int main(int argc, char *argv[])
 
       small_face.draw(util::fmt("Light %d", i+1), screen, { 1, 1, 1 });
     }
+
+    gx::tex_unit(1, cubemap, cubemap_sampler);
+
+    gx::Pipeline()
+      .depthTest(gx::Pipeline::LessEqual)
+      .noCull()
+      .use();
+
+    skybox_program.use()
+      .uniformMatrix4x4(U.skybox.uProjection, persp)
+      .uniformMatrix4x4(U.skybox.uView, view)
+      .uniformSampler(U.skybox.uEnvironmentMap, 1)
+      .draw(gx::Triangles, skybox_arr, skybox_inds.size())
+      ;
+    skybox_arr.end();
 
     int fps = (float)frames / fps_timer.elapsedSecondsf();
 
