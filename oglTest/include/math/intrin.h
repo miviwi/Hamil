@@ -12,6 +12,7 @@ void mat4_transpose(const float *a, float *out);
 void mat4_inverse(const float *a, float *out);
 void mat4_vec4_mult(const float *a, const float *b, float *out);
 
+void quat_mult(const float *a, const float *b, float *out);
 void quat_cross(const float *a, const float *b, float *out);
 
 }

@@ -4,6 +4,8 @@
 #include <xmmintrin.h>
 #include <pmmintrin.h>
 
+#include <cassert>
+
 namespace intrin {
 
 void mat4_mult(const float *a, const float *b, float *out)
@@ -188,6 +190,11 @@ void vec3_cross(const float *a, const float *b, float *out)
   __m128 w = _mm_mul_ps(_mm_shuffle_ps(x, x, 0x12), _mm_shuffle_ps(y, y, 0x09));
 
   _mm_store_ps(out, _mm_sub_ps(z, w));
+}
+
+void quat_mult(const float *a, const float *b, float *out)
+{
+  assert(0 && "quat_mult() -- stub!");
 }
 
 void quat_cross(const float *a, const float *b, float *out)

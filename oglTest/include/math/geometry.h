@@ -165,13 +165,13 @@ struct Vector3 {
 
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
 
-  T length() const { return (T)sqrt((x*x) + (y*y) + (z*z)); }
-  T dot(const Vector3& b) const { return (x*b.x) + (y*b.y) + (z*b.z); }
+  T length() const { return (T)sqrt(x*x + y*y + z*z); }
+  T dot(const Vector3& b) const { return x*b.x + y*b.y + z*b.z; }
 
   Vector3 normalize() const
   {
-    T l = length();
-    return Vector3{ x/l, y/l, z/l };
+    T l = (T)1 / length();
+    return (*this) * l;
   }
 
   Vector3 cross(const Vector3& b) const
@@ -308,8 +308,8 @@ struct Vector4 {
 
   Vector3<T> xyz() const { return Vector3<T>{ x, y, z }; }
 
-  T length() const { return (T)sqrt((x*x) + (y*y) + (z*z) + (w*w)); }
-  T dot(const Vector4& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
+  T length() const { return (T)sqrt(x*x + y*y + z*z + w*w); }
+  T dot(const Vector4& b) const { return x*b.x + y*b.y + z*b.z + w*b.w; }
 
   Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }
 
@@ -382,6 +382,18 @@ inline vec4 operator*(vec4 a, float u)
 struct alignas(16) Quaternion {
   float x, y, z, w;
 
+  constexpr Quaternion() :
+    x(0.0f), y(0.0f), z(0.0f), w(1.0f)
+  { }
+  constexpr Quaternion(float x_, float y_, float z_, float w_) :
+    x(x_), y(y_), z(z_), w(w_)
+  { }
+  constexpr Quaternion(const float *v) :
+    x(v[0]), y(v[1]), z(v[2]), w(v[3])
+  { }
+
+  Quaternion operator*(float u) const;
+
   static Quaternion from_axis(vec3 axis, float angle)
   {
     float half_angle = angle / 2.0f;
@@ -394,30 +406,61 @@ struct alignas(16) Quaternion {
 
   static Quaternion from_euler(float x, float y, float z)
   {
+    float cx = cos(x / 2.0f),
+      cy = cos(y / 2.0f),
+      cz = cos(z / 2.0f);
+
+    float sx = sin(x / 2.0f),
+      sy = sin(y / 2.0f),
+      sz = sin(z / 2.0f);
+
+    float cycz = cy*cz,
+      sysz = sy*sz,
+      cysz = cy*sz,
+      sycz = sy*cz;
+
+    Quaternion q = {
+      sx*cycz - cx*sysz,
+      cx*sycz + sx*cysz,
+      cx*cysz - sx*sycz,
+      cx*cycz + sx*sysz
+    };
+
+    return q.normalize();
   }
 
+  float length() const { return sqrtf(x*x + y*y + z*z + w*w); }
   float dot(const Quaternion& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
 
-  inline Quaternion cross(Quaternion b) const;
+  Quaternion normalize() const
+  {
+    auto l = 1.0f / length();
+    return (*this) * l;
+  }
+
+  inline Quaternion cross(const Quaternion& b) const;
 
   operator float *() { return (float *)this; }
   operator const float *() const { return (const float *)this; }
 };
 
-inline Quaternion operator*(Quaternion a, Quaternion b)
+inline Quaternion operator*(const Quaternion& a, const Quaternion& b)
 {
-  return { a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w };
+  Quaternion c;
+
+  intrin::quat_mult(a, b, c);
+  return c;
 }
 
-inline Quaternion operator*(Quaternion a, float u)
+inline Quaternion Quaternion::operator*(float u) const
 {
   Quaternion b;
 
-  intrin::vec4_const_mult(a, u, b);
+  intrin::vec4_const_mult(*this, u, b);
   return b;
 }
 
-inline Quaternion Quaternion::cross(Quaternion b) const
+inline Quaternion Quaternion::cross(const Quaternion& b) const
 {
   Quaternion c;
 
