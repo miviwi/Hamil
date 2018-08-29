@@ -149,20 +149,6 @@ int main(int argc, char *argv[])
 
   fb.label("FB");
 
-  gx::Texture2D shadowmap(gx::depthf);
-  gx::Framebuffer fb_shadow;
-
-  shadowmap.init(1024, 1024);
-  shadowmap.label("shadowmap");
-
-  fb_shadow.use()
-    .tex(shadowmap, 0, gx::Framebuffer::Depth);
-  if(fb_shadow.status() != gx::Framebuffer::Complete) {
-    win32::panic("couldn't create shadowmap Framebuffer!", win32::FramebufferError);
-  }
-
-  fb_shadow.label("FB_shadow");
-
   gx::Framebuffer fb_resolve;
 
   fb_resolve.use()
@@ -172,14 +158,6 @@ int main(int argc, char *argv[])
   }
 
   fb_resolve.label("FB_resolve");
-
-  auto shadow_pipeline = gx::Pipeline{}
-    .viewport(0, 0, 1024, 1024)
-    .depthTest(gx::Pipeline::LessEqual)
-    .cull(gx::Pipeline::Front)
-    .writeDepthOnly()
-    .clearDepth(1.0f)
-    ;
 
   auto pipeline = gx::Pipeline()
     .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
@@ -443,31 +421,7 @@ int main(int argc, char *argv[])
       arr.end();
     };
 
-    shadow_pipeline.use();
-
-    fb_shadow.use();
-    gx::clear(gx::Framebuffer::DepthBit);
-
-    model = xform::Transform()
-      .translate(0.0f, 3.0f, 0.0f)
-      .matrix();
-    drawsphere();
-
-    model = xform::identity()
-      *xform::translate(0.0f, -1.01f, -6.0f)
-      *xform::scale(10.0f)
-      *xform::rotx(PIf/2.0f)
-      ;
-
-    mat4 modelview = view*model;
-
-    gx::tex_unit(0, tex, floor_sampler);
-    tex_program.use()
-      .uniformMatrix4x4(U.tex.uProjection, persp)
-      .uniformMatrix4x4(U.tex.uModelView, modelview)
-      .uniformMatrix3x3(U.tex.uNormal, modelview.inverse().transpose())
-      .uniformSampler(U.tex.uTex, 0)
-      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
+    mat4 modelview = xform::identity();
 
     pipeline.use();
     gx::tex_unit(0, tex, sampler);

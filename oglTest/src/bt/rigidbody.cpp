@@ -19,17 +19,17 @@ xform::Transform RigidBody::worldTransform() const
 
 mat4 RigidBody::worldTransformMatrix() const
 {
-  return { worldTransform().matrix() };     // Avoid dangling-refernce
+  return worldTransform().matrix();
 }
 
 vec3 RigidBody::origin() const
 {
-  return getWorldTransform().getOrigin();
+  return from_btVector3(getWorldTransform().getOrigin());
 }
 
 vec3 RigidBody::localInertia()
 {
-  return m->getLocalInertia();
+  return from_btVector3(m->getLocalInertia());
 }
 
 bool RigidBody::hasMotionState() const
