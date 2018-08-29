@@ -446,10 +446,12 @@ struct alignas(16) Quaternion {
 
 inline Quaternion operator*(const Quaternion& a, const Quaternion& b)
 {
-  Quaternion c;
-
-  intrin::quat_mult(a, b, c);
-  return c;
+  return {
+    a.x*b.w + a.w*b.x + a.z*b.y - a.y*b.z,
+    a.y*b.w - a.z*b.x + a.w*b.y - a.x*b.z,
+    a.z*b.w - a.y*b.x + a.x*b.y - a.w*b.z,
+    a.w*b.w - a.x*b.x + a.y*b.y - a.z*b.z,
+  };
 }
 
 inline Quaternion Quaternion::operator*(float u) const
@@ -460,12 +462,28 @@ inline Quaternion Quaternion::operator*(float u) const
   return b;
 }
 
+inline vec3 operator*(const Quaternion& q, const vec3& v)
+{
+  vec3 u = { q.x, q.y, q.z };
+  float s = q.w;
+
+  return u * 2.0f*u.dot(v)
+    + v*(s*s - u.dot(u))
+    + u.cross(v) * 2.0f*s;
+}
+
 inline Quaternion Quaternion::cross(const Quaternion& b) const
 {
   Quaternion c;
 
   intrin::quat_cross((const float *)this, b, c);
   return c;
+}
+
+inline Quaternion& operator*=(Quaternion& a, const Quaternion& b)
+{
+  a = a*b;
+  return a;
 }
 
 template <typename T>

@@ -75,12 +75,11 @@ int main(int argc, char *argv[])
 
   win32::init();
 
-  constexpr vec2 WindowSize = { 1280, 720 };
+  constexpr vec2 WindowSize       = { 1280, 720 };
+  constexpr ivec2 FramebufferSize = { 1280, 720 };
 
   using win32::Window;
   Window window(WindowSize.x, WindowSize.y);
-
-  constexpr ivec2 FramebufferSize{ 1280, 720 };
 
   gx::init();
   ft::init();

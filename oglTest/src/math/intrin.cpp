@@ -192,11 +192,6 @@ void vec3_cross(const float *a, const float *b, float *out)
   _mm_store_ps(out, _mm_sub_ps(z, w));
 }
 
-void quat_mult(const float *a, const float *b, float *out)
-{
-  assert(0 && "quat_mult() -- stub!");
-}
-
 void quat_cross(const float *a, const float *b, float *out)
 {
   __m128 x = _mm_load_ps(a);
