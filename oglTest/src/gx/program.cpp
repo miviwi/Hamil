@@ -159,23 +159,23 @@ Program& Program::uniformVector4(int location, vec4 v)
   return *this;
 }
 
-Program& Program::uniformMatrix4x4(int location, const mat4& mtx)
+Program& Program::uniformMatrix4x4(int location, const mat4& mtx, bool transpose)
 {
-  glUniformMatrix4fv(location, 1, GL_TRUE, mtx);
+  glUniformMatrix4fv(location, 1, transpose, mtx);
 
   return *this;
 }
 
-Program& Program::uniformMatrix3x3(int location, const mat3& mtx)
+Program& Program::uniformMatrix3x3(int location, const mat3& mtx, bool transpose)
 {
-  glUniformMatrix3fv(location, 1, GL_TRUE, mtx);
+  glUniformMatrix3fv(location, 1, transpose, mtx);
 
   return *this;
 }
 
-Program& Program::uniformMatrix3x3(int location, const mat4& mtx)
+Program& Program::uniformMatrix3x3(int location, const mat4& mtx, bool transpose)
 {
-  return uniformMatrix3x3(location, mtx.xyz());
+  return uniformMatrix3x3(location, mtx.xyz(), transpose);
 }
 
 Program& Program::uniformBool(int location, bool v)

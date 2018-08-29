@@ -8,6 +8,11 @@ Transform::Transform() :
 {
 }
 
+Transform::Transform(const mat4& m_) :
+  m(m_)
+{
+}
+
 Transform& Transform::translate(float x, float y, float z)
 {
   m = xform::translate(x, y, z)*m;

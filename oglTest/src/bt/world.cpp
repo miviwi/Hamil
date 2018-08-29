@@ -1,11 +1,7 @@
 #include <bt/world.h>
+#include <bt/btcommon.h>
 
 #include <math/geometry.h>
-
-#pragma warning(push, 0)      // Silence some harmless warnings
-#include <btBulletCollisionCommon.h>
-#include <btBulletDynamicsCommon.h>
-#pragma warning(pop)
 
 namespace bt {
 
@@ -43,9 +39,21 @@ DynamicsWorld::~DynamicsWorld()
   delete m_collision_config;
 }
 
+void DynamicsWorld::addRigidBody(RigidBody rb)
+{
+  m_world->addRigidBody(rb.m);
+}
+
+void DynamicsWorld::removeRigidBody(RigidBody rb)
+{
+  m_world->removeRigidBody(rb.m);
+}
+
+static btAlignedObjectArray<btCollisionShape *> shapes;
+
 void DynamicsWorld::initDbgSimulation()
 {
-  btAlignedObjectArray<btCollisionShape *> shapes;
+  m_world->setGravity({ 0.0f, -10.0f, 0.0f });
   {
     auto ground_shape = new btBoxShape({ 50.0f, 0.5f, 50.0f, });
     shapes.push_back(ground_shape);
@@ -54,11 +62,11 @@ void DynamicsWorld::initDbgSimulation()
     transform.setIdentity();
     transform.setOrigin({ 0.0f, -1.5f, -6.0f });
 
-    auto motion_state = new btDefaultMotionState(transform);
     auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
-      0.0f, motion_state, ground_shape
+      0.0f, nullptr, ground_shape
     );
     auto body = new btRigidBody(rb_info);
+    body->setWorldTransform(transform);
     body->setActivationState(DISABLE_SIMULATION);
 
     m_world->addRigidBody(body);
@@ -68,7 +76,7 @@ void DynamicsWorld::initDbgSimulation()
     auto sphere_shape = new btSphereShape(1.0f);
     shapes.push_back(sphere_shape);
 
-    std::vector<btVector3> spheres = {
+    std::vector<vec3> spheres = {
       { 2.0f, 0.0f, 0.0f },
       { 2.5f, 32.0f, 0.0f },
       { 2.0f, 32.0f, -0.5f },
@@ -85,24 +93,9 @@ void DynamicsWorld::initDbgSimulation()
     };
 
     for(auto sphere : spheres) {
-      btTransform transform;
-      transform.setIdentity();
+      auto body = createDbgSimulationRigidBody(sphere, false);
 
-      btScalar  mass          = 1.0f;
-      btVector3 local_inertia ={ 0.0f, 0.0f, 0.0f };
-
-      sphere_shape->calculateLocalInertia(mass, local_inertia);
-
-      transform.setOrigin(sphere);
-
-      auto motion_state = new btDefaultMotionState(transform);
-      auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
-        mass, motion_state, sphere_shape, local_inertia
-      );
-      auto body = new btRigidBody(rb_info);
-      body->setActivationState(DISABLE_SIMULATION);
-
-      m_world->addRigidBody(body);
+      addRigidBody(body);
     }
   }
 
@@ -116,14 +109,40 @@ void DynamicsWorld::startDbgSimulation()
   });
 }
 
-void DynamicsWorld::stepDbgSimulation(RigidBodyIter fn) 
+RigidBody DynamicsWorld::createDbgSimulationRigidBody(vec3 sphere, bool active)
 {
-  m_world->stepSimulation(SimulationStep, SimulationMaxSubsteps);
+  auto sphere_shape = shapes[1];
 
-  foreachRigidBody(fn);
+  btTransform transform;
+  transform.setIdentity();
+
+  btScalar  mass          = 1.0f;
+  btVector3 local_inertia = { 0.0f, 0.0f, 0.0f };
+
+  sphere_shape->calculateLocalInertia(mass, local_inertia);
+
+  transform.setOrigin(to_btVector3(sphere));
+
+  auto motion_state = new btDefaultMotionState(transform);
+  auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
+    mass, motion_state, sphere_shape, local_inertia
+  );
+  auto body = new btRigidBody(rb_info);
+  if(!active) body->setActivationState(DISABLE_SIMULATION);
+
+  return body;
 }
 
-void DynamicsWorld::foreachObject(CollisionObjectIter fn)
+void DynamicsWorld::stepDbgSimulation(float dt, RigidBodyIter fn) 
+{
+  m_world->stepSimulation(dt, SimulationMaxSubsteps);
+
+  foreachRigidBody([&](btRigidBody *rb) {
+    fn({ rb });
+  });
+}
+
+void DynamicsWorld::foreachObject(BtCollisionObjectIter fn)
 {
   auto& objects = m_world->getCollisionObjectArray();
   for(auto i = objects.size()-1; i >= 0; i--) {
@@ -132,7 +151,7 @@ void DynamicsWorld::foreachObject(CollisionObjectIter fn)
   }
 }
 
-void DynamicsWorld::foreachRigidBody(RigidBodyIter fn)
+void DynamicsWorld::foreachRigidBody(BtRigidBodyIter fn)
 {
   foreachObject([&](btCollisionObject *obj) {
     if(auto rb = btRigidBody::upcast(obj)) {

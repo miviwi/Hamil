@@ -1,8 +1,10 @@
 #pragma once
 
 #include <bt/bullet.h>
+#include <bt/rigidbody.h>
 
 #include <util/ref.h>
+#include <math/geometry.h>
 
 #include <functional>
 
@@ -15,23 +17,28 @@ public:
 
   static constexpr int SimulationMaxSubsteps = 10;
 
-  using CollisionObjectIter = std::function<void(btCollisionObject *)>;
-  using RigidBodyIter       = std::function<void(btRigidBody *)>;
+  using RigidBodyIter = std::function<void(const RigidBody&)>;
 
   DynamicsWorld();
   ~DynamicsWorld();
 
+  void addRigidBody(RigidBody rb);
+  void removeRigidBody(RigidBody rb);
+
   void initDbgSimulation();
   void startDbgSimulation();
-  void stepDbgSimulation(RigidBodyIter fn);
+  RigidBody createDbgSimulationRigidBody(vec3 sphere, bool active = true);
+  void stepDbgSimulation(float dt, RigidBodyIter fn);
 
 private:
+  using BtCollisionObjectIter = std::function<void(btCollisionObject *)>;
+  using BtRigidBodyIter       = std::function<void(btRigidBody *)>;
 
   // Iterates BACKWARDS
-  void foreachObject(CollisionObjectIter fn);
+  void foreachObject(BtCollisionObjectIter fn);
 
   // Iterates BACKWARDS
-  void foreachRigidBody(RigidBodyIter fn);
+  void foreachRigidBody(BtRigidBodyIter fn);
 
   btCollisionConfiguration *m_collision_config;
   btDispatcher             *m_collision_dispatch;

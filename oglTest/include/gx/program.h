@@ -87,9 +87,9 @@ public:
   Program& uniformVector3(int location, vec3 v);
   Program& uniformVector4(int location, size_t size, const vec4 *v);
   Program& uniformVector4(int location, vec4 v);
-  Program& uniformMatrix4x4(int location, const mat4& mtx);
-  Program& uniformMatrix3x3(int location, const mat3& mtx);
-  Program& uniformMatrix3x3(int location, const mat4& mtx);
+  Program& uniformMatrix4x4(int location, const mat4& mtx, bool transpose = true);
+  Program& uniformMatrix3x3(int location, const mat3& mtx, bool transpose = true);
+  Program& uniformMatrix3x3(int location, const mat4& mtx, bool transpose = true);
   Program& uniformBool(int location, bool v);
 
   void draw(Primitive p, const VertexArray& vtx, size_t offset, size_t num);

@@ -147,6 +147,9 @@ struct Vector3 {
   constexpr Vector3(T x_, T y_, T z_) :
     x(x_), y(y_), z(z_)
   { }
+  constexpr Vector3(T v) :
+    x(v), y(v), z(v)
+  { }
   Vector3(const T *v) :
     x(v[0]), y(v[1]), z(v[2])
   { }

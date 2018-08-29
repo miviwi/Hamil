@@ -7,6 +7,7 @@ namespace xform {
 class Transform {
 public:
   Transform();
+  Transform(const mat4& m_);
 
   Transform& translate(float x, float y, float z);
   Transform& translate(vec3 pos);

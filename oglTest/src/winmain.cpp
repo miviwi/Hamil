@@ -45,9 +45,7 @@
 
 #include <bt/bullet.h>
 #include <bt/world.h>
-
-#include <btBulletCollisionCommon.h>
-#include <btBulletDynamicsCommon.h>
+#include <bt/rigidbody.h>
 
 #include <resources.h>
 #include <res/res.h>
@@ -139,7 +137,7 @@ int main(int argc, char *argv[])
   gx::Framebuffer fb;
 
   fb_tex.initMultisample(2, FramebufferSize.x, FramebufferSize.y);
-  //fb_tex.init(FB_DIMS.x, FB_DIMS.y);
+  //fb_tex.init(FramebufferSize.x, FramebufferSize.y);
   fb_tex.label("FB_tex");
 
   fb.use()
@@ -337,6 +335,9 @@ int main(int argc, char *argv[])
   constexpr auto anim_time = 10000.0f;
   auto anim_timer = win32::LoopTimer().durationSeconds(2.5);
 
+  auto step_timer = win32::DeltaTimer();
+  step_timer.reset();
+
   while(window.processMessages()) {
     win32::Timers::tick();
 
@@ -365,6 +366,10 @@ int main(int argc, char *argv[])
           window.quit();
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
+        } else if(kb->keyDown('D')) {
+          auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
+
+          world.addRigidBody(body);
         } else if(kb->keyDown('W')) {
           pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
         } else if(kb->keyDown('`')) {
@@ -392,7 +397,7 @@ int main(int argc, char *argv[])
 
           pitch = clamp(pitch, (-PIf/3.0f) + 0.01f, (PIf/3.0f) - 0.01f);
         } else if(mouse->event == Mouse::Wheel) {
-          zoom += (mouse->ev_data/120)*0.05f;
+          zoom = clamp(zoom+(mouse->ev_data/120)*0.05f, 0.01f, INFINITY);
         } else if(mouse->buttonDown(Mouse::Middle)) {
           zoom = 1.0f;
 
@@ -400,15 +405,6 @@ int main(int argc, char *argv[])
         }
       }
     }
-
-    world.stepDbgSimulation([&](btRigidBody *rb) {
-      auto motion_state = rb->getMotionState();
-
-      btTransform transform;
-      motion_state->getWorldTransform(transform);
-
-      vec3 origin = transform.getOrigin();
-    });
 
     display_tex_matrix = checkbox.value();
 
@@ -427,14 +423,13 @@ int main(int argc, char *argv[])
       *rot_mtx
       ;
 
-    auto persp = !ortho_projection ? xform::perspective(70, (float)FramebufferSize.x/(float)FramebufferSize.y, near_slider.value(), 1000.0f) :
-      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 10.0f, 1000.0f)*xform::scale(zoom*2.0f);
+    auto persp = !ortho_projection ?
+      xform::perspective(70, (float)FramebufferSize.x/(float)FramebufferSize.y, near_slider.value(), 10e20f) :
+      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 10.0f, 10e20f)*xform::scale(zoom*2.0f);
 
     auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });
 
     vec4 color;
-
-    glPointSize(5.0f);
 
     auto drawsphere = [&]()
     {
@@ -484,15 +479,15 @@ int main(int argc, char *argv[])
 
     light_block.num_lights = 3;
 
-    light_block.lights[0] ={
+    light_block.lights[0] = {
       view*light_position[0],
       vec3{ 1.0f, 0.0f, 0.0f }
     };
-    light_block.lights[1] ={
+    light_block.lights[1] = {
       view*light_position[1],
       vec3{ 0.0f, 1.0f, 0.0f }
     };
-    light_block.lights[2] ={
+    light_block.lights[2] = {
       view*light_position[2],
       vec3{ 0.0f, 0.0f, 1.0f }
     };
@@ -503,23 +498,18 @@ int main(int argc, char *argv[])
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
       ;
 
-    std::vector<btRigidBody *> bodies;
-    world.stepDbgSimulation([&](btRigidBody *rb) {
-      btTransform transform;
-      rb->getMotionState()->getWorldTransform(transform);
+    std::vector<bt::RigidBody> bodies;
+    world.stepDbgSimulation(step_timer.elapsedSecondsf(), [&](const bt::RigidBody& rb) {
+      if(!rb.hasMotionState()) return;
 
-      vec3 origin = transform.getOrigin();
+      color = { vec3(1.0f), -1.0f };
 
-      if(rb->getLocalInertia() == btVector3{ 0, 0, 0 }) return;
-
-      color ={ 1.0f, 1.0f, 1.0f, -1.0f };
-
-      transform.getOpenGLMatrix(model);
-      model = model.transpose();
+      model = rb.worldTransformMatrix();
       drawsphere();
 
       bodies.push_back(rb);
     });
+    step_timer.reset();
 
     model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
@@ -576,10 +566,7 @@ int main(int argc, char *argv[])
 
     float y = 150.0f;
     for(auto rb : bodies) {
-      btTransform transform;
-      rb->getMotionState()->getWorldTransform(transform);
-
-      vec3 origin = transform.getOrigin();
+      vec3 origin = rb.origin();
 
       small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }", rb, origin.x, origin.y, origin.z),
         { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
