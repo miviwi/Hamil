@@ -384,6 +384,12 @@ inline vec4 operator*(vec4 a, float u)
   return b;
 }
 
+template <typename T>
+struct Matrix3;
+
+template <typename T>
+struct Matrix4;
+
 struct alignas(16) Quaternion {
   float x, y, z, w;
 
@@ -433,6 +439,9 @@ struct alignas(16) Quaternion {
 
     return q.normalize();
   }
+
+  Matrix3<float> to_mat3() const;
+  Matrix4<float> to_mat4() const;
 
   float length() const { return sqrtf(x*x + y*y + z*z + w*w); }
   float dot(const Quaternion& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
@@ -540,6 +549,16 @@ template <typename T>
 struct Matrix4 {
   alignas(16) T d[4*4];
 
+  static Matrix4 from_mat3(const Matrix3<T>& m)
+  {
+    return {
+      m[0], m[3], m[6], 0.0f,
+      m[1], m[4], m[7], 0.0f,
+      m[2], m[5], m[8], 0.0f,
+      0.0f, 0.0f, 0.0f, 1.0f,
+    };
+  }
+
   Matrix4& operator *=(Matrix4& b) { *this = *this * b; return *this; }
 
   Matrix4 transpose() const
@@ -548,7 +567,7 @@ struct Matrix4 {
       d[0], d[4], d[8],  d[12],
       d[1], d[5], d[9],  d[13],
       d[2], d[6], d[10], d[14],
-      d[3], d[7], d[11], d[15]
+      d[3], d[7], d[11], d[15],
     };
   }
   // Must be non-singular!
@@ -670,6 +689,31 @@ inline vec4 operator*(mat4 a, vec4 b)
 
   intrin::mat4_vec4_mult(a, b, c);
   return c;
+}
+
+inline mat3 Quaternion::to_mat3() const
+{
+  float x2 = x*x,
+    y2 = y*y,
+    z2 = z*z;
+
+  float xy = x*y,
+    xz = x*z,
+    xw = x*w,
+    yz = y*z,
+    yw = y*w,
+    zw = z*w;
+
+  return {
+    1.0f - 2.0f*y2 - 2.0f*z2,        2.0f*xy - 2.0f*zw,        2.0f*xz + 2.0f*yw,
+           2.0f*xy + 2.0f*zw, 1.0f - 2.0f*x2 - 2.0f*z2,        2.0f*yz - 2.0f*xw,
+           2.0f*xz - 2.0f*yw,        2.0f*yz + 2.0f*xw, 1.0f - 2.0f*x2 - 2.0f*y2,
+  };
+}
+
+inline mat4 Quaternion::to_mat4() const
+{
+  return mat4::from_mat3(to_mat3());
 }
 
 template <typename T>
@@ -894,12 +938,11 @@ static vec2 project(vec4 v, mat4 modelviewprojection, ivec2 screen)
 static vec4 unproject(vec3 v, mat4 modelviewprojection, ivec2 screen)
 {
   auto inv_mvp = modelviewprojection.inverse();
-
-  auto invscreen = screen.cast<float>().recip();
+  auto inv_screen = screen.cast<float>().recip();
 
   vec4 p = {
-    (v.x * invscreen.x)*2.0f - 1.0f,
-    (((float)screen.y - v.y) * invscreen.y)*2.0f - 1.0f,
+    (v.x * inv_screen.x)*2.0f - 1.0f,
+    (((float)screen.y - v.y) * inv_screen.y)*2.0f - 1.0f,
     2.0f*v.z - 1.0f,
     1.0f
   };

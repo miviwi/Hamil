@@ -138,7 +138,7 @@ void DynamicsWorld::stepDbgSimulation(float dt, RigidBodyIter fn)
   m_world->stepSimulation(dt, SimulationMaxSubsteps);
 
   foreachRigidBody([&](btRigidBody *rb) {
-    fn({ rb });
+    fn(rb);
   });
 }
 
