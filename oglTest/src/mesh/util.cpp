@@ -24,7 +24,6 @@ std::tuple<std::vector<PNVertex>, std::vector<u16>> sphere(uint rings, uint sect
     }
   }
 
-
   std::vector<u16> inds;
   inds.reserve(rings*sectors * 6);
   for(uint r = 0; r < rings; r++) {

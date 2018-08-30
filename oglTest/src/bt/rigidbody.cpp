@@ -7,6 +7,31 @@ RigidBody::RigidBody(btRigidBody *m_) :
   m(m_)
 { }
 
+RigidBody::operator bool() const
+{
+  return m;
+}
+
+bool RigidBody::operator==(const RigidBody& other) const
+{
+  return m == other.m;
+}
+
+bool RigidBody::operator!=(const RigidBody& other) const
+{
+  return m != other.m;
+}
+
+RigidBody::RigidBody() :
+  m(nullptr)
+{
+}
+
+void *RigidBody::get() const
+{
+  return m;
+}
+
 xform::Transform RigidBody::worldTransform() const
 {
   auto transform = getWorldTransform();

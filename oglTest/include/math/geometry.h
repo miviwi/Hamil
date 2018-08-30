@@ -147,6 +147,9 @@ struct Vector3 {
   constexpr Vector3(T x_, T y_, T z_) :
     x(x_), y(y_), z(z_)
   { }
+  constexpr Vector3(const Vector2<T>& v, T z_) :
+    x(v.x), y(v.y), z(z_)
+  { }
   constexpr Vector3(T v) :
     x(v), y(v), z(v)
   { }
@@ -191,6 +194,8 @@ struct Vector3 {
   }
 
   Vector3 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z }; }
+
+  bool isZero() const { return x == 0.0f && y == 0.0f && z == 0.0f; }
 
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }
@@ -558,6 +563,11 @@ struct Matrix4 {
     };
   }
 
+  Vector3<T> translation() const
+  {
+    return { d[12], d[13], d[14] };
+  }
+
   operator float *() { return d; }
   operator const float *() const { return d; }
 };
@@ -873,12 +883,33 @@ static vec2 project(vec4 v, mat4 modelviewprojection, ivec2 screen)
   v = modelviewprojection * v;
   v *= 1.0f/v.w;
 
-  vec2 screenf = { (float)screen.x, (float)screen.y };
+  auto screenf = screen.cast<float>();
 
   return {
     (v.x+1)/2 * screenf.x,
     screenf.y - ((v.y+1)/2 * screenf.y)
   };
+}
+
+static vec4 unproject(vec3 v, mat4 modelviewprojection, ivec2 screen)
+{
+  auto inv_mvp = modelviewprojection.inverse();
+
+  auto invscreen = screen.cast<float>().recip();
+
+  vec4 p = {
+    (v.x * invscreen.x)*2.0f - 1.0f,
+    (((float)screen.y - v.y) * invscreen.y)*2.0f - 1.0f,
+    2.0f*v.z - 1.0f,
+    1.0f
+  };
+
+  p = inv_mvp * p;
+  if(p.w == 0.0f) return { vec3(0.0f), 0.0f };
+
+  p.w = 1.0f/p.w;
+
+  return { p.xyz() * p.w, 1.0f };
 }
 
 }

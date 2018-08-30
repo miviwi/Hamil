@@ -29,6 +29,7 @@ public:
   void startDbgSimulation();
   RigidBody createDbgSimulationRigidBody(vec3 sphere, bool active = true);
   void stepDbgSimulation(float dt, RigidBodyIter fn);
+  RigidBody pickDbgSimulation(vec3 ray_from, vec3 ray_to);
 
 private:
   using BtCollisionObjectIter = std::function<void(btCollisionObject *)>;

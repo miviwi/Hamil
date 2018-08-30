@@ -120,13 +120,14 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
 
+  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   byte cubemap_colors[][3] ={
-    { 0x80, 0x80, 0x80 },
-    { 0x80, 0x80, 0x80 },
-    { 0xFF, 0xFF, 0xFF },
-    { 0x00, 0x00, 0x00 },
-    { 0x40, 0x40, 0x40 },
-    { 0x40, 0x40, 0x40 },
+    { 0x20, 0x20, 0x20, },
+    { 0x20, 0x20, 0x20, },
+    { 0x20, 0x20, 0x20, },
+    { 0x20, 0x20, 0x20, },
+    { 0x20, 0x20, 0x20, },
+    { 0x20, 0x20, 0x20, },
   };
 
   gx::TextureCubeMap cubemap(gx::rgb);
@@ -134,7 +135,7 @@ int main(int argc, char *argv[])
     auto face  = gx::Faces[i];
     void *data = cubemap_colors[i];
 
-    cubemap.init(data, 0, face, 1, 1, gx::rgb, gx::u8);
+    cubemap.init(data, 0, face, 1, gx::rgb, gx::u8);
   }
 
   cubemap.label("SKYBOX_cubemap");
@@ -485,11 +486,22 @@ int main(int argc, char *argv[])
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
       ;
 
+    vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.99f }, persp*view, FramebufferSize);
+
+    bt::RigidBody picked_body;
+    if(mouse_ray.w != 0.0f) {
+      picked_body = world.pickDbgSimulation(eye.xyz(), mouse_ray.xyz());
+    }
+
     std::vector<bt::RigidBody> bodies;
     world.stepDbgSimulation(step_timer.elapsedSecondsf(), [&](const bt::RigidBody& rb) {
       if(!rb.hasMotionState()) return;
-
-      color = { vec3(1.0f), -1.0f };
+      
+      if(rb == picked_body) {
+        color = { 1.0f, 0.0f, 0.0f, -1.0f };
+      } else {
+        color = { vec3(1.0f), -1.0f };
+      }
 
       model = rb.worldTransformMatrix();
       drawsphere();
@@ -559,14 +571,18 @@ int main(int argc, char *argv[])
 
     face.draw(util::fmt("FPS: %d", fps), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
 
-    small_face.draw(util::fmt("time: %.8lfs", fps_timer.elapsedSecondsf()),
-                    { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+    if(picked_body) {
+      small_face.draw(util::fmt("picked(0x%p) at: { %.2f, %.2f, %.2f }",
+        picked_body.get(), picked_body.origin().x, picked_body.origin().y, picked_body.origin().z),
+        { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+    }
 
     float y = 150.0f;
     for(auto rb : bodies) {
       vec3 origin = rb.origin();
 
-      small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }", rb, origin.x, origin.y, origin.z),
+      small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }",
+        rb.get(), origin.x, origin.y, origin.z),
         { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
       y += small_face.height();
     }

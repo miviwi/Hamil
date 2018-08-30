@@ -32,10 +32,10 @@ public:
 
   /* ------------- TextureCubeMap init methods ------------- */
 
-  void init(Face face, unsigned w, unsigned h); // Initializes MipMap level 0
-  void initAllFaces(unsigned w, unsigned h);    // Initializes all Faces
+  void init(Face face, unsigned l); // Initializes MipMap level 0
+  void initAllFaces(unsigned l);    // Initializes all Faces
 
-  void init(const void *data, unsigned mip, Face face, unsigned w, unsigned h, Format format, Type type);
+  void init(const void *data, unsigned mip, Face face, unsigned l, Format format, Type type);
   void upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type type);
 

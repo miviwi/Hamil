@@ -9,6 +9,10 @@ namespace bt {
 
 class RigidBody {
 public:
+  RigidBody();
+
+  void *get() const;
+
   xform::Transform worldTransform() const;
   mat4 worldTransformMatrix() const;
 
@@ -16,6 +20,11 @@ public:
   vec3 localInertia();
 
   bool hasMotionState() const;
+
+  operator bool() const;
+
+  bool operator==(const RigidBody& other) const;
+  bool operator!=(const RigidBody& other) const;
 
 protected:
   RigidBody(btRigidBody *m_);

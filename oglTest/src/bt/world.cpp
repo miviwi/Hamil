@@ -142,6 +142,21 @@ void DynamicsWorld::stepDbgSimulation(float dt, RigidBodyIter fn)
   });
 }
 
+RigidBody DynamicsWorld::pickDbgSimulation(vec3 ray_from, vec3 ray_to)
+{
+  auto from = to_btVector3(ray_from);
+  auto to   = to_btVector3(ray_to);
+
+  btCollisionWorld::ClosestRayResultCallback callback(from, to);
+
+  m_world->rayTest(from, to, callback);
+  if(callback.hasHit()) {
+    return (btRigidBody *)btRigidBody::upcast(callback.m_collisionObject);
+  }
+
+  return nullptr;
+}
+
 void DynamicsWorld::foreachObject(BtCollisionObjectIter fn)
 {
   auto& objects = m_world->getCollisionObjectArray();
