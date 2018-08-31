@@ -6,6 +6,8 @@ import eugene_util as util
 
 from pprint import pprint
 
+database.Database()
+
 class ResourceGen:
     def __init__(self, docs):
         self.paths = { doc['tag']: {} for doc in docs }
@@ -87,8 +89,6 @@ class ResourceGen:
 
 def main(db, args):
     pattern = lambda dir: f"{dir}\\*.meta"
-
-    print("\nGenerating Resources...")
 
     if util.up_to_date(db, args, pattern): return 1
 

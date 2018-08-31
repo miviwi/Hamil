@@ -1,5 +1,6 @@
 import uniformgen
 import resourcegen
+import componentgen
 import eugene_script as script
 
 """
@@ -8,7 +9,8 @@ import eugene_script as script
     That return a status code
 """
 MODULES = {
-    "uniformgen":  uniformgen.main,
-    "resourcegen": resourcegen.main,
-    "run":         script.main,
+    "uniformgen":   uniformgen.main,
+    "resourcegen":  resourcegen.main,
+    "componentgen": componentgen.main,
+    "run":          script.main,
 }

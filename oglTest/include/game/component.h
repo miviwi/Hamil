@@ -21,4 +21,9 @@ class Component {
 
 };
 
+// !$Compoment(TestComponent)
+struct TestComponent : public Component {
+
+};
+
 }
