@@ -62,12 +62,13 @@ void DynamicsWorld::initDbgSimulation()
     transform.setIdentity();
     transform.setOrigin({ 0.0f, -1.5f, -6.0f });
 
-    auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
+    auto rb_info = btRigidBody::btRigidBodyConstructionInfo(
       0.0f, nullptr, ground_shape
     );
     auto body = new btRigidBody(rb_info);
     body->setWorldTransform(transform);
     body->setActivationState(DISABLE_SIMULATION);
+    body->setRollingFriction(0.2f);
 
     m_world->addRigidBody(body);
   }

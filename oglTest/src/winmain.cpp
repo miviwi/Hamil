@@ -100,8 +100,13 @@ int main(int argc, char *argv[])
       m.d[3], m.d[7], m.d[11], m.d[15]);
   };
 
-  auto q = Quaternion::from_euler(0, 0, PIf);
-  auto m = xform::rotz(PIf);
+  auto q = Quaternion::from_euler(0, 0, PIf)
+    *Quaternion::from_euler(0, PIf/2.0f, 0);
+  auto m = xform::Transform()
+    .rotz(PIf)
+    .roty(PIf/2.0f)
+    .matrix()
+    ;
 
   printf("Quaternion:\n");
   print_mat4(q.to_mat4());

@@ -440,6 +440,9 @@ struct alignas(16) Quaternion {
     return q.normalize();
   }
 
+  static Quaternion from_mat3(const Matrix3<float>& m);
+  static Quaternion from_mat4(const Matrix4<float>& m);
+
   Matrix3<float> to_mat3() const;
   Matrix4<float> to_mat4() const;
 
@@ -504,6 +507,8 @@ template <typename T>
 struct Matrix2 {
   T d[2*2];
 
+  T operator()(unsigned col, unsigned row) const { return d[col*2 + row]; }
+
   Matrix2& operator *=(Matrix2& b) { *this = *this * b; return *this; }
 
   operator float *() { return d; }
@@ -525,6 +530,8 @@ using imat2 = Matrix2<int>;
 template <typename T>
 struct Matrix3 {
   T d[3*3];
+
+  T operator()(unsigned col, unsigned row) const { return d[col*3 + row]; }
 
   Matrix3& operator *=(Matrix3& b) { *this = *this * b; return *this; }
 
@@ -549,17 +556,19 @@ template <typename T>
 struct Matrix4 {
   alignas(16) T d[4*4];
 
+  T operator()(unsigned col, unsigned row) const { return d[col*4 + row]; }
+
   static Matrix4 from_mat3(const Matrix3<T>& m)
   {
     return {
-      m[0], m[3], m[6], 0.0f,
-      m[1], m[4], m[7], 0.0f,
-      m[2], m[5], m[8], 0.0f,
+      m[0], m[1], m[2], 0.0f,
+      m[3], m[4], m[5], 0.0f,
+      m[6], m[7], m[8], 0.0f,
       0.0f, 0.0f, 0.0f, 1.0f,
     };
   }
 
-  Matrix4& operator *=(Matrix4& b) { *this = *this * b; return *this; }
+  Matrix4& operator *=(const Matrix4& b) { *this = *this * b; return *this; }
 
   Matrix4 transpose() const
   {
@@ -592,7 +601,7 @@ struct Matrix4 {
 };
 
 template <typename T>
-Matrix4<T> operator*(Matrix4<T> a, Matrix4<T> b)
+Matrix4<T> operator*(const Matrix4<T>& a, const Matrix4<T>& b)
 {
   return Matrix4<T>{
       a.d[ 0]*b.d[ 0]+a.d[ 1]*b.d[ 4]+a.d[ 2]*b.d[ 8]+a.d[ 3]*b.d[12], a.d[ 0]*b.d[ 1]+a.d[ 1]*b.d[ 5]+a.d[ 2]*b.d[ 9]+a.d[ 3]*b.d[13], a.d[ 0]*b.d[2 ]+a.d[ 1]*b.d[ 6]+a.d[ 2]*b.d[10]+a.d[ 3]*b.d[14], a.d[ 0]*b.d[ 3]+a.d[ 1]*b.d[ 7]+a.d[ 2]*b.d[11]+a.d[ 3]*b.d[15],
@@ -603,7 +612,7 @@ Matrix4<T> operator*(Matrix4<T> a, Matrix4<T> b)
 }
 
 template <typename T>
-Matrix4<T> operator*(Matrix4<T> a, T b)
+Matrix4<T> operator*(const Matrix4<T>& a, T b)
 {
   return Matrix4<T>{
     a.d[0]*b,  a.d[1]*b,  a.d[2]*b,  a.d[3]*b,
@@ -647,7 +656,7 @@ inline Matrix4<T> Matrix4<T>::inverse() const
 using mat4  = Matrix4<float>;
 using imat4 = Matrix4<int>;
 
-inline mat4 operator*(mat4 a, mat4 b)
+inline mat4 operator*(const mat4& a, const mat4& b)
 {
   mat4 c;
 
@@ -673,7 +682,7 @@ mat4 mat4::inverse() const
 }
 
 template <typename T>
-Vector4<T> operator*(Matrix4<T> a, Vector4<T> b)
+Vector4<T> operator*(const Matrix4<T>& a, const Vector4<T>& b)
 {
   return Vector4<T>{
     a.d[ 0]*b.x+a.d[ 1]*b.y+a.d[ 2]*b.z+a.d[ 3]*b.w,
@@ -683,7 +692,7 @@ Vector4<T> operator*(Matrix4<T> a, Vector4<T> b)
   };
 }
 
-inline vec4 operator*(mat4 a, vec4 b)
+inline vec4 operator*(const mat4& a, const vec4& b)
 {
   alignas(16) vec4 c;
 
@@ -714,6 +723,23 @@ inline mat3 Quaternion::to_mat3() const
 inline mat4 Quaternion::to_mat4() const
 {
   return mat4::from_mat3(to_mat3());
+}
+
+inline Quaternion Quaternion::from_mat3(const mat3& m)
+{
+  float w   = sqrtf(1.0f + m(0, 0) + m(1, 1) + m(2, 2)) * 0.5f;
+  float w_4 = w*0.25f;
+
+  float x = (m(2, 1) - m(1, 2)) * w_4,
+    y = (m(0, 2) - m(2, 0)) * w_4,
+    z = (m(1, 0) - m(0, 1)) * w_4;
+
+  return { x, y, z, w };
+}
+
+inline Quaternion Quaternion::from_mat4(const mat4& m)
+{
+  return from_mat3(m.xyz());
 }
 
 template <typename T>
