@@ -284,6 +284,9 @@
     <ClCompile Include="src\util\hashindex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\util\lfsr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -569,6 +572,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\util\hashindex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\util\lfsr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

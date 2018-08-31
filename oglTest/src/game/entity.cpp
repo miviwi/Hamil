@@ -2,7 +2,12 @@
 
 namespace game {
 
-Entity::Entity(Id id) :
+EntityId EntityManager::newId()
+{
+  return m_next_id.next();
+}
+
+Entity::Entity(EntityId id) :
   m_id(id)
 {
 }

@@ -2,20 +2,31 @@
 
 #include <game/game.h>
 
+#include <util/lfsr.h>
+
 namespace game {
+
+using EntityId = u32;
+
+class EntityManager {
+public:
+
+  EntityId newId();
+
+private:
+  util::MaxLength32BitLFSR m_next_id;
+};
 
 class Entity {
 public:
-  using Id = u32;
-
-  enum : Id {
+  enum : EntityId {
     Invalid = 0
   };
 
-  Entity(Id id = Invalid);
+  Entity(EntityId id = Invalid);
 
 private:
-  Id m_id;
+  EntityId m_id;
 };
 
 }
