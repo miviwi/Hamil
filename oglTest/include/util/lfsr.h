@@ -11,7 +11,7 @@ namespace util {
 class MaxLength32BitLFSR {
 public:
   // source: https://users.ece.cmu.edu/~koopman/lfsr/32.txt
-  static constexpr u32 Feedback = 0x8000'0EA69;
+  static constexpr u32 Feedback = 0x8000'0EA6;
 
   MaxLength32BitLFSR(u32 seed = 1);
 

@@ -6,8 +6,6 @@ import eugene_util as util
 
 from pprint import pprint
 
-database.Database()
-
 class ResourceGen:
     def __init__(self, docs):
         self.paths = { doc['tag']: {} for doc in docs }
