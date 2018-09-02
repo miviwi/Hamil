@@ -1,9 +1,13 @@
 (mkdir ${Generated})
 
-#    -------- Uniforms  --------
+#    --------  Uniforms  --------
 (uniformgen ${Solution}oglTest\src)
 (move-if-newer uniforms.* ${Generated})
 
-#    -------- Resources --------
+#    -------- Resources  --------
 (resourcegen ${Solution}x64\Debug)
 (move-if-newer resources.* ${Generated})
+
+#    -------- Components --------
+(componentgen ${Solution}oglTest\include\game\components)
+(move-if-newer components.* ${Generated})

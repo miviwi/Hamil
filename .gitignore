@@ -246,6 +246,7 @@ ModelManifest.xml
 **/[Gg]enerated/
 uniforms.*
 resources.*
+components.*
 **/eugene.db
 
 *.exe
