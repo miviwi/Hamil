@@ -25,6 +25,7 @@ void init()
 
 void finalize()
 {
+  p_manager.reset();
 }
 
 ResourceManager& resource()

@@ -12,10 +12,12 @@ namespace game {
 
 class Component {
 public:
-  EntityId entity() const;
+  Component(Entity e);
+  
+  Entity entity() const;
 
 private:
-  EntityId m_entity;
+  Entity m_entity;
 };
 
 }

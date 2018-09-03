@@ -299,6 +299,9 @@
     <ClCompile Include="src\game\componentman.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\entityman.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -602,6 +605,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\game\componentman.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\game\entityman.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

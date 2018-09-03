@@ -2,20 +2,9 @@
 
 #include <game/game.h>
 
-#include <util/lfsr.h>
-
 namespace game {
 
 using EntityId = u32;
-
-class EntityManager {
-public:
-
-  EntityId newId();
-
-private:
-  util::MaxLength32BitLFSR m_next_id;
-};
 
 class Entity {
 public:
@@ -24,6 +13,20 @@ public:
   };
 
   Entity(EntityId id = Invalid);
+
+  EntityId id() const;
+
+  template <typename T>
+  bool hasComponent()
+  {
+    return component<T>();
+  }
+
+  template <typename T>
+  T *component()
+  {
+    return components().getComponentById<T>(id());
+  }
 
 private:
   EntityId m_id;

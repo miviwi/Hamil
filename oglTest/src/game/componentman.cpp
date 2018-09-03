@@ -38,12 +38,12 @@ private:
   ComponentStore *m_components;
 };
 
-std::unique_ptr<IComponentManager> create_component_manager()
+IComponentManager::Ptr create_component_manager()
 {
-  std::unique_ptr<IComponentManager> ptr;
+  IComponentManager::Ptr ptr;
   ptr.reset(new ComponentManager());
 
-  return std::move(ptr);
+  return ptr;
 }
 
 }

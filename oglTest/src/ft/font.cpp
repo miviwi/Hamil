@@ -207,6 +207,9 @@ void finalize()
   assert(!err && "FreeType finalize error!");
 
   ft = nullptr;
+
+  p.reset();
+  font_program.reset();
 }
 
 Font::Font(const FontFamily& family, unsigned height) :

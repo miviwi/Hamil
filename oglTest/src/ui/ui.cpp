@@ -128,6 +128,7 @@ void init()
 
 void finalize()
 {
+  ui_program.reset();
 }
 
 Ui::Ui(Geometry geom, const Style& style) :
