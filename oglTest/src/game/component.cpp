@@ -2,4 +2,9 @@
 
 namespace game {
 
+EntityId Component::entity() const
+{
+  return m_entity;
+}
+
 }

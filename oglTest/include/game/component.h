@@ -1,6 +1,5 @@
 #pragma once
 
-#include <components.h>
 #include <game/game.h>
 #include <game/entity.h>
 
@@ -12,18 +11,11 @@
 namespace game {
 
 class Component {
-
-};
-
-class IComponentManager {
 public:
-  template <typename T>
-  T *getComponentById(EntityId entity)
-  {
-    return nullptr;
-  }
+  EntityId entity() const;
 
-protected:
+private:
+  EntityId m_entity;
 };
 
 }

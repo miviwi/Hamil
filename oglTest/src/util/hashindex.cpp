@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include <new>
 #include <algorithm>
 
 namespace util {
@@ -62,6 +63,22 @@ HashIndex::HashIndex(HashIndex&& other) :
 HashIndex::~HashIndex()
 {
   dealloc();
+}
+
+HashIndex& HashIndex::operator=(const HashIndex & other)
+{
+  dealloc();
+
+  new(this) HashIndex(other);
+  return *this;
+}
+
+HashIndex& HashIndex::operator=(HashIndex && other)
+{
+  dealloc();
+
+  new(this) HashIndex(other);
+  return *this;
 }
 
 void HashIndex::add(Key key, Index idx)

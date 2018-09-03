@@ -5,7 +5,6 @@
 namespace game {
 
 // !$Component
-
 struct TestComponent : public Component {
 
 };

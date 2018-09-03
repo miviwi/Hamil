@@ -27,8 +27,8 @@ public:
   HashIndex(HashIndex&& other);
   ~HashIndex();
 
-  HashIndex& operator=(const HashIndex& other) = delete;
-  HashIndex& operator=(HashIndex&& other) = delete;
+  HashIndex& operator=(const HashIndex& other);
+  HashIndex& operator=(HashIndex&& other);
 
   void resize(size_t chain_sz);
 
@@ -39,6 +39,16 @@ public:
 
   Index first(Key key) const;
   Index next(Index idx) const;
+
+  template <typename Fn>
+  Index find(Key key, Fn compare)
+  {
+    for(auto index = first(key); index != Invalid; index = next(index)) {
+      if(compare(key, index)) return index;
+    }
+
+    return Invalid;
+  }
 
   size_t hashSize() const;
   size_t chainSize() const;

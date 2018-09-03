@@ -293,6 +293,12 @@
     <ClCompile Include="src\game\components\testcomponent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\componentstore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\componentman.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\stb_rect_pack\stb_rect_pack.h">
@@ -590,6 +596,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\game\components\testcomponent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\util\tupleindex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\game\componentman.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
