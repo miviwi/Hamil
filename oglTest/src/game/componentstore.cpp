@@ -16,9 +16,6 @@ void IComponentStore::reap_component(Component *component)
 {
   if(!component->entity()) return;
 
-  auto entity = component->entity();
-  printf("reaped %s(0x%.8x)\n", entity.component<GameObject>().get().name().data(), entity.id());
-
   component->m_entity = Entity();
 }
 

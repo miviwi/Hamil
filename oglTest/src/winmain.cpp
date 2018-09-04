@@ -89,31 +89,6 @@ int main(int argc, char *argv[])
   res::init();
   game::init();
 
-  auto print_mat4 = [](const mat4& m) {
-    printf("%.2f %.2f %.2f %.2f\n"
-      "%.2f %.2f %.2f %.2f\n"
-      "%.2f %.2f %.2f %.2f\n"
-      "%.2f %.2f %.2f %.2f\n",
-      m.d[0], m.d[4], m.d[8], m.d[12],
-      m.d[1], m.d[5], m.d[9], m.d[13],
-      m.d[2], m.d[6], m.d[10], m.d[14],
-      m.d[3], m.d[7], m.d[11], m.d[15]);
-  };
-
-  auto q = Quaternion::from_euler(0, 0, PIf)
-    *Quaternion::from_euler(0, PIf/2.0f, 0);
-  auto m = xform::Transform()
-    .rotz(PIf)
-    .roty(PIf/2.0f)
-    .matrix()
-    ;
-
-  printf("Quaternion:\n");
-  print_mat4(q.to_mat4());
-
-  printf("RotZ:\n");
-  print_mat4(m);
-
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
 
