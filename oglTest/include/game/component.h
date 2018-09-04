@@ -16,7 +16,12 @@ public:
   
   Entity entity() const;
 
+  // Only returns 'true' when it's Entity is != Invalid and alive()
+  operator bool() const;
+
 private:
+  friend class IComponentStore;
+
   Entity m_entity;
 };
 

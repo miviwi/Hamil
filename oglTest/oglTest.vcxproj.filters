@@ -290,9 +290,6 @@
     <ClCompile Include="Generated\components.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\components\testcomponent.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\game\componentstore.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -300,6 +297,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\entityman.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\components\gameobject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\bitvector.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\componentref.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -598,9 +604,6 @@
     <ClInclude Include="Generated\components.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\game\components\testcomponent.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\util\tupleindex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -608,6 +611,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\game\entityman.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\game\components\gameobject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\game\components\all.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\util\bitvector.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\game\componentref.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

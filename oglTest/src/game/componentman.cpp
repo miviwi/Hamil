@@ -1,8 +1,8 @@
 #include <game/componentman.h>
 #include <game/componentstore.h>
-#include <game/components/testcomponent.h>
 
 #include <components.h>
+#include <game/components/all.h>
 
 #include <utility>
 

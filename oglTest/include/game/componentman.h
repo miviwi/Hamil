@@ -2,9 +2,11 @@
 
 #include <game/game.h>
 #include <game/component.h>
+#include <game/componentref.h>
 
 #include <components.h>
 
+#include <functional>
 #include <memory>
 #include <utility>
 
@@ -15,15 +17,29 @@ public:
   using Ptr = std::shared_ptr<IComponentManager>;
 
   template <typename T>
-  T *getComponentById(EntityId entity)
+  ComponentRef<T> getComponentById(EntityId entity)
   {
     return components().getComponentById<T>(entity);
   }
 
   template <typename T, typename... Args>
-  T *createComponent(EntityId entity, Args... args)
+  ComponentRef<T> createComponent(EntityId entity, Args... args)
   {
     return components().createComponent<T>(entity, std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  void removeComponent(EntityId entity)
+  {
+    return components().removeComponent<T>(entity);
+  }
+
+  template <typename T>
+  void foreach(std::function<void(ComponentRef<T> component)> fn)
+  {
+    components().foreach<T>([&](auto component) {
+      fn({ component });
+    });
   }
 
 protected:

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <game/game.h>
+#include <game/entity.h>
+#include <game/component.h>
 
 #include <util/hashindex.h>
 #include <util/tupleindex.h>
@@ -15,9 +17,12 @@ namespace game {
 
 class Component;
 
-struct IComponentStore {
+class IComponentStore {
 public:
   static bool compare_component(u32 id, Component *component);
+
+protected:
+  static void reap_component(Component *component);
 };
 
 template <typename... Args>
@@ -38,10 +43,7 @@ struct ComponentStoreBase : IComponentStore {
     util::HashIndex& hash  = getHash<TupleIndex>();
     std::vector<T>& bucket = getBucket<TupleIndex>();
 
-    auto index = hash.find(id, [&](u32 id, u32 index) {
-      const auto elem = bucket.data() + index;
-      return compare_component(id, elem);
-    });
+    auto index = findComponent<TupleIndex>(id);
 
     return index != util::HashIndex::Invalid ? (bucket.data() + index) : nullptr;
   }
@@ -56,7 +58,7 @@ struct ComponentStoreBase : IComponentStore {
     util::HashIndex& hash  = getHash<TupleIndex>();
     std::vector<T>& bucket = getBucket<TupleIndex>();
 
-    auto index     = (util::HashIndex::Index)bucket.size();
+    auto index = (util::HashIndex::Index)bucket.size();
 
     bucket.emplace_back(id, std::forward<Args>(args)...);
     auto component = &bucket.back();
@@ -64,6 +66,42 @@ struct ComponentStoreBase : IComponentStore {
     hash.add(id, index);
 
     return component;
+  }
+
+  template <typename T>
+  void removeComponent(u32 id)
+  {
+    checkComponent<T>();
+
+    constexpr auto TupleIndex = tuple_index<T>();
+
+    util::HashIndex& hash  = getHash<TupleIndex>();
+    std::vector<T>& bucket = getBucket<TupleIndex>();
+
+    auto index = findComponent<TupleIndex>(id);
+    auto component = (Component *)(bucket.data() + index);
+
+    reap_component(component);
+    hash.remove(id, index);
+  }
+
+  template <typename T, typename Fn>
+  void foreach(Fn fn)
+  {
+    checkComponent<T>();
+
+    constexpr auto TupleIndex = tuple_index<T>();
+
+    std::vector<T>& bucket = getBucket<TupleIndex>();
+    for(auto& el : bucket) {
+      auto& component = (Component&)el;
+      if(!component) {
+        reap_component(&el);
+        continue;
+      }
+
+      fn(&el);
+    }
   }
 
 private:
@@ -89,6 +127,17 @@ private:
   std::tuple_element_t<Idx, Components>& getBucket()
   {
     return std::get<Idx>(components);
+  }
+
+  template <size_t Idx>
+  util::HashIndex::Index findComponent(u32 id)
+  {
+    auto& bucket = getBucket<Idx>();
+
+    return getHash<Idx>().find(id, [&](u32 id, u32 index) {
+      const auto elem = bucket.data() + index;
+      return compare_component(id, elem);
+    });
   }
 
 };

@@ -1,14 +1,25 @@
 #include <game/componentstore.h>
 #include <game/component.h>
-#include <game/components/testcomponent.h>
+#include <game/componentman.h>
 
 #include <components.h>
+#include <game/components/all.h>
 
 namespace game {
 
 bool IComponentStore::compare_component(u32 id, Component *component)
 {
-  return id == component->entity();
+  return id == component->entity().id();
+}
+
+void IComponentStore::reap_component(Component *component)
+{
+  if(!component->entity()) return;
+
+  auto entity = component->entity();
+  printf("reaped %s(0x%.8x)\n", entity.component<GameObject>().get().name().data(), entity.id());
+
+  component->m_entity = Entity();
 }
 
 template <typename Tuple>

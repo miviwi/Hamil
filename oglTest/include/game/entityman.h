@@ -15,6 +15,9 @@ public:
   using Ptr = std::unique_ptr<IEntityManager>;
 
   virtual Entity createEntity() = 0;
+  virtual void destroyEntity(EntityId id) = 0;
+
+  virtual bool alive(EntityId id) = 0;
 };
 
 IEntityManager::Ptr create_entity_manager(IComponentManager::Ptr component_man);
