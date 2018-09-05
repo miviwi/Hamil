@@ -299,6 +299,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClInclude Include="include\game\entity.h" />
     <ClInclude Include="include\game\entityman.h" />
     <ClInclude Include="include\math\compare.h" />
+    <ClInclude Include="include\math\quaternion.h" />
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\mesh\util.h" />
     <ClInclude Include="include\py\collections.h" />

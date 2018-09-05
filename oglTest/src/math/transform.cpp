@@ -1,7 +1,7 @@
 #include <math/transform.h>
+#include <math/quaternion.h>
 
 namespace xform {
-
 
 Transform::Transform() :
   m(xform::identity())
@@ -86,6 +86,21 @@ Transform& Transform::transform(const mat4 & t)
 const mat4& Transform::matrix() const
 {
   return m;
+}
+
+vec3 Transform::translation() const
+{
+  return m.translation();
+}
+
+vec3 Transform::scale() const
+{
+  return { m(0, 0), m(1, 1), m(2, 2) };
+}
+
+Quaternion Transform::orientation() const
+{
+  return Quaternion::from_mat4(m);
 }
 
 }

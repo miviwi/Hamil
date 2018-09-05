@@ -2,6 +2,7 @@
 #include <util/opts.h>
 
 #include <math/geometry.h>
+#include <math/quaternion.h>
 #include <math/transform.h>
 
 #include <win32/win32.h>
@@ -93,6 +94,25 @@ int main(int argc, char *argv[])
   bt::init();
   res::init();
   game::init();
+
+  auto print_mat4 = [](const mat4& m) {
+    printf("%.2f %.2f %.2f %.2f\n"
+      "%.2f %.2f %.2f %.2f\n"
+      "%.2f %.2f %.2f %.2f\n"
+      "%.2f %.2f %.2f %.2f\n",
+      m.d[0], m.d[1], m.d[2], m.d[3],
+      m.d[4], m.d[5], m.d[6], m.d[7],
+      m.d[8], m.d[9], m.d[10], m.d[11],
+      m.d[12], m.d[13], m.d[14], m.d[15]);
+  };
+
+  auto print_vec3 = [](const vec3& v) {
+    printf("{ %.2f, %.2f, %.2f }\n", v.x, v.y, v.z);
+  };
+
+  auto print_quat = [](const Quaternion& q) {
+    printf("{ %.2f, %.2f, %.2f, %.2f }\n", q.x, q.y, q.z, q.w);
+  };
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -561,8 +581,9 @@ int main(int argc, char *argv[])
       auto center_of_mass = picked_body.centerOfMass();
       float force_factor = 1.0f + pow(nudge_time, 2.0f)*10.0f;
 
-      picked_body.applyImpulse(-hit_normal*force_factor, center_of_mass);
-      picked_body.activate();
+      picked_body
+        .activate()
+        .applyImpulse(-hit_normal*force_factor, center_of_mass);
     }
 
     world.stepDbgSimulation(step_timer.elapsedSecondsf());

@@ -13,7 +13,7 @@ public:
 
   void *get() const;
 
-  void activate();
+  RigidBody& activate();
 
   xform::Transform worldTransform() const;
   mat4 worldTransformMatrix() const;

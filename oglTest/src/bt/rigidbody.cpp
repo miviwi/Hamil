@@ -32,9 +32,10 @@ void *RigidBody::get() const
   return m;
 }
 
-void RigidBody::activate()
+RigidBody& RigidBody::activate()
 {
   m->activate();
+  return *this;
 }
 
 xform::Transform RigidBody::worldTransform() const
