@@ -625,6 +625,9 @@
     <ClInclude Include="include\game\componentref.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\game\components\rigidbody.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\program.uniform">

@@ -14,6 +14,7 @@ public:
     Clear, Wireframe,
     PrimitiveRestart,
     Mask,
+    Cubemap,
 
     NumConfigTypes,
   };
@@ -74,6 +75,9 @@ public:
 
   Pipeline& currentScissor();
 
+  Pipeline& seamlessCubemap();
+  Pipeline& noSeamlessCubemap();
+
   static Pipeline current();
 
   bool isEnabled(ConfigType what);
@@ -120,6 +124,10 @@ private:
     bool depth;
     uint stencil;
   } m_mask;
+
+  struct CubemapConfig {
+    bool seamless;
+  } m_cubemap;
 
   void disable(ConfigType config) const;
   void enable(ConfigType config) const;

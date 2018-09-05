@@ -59,6 +59,11 @@
 #include <mesh/util.h>
 
 #include <game/game.h>
+#include <game/entity.h>
+#include <game/entityman.h>
+#include <game/component.h>
+#include <game/componentman.h>
+#include <game/components/all.h>
 
 #include <cli/cli.h>
 
@@ -75,7 +80,7 @@ int main(int argc, char *argv[])
 
   win32::init();
 
-  constexpr vec2 WindowSize       = { 1280, 720 };
+  constexpr vec2 WindowSize       = { 1600, 900 };
   constexpr ivec2 FramebufferSize = { 1280, 720 };
 
   using win32::Window;
@@ -120,12 +125,11 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
 
-  glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
   byte cubemap_colors[][3] ={
     { 0x20, 0x20, 0x20, },
     { 0x20, 0x20, 0x20, },
     { 0x20, 0x20, 0x20, },
-    { 0x20, 0x20, 0x20, },
+    { 0x00, 0x00, 0x00, },
     { 0x20, 0x20, 0x20, },
     { 0x20, 0x20, 0x20, },
   };
@@ -208,6 +212,7 @@ int main(int argc, char *argv[])
     .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
     .depthTest(gx::Pipeline::LessEqual)
     .cull(gx::Pipeline::Back)
+    .seamlessCubemap()
     .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f);
 
   float r = 1280.0f;
@@ -219,8 +224,6 @@ int main(int argc, char *argv[])
   mat4 rot_mtx = xform::identity();
 
   window.captureMouse();
-
-  int frames = 0;
 
   float old_fps;
 
@@ -285,6 +288,20 @@ int main(int argc, char *argv[])
 
   gx::IndexedVertexArray arr(fmt, vbuf, ibuf);
 
+  auto line_fmt = gx::VertexFormat()
+    .attr(gx::f32, 3);
+
+  std::vector<vec3> line_vtxs = {
+    { 0.0f, 0.0f, 0.0f },
+    { 0.0f, 1.0f, 0.0f },
+  };
+
+  gx::VertexBuffer line_vbuf(gx::Buffer::Static);
+
+  line_vbuf.init(line_vtxs.data(), line_vtxs.size());
+
+  gx::VertexArray line_arr(line_fmt, line_vbuf);
+
   auto floor_fmt = gx::VertexFormat()
     .attr(gx::f32, 2)
     .attr(gx::f32, 2);
@@ -298,6 +315,8 @@ int main(int argc, char *argv[])
     .param(gx::Sampler::Anisotropy, 16.0f);
 
   ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
+
+  iface.realSize(FramebufferSize.cast<float>());
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame<ui::PushButtonFrame>(iface, "b")
@@ -322,7 +341,6 @@ int main(int argc, char *argv[])
   near_slider.value(1.0);
 
   iface
-    .realSize(FramebufferSize.cast<float>())
     .frame(layout, { 30.0f, 500.0f })
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;
@@ -352,6 +370,11 @@ int main(int argc, char *argv[])
   auto step_timer = win32::DeltaTimer();
   step_timer.reset();
 
+  unsigned num_spheres = 0;
+
+  auto nudge_timer = win32::DeltaTimer();
+  nudge_timer.stop();
+
   while(window.processMessages()) {
     win32::Timers::tick();
 
@@ -365,6 +388,8 @@ int main(int argc, char *argv[])
       .matrix()
       ;
     eye = eye_mtx*eye;
+
+    float nudge_time = 0.0f;
 
     while(auto input = window.getInput()) {
       cursor.input(input);
@@ -381,9 +406,15 @@ int main(int argc, char *argv[])
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
         } else if(kb->keyDown('D')) {
+          auto name = util::fmt("sphere%u", num_spheres);
+          auto entity = game::entities().createGameObject(name);
           auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
 
+          entity.addComponent<game::RigidBody>(body);
+
           world.addRigidBody(body);
+
+          num_spheres++;
         } else if(kb->keyDown('W')) {
           pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
         } else if(kb->keyDown('`')) {
@@ -417,6 +448,13 @@ int main(int argc, char *argv[])
 
           zoom_mtx = xform::identity();
         }
+
+        if(mouse->buttonDown(Mouse::Left)) {
+          nudge_timer.reset();
+        } else if(mouse->buttonUp(Mouse::Left)) {
+          nudge_time = nudge_timer.elapsedSecondsf();
+          nudge_timer.stop();
+        }
       }
     }
 
@@ -443,6 +481,8 @@ int main(int argc, char *argv[])
 
     vec4 color;
 
+    size_t num_tris = 0;
+
     auto drawsphere = [&]()
     {
       mat4 modelview = view*model;
@@ -453,6 +493,8 @@ int main(int argc, char *argv[])
         .uniformVector4(U.program.uCol, color)
         .draw(gx::Triangles, arr, sphere_inds.size());
       arr.end();
+
+      num_tris += sphere_inds.size() / 3;
     };
 
     mat4 modelview = xform::identity();
@@ -487,31 +529,51 @@ int main(int argc, char *argv[])
       ;
 
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
+    vec3 mouse_ray_direction = (mouse_ray.xyz() - eye.xyz()).normalize();
 
     bt::RigidBody picked_body;
+    vec3 hit_normal;
     if(mouse_ray.w != 0.0f) {
-      auto direction = (mouse_ray.xyz() - eye.xyz()).normalize();
-      auto to = eye.xyz() + direction*10e10f;
+      auto to = eye.xyz() + mouse_ray_direction*10e10f;
 
-      picked_body = world.pickDbgSimulation(eye.xyz(), to);
+      picked_body = world.pickDbgSimulation(eye.xyz(), to, hit_normal);
     }
 
-    std::vector<bt::RigidBody> bodies;
-    world.stepDbgSimulation(step_timer.elapsedSecondsf(), [&](const bt::RigidBody& rb) {
-      if(!rb.hasMotionState()) return;
-      
-      if(rb == picked_body) {
-        color = { 1.0f, 0.0f, 0.0f, -1.0f };
-      } else {
-        color = { vec3(1.0f), -1.0f };
-      }
+    if(picked_body && picked_body.hasMotionState()) {
+      line_vtxs[1] = hit_normal;
+      line_vbuf.upload(line_vtxs.data() + 1, 1, 1);
+
+      float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 2);
+
+      model = xform::Transform()
+        .scale(1.5f*force_factor)
+        .translate(picked_body.origin())
+        .matrix();
+
+      program.use()
+        .uniformMatrix4x4(U.program.uProjection, persp)
+        .uniformMatrix4x4(U.program.uModelView, view*model)
+        .uniformVector4(U.program.uCol, { 0, 0, 0, 1.0f })
+        .draw(gx::Lines, line_arr, line_vtxs.size());
+    }
+
+    if(nudge_time > 0.0f && picked_body) {
+      auto center_of_mass = picked_body.centerOfMass();
+      float force_factor = 1.0f + pow(nudge_time, 2.0f)*10.0f;
+
+      picked_body.applyImpulse(-hit_normal*force_factor, center_of_mass);
+      picked_body.activate();
+    }
+
+    world.stepDbgSimulation(step_timer.elapsedSecondsf());
+    game::components().foreach<game::RigidBody>([&](auto component) {
+      bt::RigidBody rb = component().rb;
+
+      color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), -1.0f };
 
       model = rb.worldTransformMatrix();
       drawsphere();
-
-      bodies.push_back(rb);
     });
-    step_timer.reset();
 
     model = xform::identity()
       *xform::translate(0.0f, -1.01f, -6.0f)
@@ -534,6 +596,7 @@ int main(int argc, char *argv[])
       .uniformMatrix4x4(U.tex.uTexMatrix, texmatrix)
       .uniformSampler(U.tex.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
+    num_tris += floor_vtxs.size() / 3;
 
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
@@ -566,13 +629,17 @@ int main(int argc, char *argv[])
       ;
     skybox_arr.end();
 
-    int fps = (float)frames / fps_timer.elapsedSecondsf();
+    int fps = (int)(1.0f / step_timer.elapsedSecondsf());
 
     constexpr float smoothing = 0.9f;
     old_fps = fps;
     fps = (float)old_fps*smoothing + (float)fps*(1.0f-smoothing);
 
-    face.draw(util::fmt("FPS: %d", fps), vec2{ 30.0f, 70.0f }, vec4{ 0.8f, 0.0f, 0.0f, 1.0f });
+    face.draw(util::fmt("FPS: %d", fps),
+      vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
+
+    small_face.draw(util::fmt("Traingles: %zu", num_tris),
+      { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
     if(picked_body) {
       small_face.draw(util::fmt("picked(0x%p) at: { %.2f, %.2f, %.2f }",
@@ -581,27 +648,33 @@ int main(int argc, char *argv[])
     }
 
     float y = 150.0f;
-    for(auto rb : bodies) {
+    game::components().foreach<game::GameObject>([&](game::ComponentRef<game::GameObject> component) {
+      game::Entity entity = component().entity();
+      bt::RigidBody rb = entity.component<game::RigidBody>().get().rb;
+
       vec3 origin = rb.origin();
 
-      small_face.draw(util::fmt("object(0x%p) at: { %.2f, %.2f, %.2f }",
-        rb.get(), origin.x, origin.y, origin.z),
+      small_face.draw(util::fmt("%s(0x%.8x) at: { %.2f, %.2f, %.2f }",
+        component().name().data(), entity.id(),
+        origin.x, origin.y, origin.z),
         { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
       y += small_face.height();
-    }
+    });
 
     iface.paint();
     cursor.paint();
 
-    fb.blit(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y }, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
+    fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
             gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 
-    fb_resolve.blitToWindow(ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y }, ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
-                    gx::Framebuffer::ColorBit, gx::Sampler::Linear);
+    fb_resolve.blitToWindow(
+      ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
+      ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
+      gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
 
-    frames++;
+    step_timer.reset();
   }
 
   game::finalize();

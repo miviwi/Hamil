@@ -295,6 +295,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClInclude Include="include\game\componentstore.h" />
     <ClInclude Include="include\game\components\all.h" />
     <ClInclude Include="include\game\components\gameobject.h" />
+    <ClInclude Include="include\game\components\rigidbody.h" />
     <ClInclude Include="include\game\entity.h" />
     <ClInclude Include="include\game\entityman.h" />
     <ClInclude Include="include\math\compare.h" />

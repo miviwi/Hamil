@@ -17,20 +17,6 @@ void init()
 {
   p_component_man = create_component_manager();
   p_entity_man = create_entity_manager(p_component_man);
-
-  for(int i = 0; i < 5; i++) {
-    auto name = util::fmt("test%d", i);
-
-    entities().createEntity().addComponent<GameObject>(name);
-  }
-
-  Entity(0xA000'0D0F).removeComponent<GameObject>();
-
-  entities().destroyEntity(1);
-
-  components().foreach<GameObject>([](ComponentRef<GameObject> obj) {
-    printf("0x%.8x: %s\n", obj().entity().id(), obj().name().data());
-  });
 }
 
 void finalize()

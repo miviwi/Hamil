@@ -74,6 +74,9 @@ public:
   void blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
   void blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
 
+  // Alias for blit(fb, rect, rect, mask, filter)
+  void copy(Framebuffer& fb, ivec4 rect, unsigned mask, Sampler::Param filter);
+
   Status status();
   bool complete();
 
@@ -84,7 +87,7 @@ public:
 private:
   enum {
     NumDrawBuffers = 8,
-    DrawBuffersNeedSetup = 1<<(sizeof(unsigned)*8 - 1),
+    DrawBuffersNeedSetup = 1<<(sizeof(unsigned)*CHAR_BIT - 1),
   };
 
   static GLenum attachement(Attachment att);

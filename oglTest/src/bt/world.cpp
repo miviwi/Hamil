@@ -76,7 +76,9 @@ void DynamicsWorld::initDbgSimulation()
   {
     auto sphere_shape = new btSphereShape(1.0f);
     shapes.push_back(sphere_shape);
+  }
 
+  /*
     std::vector<vec3> spheres = {
       { 2.0f, 0.0f, 0.0f },
       { 2.5f, 32.0f, 0.0f },
@@ -99,6 +101,7 @@ void DynamicsWorld::initDbgSimulation()
       addRigidBody(body);
     }
   }
+  */
 
 }
 
@@ -134,16 +137,21 @@ RigidBody DynamicsWorld::createDbgSimulationRigidBody(vec3 sphere, bool active)
   return body;
 }
 
-void DynamicsWorld::stepDbgSimulation(float dt, RigidBodyIter fn) 
+void DynamicsWorld::stepDbgSimulation(float dt)
 {
   m_world->stepSimulation(dt, SimulationMaxSubsteps);
+}
+
+void DynamicsWorld::stepDbgSimulation(float dt, RigidBodyIter fn) 
+{
+  stepDbgSimulation(dt);
 
   foreachRigidBody([&](btRigidBody *rb) {
     fn(rb);
   });
 }
 
-RigidBody DynamicsWorld::pickDbgSimulation(vec3 ray_from, vec3 ray_to)
+RigidBody DynamicsWorld::pickDbgSimulation(vec3 ray_from, vec3 ray_to, vec3& hit_normal)
 {
   auto from = to_btVector3(ray_from);
   auto to   = to_btVector3(ray_to);
@@ -152,6 +160,8 @@ RigidBody DynamicsWorld::pickDbgSimulation(vec3 ray_from, vec3 ray_to)
 
   m_world->rayTest(from, to, callback);
   if(callback.hasHit()) {
+    hit_normal = from_btVector3(callback.m_hitNormalWorld);
+
     return (btRigidBody *)btRigidBody::upcast(callback.m_collisionObject);
   }
 

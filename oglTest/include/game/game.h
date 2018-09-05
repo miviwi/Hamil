@@ -13,7 +13,6 @@ void finalize();
 IComponentManager& components();
 IEntityManager& entities();
 
-
 void frame();
 
 }

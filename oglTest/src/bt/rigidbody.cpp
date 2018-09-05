@@ -32,6 +32,11 @@ void *RigidBody::get() const
   return m;
 }
 
+void RigidBody::activate()
+{
+  m->activate();
+}
+
 xform::Transform RigidBody::worldTransform() const
 {
   auto transform = getWorldTransform();
@@ -52,9 +57,19 @@ vec3 RigidBody::origin() const
   return from_btVector3(getWorldTransform().getOrigin());
 }
 
-vec3 RigidBody::localInertia()
+vec3 RigidBody::localInertia() const
 {
   return from_btVector3(m->getLocalInertia());
+}
+
+vec3 RigidBody::centerOfMass() const
+{
+  return from_btVector3(m->getCenterOfMassPosition());
+}
+
+void RigidBody::applyImpulse(const vec3& force, const vec3& rel_pos)
+{
+  m->applyImpulse(to_btVector3(force), to_btVector3(rel_pos));
 }
 
 bool RigidBody::hasMotionState() const

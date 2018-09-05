@@ -5,6 +5,7 @@
 #include <game/componentman.h>
 
 #include <memory>
+#include <string>
 
 namespace game {
 
@@ -16,6 +17,9 @@ public:
 
   virtual Entity createEntity() = 0;
   virtual void destroyEntity(EntityId id) = 0;
+
+  // Creates an Entity with a 'GameObject' Component
+  virtual Entity createGameObject(const std::string& name) = 0;
 
   virtual bool alive(EntityId id) = 0;
 };

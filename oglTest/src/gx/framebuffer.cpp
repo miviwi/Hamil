@@ -108,6 +108,11 @@ void Framebuffer::blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Par
   doBlit(0, src, dst, mask, filter);
 }
 
+void Framebuffer::copy(Framebuffer& fb, ivec4 rect, unsigned mask, Sampler::Param filter)
+{
+  blit(fb, rect, rect, mask, filter);
+}
+
 Framebuffer::Status Framebuffer::status()
 {
   use();

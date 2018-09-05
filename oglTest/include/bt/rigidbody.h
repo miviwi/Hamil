@@ -13,11 +13,16 @@ public:
 
   void *get() const;
 
+  void activate();
+
   xform::Transform worldTransform() const;
   mat4 worldTransformMatrix() const;
 
   vec3 origin() const;
-  vec3 localInertia();
+  vec3 localInertia() const;
+  vec3 centerOfMass() const;
+
+  void applyImpulse(const vec3& force, const vec3& rel_pos);
 
   bool hasMotionState() const;
 

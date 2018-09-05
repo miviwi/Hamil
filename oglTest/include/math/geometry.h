@@ -197,6 +197,11 @@ struct Vector3 {
 
   bool isZero() const { return x == 0.0f && y == 0.0f && z == 0.0f; }
 
+  Vector3 operator-() const
+  {
+    return { -x, -y, -z };
+  }
+
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }
 };

@@ -1,5 +1,6 @@
 #include <game/entityman.h>
 #include <game/componentman.h>
+#include <game/components/gameobject.h>
 
 #include <util/lfsr.h>
 #include <util/hashindex.h>
@@ -20,6 +21,8 @@ public:
 
   virtual Entity createEntity();
   virtual void destroyEntity(EntityId id);
+
+  virtual Entity createGameObject(const std::string& name);
 
   virtual bool alive(EntityId id);
 
@@ -61,6 +64,15 @@ void EntityManager::destroyEntity(EntityId id)
   if(idx == util::HashIndex::Invalid) return;
 
   m_entities[idx] = Entity::Invalid;
+}
+
+Entity EntityManager::createGameObject(const std::string& name)
+{
+  auto e = createEntity();
+
+  e.addComponent<GameObject>(name);
+
+  return e;
 }
 
 bool EntityManager::alive(EntityId id)

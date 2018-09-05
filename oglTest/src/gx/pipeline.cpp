@@ -24,6 +24,8 @@ Pipeline::Pipeline()
   m_mask.red = m_mask.green = m_mask.blue = m_mask.alpha = true;
   m_mask.depth   = true;
   m_mask.stencil = ~0;
+
+  m_enabled[Cubemap] = true;
 }
 
 void Pipeline::use() const
@@ -108,6 +110,22 @@ Pipeline& Pipeline::currentScissor()
 {
   m_enabled[Scissor] = true;
   m_scissor.current = true;
+
+  return *this;
+}
+
+Pipeline& Pipeline::seamlessCubemap()
+{
+  m_enabled[Cubemap] = true;
+  m_cubemap.seamless = true;
+
+  return *this;
+}
+
+Pipeline& Pipeline::noSeamlessCubemap()
+{
+  m_enabled[Cubemap] = true;
+  m_cubemap.seamless = false;
 
   return *this;
 }
@@ -283,6 +301,7 @@ void Pipeline::disable(ConfigType config) const
   case Wireframe: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
   case PrimitiveRestart: glDisable(GL_PRIMITIVE_RESTART); break;
   case Mask:      break;
+  case Cubemap:   break;
 
   default: break;
   }
@@ -341,6 +360,9 @@ void Pipeline::enable(ConfigType config) const
     glDepthMask(m.depth);
     glStencilMask(m.stencil);
     break;
+  case Cubemap:
+    m_cubemap.seamless ? glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS) : glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    break;
 
   default: break;
   }
@@ -364,6 +386,7 @@ bool Pipeline::compare(const ConfigType config) const
   case Wireframe:        return false;
   case PrimitiveRestart: return do_compare(m_restart, p_current.m_restart);
   case Mask:             return do_compare(m_mask, p_current.m_mask);
+  case Cubemap:          return do_compare(m_cubemap, p_current.m_cubemap);
   }
 
   return false;
