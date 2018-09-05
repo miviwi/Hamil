@@ -1,9 +1,11 @@
-#include <common.h>
 #include <ft/font.h>
+
 #include <util/allocator.h>
+#include <math/xform.h>
+#include <math/util.h>
+#include <uniforms.h>
 #include <gx/pipeline.h>
 #include <gx/program.h>
-#include <uniforms.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -18,8 +20,6 @@
 #include <list>
 #include <algorithm>
 #include <utility>
-
-#include <Windows.h>
 
 namespace ft {
 

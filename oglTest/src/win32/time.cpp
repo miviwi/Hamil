@@ -1,6 +1,7 @@
 #include <win32/time.h>
 #include <win32/panic.h>
 #include <math/geometry.h>
+#include <math/util.h>
 
 #include <Windows.h>
 

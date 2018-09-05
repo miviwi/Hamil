@@ -12,14 +12,15 @@ public:
   Transform(const mat4& m_);
 
   Transform& translate(float x, float y, float z);
-  Transform& translate(vec3 pos);
-  Transform& translate(vec4 pos);
+  Transform& translate(const vec3& pos);
+  Transform& translate(const vec4& pos);
   Transform& scale(float x, float y, float z);
   Transform& scale(float s);
-  Transform& scale(vec3 s);
+  Transform& scale(const vec3& s);
   Transform& rotx(float angle);
   Transform& roty(float angle);
   Transform& rotz(float angle);
+  Transform& rot(const Quaternion& q);
 
   // Applies the transformation encoded by 't'
   //   (pre-multiplies the underlying matrix by it)

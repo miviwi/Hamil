@@ -3,11 +3,13 @@
 #include <ui/painter.h>
 #include <ui/drawable.h>
 
+#include <uniforms.h>
 #include <gx/pipeline.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
-#include <uniforms.h>
+#include <math/xform.h>
+#include <math/util.h>
 
 #include <algorithm>
 #include <memory>

@@ -3,6 +3,7 @@
 #include <common.h>
 
 #include <math/geometry.h>
+#include <math/util.h>
 
 #include <map>
 #include <utility>

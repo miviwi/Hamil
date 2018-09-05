@@ -631,6 +631,12 @@
     <ClInclude Include="include\math\quaternion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\math\xform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\math\util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="src\program.uniform">

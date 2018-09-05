@@ -2,6 +2,9 @@
 #include <ui/uicommon.h>
 
 #include <math/geometry.h>
+#include <math/xform.h>
+#include <math/util.h>
+
 #include <gx/gx.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>

@@ -4,7 +4,9 @@
 #include <py/collections.h>
 
 #include <math/geometry.h>
+#include <math/xform.h>
 #include <math/transform.h>
+#include <math/util.h>
 
 #include <cstring>
 #include <string>

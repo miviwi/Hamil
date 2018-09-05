@@ -1,4 +1,5 @@
 #include <math/transform.h>
+#include <math/xform.h>
 #include <math/quaternion.h>
 
 namespace xform {
@@ -20,14 +21,14 @@ Transform& Transform::translate(float x, float y, float z)
   return *this;
 }
 
-Transform& Transform::translate(vec3 pos)
+Transform& Transform::translate(const vec3& pos)
 {
   m = xform::translate(pos)*m;
 
   return *this;
 }
 
-Transform& Transform::translate(vec4 pos)
+Transform& Transform::translate(const vec4& pos)
 {
   m = xform::translate(pos)*m;
 
@@ -48,7 +49,7 @@ Transform& Transform::scale(float s)
   return *this;
 }
 
-Transform& Transform::scale(vec3 s)
+Transform& Transform::scale(const vec3& s)
 {
   m = xform::scale(s.x, s.y, s.z)*m;
 
@@ -76,7 +77,14 @@ Transform& Transform::rotz(float angle)
   return *this;
 }
 
-Transform& Transform::transform(const mat4 & t)
+Transform & Transform::rot(const Quaternion& q)
+{
+  m = q.to_mat4() * m;
+
+  return *this;
+}
+
+Transform& Transform::transform(const mat4& t)
 {
   m = t*m;
 

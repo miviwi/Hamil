@@ -2,8 +2,10 @@
 #include <util/opts.h>
 
 #include <math/geometry.h>
+#include <math/xform.h>
 #include <math/quaternion.h>
 #include <math/transform.h>
+#include <math/util.h>
 
 #include <win32/win32.h>
 #include <win32/panic.h>
@@ -316,7 +318,7 @@ int main(int argc, char *argv[])
     { 0.0f, 1.0f, 0.0f },
   };
 
-  gx::VertexBuffer line_vbuf(gx::Buffer::Static);
+  gx::VertexBuffer line_vbuf(gx::Buffer::Dynamic);
 
   line_vbuf.init(line_vtxs.data(), line_vtxs.size());
 
@@ -560,10 +562,10 @@ int main(int argc, char *argv[])
     }
 
     if(picked_body && picked_body.hasMotionState()) {
-      line_vtxs[1] = hit_normal;
-      line_vbuf.upload(line_vtxs.data() + 1, 1, 1);
-
       float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 2);
+
+      line_vtxs[1] = hit_normal;
+      line_vbuf.upload(line_vtxs.data()+1, 1, 1);
 
       model = xform::Transform()
         .scale(1.5f*force_factor)

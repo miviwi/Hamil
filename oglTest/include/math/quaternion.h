@@ -2,6 +2,8 @@
 
 #include <math/geometry.h>
 
+#pragma pack(push, 1)
+
 struct alignas(16) Quaternion {
   float x, y, z, w;
 
@@ -173,3 +175,5 @@ inline Quaternion Quaternion::from_mat4(const mat4& m)
 {
   return from_mat3(m.xyz());
 }
+
+#pragma pack(pop)
