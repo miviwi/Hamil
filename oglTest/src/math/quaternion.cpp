@@ -117,7 +117,6 @@ Quaternion slerp(const Quaternion& a, const Quaternion& b, float t)
     float r = sin(t*alpha) * inv_s;
 
     return a*p + q*r;
-
   }
 
   // Linear interpolation fallback
