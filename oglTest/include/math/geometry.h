@@ -7,19 +7,6 @@
 #include <limits>
 #include <type_traits>
 
-static unsigned pow2_round(unsigned v)
-{
-  v--;
-  v |= v >> 1;
-  v |= v >> 2;
-  v |= v >> 4;
-  v |= v >> 8;
-  v |= v >> 16;
-  v++;
-
-  return v;
-}
-
 constexpr double PI = 3.1415926535897932384626433832795;
 constexpr float PIf = (float)PI;
 
@@ -27,15 +14,14 @@ constexpr float PIf = (float)PI;
 
 template <typename T>
 struct Vector2 {
+  constexpr Vector2() :
+    x(0), y(0)
+  { }
   constexpr Vector2(T x_, T y_) :
     x(x_), y(y_)
   { }
   Vector2(const T *v) :
     x(v[0]), y(v[1])
-  {
-  }
-  Vector2() :
-    x(0), y(0)
   { }
 
   union {
@@ -43,7 +29,8 @@ struct Vector2 {
     struct { T s, t; };
   };
 
-  T length() const { return (T)sqrt((x*x) + (y*y)); }
+  T length2() const { return dot(*this); }
+  T length() const { return (T)sqrt(length2()); }
   T dot(const Vector2& b) const { return (x*b.x) + (y*b.y); }
 
   Vector2 normalize() const
@@ -144,6 +131,9 @@ using uvec2 = Vector2<unsigned>;
 
 template <typename T>
 struct Vector3 {
+  constexpr Vector3() :
+    x(0), y(0), z(0)
+  { }
   constexpr Vector3(T x_, T y_, T z_) :
     x(x_), y(y_), z(z_)
   { }
@@ -156,9 +146,6 @@ struct Vector3 {
   Vector3(const T *v) :
     x(v[0]), y(v[1]), z(v[2])
   { }
-  Vector3() :
-    x(0), y(0), z(0)
-  { }
 
   union {
     struct { T x, y, z; };
@@ -168,7 +155,8 @@ struct Vector3 {
 
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
 
-  T length() const { return (T)sqrt(x*x + y*y + z*z); }
+  T length2() const { return dot(*this); }
+  T length() const { return (T)sqrt(length2()); }
   T dot(const Vector3& b) const { return x*b.x + y*b.y + z*b.z; }
 
   Vector3 normalize() const
@@ -196,6 +184,12 @@ struct Vector3 {
   Vector3 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z }; }
 
   bool isZero() const { return x == 0.0f && y == 0.0f && z == 0.0f; }
+
+  bool zeroLength() const
+  {
+    auto l = length2();
+    return  l < (1e-6f * 1e-6f);
+  }
 
   Vector3 operator-() const
   {
@@ -285,29 +279,29 @@ inline vec3 vec3::cross(const vec3& v) const
 
 template <typename T>
 struct Vector4 {
+  constexpr Vector4() :
+    x(0), y(0), z(0), w(1)
+  { }
   constexpr Vector4(T x_, T y_, T z_, T w_) :
     x(x_), y(y_), z(z_), w(w_)
   { }
-  Vector4(Vector2<T> xy, T z_, T w_) :
+  constexpr Vector4(Vector2<T> xy, T z_, T w_) :
     x(xy.x), y(xy.y), z(z_), w(w_)
   { }
-  Vector4(Vector2<T> xy, T z_) :
+  constexpr Vector4(Vector2<T> xy, T z_) :
     x(xy.x), y(xy.y), z(z_), w(1)
   { }
-  Vector4(Vector2<T> xy) :
+  constexpr Vector4(Vector2<T> xy) :
     x(xy.x), y(xy.y), z(0), w(1)
   { }
-  Vector4(Vector3<T> xyz) :
+  constexpr Vector4(Vector3<T> xyz) :
     x(xyz.x), y(xyz.y), z(xyz.z), w(1.0f)
   { }
-  Vector4(Vector3<T> xyz, T w_) :
+  constexpr Vector4(Vector3<T> xyz, T w_) :
     x(xyz.x), y(xyz.y), z(xyz.z), w(w_)
   { }
   Vector4(const T *v) :
     x(v[0]), y(v[1]), z(v[2]), w(v[3])
-  { }
-  Vector4() :
-    x(0), y(0), z(0), w(1)
   { }
 
   union {
@@ -318,7 +312,8 @@ struct Vector4 {
 
   Vector3<T> xyz() const { return Vector3<T>{ x, y, z }; }
 
-  T length() const { return (T)sqrt(x*x + y*y + z*z + w*w); }
+  T length2() const { return dot(*this); }
+  T length() const { return (T)sqrt(length2()); }
   T dot(const Vector4& b) const { return x*b.x + y*b.y + z*b.z + w*b.w; }
 
   Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }

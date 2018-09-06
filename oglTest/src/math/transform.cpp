@@ -79,7 +79,7 @@ Transform& Transform::rotz(float angle)
 
 Transform & Transform::rot(const Quaternion& q)
 {
-  m = q.to_mat4() * m;
+  m = q.toMat4() * m;
 
   return *this;
 }

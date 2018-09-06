@@ -321,6 +321,7 @@ int main(int argc, char *argv[])
   gx::VertexBuffer line_vbuf(gx::Buffer::Dynamic);
 
   line_vbuf.init(line_vtxs.data(), line_vtxs.size());
+  glLineWidth(2.0f);
 
   gx::VertexArray line_arr(line_fmt, line_vbuf);
 
@@ -562,12 +563,12 @@ int main(int argc, char *argv[])
     }
 
     if(picked_body && picked_body.hasMotionState()) {
-      float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 2);
+      float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3);
 
-      line_vtxs[1] = hit_normal;
-      line_vbuf.upload(line_vtxs.data()+1, 1, 1);
+      auto q = Quaternion::rotation_between(line_vtxs[1], hit_normal);
 
       model = xform::Transform()
+        .rot(q)
         .scale(1.5f*force_factor)
         .translate(picked_body.origin())
         .matrix();
@@ -581,7 +582,7 @@ int main(int argc, char *argv[])
 
     if(nudge_time > 0.0f && picked_body) {
       auto center_of_mass = picked_body.centerOfMass();
-      float force_factor = 1.0f + pow(nudge_time, 2.0f)*10.0f;
+      float force_factor = 1.0f + pow(nudge_time, 3.0f)*10.0f;
 
       picked_body
         .activate()

@@ -6,7 +6,8 @@
 
 struct alignas(16) Quaternion {
   float x, y, z, w;
-
+  
+  // Creates an identity Quaternion
   constexpr Quaternion() :
     x(0.0f), y(0.0f), z(0.0f), w(1.0f)
   { }
@@ -16,51 +17,25 @@ struct alignas(16) Quaternion {
   constexpr Quaternion(const float *v) :
     x(v[0]), y(v[1]), z(v[2]), w(v[3])
   { }
+  constexpr Quaternion(const vec3& v, float w_) :
+    x(v.x), y(v.y), z(v.z), w(w_)
+  { }
 
   Quaternion operator*(float u) const;
 
-  static Quaternion from_axis(vec3 axis, float angle)
-  {
-    float half_angle = angle / 2.0f;
-    float s = sinf(half_angle);
+  static Quaternion from_axis(vec3 axis, float angle);
+  static Quaternion from_euler(float x, float y, float z);
 
-    axis *= s;
+  static Quaternion from_mat3(const mat3& m);
+  static Quaternion from_mat4(const mat4& m);
 
-    return { axis.x, axis.y, axis.z, cosf(half_angle) };
-  }
+  static Quaternion rotation_between(const vec3& a, const vec3& b);
 
-  static Quaternion from_euler(float x, float y, float z)
-  {
-    float cx = cos(x / 2.0f),
-      cy = cos(y / 2.0f),
-      cz = cos(z / 2.0f);
+  mat3 toMat3() const;
+  mat4 toMat4() const;
 
-    float sx = sin(x / 2.0f),
-      sy = sin(y / 2.0f),
-      sz = sin(z / 2.0f);
-
-    float cycz = cy*cz,
-      sysz = sy*sz,
-      cysz = cy*sz,
-      sycz = sy*cz;
-
-    Quaternion q = {
-      sx*cycz - cx*sysz,
-      cx*sycz + sx*cysz,
-      cx*cysz - sx*sycz,
-      cx*cycz + sx*sysz
-    };
-
-    return q.normalize();
-  }
-
-  static Quaternion from_mat3(const Matrix3<float>& m);
-  static Quaternion from_mat4(const Matrix4<float>& m);
-
-  Matrix3<float> to_mat3() const;
-  Matrix4<float> to_mat4() const;
-
-  float length() const { return sqrtf(x*x + y*y + z*z + w*w); }
+  float length2() const { return dot(*this); }
+  float length() const { return sqrtf(length2()); }
   float dot(const Quaternion& b) const { return (x*b.x) + (y*b.y) + (z*b.z) + (w*b.w); }
 
   Quaternion normalize() const
@@ -117,7 +92,7 @@ inline Quaternion& operator*=(Quaternion& a, const Quaternion& b)
   return a;
 }
 
-inline mat3 Quaternion::to_mat3() const
+inline mat3 Quaternion::toMat3() const
 {
   float x2 = x*x,
     y2 = y*y,
@@ -137,43 +112,9 @@ inline mat3 Quaternion::to_mat3() const
   };
 }
 
-inline mat4 Quaternion::to_mat4() const
+inline mat4 Quaternion::toMat4() const
 {
-  return mat4::from_mat3(to_mat3());
-}
-
-// Source: https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
-inline Quaternion Quaternion::from_mat3(const mat3& m)
-{
-  Quaternion q;
-  float t;
-
-  if(m(2, 2) < 0.0f) {
-    if(m(0, 0) > m(1, 1)) {
-      t = 1.0f + m(0, 0) - m(1, 1) - m(2, 2);
-      q = { t, m(1, 0)+m(0, 1), m(0, 2)+m(2, 0), m(2, 1)-m(1, 2) };
-    } else {
-      t = 1.0f - m(0, 0) + m(1, 1) - m(2, 2);
-      q = { m(1, 0)+m(0, 1), t, m(2, 1)+m(1, 2), m(0, 2)-m(2, 0) };
-    }
-  } else {
-    if(m(0, 0) < -m(1, 1)) {
-      t = 1.0f - m(0, 0) - m(1, 1) + m(2, 2);
-      q = { m(0, 2)+m(2, 0), m(2, 1)+m(1, 2), t, m(1, 0)-m(0, 1) };
-    } else {
-      t = 1.0f + m(0, 0) + m(1, 1) + m(2, 2);
-      q = { m(2, 1)-m(1, 2), m(0, 2)-m(2, 0), m(1, 0)-m(0, 1), t };
-    }
-  }
-
-  t = 0.5f / sqrtf(t);
-
-  return q * t;
-}
-
-inline Quaternion Quaternion::from_mat4(const mat4& m)
-{
-  return from_mat3(m.xyz());
+  return mat4::from_mat3(toMat3());
 }
 
 #pragma pack(pop)

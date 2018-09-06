@@ -222,6 +222,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClCompile Include="src\game\entity.cpp" />
     <ClCompile Include="src\game\entityman.cpp" />
     <ClCompile Include="src\math\compare.cpp" />
+    <ClCompile Include="src\math\quaternion.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\mesh\util.cpp" />
     <ClCompile Include="src\py\collections.cpp" />
