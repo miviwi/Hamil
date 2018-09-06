@@ -72,27 +72,54 @@ Quaternion Quaternion::from_mat4(const mat4& m)
 }
 
 // Source: https://github.com/OGRECave/ogre/blob/master/OgreMain/include/OgreVector.h
-Quaternion Quaternion::rotation_between(const vec3& a, const vec3& b)
+Quaternion Quaternion::rotation_between(const vec3& u, const vec3& v)
 {
   Quaternion q;
+  vec3 axis;
 
-  vec3 v0 = a.normalize(),
-    v1 = b.normalize();
+  float s = sqrtf(u.length2() * v.length2());
+  float w = s + u.dot(v);
 
-  auto d = v0.dot(v1);
-  if(d >= 1.0f) {
-    return Quaternion();
-  } else if(d < (1e-6f - 1.0f)) {
-    auto axis = vec3(1.0f, 0.0f, 0.0f).cross(a);
-    if(axis.zeroLength()) axis = vec3(0.0f, 1.0f, 0.0f).cross(a);
+  if(w < (s * 1e-6f)) {
+    w = 0.0f;
 
-    return Quaternion::from_axis(axis.normalize(), PIf);
+    if(u.x > u.z) {
+      axis = { -u.y, u.x, 0.0f };
+    } else {
+      axis = { 0.0f, -u.z, u.y };
+    }
+  } else {
+    axis = u.cross(v);
   }
 
-  float s = sqrtf((1.0f + d)*2.0f);
-  float inv_s = 1.0f / s;
+  return Quaternion(axis, w).normalize();
+}
 
-  auto c = v0.cross(v1) * inv_s;
+Quaternion slerp(const Quaternion& a, const Quaternion& b, float t)
+{
+  Quaternion q;
+  float c = a.dot(b);
 
-  return Quaternion(c, s*0.5f).normalize();
+  if(c < 0.0f) {
+    c = -c;
+    q = -b;
+  } else {
+    q = b;
+  }
+
+  if(c < (1.0f - 1e-3f)) {    // Slerp
+    float s = sqrtf(1.0f - c*c);
+    float alpha = atan2(s, c);
+
+    float inv_s = 1.0f / s;
+
+    float p = sin((1.0f - t)*alpha) * inv_s;
+    float r = sin(t*alpha) * inv_s;
+
+    return a*p + q*r;
+
+  }
+
+  // Linear interpolation fallback
+  return Quaternion(a*(1.0f - t) + q*t).normalize();
 }

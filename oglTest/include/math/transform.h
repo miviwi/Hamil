@@ -20,7 +20,7 @@ public:
   Transform& rotx(float angle);
   Transform& roty(float angle);
   Transform& rotz(float angle);
-  Transform& rot(const Quaternion& q);
+  Transform& rotate(const Quaternion& q);
 
   // Applies the transformation encoded by 't'
   //   (pre-multiplies the underlying matrix by it)

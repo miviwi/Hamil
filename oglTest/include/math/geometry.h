@@ -196,6 +196,13 @@ struct Vector3 {
     return { -x, -y, -z };
   }
 
+  static Vector3 up()      { return { (T)0, (T)1, (T)0 }; }
+  static Vector3 left()    { return { (T)-1, (T)0, (T)0 }; }
+  static Vector3 down()    { return { (T)0, (T)-1, (T)0 }; }
+  static Vector3 right()   { return { (T)1, (T)0, (T)0 }; }
+  static Vector3 forward() { return { (T)0, (T)0, (T)1 }; }
+  static Vector3 back()    { return { (T)0, (T)0, (T)-1 }; }
+
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }
 };

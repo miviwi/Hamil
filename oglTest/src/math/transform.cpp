@@ -77,7 +77,7 @@ Transform& Transform::rotz(float angle)
   return *this;
 }
 
-Transform & Transform::rot(const Quaternion& q)
+Transform & Transform::rotate(const Quaternion& q)
 {
   m = q.toMat4() * m;
 

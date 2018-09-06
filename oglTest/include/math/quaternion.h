@@ -29,7 +29,9 @@ struct alignas(16) Quaternion {
   static Quaternion from_mat3(const mat3& m);
   static Quaternion from_mat4(const mat4& m);
 
-  static Quaternion rotation_between(const vec3& a, const vec3& b);
+  static Quaternion rotation_between(const vec3& u, const vec3& v);
+
+  static Quaternion slerp(const Quaternion& a, const Quaternion& b, float t);
 
   mat3 toMat3() const;
   mat4 toMat4() const;
@@ -46,9 +48,19 @@ struct alignas(16) Quaternion {
 
   inline Quaternion cross(const Quaternion& b) const;
 
+  Quaternion operator-() const
+  {
+    return { -x, -y, -z, -w };
+  }
+
   operator float *() { return (float *)this; }
   operator const float *() const { return (const float *)this; }
 };
+
+inline Quaternion operator+(const Quaternion& a, const Quaternion& b)
+{
+  return { a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w };
+}
 
 inline Quaternion operator*(const Quaternion& a, const Quaternion& b)
 {

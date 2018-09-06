@@ -313,17 +313,17 @@ int main(int argc, char *argv[])
   auto line_fmt = gx::VertexFormat()
     .attr(gx::f32, 3);
 
-  std::vector<vec3> line_vtxs = {
-    { 0.0f, 0.0f, 0.0f },
-    { 0.0f, 1.0f, 0.0f },
-  };
+  auto line = mesh::box(0.05f, 0.5f, 0.05f);
+  auto line_vtxs = std::get<0>(line);
+  auto line_inds = std::get<1>(line);
 
-  gx::VertexBuffer line_vbuf(gx::Buffer::Dynamic);
+  gx::VertexBuffer line_vbuf(gx::Buffer::Static);
+  gx::IndexBuffer line_ibuf(gx::Buffer::Static, gx::u16);
 
   line_vbuf.init(line_vtxs.data(), line_vtxs.size());
-  glLineWidth(2.0f);
+  line_ibuf.init(line_inds.data(), line_inds.size());
 
-  gx::VertexArray line_arr(line_fmt, line_vbuf);
+  gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
 
   auto floor_fmt = gx::VertexFormat()
     .attr(gx::f32, 2)
@@ -412,7 +412,7 @@ int main(int argc, char *argv[])
       ;
     eye = eye_mtx*eye;
 
-    float nudge_time = 0.0f;
+    float nudge_force = 0.0f;
 
     while(auto input = window.getInput()) {
       cursor.input(input);
@@ -475,7 +475,7 @@ int main(int argc, char *argv[])
         if(mouse->buttonDown(Mouse::Left)) {
           nudge_timer.reset();
         } else if(mouse->buttonUp(Mouse::Left)) {
-          nudge_time = nudge_timer.elapsedSecondsf();
+          nudge_force = nudge_timer.elapsedSecondsf();
           nudge_timer.stop();
         }
       }
@@ -563,26 +563,28 @@ int main(int argc, char *argv[])
     }
 
     if(picked_body && picked_body.hasMotionState()) {
-      float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3);
+      float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3.0f);
 
-      auto q = Quaternion::rotation_between(line_vtxs[1], hit_normal);
+      auto q = Quaternion::rotation_between(vec3::up(), hit_normal);
 
       model = xform::Transform()
-        .rot(q)
-        .scale(1.5f*force_factor)
+        .translate(0.0f, 0.5f, 0.0f)
+        .scale(1.0f, 1.5f*force_factor, 1.0f)
+        .rotate(q)
         .translate(picked_body.origin())
         .matrix();
 
       program.use()
         .uniformMatrix4x4(U.program.uProjection, persp)
         .uniformMatrix4x4(U.program.uModelView, view*model)
-        .uniformVector4(U.program.uCol, { 0, 0, 0, 1.0f })
-        .draw(gx::Lines, line_arr, line_vtxs.size());
+        .uniformVector4(U.program.uCol, { 0, 0, 0, 0.0f })
+        .draw(gx::Triangles, line_arr, line_inds.size());
+      line_arr.end();
     }
 
-    if(nudge_time > 0.0f && picked_body) {
+    if(nudge_force > 0.0f && picked_body) {
       auto center_of_mass = picked_body.centerOfMass();
-      float force_factor = 1.0f + pow(nudge_time, 3.0f)*10.0f;
+      float force_factor = 1.0f + pow(nudge_force, 3.0f)*10.0f;
 
       picked_body
         .activate()
