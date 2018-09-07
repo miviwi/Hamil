@@ -1,7 +1,7 @@
 (mkdir ${Generated})
 
 #    --------  Uniforms  --------
-(uniformgen ${Solution}oglTest\src)
+(uniformgen ${Solution}Hamil\src)
 (move-if-newer uniforms.* ${Generated})
 
 #    -------- Resources  --------
@@ -9,5 +9,5 @@
 (move-if-newer resources.* ${Generated})
 
 #    -------- Components --------
-(componentgen ${Solution}oglTest\include\game\components)
+(componentgen ${Solution}Hamil\include\game\components)
 (move-if-newer components.* ${Generated})

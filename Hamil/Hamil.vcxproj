@@ -21,8 +21,9 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7AE601F0-DAFF-45BA-82CA-C08B172D57A6}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>oglTest</RootNamespace>
+    <RootNamespace>Hamil</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <ProjectName>Hamil</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -413,12 +414,16 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
   </ItemGroup>
   <ItemGroup>
     <None Include="build.eugene" />
+    <None Include="README.md" />
     <None Include="src\skybox.uniform" />
     <None Include="src\ui\cursor.uniform" />
     <None Include="src\tex.uniform" />
     <None Include="src\ft\font.uniform" />
     <None Include="src\program.uniform" />
     <None Include="src\ui\ui.uniform" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="doc\hamil-logo.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
