@@ -61,12 +61,12 @@
 
 #include <mesh/util.h>
 
-#include <game/game.h>
-#include <game/entity.h>
-#include <game/entityman.h>
-#include <game/component.h>
-#include <game/componentman.h>
-#include <game/components/all.h>
+#include <hm/hamil.h>
+#include <hm/entity.h>
+#include <hm/entityman.h>
+#include <hm/component.h>
+#include <hm/componentman.h>
+#include <hm/components/all.h>
 
 #include <cli/cli.h>
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
   py::init();
   bt::init();
   res::init();
-  game::init();
+  hm::init();
 
   auto print_mat4 = [](const mat4& m) {
     printf("%.2f %.2f %.2f %.2f\n"
@@ -430,10 +430,10 @@ int main(int argc, char *argv[])
           ortho_projection = !ortho_projection;
         } else if(kb->keyDown('D')) {
           auto name = util::fmt("sphere%u", num_spheres);
-          auto entity = game::entities().createGameObject(name);
+          auto entity = hm::entities().createGameObject(name);
           auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
 
-          entity.addComponent<game::RigidBody>(body);
+          entity.addComponent<hm::RigidBody>(body);
 
           world.addRigidBody(body);
 
@@ -592,7 +592,7 @@ int main(int argc, char *argv[])
     }
 
     world.stepDbgSimulation(step_timer.elapsedSecondsf());
-    game::components().foreach<game::RigidBody>([&](auto component) {
+    hm::components().foreach<hm::RigidBody>([&](auto component) {
       bt::RigidBody rb = component().rb;
 
       color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), -1.0f };
@@ -674,9 +674,9 @@ int main(int argc, char *argv[])
     }
 
     float y = 150.0f;
-    game::components().foreach<game::GameObject>([&](game::ComponentRef<game::GameObject> component) {
-      game::Entity entity = component().entity();
-      bt::RigidBody rb = entity.component<game::RigidBody>().get().rb;
+    hm::components().foreach<hm::GameObject>([&](hm::ComponentRef<hm::GameObject> component) {
+      hm::Entity entity = component().entity();
+      bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
 
       vec3 origin = rb.origin();
 
@@ -703,7 +703,7 @@ int main(int argc, char *argv[])
     step_timer.reset();
   }
 
-  game::finalize();
+  hm::finalize();
   res::finalize();
   bt::finalize();
   py::finalize();

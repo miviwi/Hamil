@@ -1,12 +1,12 @@
-#include <game/componentman.h>
-#include <game/componentstore.h>
+#include <hm/componentman.h>
+#include <hm/componentstore.h>
 
 #include <components.h>
-#include <game/components/all.h>
+#include <hm/components/all.h>
 
 #include <utility>
 
-namespace game {
+namespace hm {
 
 // The concrete class definition must be placed here, otherwise
 //   there is a circular dependency ComponentManager -> ComponentStore

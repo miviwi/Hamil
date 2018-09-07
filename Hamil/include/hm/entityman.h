@@ -1,13 +1,13 @@
 #pragma once
 
-#include <game/game.h>
-#include <game/entity.h>
-#include <game/componentman.h>
+#include <hm/hamil.h>
+#include <hm/entity.h>
+#include <hm/componentman.h>
 
 #include <memory>
 #include <string>
 
-namespace game {
+namespace hm {
 
 class IComponentManager;
 

@@ -1,6 +1,6 @@
-#include <game/components/gameobject.h>
+#include <hm/components/gameobject.h>
 
-namespace game {
+namespace hm {
 
 const std::string& GameObject::name() const
 {

@@ -1,7 +1,7 @@
-#include <game/entity.h>
-#include <game/entityman.h>
+#include <hm/entity.h>
+#include <hm/entityman.h>
 
-namespace game {
+namespace hm {
 
 Entity::Entity(EntityId id) :
   m_id(id)

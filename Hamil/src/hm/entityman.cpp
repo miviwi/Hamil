@@ -1,6 +1,6 @@
-#include <game/entityman.h>
-#include <game/componentman.h>
-#include <game/components/gameobject.h>
+#include <hm/entityman.h>
+#include <hm/componentman.h>
+#include <hm/components/gameobject.h>
 
 #include <util/lfsr.h>
 #include <util/hashindex.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <vector>
 
-namespace game {
+namespace hm {
 
 class EntityManager : public IEntityManager {
 public:

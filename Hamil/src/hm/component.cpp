@@ -1,6 +1,6 @@
-#include <game/component.h>
+#include <hm/component.h>
 
-namespace game {
+namespace hm {
 
 Component::Component(Entity e) :
   m_entity(e)

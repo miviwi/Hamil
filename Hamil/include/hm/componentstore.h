@@ -1,8 +1,8 @@
 #pragma once
 
-#include <game/game.h>
-#include <game/entity.h>
-#include <game/component.h>
+#include <hm/hamil.h>
+#include <hm/entity.h>
+#include <hm/component.h>
 
 #include <util/hashindex.h>
 #include <util/tupleindex.h>
@@ -13,7 +13,7 @@
 #include <utility>
 #include <type_traits>
 
-namespace game {
+namespace hm {
 
 class Component;
 

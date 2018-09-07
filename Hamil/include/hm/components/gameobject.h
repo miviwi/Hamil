@@ -1,10 +1,10 @@
 #pragma once
 
-#include <game/component.h>
+#include <hm/component.h>
 
 #include <string>
 
-namespace game {
+namespace hm {
 
 // !$Component
 struct GameObject : public Component {

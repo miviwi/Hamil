@@ -1,8 +1,8 @@
 #pragma once
 
-#include <game/game.h>
+#include <hm/hamil.h>
 
-namespace game {
+namespace hm {
 
 // Wraps a 'Component *' to providde member access syntax sugar:
 //   c->name().data() -> c().name().data()

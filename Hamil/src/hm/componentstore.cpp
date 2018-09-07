@@ -1,11 +1,11 @@
-#include <game/componentstore.h>
-#include <game/component.h>
-#include <game/componentman.h>
+#include <hm/componentstore.h>
+#include <hm/component.h>
+#include <hm/componentman.h>
 
 #include <components.h>
-#include <game/components/all.h>
+#include <hm/components/all.h>
 
-namespace game {
+namespace hm {
 
 bool IComponentStore::compare_component(u32 id, Component *component)
 {

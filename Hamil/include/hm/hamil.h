@@ -2,7 +2,7 @@
 
 #include <common.h>
 
-namespace game {
+namespace hm {
 
 class IComponentManager;
 class IEntityManager;

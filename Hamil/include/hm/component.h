@@ -1,14 +1,14 @@
 #pragma once
 
-#include <game/game.h>
-#include <game/entity.h>
+#include <hm/hamil.h>
+#include <hm/entity.h>
 
 #include <util/hashindex.h>
 
 #include <array>
 #include <vector>
 
-namespace game {
+namespace hm {
 
 class Component {
 public:

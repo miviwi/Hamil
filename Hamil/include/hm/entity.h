@@ -1,11 +1,11 @@
 #pragma once
 
-#include <game/game.h>
-#include <game/componentref.h>
+#include <hm/hamil.h>
+#include <hm/componentref.h>
 
 #include <utility>
 
-namespace game {
+namespace hm {
 
 using EntityId = u32;
 

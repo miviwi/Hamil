@@ -1,8 +1,8 @@
 #pragma once
 
-#include <game/game.h>
-#include <game/component.h>
-#include <game/componentref.h>
+#include <hm/hamil.h>
+#include <hm/component.h>
+#include <hm/componentref.h>
 
 #include <components.h>
 
@@ -10,7 +10,7 @@
 #include <memory>
 #include <utility>
 
-namespace game {
+namespace hm {
 
 class IComponentManager {
 public:

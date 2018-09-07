@@ -1,14 +1,14 @@
-#include <game/game.h>
-#include <game/entity.h>
-#include <game/entityman.h>
-#include <game/component.h>
-#include <game/componentman.h>
+#include <hm/hamil.h>
+#include <hm/entity.h>
+#include <hm/entityman.h>
+#include <hm/component.h>
+#include <hm/componentman.h>
 
-#include <game/components/all.h>
+#include <hm/components/all.h>
 
 #include <util/format.h>
 
-namespace game {
+namespace hm {
 
 IComponentManager::Ptr p_component_man;
 IEntityManager::Ptr p_entity_man;
