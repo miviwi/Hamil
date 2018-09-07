@@ -9,6 +9,8 @@ namespace hm {
 template <typename T>
 class ComponentRef {
 public:
+  using RefType = T;
+
   ComponentRef(T *component) :
     m(component)
   { }

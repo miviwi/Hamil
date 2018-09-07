@@ -592,7 +592,7 @@ int main(int argc, char *argv[])
     }
 
     world.stepDbgSimulation(step_timer.elapsedSecondsf());
-    hm::components().foreach<hm::RigidBody>([&](auto component) {
+    hm::components().foreach([&](hm::ComponentRef<hm::RigidBody> component) {
       bt::RigidBody rb = component().rb;
 
       color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), -1.0f };
@@ -674,7 +674,7 @@ int main(int argc, char *argv[])
     }
 
     float y = 150.0f;
-    hm::components().foreach<hm::GameObject>([&](hm::ComponentRef<hm::GameObject> component) {
+    hm::components().foreach([&](hm::ComponentRef<hm::GameObject> component) {
       hm::Entity entity = component().entity();
       bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
 

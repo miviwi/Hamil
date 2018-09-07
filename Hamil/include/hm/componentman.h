@@ -6,6 +6,8 @@
 
 #include <components.h>
 
+#include <util/lambdatraits.h>
+
 #include <functional>
 #include <memory>
 #include <utility>
@@ -32,6 +34,16 @@ public:
   void removeComponent(EntityId entity)
   {
     return components().removeComponent<T>(entity);
+  }
+
+  template <typename Fn>
+  void foreach(Fn fn)
+  {
+    // Source: https://stackoverflow.com/questions/13358672
+    using Traits = util::LambdaTraits<decltype(&Fn::operator())>;
+    using T = Traits::ArgType;
+
+    foreach<typename T::RefType>(Traits::to_function(fn));
   }
 
   template <typename T>
