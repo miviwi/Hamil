@@ -39,8 +39,7 @@ public:
   template <typename Fn>
   void foreach(Fn fn)
   {
-    // Source: https://stackoverflow.com/questions/13358672
-    using Traits = util::LambdaTraits<decltype(&Fn::operator())>;
+    using Traits = util::LambdaTraits<Fn>;
     using T = Traits::ArgType;
 
     foreach<typename T::RefType>(Traits::to_function(fn));
