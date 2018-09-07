@@ -19,7 +19,9 @@ public:
 
   ComponentManager()
   {
-    m_components = create_component_store<ComponentStore>(InitialHashSize, InitialComponentsSize);
+    m_components = create_component_store<ComponentStore>(
+      InitialHashSize, InitialComponentsSize
+    );
   }
 
   ~ComponentManager()

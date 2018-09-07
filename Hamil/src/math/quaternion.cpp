@@ -95,7 +95,7 @@ Quaternion Quaternion::rotation_between(const vec3& u, const vec3& v)
   return Quaternion(axis, w).normalize();
 }
 
-Quaternion slerp(const Quaternion& a, const Quaternion& b, float t)
+Quaternion Quaternion::slerp(const Quaternion& a, const Quaternion& b, float t)
 {
   Quaternion q;
   float c = a.dot(b);

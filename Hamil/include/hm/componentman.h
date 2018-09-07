@@ -40,7 +40,7 @@ public:
   void foreach(Fn fn)
   {
     using Traits = util::LambdaTraits<Fn>;
-    using T = Traits::ArgType;
+    using T = Traits::ArgType<0>;
 
     foreach<typename T::RefType>(Traits::to_function(fn));
   }
@@ -48,9 +48,7 @@ public:
   template <typename T>
   void foreach(std::function<void(ComponentRef<T> component)> fn)
   {
-    components().foreach<T>([&](auto component) {
-      fn({ component });
-    });
+    components().foreach<T>(fn);
   }
 
 protected:

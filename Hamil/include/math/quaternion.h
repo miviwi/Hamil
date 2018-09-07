@@ -48,6 +48,11 @@ struct alignas(16) Quaternion {
 
   inline Quaternion cross(const Quaternion& b) const;
 
+  Quaternion inverse() const
+  {
+    return { -x, -y, -z, w };
+  }
+
   Quaternion operator-() const
   {
     return { -x, -y, -z, -w };
@@ -82,7 +87,7 @@ inline Quaternion Quaternion::operator*(float u) const
 
 inline vec3 operator*(const Quaternion& q, const vec3& v)
 {
-  vec3 u ={ q.x, q.y, q.z };
+  vec3 u = { q.x, q.y, q.z };
   float s = q.w;
 
   return u * 2.0f*u.dot(v)

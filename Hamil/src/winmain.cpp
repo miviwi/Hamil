@@ -655,13 +655,13 @@ int main(int argc, char *argv[])
       ;
     skybox_arr.end();
 
-    int fps = (int)(1.0f / step_timer.elapsedSecondsf());
+    float fps = 1.0f / step_timer.elapsedSecondsf();
 
     constexpr float smoothing = 0.9f;
     old_fps = fps;
-    fps = (float)old_fps*smoothing + (float)fps*(1.0f-smoothing);
+    fps = old_fps*smoothing + fps*(1.0f-smoothing);
 
-    face.draw(util::fmt("FPS: %d", fps),
+    face.draw(util::fmt("FPS: %.2f", fps),
       vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
 
     small_face.draw(util::fmt("Traingles: %zu", num_tris),

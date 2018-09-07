@@ -3,6 +3,7 @@
 #include <common.h>
 
 #include <functional>
+#include <tuple>
 
 namespace util {
 
@@ -10,20 +11,23 @@ template <typename Fn>
 struct LambdaTraitsImpl;
 
 // Source: https://stackoverflow.com/questions/13358672
-template <typename Fn, typename Ret, typename Arg>
-struct LambdaTraitsImpl<Ret (Fn::*)(Arg) const> {
-  using Type    = std::function<Ret(Arg)>;
-  using ArgType = Arg;
+template <typename Fn, typename Ret, typename... Args>
+struct LambdaTraitsImpl<Ret (Fn::*)(Args...) const> {
+  using FnType  = std::function<Ret(Args...)>;
   using RetType = Ret;
 
-  static Type to_function(Fn const& fn)
+  using Arguments = std::tuple<Args...>;
+  template <size_t N> using ArgType = std::tuple_element_t<N, Arguments>;
+
+  static FnType to_function(Fn const& fn)
   {
     return fn;
   }
 };
 
 template <typename Fn>
-struct LambdaTraits : public LambdaTraitsImpl<decltype(&Fn::operator())> {
+struct LambdaTraits : public LambdaTraitsImpl<
+  decltype(&Fn::operator()) /* Look up 'Source' of LambdaTraitsImpl */> {
 
 };
 
