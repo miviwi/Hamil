@@ -9,5 +9,5 @@
 (move-if-newer resources.* ${Generated})
 
 #    -------- Components --------
-(componentgen ${Solution}Hamil\include\game\components)
+(componentgen ${Solution}Hamil\include\hm\components)
 (move-if-newer components.* ${Generated})

@@ -38,9 +38,9 @@ def main(db, args):
 
     with open('components.h', 'w') as header, open('components.cpp', 'w') as src:
         header.write(
-        """#include <game/componentstore.h>
+        """#include <hm/componentstore.h>
 
-namespace game {
+namespace hm {
 
 """)
 
