@@ -67,8 +67,6 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
   } else if(auto kb = input->get<win32::Keyboard>()) {
     if(m_state != Editing || kb->event != win32::Keyboard::KeyDown) return false;
 
-    m_on_key_down.emit(this, input);
-
     cursor.visible(!mouse_over);
     return keyboardDown(cursor, kb);
   }
@@ -237,7 +235,10 @@ vec2 TextBoxFrame::sizeHint() const
 
 bool TextBoxFrame::keyboardDown(CursorDriver& cursor, win32::Keyboard *kb)
 {
-  return kb->special() ? specialInput(kb) : charInput(kb);
+  bool handled = kb->special() ? specialInput(kb) : charInput(kb);
+
+  m_on_key_down.emit(this, kb);
+  return handled;
 }
 
 bool TextBoxFrame::charInput(win32::Keyboard *kb)

@@ -78,8 +78,8 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     target->text("");
   });
 
-  m_prompt->onKeyDown([this](TextBoxFrame *target, const InputPtr& input) {
-    specialKey(input);
+  m_prompt->onKeyDown([this](TextBoxFrame *target, win32::Keyboard *kb) {
+    specialKey(kb);
   });
 }
 
@@ -99,7 +99,7 @@ bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
     using win32::Keyboard;
     if(!kb->special() || kb->event != Keyboard::KeyDown) return m_console->input(cursor, input);
 
-    return specialKey(input);
+    return specialKey(kb);
   }
 
   return m_console->input(cursor, input);
@@ -196,10 +196,9 @@ void ConsoleFrame::consoleCommand(const std::string& cmd)
   fns[cmd]();
 }
 
-bool ConsoleFrame::specialKey(const InputPtr& input)
+bool ConsoleFrame::specialKey(win32::Keyboard *kb)
 {
   using win32::Keyboard;
-  auto kb = input->get<Keyboard>();
 
   std::string s;
   switch(kb->key) {
@@ -210,6 +209,7 @@ bool ConsoleFrame::specialKey(const InputPtr& input)
   }
 
   m_prompt->text(s);
+  m_prompt->selection(0, s.size());
   return true;
 }
 
@@ -313,7 +313,8 @@ void ConsoleBufferFrame::input(const std::string& str)
   print(str);
   if(m_buffer.size() > BufferDepth) m_input.pop_back();
 
-  m_input.push_front(str);
+  // Add non-repeated input to the history
+  if(m_input.empty() || m_input.front() != str) m_input.push_front(str);
 }
 
 void ConsoleBufferFrame::clear()
@@ -329,7 +330,7 @@ std::string ConsoleBufferFrame::historyPrevious()
   if(m_history == CursorNotSet) {
     if(m_input.empty()) return "";
     
-    m_history = 0;
+    m_history = 1;
     return m_input.front();
   } 
 

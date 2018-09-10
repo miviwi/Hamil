@@ -62,7 +62,7 @@ private:
 
   void consoleCommand(const std::string& cmd);
 
-  bool specialKey(const InputPtr& input);
+  bool specialKey(win32::Keyboard *kb);
 
   TextBoxFrame *m_prompt;
   ConsoleBufferFrame *m_buffer;

@@ -35,7 +35,7 @@ public:
   using OnChange = Signal<TextBoxFrame *>;
   using OnSubmit = Signal<TextBoxFrame *>;
 
-  using OnKeyDown = Signal<TextBoxFrame *, const InputPtr&>;
+  using OnKeyDown = Signal<TextBoxFrame *, win32::Keyboard *>;
 
   using Frame::Frame;
   virtual ~TextBoxFrame();
