@@ -67,6 +67,8 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
   } else if(auto kb = input->get<win32::Keyboard>()) {
     if(m_state != Editing || kb->event != win32::Keyboard::KeyDown) return false;
 
+    m_on_key_down.emit(this, input);
+
     cursor.visible(!mouse_over);
     return keyboardDown(cursor, kb);
   }
@@ -204,7 +206,7 @@ TextBoxFrame::OnChange& TextBoxFrame::change()
   return m_on_change;
 }
 
-TextBoxFrame& TextBoxFrame::onSubmit(OnChange::Slot on_submit)
+TextBoxFrame& TextBoxFrame::onSubmit(OnSubmit::Slot on_submit)
 {
   m_on_submit.connect(on_submit);
 
@@ -214,6 +216,18 @@ TextBoxFrame& TextBoxFrame::onSubmit(OnChange::Slot on_submit)
 TextBoxFrame::OnSubmit& TextBoxFrame::submit()
 {
   return m_on_submit;
+}
+
+TextBoxFrame& TextBoxFrame::onKeyDown(OnKeyDown::Slot on_key_down)
+{
+  m_on_key_down.connect(on_key_down);
+
+  return *this;
+}
+
+TextBoxFrame::OnKeyDown& TextBoxFrame::keyDown()
+{
+  return m_on_key_down;
 }
 
 vec2 TextBoxFrame::sizeHint() const

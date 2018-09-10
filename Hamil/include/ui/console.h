@@ -62,6 +62,8 @@ private:
 
   void consoleCommand(const std::string& cmd);
 
+  bool specialKey(const InputPtr& input);
+
   TextBoxFrame *m_prompt;
   ConsoleBufferFrame *m_buffer;
   LayoutFrame *m_console;

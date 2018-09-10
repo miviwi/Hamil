@@ -123,9 +123,9 @@ inline mat3 Quaternion::toMat3() const
     zw = z*w;
 
   return {
-    1.0f - 2.0f*y2 - 2.0f*z2,        2.0f*xy - 2.0f*zw,        2.0f*xz + 2.0f*yw,
-    2.0f*xy + 2.0f*zw, 1.0f - 2.0f*x2 - 2.0f*z2,        2.0f*yz - 2.0f*xw,
-    2.0f*xz - 2.0f*yw,        2.0f*yz + 2.0f*xw, 1.0f - 2.0f*x2 - 2.0f*y2,
+    1.0f - 2.0f*y2 - 2.0f*z2, 2.0f*xy - 2.0f*zw,        2.0f*xz + 2.0f*yw,
+    2.0f*xy + 2.0f*zw,        1.0f - 2.0f*x2 - 2.0f*z2, 2.0f*yz - 2.0f*xw,
+    2.0f*xz - 2.0f*yw,        2.0f*yz + 2.0f*xw,        1.0f - 2.0f*x2 - 2.0f*y2,
   };
 }
 
@@ -135,3 +135,5 @@ inline mat4 Quaternion::toMat4() const
 }
 
 #pragma pack(pop)
+
+using quat = Quaternion;

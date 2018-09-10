@@ -776,7 +776,8 @@ static int Mat4_Init(mat4 *self, PyObject *args, PyObject *kwds)
 
 static PyObject *Mat4_Repr(mat4 *self)
 {
-  return Unicode::from_format("mat4(%.2f, %.2f, %.2f, %.2f,\n"
+  return Unicode::from_format("\n"
+                              "mat4(%.2f, %.2f, %.2f, %.2f,\n"
                               "     %.2f, %.2f, %.2f, %.2f,\n"
                               "     %.2f, %.2f, %.2f, %.2f,\n"
                               "     %.2f, %.2f, %.2f, %.2f)",
@@ -1283,7 +1284,7 @@ static PyObject *Math_Clamp(PyObject *self, PyObject *args)
 
 static ModuleDef MathModule = 
   ModuleDef()
-    .name("Math")
+    .name("math")
     .doc("Vector and Matrix types and various 3D graphics related operations.")
     .methods(MathMethods(
       MethodDef()

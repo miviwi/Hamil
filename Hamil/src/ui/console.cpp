@@ -77,6 +77,10 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
 
     target->text("");
   });
+
+  m_prompt->onKeyDown([this](TextBoxFrame *target, const InputPtr& input) {
+    specialKey(input);
+  });
 }
 
 ConsoleFrame::ConsoleFrame(Ui& ui) :
@@ -95,17 +99,7 @@ bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
     using win32::Keyboard;
     if(!kb->special() || kb->event != Keyboard::KeyDown) return m_console->input(cursor, input);
 
-    std::string s;
-    
-    switch(kb->key) { // TODO: work out how to make this reachable when m_prompt has keyboard...
-    case Keyboard::Up:   s = m_buffer->historyPrevious(); break;
-    case Keyboard::Down: s = m_buffer->historyNext(); break;
-
-    default: return m_console->input(cursor, input);
-    }
-
-    m_prompt->text(s);
-    return true;
+    return specialKey(input);
   }
 
   return m_console->input(cursor, input);
@@ -200,6 +194,23 @@ void ConsoleFrame::consoleCommand(const std::string& cmd)
     { ".cls", [this]() { m_buffer->clear(); } },
   };
   fns[cmd]();
+}
+
+bool ConsoleFrame::specialKey(const InputPtr& input)
+{
+  using win32::Keyboard;
+  auto kb = input->get<Keyboard>();
+
+  std::string s;
+  switch(kb->key) {
+  case Keyboard::Up:   s = m_buffer->historyPrevious(); break;
+  case Keyboard::Down: s = m_buffer->historyNext(); break;
+
+  default: return false;
+  }
+
+  m_prompt->text(s);
+  return true;
 }
 
 bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)

@@ -153,6 +153,12 @@ struct Vector3 {
     struct { T s, t, p; };
   };
 
+  // Returns a unit vector which points from 'a' to 'b'
+  static Vector3 direction(const Vector3& a, const Vector3& b)
+  {
+    return (b-a).normalize();
+  }
+
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
 
   T length2() const { return dot(*this); }
@@ -196,6 +202,7 @@ struct Vector3 {
     return { -x, -y, -z };
   }
 
+  static Vector3 zero()    { return { (T)0, (T)0, (T)0 }; }
   static Vector3 up()      { return { (T)0, (T)1, (T)0 }; }
   static Vector3 left()    { return { (T)-1, (T)0, (T)0 }; }
   static Vector3 down()    { return { (T)0, (T)-1, (T)0 }; }
@@ -317,11 +324,23 @@ struct Vector4 {
     struct { T s, t, p, q; };
   };
 
+  // Returns a unit vector which points from 'a' to 'b'
+  static Vector4 direction(const Vector4& a, const Vector4& b)
+  {
+    return (b-a).normalize();
+  }
+
   Vector3<T> xyz() const { return Vector3<T>{ x, y, z }; }
 
   T length2() const { return dot(*this); }
   T length() const { return (T)sqrt(length2()); }
   T dot(const Vector4& b) const { return x*b.x + y*b.y + z*b.z + w*b.w; }
+
+  Vector4 normalize() const
+  {
+    T l = (T)1 / length();
+    return (*this) * l;
+  }
 
   Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }
 

@@ -25,6 +25,8 @@ public:
   // Returns 'false' when the entity was destroyed
   bool alive() const;
 
+  void destroy();
+
   template <typename T>
   bool hasComponent()
   {

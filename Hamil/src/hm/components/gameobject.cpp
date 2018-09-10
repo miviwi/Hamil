@@ -7,5 +7,8 @@ const std::string& GameObject::name() const
   return m_name;
 }
 
+void GameObject::destroyed()
+{
+}
 
 }

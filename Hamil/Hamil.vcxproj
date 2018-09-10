@@ -220,6 +220,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClCompile Include="src\hm\componentref.cpp" />
     <ClCompile Include="src\hm\componentstore.cpp" />
     <ClCompile Include="src\hm\components\gameobject.cpp" />
+    <ClCompile Include="src\hm\components\rigidbody.cpp" />
     <ClCompile Include="src\hm\entity.cpp" />
     <ClCompile Include="src\hm\entityman.cpp" />
     <ClCompile Include="src\math\compare.cpp" />

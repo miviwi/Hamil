@@ -7,11 +7,31 @@
 
 namespace bt {
 
+// Non-owning wrapper around btRigidBody
 class RigidBody {
 public:
   RigidBody();
 
+  // Returns the underlying handle
+  //   to a btRigidBody as a void *
   void *get() const;
+
+  void *user() const;
+  void user(void *ptr);
+
+  // Returns the stored user() pointer as T
+  template <typename T>
+  T user() const
+  {
+    return T((uintptr_t)user());
+  }
+
+  // Stores the given T as a void *
+  template <typename T>
+  void user(T u)
+  {
+    user((void *)(uintptr_t)u);
+  }
 
   RigidBody& activate();
 

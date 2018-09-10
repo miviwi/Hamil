@@ -32,6 +32,16 @@ void *RigidBody::get() const
   return m;
 }
 
+void *RigidBody::user() const
+{
+  return m->getUserPointer();
+}
+
+void RigidBody::user(void *ptr)
+{
+  m->setUserPointer(ptr);
+}
+
 RigidBody& RigidBody::activate()
 {
   m->activate();

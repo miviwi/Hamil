@@ -144,6 +144,7 @@ static vec2 project(vec4 v, mat4 modelviewprojection, ivec2 screen)
   };
 }
 
+// Returns a vec4 with w == 0 when the given coordinates couldn't be unprojected
 static vec4 unproject(vec3 v, mat4 modelviewprojection, ivec2 screen)
 {
   auto inv_mvp = modelviewprojection.inverse();

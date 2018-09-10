@@ -243,7 +243,6 @@ int main(int argc, char *argv[])
   mat4 ortho = xform::ortho(0, 0, b, r, 0.1f, 1000.0f);
 
   mat4 zoom_mtx = xform::identity();
-  mat4 rot_mtx = xform::identity();
 
   window.captureMouse();
 
@@ -386,16 +385,13 @@ int main(int argc, char *argv[])
   console.print(win32::StdStream::gets());
 
   auto fps_timer = win32::DeltaTimer();
-
-  constexpr auto anim_time = 10000.0f;
   auto anim_timer = win32::LoopTimer().durationSeconds(2.5);
-
   auto step_timer = win32::DeltaTimer();
-  step_timer.reset();
+  auto nudge_timer = win32::DeltaTimer();
 
   unsigned num_spheres = 0;
 
-  auto nudge_timer = win32::DeltaTimer();
+  step_timer.reset();
   nudge_timer.stop();
 
   while(window.processMessages()) {
@@ -481,19 +477,9 @@ int main(int argc, char *argv[])
       }
     }
 
-    if(animate > 0) {
-      rot_mtx = xform::translate(1280/2.0f, 720.0f/2.0f, 0)
-        *xform::rotz(lerp(0.0f, 3.1415f, anim_timer.elapsedf()))
-        *xform::translate(-1280.0f/2.0f, -720.0f/2.0f, 0)
-        ;
-    } else {
-      rot_mtx = xform::identity();
-    }
-
     mat4 model =
       xform::translate(pitch, yaw, -50.0f)
       *zoom_mtx
-      *rot_mtx
       ;
 
     auto persp = !ortho_projection ?
@@ -552,7 +538,7 @@ int main(int argc, char *argv[])
       ;
 
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
-    vec3 mouse_ray_direction = (mouse_ray.xyz() - eye.xyz()).normalize();
+    vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
 
     bt::RigidBody picked_body;
     vec3 hit_normal;
@@ -565,7 +551,7 @@ int main(int argc, char *argv[])
     if(picked_body && picked_body.hasMotionState()) {
       float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3.0f);
 
-      auto q = Quaternion::rotation_between(vec3::up(), hit_normal);
+      auto q = quat::rotation_between(vec3::up(), hit_normal);
 
       model = xform::Transform()
         .translate(0.0f, 0.5f, 0.0f)
@@ -594,6 +580,12 @@ int main(int argc, char *argv[])
     world.stepDbgSimulation(step_timer.elapsedSecondsf());
     hm::components().foreach([&](hm::ComponentRef<hm::RigidBody> component) {
       bt::RigidBody rb = component().rb;
+
+      if(rb.origin().distance2(vec3::zero()) > 10e3*10e3) {
+        world.removeRigidBody(rb);
+        component().entity().destroy();
+        return;
+      }
 
       color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), -1.0f };
 
@@ -668,8 +660,10 @@ int main(int argc, char *argv[])
       { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
     if(picked_body) {
-      small_face.draw(util::fmt("picked(0x%p) at: { %.2f, %.2f, %.2f }",
-        picked_body.get(), picked_body.origin().x, picked_body.origin().y, picked_body.origin().z),
+      auto entity = picked_body.user<hm::Entity>();
+
+      small_face.draw(util::fmt("picked(0x%.8x) at: { %.2f, %.2f, %.2f }",
+        entity.id(), picked_body.origin().x, picked_body.origin().y, picked_body.origin().z),
         { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
     }
 

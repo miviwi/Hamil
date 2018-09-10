@@ -19,6 +19,8 @@ public:
   // Only returns 'true' when it's Entity is != Invalid and alive()
   operator bool() const;
 
+  virtual void destroyed() = 0;
+
 private:
   friend class IComponentStore;
 

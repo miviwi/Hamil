@@ -18,11 +18,26 @@ namespace py {
 
 Dict p_globals(nullptr);
 
-static _inittab p_modules[] = {
-  { "win32", PyInit_win32 },
-  { "Math",  PyInit_math  },
-  { "yaml",  PyInit_yaml  },
-  { "res",   PyInit_res   },
+static ModuleDef hm = 
+  ModuleDef()
+    .name("hm")
+  ;
+
+PyObject *PyInit_hm()
+{
+  auto self = Module::create(hm.py())
+    .addObject("win32", PyInit_win32())
+    .addObject("math", PyInit_math())
+    .addObject("yaml", PyInit_yaml())
+    .addObject("res", PyInit_res())
+    ;
+
+  return *self;
+}
+
+
+static _inittab p_modules[] ={
+  { "hm", PyInit_hm },
 
   { nullptr }
 };

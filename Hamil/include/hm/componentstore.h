@@ -81,6 +81,8 @@ struct ComponentStoreBase : IComponentStore {
     auto index = findComponent<TupleIndex>(id);
     auto component = (Component *)(bucket.data() + index);
 
+    component->destroyed();
+
     reap_component(component);
     hash.remove(id, index);
   }

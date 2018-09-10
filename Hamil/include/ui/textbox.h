@@ -35,6 +35,8 @@ public:
   using OnChange = Signal<TextBoxFrame *>;
   using OnSubmit = Signal<TextBoxFrame *>;
 
+  using OnKeyDown = Signal<TextBoxFrame *, const InputPtr&>;
+
   using Frame::Frame;
   virtual ~TextBoxFrame();
 
@@ -59,8 +61,11 @@ public:
 
   TextBoxFrame& onChange(OnChange::Slot on_change);
   OnChange& change();
-  TextBoxFrame& onSubmit(OnChange::Slot on_submit);
+  TextBoxFrame& onSubmit(OnSubmit::Slot on_submit);
   OnSubmit& submit();
+
+  TextBoxFrame& onKeyDown(OnKeyDown::Slot on_key_down);
+  OnKeyDown& keyDown();
 
   virtual vec2 sizeHint() const;
 
@@ -108,6 +113,8 @@ private:
 
   OnChange m_on_change;
   OnSubmit m_on_submit;
+
+  OnKeyDown m_on_key_down;
 };
 
 }

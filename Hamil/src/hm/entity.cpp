@@ -23,4 +23,9 @@ bool Entity::alive() const
   return entities().alive(id());
 }
 
+void Entity::destroy()
+{
+  entities().destroyEntity(id());
+}
+
 }
