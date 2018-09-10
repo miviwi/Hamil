@@ -343,10 +343,10 @@ int main(int argc, char *argv[])
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame<ui::PushButtonFrame>(iface, "b")
     .frame(ui::create<ui::HSliderFrame>(iface, "near")
-           .range(1.0f, 100.0f))
+            .range(1.0f, 100.0f))
     .frame(ui::create<ui::LabelFrame>(iface, "near_val")
-           .caption(util::fmt("Near: %.2f  ", 0.0f))
-           .gravity(ui::Frame::Center))
+            .caption(util::fmt("Near: %.2f  ", 0.0f))
+            .gravity(ui::Frame::Center))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");

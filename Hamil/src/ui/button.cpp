@@ -46,7 +46,8 @@ void ButtonFrame::losingCapture()
   m_state = Default;
 }
 
-void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
+void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
+  Geometry parent, State state)
 {
   const Style& style = ui().style();
   const auto& button = style.button;
@@ -57,18 +58,18 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto luminance = button.color[1].luminance().r;
   byte factor = 0;
-  switch(m_state) {
+  switch(state) {
   case Default: factor = 0; break;
   case Hover:   factor = luminance/4; break;
   case Pressed: factor = luminance; break;
   }
 
-  Color color[] = {
+  Color color[] ={
     button.color[0].lighten(factor),
     button.color[1].lighten(factor),
   };
 
-  Geometry highlight_g = {
+  Geometry highlight_g ={
     g.x + g.w*0.02f, g.y + g.h*0.08f,
     g.w*0.96f, g.h*0.5f
   };
@@ -84,8 +85,24 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
     .roundedRect(g, button.radius, VertexPainter::All, color[0])
     .roundedRect(highlight_g, button.radius, VertexPainter::All, color[1])
     .roundedBorder(g, button.radius, VertexPainter::All, black())
-    .drawableCentered(m_caption, g)
+    .drawableCentered(caption, g)
     ;
+}
+
+vec2 ButtonFrame::captionSizeHint(const Drawable& caption) const
+{
+  auto font = ui().style().font;
+  float font_height = font->height();
+
+  return {
+    std::max(caption.size().x+20, 50.0f),
+    std::max(caption.size().y, font_height) + font_height*0.8f
+  };
+}
+
+void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
+{
+  captionPaint(m_caption, painter, parent, m_state);
 }
 
 PushButtonFrame& PushButtonFrame::caption(std::string caption)
@@ -109,13 +126,7 @@ PushButtonFrame::OnClick& PushButtonFrame::click()
 
 vec2 PushButtonFrame::sizeHint() const
 {
-  auto font = ui().style().font;
-  float font_height = font->height();
-
-  return {
-    std::max(m_caption.size().x+20, 50.0f),
-    std::max(m_caption.size().y, font_height) + font_height*0.8f
-  };
+  return captionSizeHint(m_caption);
 }
 
 Geometry PushButtonFrame::getSolidGeometry() const
@@ -125,6 +136,59 @@ Geometry PushButtonFrame::getSolidGeometry() const
 
 void PushButtonFrame::emitClicked()
 {
+  m_on_click.emit(this);
+}
+
+void ToggleButtonFrame::paint(VertexPainter& painter, Geometry parent)
+{
+  captionPaint(m_caption, painter, parent, m_value ? Pressed : m_state);
+}
+
+ToggleButtonFrame& ToggleButtonFrame::caption(std::string caption)
+{
+  m_caption = ui().drawable().fromText(ui().style().font, caption, white());
+
+  return *this;
+}
+
+ToggleButtonFrame& ToggleButtonFrame::value(bool value)
+{
+  m_value = value;
+
+  return *this;
+}
+
+bool ToggleButtonFrame::value() const
+{
+  return m_value;
+}
+
+ToggleButtonFrame& ToggleButtonFrame::onClick(OnClick::Slot on_click)
+{
+  m_on_click.connect(on_click);
+
+  return *this;
+}
+
+ToggleButtonFrame::OnClick& ToggleButtonFrame::click()
+{
+  return m_on_click;
+}
+
+vec2 ToggleButtonFrame::sizeHint() const
+{
+  return captionSizeHint(m_caption);
+}
+
+Geometry ToggleButtonFrame::getSolidGeometry() const
+{
+  return geometry();
+}
+
+void ToggleButtonFrame::emitClicked()
+{
+  m_value = !m_value;
+
   m_on_click.emit(this);
 }
 
