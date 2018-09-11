@@ -1,35 +1,10 @@
-import re
-import sys
+import os
+import cxx
 import database
 import eugene_win32 as win32
 import eugene_util as util
 
-_COMPONENT_DELIM = "!$"
-
-_COMPONENT = re.compile(r'\s*(?:struct|class)\s+(\w+)')
-
-def _get_components(f):
-    component_incoming = False
-    components = []
-    for line in f.readlines():
-        if not line.strip(): continue # Skip any empty lines
-
-        if component_incoming:
-            component = _COMPONENT.match(line)
-            if component is None: continue # No definition yet...
-
-            # 1st capture group == ComponentClassName
-            components.append(component[1])
-
-            component_incoming = False
-            continue
-
-        component_pos = line.find(_COMPONENT_DELIM)
-        if component_pos < 0: continue
-
-        component_incoming = True # Next 'struct' definition will be a component
-
-    return components
+from pprint import pprint
 
 def main(db, args):
     pattern = lambda dir: f"{dir}\\*.h"
@@ -48,18 +23,22 @@ namespace hm {
         """#include "components.h"
 
 """)
+        tu = cxx.CxxTranslationUnit(
+            # Need to pick a TranslationUnit with #include <hm/compoents/all.h>
+            os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                '..', '..', 'Hamil', 'src', 'hm', 'componentstore.cpp'),
+            args
+        )
 
-        components = []
-        for arg in args:
-            find_data = None
-            try:
-                find_data = win32.FindFiles(pattern(arg))
-            except ValueError:
-                continue
+        hm = tu.namespace('hm')
 
-            for file in find_data:
-                fname = f"{arg}\\{file['cFileName']}"
-                with open(fname, 'r') as f: components += _get_components(f)
+        Component = hm.class_('Component')
+        component_classes = filter(
+            lambda c: c[1].derived_from(Component), hm.classes().items()
+        )
+
+        # c[0] is the non-namespace qualified class name
+        components = list(map(lambda c: c[0], component_classes))
 
         for component in components:
             header.write(f"struct {component};\n")

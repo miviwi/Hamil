@@ -6,7 +6,6 @@
 
 namespace hm {
 
-// !$Component
 // After creating the component it's parent entity
 //   becomes accessible via rb->user<Entity>()
 struct RigidBody : public Component {

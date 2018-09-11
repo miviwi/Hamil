@@ -125,5 +125,8 @@ class CxxTranslationUnit:
             name: CxxNamespace(name, decls) for name, decls in namespaces.items()
         }
 
+    def namespaces(self) -> dict:
+        return self._namespaces
+
     def namespace(self, name: str) -> CxxNamespace:
         return self._namespaces.get(name)

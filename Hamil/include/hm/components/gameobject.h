@@ -6,7 +6,6 @@
 
 namespace hm {
 
-// !$Component
 struct GameObject : public Component {
   GameObject(u32 entity, const std::string& name_) :
     Component(entity),
