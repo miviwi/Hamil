@@ -58,7 +58,6 @@ def _move_if_newer(args, last_command=None, **kwargs):
     print(result.stdout)
 
 def _mkdir(args, **kwargs):
-    print(args)
     for arg in args:
         if os.path.exists(arg): continue
 
