@@ -14,6 +14,13 @@ class VertexArray;
 class IndexedVertexArray;
 class IndexBuffer;
 
+// Base class for Eugene/UniformGen definitions
+//   Eugene looks for classes which inherit from it
+//   and generates code for Program::getUniformsLocation()
+// Limitations:
+//   - The derived classes cannot be declared inside of functions,
+//     other classes or nested namespaces (a declaration directly
+//     inside a namespace is ok though)
 struct Uniforms {
   // Symbolic type for declaring a Program's name e.g.:
   //   struct Program {

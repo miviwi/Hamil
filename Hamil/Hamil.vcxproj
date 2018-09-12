@@ -227,6 +227,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClCompile Include="src\math\quaternion.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\mesh\util.cpp" />
+    <ClCompile Include="src\programs.cpp" />
     <ClCompile Include="src\py\collections.cpp" />
     <ClCompile Include="src\py\exception.cpp" />
     <ClCompile Include="src\py\modules\mathmodule.cpp" />

@@ -10,6 +10,9 @@
 
 namespace hm {
 
+// Base class for Eugene/ComponentGen definitions.
+//   - Derived classes (i.e. 'Components') must be declared
+//     in the 'hm' namespace
 class Component {
 public:
   Component(Entity e);
@@ -19,7 +22,7 @@ public:
   // Only returns 'true' when it's Entity is != Invalid and alive()
   operator bool() const;
 
-  virtual void destroyed() = 0;
+  void destroyed();
 
 private:
   friend class IComponentStore;

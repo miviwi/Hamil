@@ -13,7 +13,7 @@ struct RigidBody : public Component {
 
   bt::RigidBody rb;
 
-  virtual void destroyed();
+  void destroyed();
 };
 
 }

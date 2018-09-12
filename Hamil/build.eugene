@@ -2,7 +2,7 @@
 
 #    --------  Uniforms  --------
 (uniformgen
-  ${Solution}Hamil\src\winmain.cpp
+  ${Solution}Hamil\src\programs.cpp
   ${Solution}Hamil\src\ft\font.cpp
   ${Solution}Hamil\src\ui\cursor.cpp
   ${Solution}Hamil\src\ui\ui.cpp)

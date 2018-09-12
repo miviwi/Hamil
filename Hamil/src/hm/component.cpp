@@ -17,4 +17,8 @@ Component::operator bool() const
   return entity() && entity().alive();
 }
 
+void Component::destroyed()
+{
+}
+
 }

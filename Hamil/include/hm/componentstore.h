@@ -79,7 +79,7 @@ struct ComponentStoreBase : IComponentStore {
     std::vector<T>& bucket = getBucket<TupleIndex>();
 
     auto index = findComponent<TupleIndex>(id);
-    auto component = (Component *)(bucket.data() + index);
+    auto component = bucket.data() + index;
 
     component->destroyed();
 

@@ -15,7 +15,7 @@ struct GameObject : public Component {
 
   const std::string& name() const;
 
-  virtual void destroyed();
+  void destroyed();
 
 private:
   std::string m_name;
