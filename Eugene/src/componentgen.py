@@ -25,8 +25,7 @@ namespace hm {
 """)
         tu = cxx.CxxTranslationUnit(
             # Need to pick a TranslationUnit with #include <hm/compoents/all.h>
-            os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                '..', '..', 'Hamil', 'src', 'hm', 'componentstore.cpp'),
+            os.path.join(util.HAMIL_PATH, 'src', 'hm', 'componentstore.cpp'),
             args
         )
 
@@ -34,7 +33,7 @@ namespace hm {
 
         Component = hm.class_('Component')
         component_classes = filter(
-            lambda c: c[1].derived_from(Component), hm.classes().items()
+            lambda c: Component.is_base_of(c[1]), hm.classes.items()
         )
 
         # c[0] is the non-namespace qualified class name

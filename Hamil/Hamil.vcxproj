@@ -417,12 +417,6 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
   <ItemGroup>
     <None Include="build.eugene" />
     <None Include="README.md" />
-    <None Include="src\skybox.uniform" />
-    <None Include="src\ui\cursor.uniform" />
-    <None Include="src\tex.uniform" />
-    <None Include="src\ft\font.uniform" />
-    <None Include="src\program.uniform" />
-    <None Include="src\ui\ui.uniform" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="doc\hamil-logo.png" />

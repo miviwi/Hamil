@@ -1,6 +1,12 @@
+import os
 import sys
 import database
 import eugene_win32 as win32
+
+HAMIL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    '..', '..', 'Hamil')
+
+HAMIL_INCLUDE = os.path.join(HAMIL_PATH, 'include')
 
 _PAD = " "*35
 def up_to_date(db, args, pattern):
@@ -68,6 +74,9 @@ def subdirectories(path):
 def expand_args(args):
     expanded = []
     for arg in args:
-        expanded += subdirectories(arg) # Use += to flatten the list
+        if os.path.isdir(arg):
+            expanded += subdirectories(arg) # Use += to flatten the list
+        else:
+            expanded.append(arg)
 
     return expanded

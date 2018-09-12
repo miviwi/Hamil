@@ -14,9 +14,18 @@
 #include <algorithm>
 #include <memory>
 
-#include <Windows.h>
-
 namespace ui {
+
+struct UiUniforms : gx::Uniforms {
+  Name ui;
+
+  mat4 uModelViewProjection;
+  int uType;
+  int uImagePage;
+  Sampler uFontAtlas;
+  Sampler uImageAtlas;
+  vec4 uTextColor;
+};
 
 static const char *shader_uType_defs = R"DEFS(
 

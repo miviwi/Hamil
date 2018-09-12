@@ -1,7 +1,11 @@
 (mkdir ${Generated})
 
 #    --------  Uniforms  --------
-(uniformgen ${Solution}Hamil\src)
+(uniformgen
+  ${Solution}Hamil\src\winmain.cpp
+  ${Solution}Hamil\src\ft\font.cpp
+  ${Solution}Hamil\src\ui\cursor.cpp
+  ${Solution}Hamil\src\ui\ui.cpp)
 (move-if-newer uniforms.* ${Generated})
 
 #    -------- Resources  --------

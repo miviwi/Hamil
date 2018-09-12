@@ -17,6 +17,7 @@ class CxxClass:
         self._bases   = self._make_bases()
         self._fields  = self._make_fields()
         self._methods = self._make_methods()
+        self._classes = self._make_classes()
 
     def __str__(self):
         return "class " + self._name + self._bases_str()
@@ -24,36 +25,54 @@ class CxxClass:
     def __repr__(self):
         return f"<CxxClass {self._name}{self._bases_str()}>"
 
+    def __eq__(self, other):
+        if type(other) is not type(self):
+            return False
+
+        return self._name == other._name
+
+    @property
     def name(self) -> str:
         return self._name
 
+    @property
     def fields(self) -> list:
         return self._fields
 
+    @property
     def methods(self) -> list:
         return self._methods
 
+    @property
     def decls(self) -> list:
         return self._decls
 
+    @property
     def bases(self) -> list:
         return self._bases
 
-    def derived_from(self, base) -> bool:
-        if type(base) is not type(self):
-            raise ValueError("'base' must be a CxxClass")
+    @property
+    def classes(self) -> dict:
+        """Nested class definitions"""
+        return self._classes
 
-        for b in self._bases:
-            if b._name == base._name: return True
+    def class_(self, name: str):
+        return self._classes.get(name)
 
-        return False
+    def is_base_of(self, child) -> bool:
+        if type(child) is not type(self):
+            raise ValueError("'child' must be a CxxClass")
+
+        return self._name in map(lambda b: b._name, child._bases)
 
     def _make_bases(self):
-        specifiers = filter(
-            lambda s: s.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER,
-            self._decls
+        specifiers = map(
+            lambda s: CxxClass(s.type.get_declaration()), filter(
+                lambda s: s.kind == clang.cindex.CursorKind.CXX_BASE_SPECIFIER,
+                self._decls
+            )
         )
-        return list(map(lambda s: CxxClass(s.type.get_declaration()), specifiers))
+        return list(specifiers)
 
     def _make_fields(self):
         fields = filter(
@@ -67,6 +86,19 @@ class CxxClass:
         )
         return list(methods)
 
+    _CLASS_CURSOR_KINDS = {
+        clang.cindex.CursorKind.CLASS_DECL,
+        clang.cindex.CursorKind.STRUCT_DECL,
+    }
+    def _make_classes(self):
+        classes = map(
+            lambda c: (c.spelling, CxxClass(c.type.get_declaration())), filter(
+                lambda c: c.kind in self._CLASS_CURSOR_KINDS,
+                self._decls
+            )
+        )
+        return { name: decl for name, decl in classes }
+
     def _bases_str(self):
         bases = ','.join(map(lambda b: b._name, self._bases))
         return f" : {bases}" if bases else ""
@@ -75,7 +107,7 @@ class CxxNamespace:
     def __init__(self, name: str, decls: clang.cindex.Cursor):
         self._decls = list(decls)
 
-        self._funcs   = self._extract_kinds({
+        self._funcs = self._extract_kinds({
             clang.cindex.CursorKind.FUNCTION_DECL,
             #clang.cindex.CursorKind.FUNCTION_TEMPLATE,
         })
@@ -84,9 +116,11 @@ class CxxNamespace:
             #clang.cindex.CursorKind.CLASS_TEMPLATE,
         }, kinds_type=CxxClass)
 
+    @property
     def functions(self) -> dict:
         return self._funcs
 
+    @property
     def classes(self) -> dict:
         return self._classes
 
@@ -124,8 +158,10 @@ class CxxTranslationUnit:
         self._namespaces = {
             name: CxxNamespace(name, decls) for name, decls in namespaces.items()
         }
+        self._namespaces[''] = CxxNamespace('', self._tu.cursor.get_children())
 
-    def namespaces(self) -> dict:
+    @property
+    def namespaces(self):
         return self._namespaces
 
     def namespace(self, name: str) -> CxxNamespace:

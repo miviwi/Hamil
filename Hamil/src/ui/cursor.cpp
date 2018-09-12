@@ -93,6 +93,13 @@ static const char *p_tex =
   "                "
 ;
 
+struct CursorUniforms : gx::Uniforms {
+  Name cursor;
+
+  mat4 uModelViewProjection;
+  Sampler uTex;
+};
+
 static const char *vs_src = R"VTX(
 uniform mat4 uModelViewProjection;
 

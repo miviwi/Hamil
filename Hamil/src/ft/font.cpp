@@ -109,6 +109,14 @@ struct Vertex {
 
 FT_Library ft;
 
+struct FontUniforms : gx::Uniforms {
+  Name font;
+
+  mat4 uModelViewProjection;
+  Sampler uAtlas;
+  vec4 uColor;
+};
+
 static const char *vs_src = R"VTX(
 
 uniform sampler2D uAtlas;
