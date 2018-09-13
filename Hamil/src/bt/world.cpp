@@ -77,32 +77,6 @@ void DynamicsWorld::initDbgSimulation()
     auto sphere_shape = new btSphereShape(1.0f);
     shapes.push_back(sphere_shape);
   }
-
-  /*
-    std::vector<vec3> spheres = {
-      { 2.0f, 0.0f, 0.0f },
-      { 2.5f, 32.0f, 0.0f },
-      { 2.0f, 32.0f, -0.5f },
-      { 2.0f, 30.0f, -4.0f },
-      { 2.5f, 32.0f, -4.0f },
-      { 2.0f, 32.0f, -4.5f },
-
-      { 2.0f, 10.0f, 0.0f },
-      { 2.5f, 12.0f, 0.0f },
-      { 2.0f, 12.0f, -0.5f },
-      { 2.0f, 10.0f, -4.0f },
-      { 2.5f, 12.0f, -4.0f },
-      { 2.0f, 12.0f, -4.5f },
-    };
-
-    for(auto sphere : spheres) {
-      auto body = createDbgSimulationRigidBody(sphere, false);
-
-      addRigidBody(body);
-    }
-  }
-  */
-
 }
 
 void DynamicsWorld::startDbgSimulation()

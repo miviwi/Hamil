@@ -21,7 +21,7 @@ def up_to_date(db, args, pattern):
         try:
             find_data = win32.FindFiles(pattern(arg))
         except ValueError:
-            print(f"couldn't open directory {arg} or no suitable files found within...")
+            #print(f"couldn't open directory {arg} or no suitable files found within...")
             continue
 
         for file in find_data:
@@ -40,6 +40,9 @@ def up_to_date(db, args, pattern):
 
                 print(f"{msg} ({old} -> {new})...")
                 result = False
+
+    if result:
+        print("    ...up to date!")
 
     return result
 

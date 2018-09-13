@@ -164,5 +164,9 @@ class CxxTranslationUnit:
     def namespaces(self):
         return self._namespaces
 
+    @property
+    def global_(self):
+        return self.namespace('')
+
     def namespace(self, name: str) -> CxxNamespace:
         return self._namespaces.get(name)

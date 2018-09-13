@@ -5,6 +5,7 @@ import database
 import subprocess
 import eugene_modules
 import eugene_util
+import eugene_win32 as win32
 
 from pprint import pprint
 
@@ -68,15 +69,23 @@ _OPERATORS = {
     "mkdir":         _mkdir,
 }
 
-def main(db, args):
-    script = None
-    try:
-        with open(args[0], 'r') as f:
-            script = _load_script(f)
-    except FileNotFoundError:
-        print(f"no such file `{args[0]}'...")
+def _check_script_freshness(db, script):
+    find_data = win32.FindFiles(script)
+    if len(find_data) != 1:
+        print(f"no such file `{script}'...")
         print("        ...exiting")
         sys.exit(-1)
+
+    file = find_data[0]
+    if not db.compareWithRecord(file['cFileName'], file['ftLastWriteTime']):
+        db.invalidate()  # Script file changed - regenerate everything
+
+def main(db, args):
+    _check_script_freshness(db, args[0])
+
+    script = None
+    with open(args[0], 'r') as f:  # _check_script_freshness() ensures the file exists
+        script = _load_script(f)
 
     env = map(lambda arg: arg.strip().split('='), args[1:])
     env = { name: val for name, val in env }

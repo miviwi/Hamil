@@ -9,6 +9,8 @@ from pprint import pprint
 def main(db, args):
     pattern = lambda dir: f"{dir}\\*.h"
 
+    print("\nGenerating Components...")
+
     if util.up_to_date(db, args, pattern): return 1
 
     with open('components.h', 'w') as header, open('components.cpp', 'w') as src:

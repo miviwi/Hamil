@@ -32,9 +32,9 @@ def _gen(header, src, fname):
 
         uniforms[name[0].spelling] = u
 
-        print(f"Gemerating: {u.name}({name[0].spelling})")
-
     for cname, klass in uniforms.items():
+        print(f"Gemerating: {klass.name}({cname})")
+
         u = filter(lambda c: cxx.CxxClass(c) != UniformsName, klass.fields)
         _gen_one(header, src, cname, list(u))
 
@@ -47,6 +47,9 @@ def _gen_one(header, src, cname, uniforms):
     union {{ struct {{\n""")
 
     for u in uniforms:
+        typename = u.type.get_declaration().spelling
+        print(f"{' '*8}{typename if typename else u.type.spelling} {u.spelling};")
+
         header.write(" "*6)
         header.write(f"int {u.spelling};\n")
 

@@ -53,8 +53,11 @@ class Database:
     def writeRecord(self, key, record):
         db_record = self.readRecord(key)
 
-        if record > db_record:                   # Deal with win32 FindFirstFile returning dates
+        if record > db_record:          # Deal with win32 FindFirstFile returning dates
             self.records[key.encode()] = record  #   which are in the past...
+
+    def invalidate(self):
+        self.records = {}
 
     def _lockfile(self):
         return f"{self.fname}.lock"

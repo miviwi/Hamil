@@ -88,6 +88,8 @@ class ResourceGen:
 def main(db, args):
     pattern = lambda dir: f"{dir}\\*.meta"
 
+    print("\nGenerating Resources...")
+
     if util.up_to_date(db, args, pattern): return 1
 
     # Fix yaml.constructor.ConstructorError (ignore tags)
