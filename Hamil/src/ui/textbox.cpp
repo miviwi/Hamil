@@ -78,7 +78,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = geometry();
 
-  const auto& style = ui().style();
+  const auto& style = ownStyle();
   auto& fnt = *font();
 
   Color cursor_color = transparent();
@@ -157,7 +157,7 @@ void TextBoxFrame::attached()
 
 const ft::Font::Ptr& TextBoxFrame::font() const
 {
-  return m_font ? m_font : ui().style().font;
+  return m_font ? m_font : ownStyle().font;
 }
 
 TextBoxFrame& TextBoxFrame::font(const ft::Font::Ptr& font)

@@ -16,11 +16,16 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
 
     using win32::Mouse;
     if(mouse->buttons & Mouse::Left) {
-      auto mouse_over = decorationsGeometry().intersect(cursor.pos());
-      if(!mouse_over) return false;
+      Geometry g = geometry();
 
-      position(geometry().pos() + vec2{ mouse->dx, mouse->dy });
-      return true;
+      bool mouse_over_decorations = decorationsGeometry().intersect(cursor.pos());
+      bool mouse_over = g.intersect(cursor.pos());
+
+      if(mouse_over_decorations) {
+        position(geometry().pos() + vec2{ mouse->dx, mouse->dy });
+      }
+
+      return mouse_over;
     }
   }
 
@@ -29,7 +34,7 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = ui().style();
+  const Style& style = ownStyle();
 
   Geometry g = geometry();
 
@@ -41,8 +46,8 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .rect(decorationsGeometry(), white())
-    .rect(g, black().opacity(0.4));
+    .roundedRect(decorationsGeometry(), style.window.radius, VertexPainter::TopLeft|VertexPainter::TopRight, style.bg.color[2])
+    .roundedRect(g, style.window.radius, VertexPainter::All, black().opacity(0.4));
 
   if(!m_content) return;
 
@@ -51,7 +56,7 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 
 Frame& WindowFrame::position(vec2 pos)
 {
-  const auto& style = ui().style();
+  const auto& style = ownStyle();
   const auto& window = style.window;
 
   Frame::position(pos);
@@ -74,7 +79,7 @@ WindowFrame& WindowFrame::content(Frame& content_)
 
 vec2 WindowFrame::sizeHint() const
 {
-  const auto& style = ui().style();
+  const auto& style = ownStyle();
   const auto& window = style.window;
 
   auto content_size = m_content ? m_content->geometry().size() : vec2();

@@ -14,7 +14,7 @@ bool SliderFrame::input(CursorDriver& cursor, const InputPtr& input)
     return false;
   }
 
-  bool over_head = headPos().distance(cursor.pos()) < ui().style().slider.width*1.05f;
+  bool over_head = headPos().distance(cursor.pos()) < ownStyle().slider.width*1.05f;
 
   if(m_state != Pressed) m_state = over_head ? Hover : Default;
 
@@ -95,7 +95,7 @@ double SliderFrame::clampedValue(double value) const
 
 void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = ui().style();
+  const Style& style = ownStyle();
   const auto& slider = style.slider;
 
   Geometry g = geometry();
@@ -156,7 +156,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 
 vec2 HSliderFrame::sizeHint() const
 {
-  const auto& slider = ui().style().slider;
+  const auto& slider = ownStyle().slider;
 
   return { 150, slider.width*3 };
 }

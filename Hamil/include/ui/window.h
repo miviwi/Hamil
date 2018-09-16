@@ -8,7 +8,7 @@ namespace ui {
 
 class WindowFrame : public Frame {
 public:
-  static constexpr vec2 DecorationsSize = { 0.0f, 10.0f };
+  static constexpr vec2 DecorationsSize = { 0.0f, 18.0f };
 
   using Frame::Frame;
   virtual ~WindowFrame();

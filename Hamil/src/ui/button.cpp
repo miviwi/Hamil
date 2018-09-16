@@ -49,7 +49,7 @@ void ButtonFrame::losingCapture()
 void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
   Geometry parent, State state)
 {
-  const Style& style = ui().style();
+  const Style& style = ownStyle();
   const auto& button = style.button;
 
   auto margin = button.margin;
@@ -64,7 +64,7 @@ void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
   case Pressed: factor = luminance; break;
   }
 
-  Color color[] ={
+  Color color[] = {
     button.color[0].lighten(factor),
     button.color[1].lighten(factor),
   };
@@ -91,7 +91,7 @@ void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
 
 vec2 ButtonFrame::captionSizeHint(const Drawable& caption) const
 {
-  auto font = ui().style().font;
+  auto font = ownStyle().font;
   float font_height = font->height();
 
   return {
@@ -107,7 +107,7 @@ void PushButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
 PushButtonFrame& PushButtonFrame::caption(std::string caption)
 {
-  m_caption = ui().drawable().fromText(ui().style().font, caption, white());
+  m_caption = ui().drawable().fromText(ownStyle().font, caption, white());
 
   return *this;
 }
@@ -146,7 +146,7 @@ void ToggleButtonFrame::paint(VertexPainter& painter, Geometry parent)
 
 ToggleButtonFrame& ToggleButtonFrame::caption(std::string caption)
 {
-  m_caption = ui().drawable().fromText(ui().style().font, caption, white());
+  m_caption = ui().drawable().fromText(ownStyle().font, caption, white());
 
   return *this;
 }
@@ -194,7 +194,7 @@ void ToggleButtonFrame::emitClicked()
 
 void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = ui().style();
+  const Style& style = ownStyle();
   const auto& button = style.button;
 
   Geometry g = geometry();

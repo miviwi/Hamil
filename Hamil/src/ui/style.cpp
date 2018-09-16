@@ -18,6 +18,7 @@ Style Style::basic_style()
   s.bg.color[0] = s.bg.color[3] = color_b;
   s.bg.color[1] = s.bg.color[2] = color_a;
 
+  s.window.radius = 3.0f;
   s.window.margin = { 5.0f, 2.0f };
 
   s.border.color[0] = s.border.color[3] = ui::white();

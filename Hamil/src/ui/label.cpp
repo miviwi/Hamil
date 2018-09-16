@@ -15,7 +15,7 @@ bool LabelFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 { 
-  const Style& style = ui().style();
+  const Style& style = ownStyle();
   auto& font = *style.font;
 
   Geometry g = geometry();
@@ -45,7 +45,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 
 LabelFrame& LabelFrame::caption(const std::string& caption)
 {
-  m_caption = ui().drawable().fromText(ui().style().font, caption, white());
+  m_caption = ui().drawable().fromText(ownStyle().font, caption, white());
 
   return *this;
 }

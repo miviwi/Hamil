@@ -55,7 +55,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   Frame(ui, name, make_geometry()),
   m_prompt(new TextBoxFrame(ui)), m_buffer(new ConsoleBufferFrame(ui))
 {
-  m_prompt->font(ui.style().monospace);
+  m_prompt->font(ownStyle().monospace);
   m_prompt->hint("Type commands here...");
 
   auto& console = create<RowLayoutFrame>(ui, name, geometry())
@@ -238,7 +238,7 @@ bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  auto& font = *ui().style().monospace;
+  auto& font = *ownStyle().monospace;
 
   Geometry g = geometry();
 
@@ -291,7 +291,7 @@ vec2 ConsoleBufferFrame::sizeHint() const
 
 void ConsoleBufferFrame::print(const std::string& str)
 {
-  auto font = ui().style().monospace;
+  auto font = ownStyle().monospace;
   auto wrap_limit = columns();
   
   util::splitlines(str, [&](const std::string& line) {
@@ -354,7 +354,7 @@ std::string ConsoleBufferFrame::historyNext()
 
 size_t ConsoleBufferFrame::rows() const
 {
-  const auto& font = *ui().style().monospace;
+  const auto& font = *ownStyle().monospace;
   auto height = BufferHeight - BufferPixelMargin;
 
   return (size_t)(height / font.height());
@@ -362,7 +362,7 @@ size_t ConsoleBufferFrame::rows() const
 
 size_t ConsoleBufferFrame::columns() const
 {
-  const auto& font = *ui().style().monospace;
+  const auto& font = *ownStyle().monospace;
   auto width = ConsoleFrame::ConsoleSize.x - (BufferPixelMargin+ScrollBarWidth);
 
   return (size_t)floor(width / font.monospaceWidth())-1;

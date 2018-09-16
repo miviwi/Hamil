@@ -54,7 +54,7 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  const Style& style = ui().style();
+  const Style& style = ownStyle();
   const auto& combobox = style.combobox;
 
   Geometry g = geometry();
@@ -184,7 +184,7 @@ void DropDownFrame::losingCapture()
 
 vec2 DropDownFrame::sizeHint() const
 {
-  const ft::Font& font = *ui().style().font;
+  const ft::Font& font = *ownStyle().font;
   float width = 110.0f;
 
   for(auto& item : m_items) {

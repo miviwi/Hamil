@@ -62,6 +62,9 @@ protected:
   Ui& ui();
   const Ui& ui() const;
 
+  // TODO
+  const Style& ownStyle() const;
+
   // All the ev* functions return a bool which stops event
   //   bubbling when true
 

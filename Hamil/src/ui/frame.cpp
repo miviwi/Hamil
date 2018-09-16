@@ -106,6 +106,11 @@ const Ui& Frame::ui() const
   return *m_ui;
 }
 
+const Style& Frame::ownStyle() const
+{
+  return ui().style();
+}
+
 bool Frame::evMouseEnter(const MouseMoveEvent& e)
 {
   return false;
@@ -147,7 +152,7 @@ Frame& Frame::position(vec2 pos)
 void Frame::paint(VertexPainter& painter, Geometry parent)
 {
   Geometry g = m_geom;
-  auto style = ui().style();
+  auto style = ownStyle();
 
   auto ga = vec2{ g.x, g.y },
     gb = vec2{ g.x+g.w, g.y+g.h };
