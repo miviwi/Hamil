@@ -108,6 +108,7 @@
     <None Include="extern\LLVM\win64\libclang.dll" />
     <None Include="README.md" />
     <None Include="src\componentgen.py" />
+    <None Include="src\cxx.py" />
     <None Include="src\eugene.bat" />
     <None Include="src\eugene.py" />
     <None Include="src\eugene_modules.py" />

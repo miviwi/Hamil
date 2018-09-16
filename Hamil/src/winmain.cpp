@@ -30,6 +30,7 @@
 #include <ui/cursor.h>
 #include <ui/frame.h>
 #include <ui/layout.h>
+#include <ui/window.h>
 #include <ui/button.h>
 #include <ui/slider.h>
 #include <ui/label.h>
@@ -364,7 +365,9 @@ int main(int argc, char *argv[])
   near_slider.value(1.0);
 
   iface
-    .frame(layout, { 30.0f, 500.0f })
+    .frame(ui::create<ui::WindowFrame>(iface)
+      .content(layout)
+      .position({ 30.0f, 500.0f }))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;
 

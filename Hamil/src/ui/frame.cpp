@@ -136,10 +136,12 @@ bool Frame::evMouseDrag(const MouseDragEvent& e)
   return false;
 }
 
-void Frame::position(vec2 pos)
+Frame& Frame::position(vec2 pos)
 {
   m_geom.x = pos.x;
   m_geom.y = pos.y;
+
+  return *this;
 }
 
 void Frame::paint(VertexPainter& painter, Geometry parent)

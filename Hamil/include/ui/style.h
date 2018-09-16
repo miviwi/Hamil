@@ -18,6 +18,10 @@ struct Style {
   } bg;
 
   struct {
+    vec2 margin;
+  } window;
+
+  struct {
     float width;
     Color color[4];
   } border;
