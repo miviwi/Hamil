@@ -77,14 +77,16 @@ def _check_script_freshness(db, script):
         sys.exit(-1)
 
     file = find_data[0]
-    if not db.compareWithRecord(file['cFileName'], file['ftLastWriteTime']):
-        db.invalidate()  # Script file changed - regenerate everything
+    key, record = file['cFileName'], file['ftLastWriteTime']
+    if not db.compareWithRecord(key, record):
+        db.invalidate()              # Script file changed - regenerate everything
+        db.writeRecord(key, record)
 
 def main(db, args):
     _check_script_freshness(db, args[0])
 
     script = None
-    with open(args[0], 'r') as f:  # _check_script_freshness() ensures the file exists
+    with open(args[0], 'r') as f: # _check_script_freshness() ensures the file exists
         script = _load_script(f)
 
     env = map(lambda arg: arg.strip().split('='), args[1:])

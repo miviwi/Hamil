@@ -15,6 +15,8 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
     if(!mouse) return false;
 
     using win32::Mouse;
+    if(mouse->buttonDown(Mouse::Left)) ui().capture(this);
+
     if(mouse->buttons & Mouse::Left) {
       Geometry g = geometry();
 
