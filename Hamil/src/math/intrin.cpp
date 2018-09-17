@@ -8,6 +8,20 @@
 
 namespace intrin {
 
+#define splat_ps(r, i) _mm_shuffle_ps(r, r, _MM_SHUFFLE(i, i, i, i))
+
+#define dot_ps(a, b)                                 \
+  _mm_hadd_ps(                                       \
+    _mm_hadd_ps(_mm_mul_ps(a, b), _mm_setzero_ps()), \
+    _mm_setzero_ps()                                 \
+  )
+
+#define cross_ps(a, b)                                                  \
+  _mm_sub_ps(                                                           \
+    _mm_mul_ps(_mm_shuffle_ps(a, a, 0x09), _mm_shuffle_ps(b, b, 0x12)), \
+    _mm_mul_ps(_mm_shuffle_ps(a, a, 0x12), _mm_shuffle_ps(b, b, 0x09))  \
+  )                                                                     \
+
 void mat4_mult(const float *a, const float *b, float *out)
 {
   __m128 x[] = { _mm_load_ps(b+0), _mm_load_ps(b+4), _mm_load_ps(b+8), _mm_load_ps(b+12) };
@@ -16,7 +30,6 @@ void mat4_mult(const float *a, const float *b, float *out)
   __m128 z0, z1, z2, z3;
 
   z0 = z1 = z2 = z3 = _mm_setzero_ps();
-
   for(int i = 0; i < 4; i++) {
     y0 = _mm_mul_ps(_mm_load_ps1(a+i), x[i]);
     y1 = _mm_mul_ps(_mm_load_ps1(a+4+i), x[i]);
@@ -56,7 +69,7 @@ void mat4_inverse(const float *a, float *out)
   __m128 minor[4];
   __m128 det, tmp;
 
-  det = tmp = _mm_set1_ps(0.0f);
+  det = tmp = _mm_setzero_ps();
 
   tmp = _mm_loadh_pi(_mm_loadl_pi(tmp, (__m64 *)(a+0)), (__m64 *)(a+4));
   x[1] = _mm_loadh_pi(_mm_loadl_pi(x[1], (__m64 *)(a+8)), (__m64 *)(a+12));
@@ -152,6 +165,32 @@ void mat4_vec4_mult(const float *a, const float *b, float *out)
   _mm_store_ps(out, z);
 }
 
+void vec_dot(const float *a, const float *b, float *out)
+{
+  __m128 dot = dot_ps(_mm_load_ps(a), _mm_load_ps(b));
+
+  _mm_store_ss(out, dot);
+}
+
+void vec_normalize(const float *a, float *out)
+{
+  __m128 x = _mm_load_ps(a);
+  __m128 l2 = splat_ps(dot_ps(x, x), 0);
+
+  x = _mm_mul_ps(x, _mm_rsqrt_ps(l2));
+
+  _mm_store_ps(out, x);
+}
+
+void vec_recip(const float *a, float *out)
+{
+  __m128 x = _mm_load_ps(a);
+
+  x = _mm_rcp_ps(x);
+
+  _mm_store_ps(out, x);
+}
+
 void vec4_const_mult(const float *a, float u, float *out)
 {
   __m128 x = _mm_load_ps(a);
@@ -170,60 +209,76 @@ void vec4_lerp(const float *a, const float *b, float u, float *out)
   _mm_store_ps(out, _mm_add_ps(x, d));
 }
 
-void vec4_recip(const float *a, float *out)
-{
-  __m128 x = _mm_load_ps(a);
-
-  x = _mm_rcp_ps(x);
-
-  _mm_store_ps(out, x);
-}
-
 void vec3_cross(const float *a, const float *b, float *out)
 {
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps(b);
   
-  __m128 z = _mm_mul_ps(_mm_shuffle_ps(x, x, 0x09), _mm_shuffle_ps(y, y, 0x12));
-  __m128 w = _mm_mul_ps(_mm_shuffle_ps(x, x, 0x12), _mm_shuffle_ps(y, y, 0x09));
+  __m128 z = cross_ps(x, y);
 
-  _mm_store_ps(out, _mm_sub_ps(z, w));
+  _mm_store_ps(out, z);
 }
 
-void quat_cross(const float *a, const float *b, float *out)
+void quat_mult(const float *a, const float *b, float *out)
 {
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps(b);
 
-  __m128 f = _mm_set_ps(-1.0f, 1.0f, 1.0f, 1.0f);
+  __m128 x1 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 1, 2, 3));
+  __m128 x2 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(1, 0, 2, 3));
+  __m128 x3 = _mm_shuffle_ps(x, x, _MM_SHUFFLE(2, 3, 1, 0));
 
-  __m128 z = _mm_mul_ps(
-    _mm_shuffle_ps(x, x, _MM_SHUFFLE(3, 3, 3, 3)),
-    _mm_shuffle_ps(y, y, _MM_SHUFFLE(3, 0, 1, 2))
-  );
+  x1 = _mm_xor_ps(x1, _mm_set_ps(0.0f, -0.0f, -0.0f, -0.0f));    // x1 = { -x, -y, -z, w }
+  x3 = _mm_xor_ps(x3, _mm_set_ps(-0.0f, -0.0f, -0.0f, -0.0f));   // x3 = -x3
 
-  __m128 w = _mm_mul_ps(
-    _mm_shuffle_ps(x, x, _MM_SHUFFLE(0, 0, 1, 2)),
-    _mm_shuffle_ps(y, y, _MM_SHUFFLE(0, 3, 3, 3))
-  );
+  __m128 z;
+  __m128 w = _mm_setzero_ps();
+ 
+  z = _mm_mul_ps(x, splat_ps(y, 3));
+  w = _mm_add_ps(w, z);
+  z = _mm_mul_ps(x1, splat_ps(y, 0));
+  w = _mm_add_ps(w, z);
+  z = _mm_mul_ps(x2, splat_ps(y, 1));
+  w = _mm_add_ps(w, z);
+  z = _mm_mul_ps(x3, splat_ps(y, 2));
+  w = _mm_add_ps(w, z);
 
-  w = _mm_mul_ps(w, f);
-  z = _mm_add_ps(z, w);
+  _mm_store_ps(out, w);
+}
 
-  w = _mm_mul_ps(
-    _mm_shuffle_ps(x, x, _MM_SHUFFLE(1, 1, 2, 0)),
-    _mm_shuffle_ps(y, y, _MM_SHUFFLE(1, 2, 0, 1))
-  );
+void quat_vec3_mult(const float *a, const float *b, float *out)
+{
+  __m128 _2 = _mm_set_ps1(2.0f);
+  __m128 xyz_mask = _mm_castsi128_ps(_mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF));
 
-  w = _mm_mul_ps(w, f);
-  z = _mm_add_ps(z, w);
+  __m128 u = _mm_load_ps(a);
+  __m128 v = _mm_load_ps(b);
 
-  w = _mm_mul_ps(
-    _mm_shuffle_ps(x, x, _MM_SHUFFLE(2, 2, 0, 1)),
-    _mm_shuffle_ps(y, y, _MM_SHUFFLE(2, 1, 2, 0))
-  );
+  __m128 s = _mm_load_ps1(a+3);
 
-  z = _mm_sub_ps(z, w);
+  u = _mm_and_ps(u, xyz_mask);
+  s = _mm_and_ps(s, xyz_mask);
+
+  __m128 z;
+  __m128 e;
+
+  e = dot_ps(u, v);
+  e = _mm_shuffle_ps(e, e, _MM_SHUFFLE(3, 0, 0, 0));  // e = { e.x, e.x, e.x, 0.0f }
+
+  z = _mm_mul_ps(u, _mm_mul_ps(e, _2));  // z = u * 2*u.dot(v)
+
+  e = dot_ps(u, u);
+  e = _mm_sub_ps(_mm_mul_ps(s, s), e);  // e = s*s - u.dot(u)
+  e = _mm_shuffle_ps(e, e, _MM_SHUFFLE(3, 0, 0, 0));  // e = { e.x, e.x, e.x, 0.0f }
+
+  z = _mm_add_ps(z, _mm_mul_ps(v, e));  // z = (u * 2*u.dot(v)) + v*(s*s - u.dot(u))
+
+  e = cross_ps(u, v);
+  e = _mm_mul_ps(e, _mm_mul_ps(s, _2));  // e = u.cross(v) * 2.0f*s
+
+  // z = (u * 2*u.dot(v)) + v*(s*s - u.dot(u)) + (u.cross(v) * 2.0f*s)
+  z = _mm_add_ps(z, e);
+
   _mm_store_ps(out, z);
 }
 

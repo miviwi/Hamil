@@ -59,9 +59,9 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   const auto& monospace = ownStyle().monospace;
   auto char_width = monospace->monospaceWidth();
 
-  std::string prompt = ">>>";
+  std::string prompt = " >>> ";
 
-  auto prompt_width = char_width * (float)(prompt.size()+2);
+  auto prompt_width = char_width * (float)prompt.size();
 
   m_prompt->geometry({
     ConsoleSize.x - prompt_width,

@@ -46,8 +46,6 @@ struct alignas(16) Quaternion {
     return (*this) * l;
   }
 
-  inline Quaternion cross(const Quaternion& b) const;
-
   Quaternion inverse() const
   {
     return { -x, -y, -z, w };
@@ -69,12 +67,19 @@ inline Quaternion operator+(const Quaternion& a, const Quaternion& b)
 
 inline Quaternion operator*(const Quaternion& a, const Quaternion& b)
 {
+#if defined(NO_SSE)
   return {
     a.x*b.w + a.w*b.x + a.z*b.y - a.y*b.z,
     a.y*b.w - a.z*b.x + a.w*b.y - a.x*b.z,
     a.z*b.w - a.y*b.x + a.x*b.y - a.w*b.z,
     a.w*b.w - a.x*b.x + a.y*b.y - a.z*b.z,
   };
+#else
+  Quaternion c;
+
+  intrin::quat_mult(a, b, c);
+  return c;
+#endif
 }
 
 inline Quaternion Quaternion::operator*(float u) const
@@ -87,20 +92,20 @@ inline Quaternion Quaternion::operator*(float u) const
 
 inline vec3 operator*(const Quaternion& q, const vec3& v)
 {
+#if defined(NO_SSE)
   vec3 u = { q.x, q.y, q.z };
   float s = q.w;
 
   return u * 2.0f*u.dot(v)
     + v*(s*s - u.dot(u))
     + u.cross(v) * 2.0f*s;
-}
+#else
+  alignas(16) vec4 b = { v.x, v.y, v.z, 0.0f };
+  alignas(16) vec4 c;
 
-inline Quaternion Quaternion::cross(const Quaternion& b) const
-{
-  Quaternion c;
-
-  intrin::quat_cross((const float *)this, b, c);
-  return c;
+  intrin::quat_vec3_mult(q, b, c);
+  return c.xyz();
+#endif
 }
 
 inline Quaternion& operator*=(Quaternion& a, const Quaternion& b)

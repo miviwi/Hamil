@@ -3,6 +3,7 @@
 #include <math/intrin.h>
 
 #include <cmath>
+#include <array>
 #include <algorithm>
 #include <limits>
 #include <type_traits>
@@ -281,23 +282,57 @@ using vec3  = Vector3<float>;
 using ivec3 = Vector3<int>;
 using uvec3 = Vector3<unsigned>;
 
+// Extended to 4 floats and aligned siutably for SSE
+struct alignas(16) intrin_vec3 {
+  float d[4];
+
+  intrin_vec3(const vec3& v, float w = 0.0f) :
+    d{ v.x, v.y, v.z, w }
+  { }
+  intrin_vec3()
+  { }
+
+  vec3 toVec3() const { return vec3(d); }
+
+  operator float *() { return d; }
+};
+
+inline float vec3::dot(const vec3& v) const
+{
+  auto a = intrin_vec3(*this);
+  auto b = intrin_vec3(v);
+  float c[1];
+
+  intrin::vec_dot(a, b, c);
+  return *c;
+}
+
+inline vec3 vec3::normalize() const
+{
+  auto a = intrin_vec3(*this);
+  auto b = intrin_vec3();
+  
+  intrin::vec_normalize(a, b);
+  return b.toVec3();
+}
+
 inline vec3 vec3::cross(const vec3& v) const
 {
-  alignas(16) float a[4] = { x, y, z, 0 };
-  alignas(16) float b[4] = { v.x, v.y, v.z, 0 };
-  alignas(16) float c[4];
+  auto a = intrin_vec3(*this);
+  auto b = intrin_vec3(v);
+  auto c = intrin_vec3();
 
   intrin::vec3_cross(a, b, c);
-  return vec3{ c[0], c[1], c[2] };
+  return c.toVec3();
 }
 
 inline vec3 vec3::recip() const
 {
-  alignas(16) float a[4] = { x, y, z, 1.0f };
-  alignas(16) float b[4];
+  auto a = intrin_vec3(*this);
+  auto b = intrin_vec3();
 
-  intrin::vec4_recip(a, b);
-  return vec3{ b[0], b[1], b[2] };
+  intrin::vec_recip(a, b);
+  return b.toVec3();
 }
 
 template <typename T>
@@ -419,11 +454,27 @@ inline vec4 operator*(vec4 a, float u)
   return b;
 }
 
+inline float vec4::dot(const vec4& b) const
+{
+  alignas(16) float d[1];
+
+  intrin::vec_dot(*this, b, d);
+  return *d;
+}
+
+inline vec4 vec4::normalize() const
+{
+  alignas(16) vec4 b;
+
+  intrin::vec_normalize(*this, b);
+  return b;
+}
+
 inline vec4 vec4::recip() const
 {
   alignas(16) vec4 b;
 
-  intrin::vec4_recip((const float *)this, b);
+  intrin::vec_recip(*this, b);
   return b;
 }
 
