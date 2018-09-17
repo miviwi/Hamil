@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     printf("{ %.2f, %.2f, %.2f, %.2f }\n", q.x, q.y, q.z, q.w);
   };
 
-  print_vec3(quat::from_euler(0.0f, 0.0f, PIf/2.0f)*quat::from_euler(0.0f, PIf/2.0f, 0.0f) * vec3::up());
+  print_vec3(quat::from_euler(0.0f, 0.0f, PIf/2.0f)*quat::from_euler(0.0f, PIf/4.0f, 0.0f) * vec3::up());
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
