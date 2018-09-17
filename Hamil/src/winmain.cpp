@@ -366,6 +366,7 @@ int main(int argc, char *argv[])
 
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
+      .title("Window")
       .content(layout)
       .position({ 30.0f, 500.0f }))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))

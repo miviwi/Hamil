@@ -1,6 +1,7 @@
 #include <ui/console.h>
 #include <ui/drawable.h>
 #include <ui/animation.h>
+#include <ui/label.h>
 
 #include <util/format.h>
 #include <util/str.h>
@@ -55,12 +56,26 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   Frame(ui, name, make_geometry()),
   m_prompt(new TextBoxFrame(ui)), m_buffer(new ConsoleBufferFrame(ui))
 {
-  m_prompt->font(ownStyle().monospace);
-  m_prompt->hint("Type commands here...");
+  const auto& monospace = ownStyle().monospace;
+  auto char_width = monospace->monospaceWidth();
+
+  std::string prompt = ">>>";
+
+  auto prompt_width = char_width * (float)(prompt.size()+2);
+
+  m_prompt->geometry({
+    ConsoleSize.x - prompt_width,
+    ConsoleSize.y - ConsoleBufferFrame::BufferHeight
+  });
+  m_prompt->font(monospace);
 
   auto& console = create<RowLayoutFrame>(ui, name, geometry())
     .frame(m_buffer)
-    .frame(m_prompt)
+    .frame(create<ColumnLayoutFrame>(ui)
+      .frame(create<LabelFrame>(ui, Geometry{ prompt_width, 0.0f })
+        .caption(prompt)
+        .background(black()))
+      .frame(m_prompt))
     ;
     
   m_console = &console;

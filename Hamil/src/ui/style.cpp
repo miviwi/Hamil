@@ -12,8 +12,8 @@ Style Style::basic_style()
 
   auto alpha = (byte)(255*0.95);
 
-  auto color_a = ui::Color{ 150, 150, 45, alpha },
-    color_b = ui::Color{ 66, 66, 20, alpha };
+  auto color_a = Color{ 150, 150, 45, alpha },
+    color_b = Color{ 66, 66, 20, alpha };
 
   s.bg.color[0] = s.bg.color[3] = color_b;
   s.bg.color[1] = s.bg.color[2] = color_a;
@@ -33,6 +33,14 @@ Style Style::basic_style()
 
   s.combobox.color[0] = color_b; s.combobox.color[1] = color_b.lighten(10);
   s.combobox.radius = 3.0f;
+
+  s.textbox.bg = black();
+  s.textbox.text = white();
+  s.textbox.selection = Color(112, 112, 255);
+  s.textbox.border = false;
+  s.textbox.border_color[0] = black();
+  s.textbox.border_color[1] = Color(6, 70, 173);
+  s.textbox.cursor = white();
 
   return s;
 }

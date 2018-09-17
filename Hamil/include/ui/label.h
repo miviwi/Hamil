@@ -18,11 +18,13 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   LabelFrame& caption(const std::string& caption);
+  LabelFrame& background(Color bg);
 
   virtual vec2 sizeHint() const;
 
 private:
   Drawable m_caption;
+  Color m_bg = transparent();
 };
 
 }

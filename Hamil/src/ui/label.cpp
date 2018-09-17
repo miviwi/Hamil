@@ -31,6 +31,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
+    .rect(g, m_bg)
     ;
 
   if(gravity() == Center) {
@@ -46,6 +47,13 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 LabelFrame& LabelFrame::caption(const std::string& caption)
 {
   m_caption = ui().drawable().fromText(ownStyle().font, caption, white());
+
+  return *this;
+}
+
+LabelFrame& LabelFrame::background(Color bg)
+{
+  m_bg = bg;
 
   return *this;
 }

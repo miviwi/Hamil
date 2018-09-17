@@ -15,12 +15,9 @@ void mat4_mult(const float *a, const float *b, float *out)
   __m128 y0, y1, y2, y3;
   __m128 z0, z1, z2, z3;
 
-  z0 = _mm_mul_ps(_mm_load_ps1(a+0), x[0]);
-  z1 = _mm_mul_ps(_mm_load_ps1(a+4), x[0]);
-  z2 = _mm_mul_ps(_mm_load_ps1(a+8), x[0]);
-  z3 = _mm_mul_ps(_mm_load_ps1(a+12), x[0]);
+  z0 = z1 = z2 = z3 = _mm_setzero_ps();
 
-  for(int i = 1; i < 4; i++) {
+  for(int i = 0; i < 4; i++) {
     y0 = _mm_mul_ps(_mm_load_ps1(a+i), x[i]);
     y1 = _mm_mul_ps(_mm_load_ps1(a+4+i), x[i]);
     y2 = _mm_mul_ps(_mm_load_ps1(a+8+i), x[i]);
@@ -141,21 +138,13 @@ void mat4_inverse(const float *a, float *out)
 
 void mat4_vec4_mult(const float *a, const float *b, float *out)
 {
-  __m128 xa[] = { _mm_load_ps(a+0), _mm_load_ps(a+4), _mm_load_ps(a+8), _mm_load_ps(a+12) };
-  __m128 xb[] = {
-    _mm_shuffle_ps(_mm_unpacklo_ps(xa[0], xa[1]), _mm_unpacklo_ps(xa[2], xa[3]), 0x44),
-    _mm_shuffle_ps(_mm_unpacklo_ps(xa[0], xa[1]), _mm_unpacklo_ps(xa[2], xa[3]), 0xEE),
-    _mm_shuffle_ps(_mm_unpackhi_ps(xa[0], xa[1]), _mm_unpackhi_ps(xa[2], xa[3]), 0x44),
-    _mm_shuffle_ps(_mm_unpackhi_ps(xa[0], xa[1]), _mm_unpackhi_ps(xa[2], xa[3]), 0xEE),
-  };
+  __m128 x[] = { _mm_load_ps(a+0), _mm_load_ps(a+4), _mm_load_ps(a+8), _mm_load_ps(a+12) };
+  _MM_TRANSPOSE4_PS(x[0], x[1], x[2], x[3]);
 
   __m128 y;
-  __m128 z;
-
-  z = _mm_mul_ps(_mm_load_ps1(b), xb[0]);
-
-  for(int i = 1; i < 4; i++) {
-    y = _mm_mul_ps(_mm_load_ps1(b+i), xb[i]);
+  __m128 z = _mm_setzero_ps();
+  for(int i = 0; i < 4; i++) {
+    y = _mm_mul_ps(_mm_load_ps1(b+i), x[i]);
 
     z = _mm_add_ps(y, z);
   }
@@ -179,6 +168,15 @@ void vec4_lerp(const float *a, const float *b, float u, float *out)
   __m128 d = _mm_mul_ps(_mm_sub_ps(y, x), _mm_load_ps1(&u));
 
   _mm_store_ps(out, _mm_add_ps(x, d));
+}
+
+void vec4_recip(const float *a, float *out)
+{
+  __m128 x = _mm_load_ps(a);
+
+  x = _mm_rcp_ps(x);
+
+  _mm_store_ps(out, x);
 }
 
 void vec3_cross(const float *a, const float *b, float *out)

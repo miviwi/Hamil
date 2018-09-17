@@ -291,6 +291,15 @@ inline vec3 vec3::cross(const vec3& v) const
   return vec3{ c[0], c[1], c[2] };
 }
 
+inline vec3 vec3::recip() const
+{
+  alignas(16) float a[4] = { x, y, z, 1.0f };
+  alignas(16) float b[4];
+
+  intrin::vec4_recip(a, b);
+  return vec3{ b[0], b[1], b[2] };
+}
+
 template <typename T>
 struct Vector4 {
   constexpr Vector4() :
@@ -407,6 +416,14 @@ inline vec4 operator*(vec4 a, float u)
   alignas(16) vec4 b;
 
   intrin::vec4_const_mult(a, u, b);
+  return b;
+}
+
+inline vec4 vec4::recip() const
+{
+  alignas(16) vec4 b;
+
+  intrin::vec4_recip((const float *)this, b);
   return b;
 }
 
@@ -612,7 +629,7 @@ Vector4<T> operator*(const Matrix4<T>& a, const Vector4<T>& b)
     a.d[ 0]*b.x+a.d[ 1]*b.y+a.d[ 2]*b.z+a.d[ 3]*b.w,
     a.d[ 4]*b.x+a.d[ 5]*b.y+a.d[ 6]*b.z+a.d[ 7]*b.w,
     a.d[ 8]*b.x+a.d[ 9]*b.y+a.d[10]*b.z+a.d[11]*b.w,
-    a.d[12]*b.x+a.d[14]*b.y+a.d[14]*b.z+a.d[15]*b.w,
+    a.d[12]*b.x+a.d[13]*b.y+a.d[14]*b.z+a.d[15]*b.w,
   };
 }
 

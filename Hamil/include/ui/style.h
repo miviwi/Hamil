@@ -43,6 +43,15 @@ struct Style {
     float radius;
   } combobox;
 
+  struct {
+    Color bg;
+    Color text;
+    Color selection;
+    bool border;
+    Color border_color[2];
+    Color cursor;
+  } textbox;
+
   Style() { memset(this, 0, sizeof(*this)); }
 
   static Style basic_style();

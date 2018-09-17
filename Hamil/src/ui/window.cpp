@@ -15,30 +15,30 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
     if(!mouse) return false;
 
     using win32::Mouse;
-    if(mouse->buttonDown(Mouse::Left)) ui().capture(this);
-
-    if(mouse->buttons & Mouse::Left) {
-      Geometry g = geometry();
-
+    if(mouse->buttonDown(Mouse::Left)) {
       bool mouse_over_decorations = decorationsGeometry().intersect(cursor.pos());
-      bool mouse_over = g.intersect(cursor.pos());
 
-      if(mouse_over_decorations) {
-        position(geometry().pos() + vec2{ mouse->dx, mouse->dy });
-      }
+      if(mouse_over_decorations) m_state = Moving;
 
-      return mouse_over;
+      ui().capture(this);
+    } else if(mouse->buttonUp(Mouse::Left)) {
+      m_state = Default;
+    }
+
+    if(m_state == Moving && mouse->buttons & Mouse::Left) {
+      position(geometry().pos() + vec2{ mouse->dx, mouse->dy });
     }
   }
 
-  return handled;
+  return m_state != Default;
 }
 
 void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 {
   const Style& style = ownStyle();
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    decor = decorationsGeometry();
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
@@ -48,8 +48,9 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .roundedRect(decorationsGeometry(), style.window.radius, VertexPainter::TopLeft|VertexPainter::TopRight, style.bg.color[2])
-    .roundedRect(g, style.window.radius, VertexPainter::All, black().opacity(0.4));
+    .roundedRect(decor, style.window.radius, VertexPainter::TopLeft|VertexPainter::TopRight, style.bg.color[2])
+    .roundedRect(g, style.window.radius, VertexPainter::All, black().opacity(0.4))
+    .drawableCentered(m_title, decor);
 
   if(!m_content) return;
 
@@ -63,6 +64,13 @@ Frame& WindowFrame::position(vec2 pos)
 
   Frame::position(pos);
   if(m_content) m_content->position(pos + DecorationsSize + window.margin);
+
+  return *this;
+}
+
+WindowFrame& WindowFrame::title(const std::string& title)
+{
+  m_title = ui().drawable().fromText(ownStyle().font, title, white());
 
   return *this;
 }

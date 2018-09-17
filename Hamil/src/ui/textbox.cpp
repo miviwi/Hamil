@@ -79,18 +79,20 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
   Geometry g = geometry();
 
   const auto& style = ownStyle();
+  const auto& textbox = style.textbox;
   auto& fnt = *font();
 
-  Color cursor_color = transparent();
+  Color cursor_color = textbox.cursor;
+  auto cursor_alpha = m_cursor_blink.channel<float>(0);
   switch(m_state) {
-  case Editing: cursor_color = m_cursor_blink.channel<Color>(0); break;
+  case Editing: cursor_color = cursor_color.opacity(cursor_alpha); break;
   }
 
-  Color border_color = black();
+  Color border_color = textbox.border_color[0];
   switch(m_state) {
   case Editing:
   case Selecting:
-    border_color = Color(6, 70, 173); break;
+    border_color = textbox.border_color[1]; break;
   }
 
   vec2 text_pos = {
@@ -113,18 +115,18 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(text_pipeline)
-    .rect(g.contract(1), white())
+    .rect(g.contract(1), textbox.bg)
     .rect(cursor_g, cursor_color)
-    .border(g.contract(1), 2.0f, border_color)
+    .border(g.contract(1), 2.0f, textbox.border ? border_color : textbox.bg)
     ;
 
   if(m_text.empty() && !m_hint.empty()) { // Draw hint
     painter
-      .text(fnt, m_hint, text_pos, black().opacity(0.35))
+      .text(fnt, m_hint, text_pos, textbox.text.opacity(0.35))
       ;
   } else {
     painter
-      .text(fnt, m_text, text_pos, black())
+      .text(fnt, m_text, text_pos, textbox.text)
       ;
   }
 
@@ -140,7 +142,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
     };
 
     painter
-      .rect(selection_g, Color(112, 112, 255).opacity(0.5))
+      .rect(selection_g, textbox.selection.opacity(0.5))
       ;
   }
 }
