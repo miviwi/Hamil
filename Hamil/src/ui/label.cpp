@@ -31,7 +31,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .rect(g, m_bg)
+    .rect(g.expand(1), m_bg)
     ;
 
   if(gravity() == Center) {
