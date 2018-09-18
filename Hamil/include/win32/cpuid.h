@@ -25,7 +25,7 @@ CpuInfo cpuid();
 
 // Writes a human-readable description of the CpuInfo structure 
 //   info buffer 'buf' with 'buf_sz' bytes of capacity and returns
-//   the number of bytes written
+//   the number of bytes written (whole string is ~150 bytes long)
 // 'buf' can be NULL in which case no write occurs and only the
 //   required space in the buffer is returned (including '\0')
 int cpuid_to_str(const CpuInfo& cpu, char *buf, size_t buf_sz);

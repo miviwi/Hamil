@@ -9,6 +9,7 @@
 
 #include <win32/win32.h>
 #include <win32/panic.h>
+#include <win32/cpuid.h>
 #include <win32/window.h>
 #include <win32/time.h>
 #include <win32/file.h>
@@ -84,6 +85,10 @@ int main(int argc, char *argv[])
   }
 
   win32::init();
+
+  char cpuinfo[256];
+  win32::cpuid_to_str(win32::cpuid(), cpuinfo, sizeof(cpuinfo));
+  printf("%s\n\n", cpuinfo);
 
   constexpr vec2 WindowSize       = { 1600, 900 };
   constexpr ivec2 FramebufferSize = { 1280, 720 };
