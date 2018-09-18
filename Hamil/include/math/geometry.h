@@ -336,7 +336,7 @@ inline vec3 vec3::recip() const
 }
 
 template <typename T>
-struct Vector4 {
+struct /* alignas(16) for intrin */ Vector4 {
   constexpr Vector4() :
     x(0), y(0), z(0), w(1)
   { }
@@ -534,8 +534,8 @@ using mat3  = Matrix3<float>;
 using imat3 = Matrix3<int>;
 
 template <typename T>
-struct Matrix4 {
-  alignas(16) T d[4*4];
+struct alignas(16) Matrix4 {
+  T d[4*4];
 
   T operator()(unsigned col, unsigned row) const { return d[col*4 + row]; }
 
