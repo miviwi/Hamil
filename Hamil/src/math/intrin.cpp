@@ -228,9 +228,9 @@ void quat_mult(const float *a, const float *b, float *out)
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps(b);
 
-  __m128 x1 = shuffle_ps(x, 1, 2, 1, 0);
-  __m128 x2 = shuffle_ps(x, 3, 2, 0, 1);
-  __m128 x3 = shuffle_ps(x, 0, 1, 3, 2);
+  __m128 x1 = shuffle_ps(x, 3, 2, 1, 0);
+  __m128 x2 = shuffle_ps(x, 2, 3, 0, 1);
+  __m128 x3 = shuffle_ps(x, 1, 0, 3, 2);
 
   x1 = _mm_xor_ps(x1, _mm_set_ps(0.0f, -0.0f, -0.0f, -0.0f));    // x1 = { -x, -y, -z, w }
   x3 = _mm_xor_ps(x3, _mm_set_ps(-0.0f, -0.0f, -0.0f, -0.0f));   // x3 = -x3
