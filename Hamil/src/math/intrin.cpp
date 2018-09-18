@@ -350,9 +350,9 @@ void quat_to_mat4x3(const float *a, float *out)
   m[1] = _mm_shuffle_ps(t[0], m[2], _MM_SHUFFLE(3, 1, 3, 1)); // m(0, 1), m(1, 1), m(2, 1)
   m[2] = _mm_shuffle_ps(t[1], m[2], _MM_SHUFFLE(3, 2, 2, 0)); // m(0, 2), m(1, 2), m(2, 2)
 
-  for(int i = 0; i < 3; i++) {
-    _mm_store_ps(out + (i*4), m[i]);
-  }
+  _mm_store_ps(out + (0*4), m[0]);
+  _mm_store_ps(out + (1*4), m[1]);
+  _mm_store_ps(out + (2*4), m[2]);
 }
 
 }

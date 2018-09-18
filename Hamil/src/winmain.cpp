@@ -86,10 +86,6 @@ int main(int argc, char *argv[])
 
   win32::init();
 
-  char cpuinfo[256];
-  win32::cpuid_to_str(win32::cpuid(), cpuinfo, sizeof(cpuinfo));
-  printf("%s\n\n", cpuinfo);
-
   constexpr vec2 WindowSize       = { 1600, 900 };
   constexpr ivec2 FramebufferSize = { 1280, 720 };
 
@@ -123,7 +119,7 @@ int main(int argc, char *argv[])
     printf("{ %.2f, %.2f, %.2f, %.2f }\n", q.x, q.y, q.z, q.w);
   };
 
-  print_vec3(quat::from_euler(PIf, 0, 0)*quat::from_euler(0.0f, 0.0f, PIf/2.0f)*quat::from_euler(0.0f, PIf/2.0f, 0.0f) * vec3::right());
+  //print_vec3(quat::from_euler(PIf, 0, 0)*quat::from_euler(0.0f, 0.0f, PIf/2.0f)*quat::from_euler(0.0f, PIf/2.0f, 0.0f) * vec3::right());
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
