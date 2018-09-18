@@ -26,6 +26,10 @@ namespace intrin {
     _mm_mul_ps(shuffle_ps(a, 2, 0, 1, 0), shuffle_ps(b, 1, 2, 0, 0))  \
   )
 
+// Clears the w component of a given vector
+#define mask_xyz_ps(r) \
+  _mm_and_ps(r, _mm_castsi128_ps(_mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)))
+
 void mat4_mult(const float *a, const float *b, float *out)
 {
   __m128 x[] = { _mm_load_ps(b+0), _mm_load_ps(b+4), _mm_load_ps(b+8), _mm_load_ps(b+12) };
@@ -252,17 +256,12 @@ void quat_mult(const float *a, const float *b, float *out)
 
 void quat_vec3_mult(const float *a, const float *b, float *out)
 {
-  __m128 xyz_mask = _mm_castsi128_ps(_mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF));
+  __m128 u = mask_xyz_ps(_mm_load_ps(a));
+  __m128 v = _mm_load_ps(b);       // don't have to mask_xyz_ps() here as v is a vec3
 
-  __m128 u = _mm_load_ps(a);
-  __m128 v = _mm_load_ps(b);
-
-  __m128 s  = _mm_load_ps1(a+3);
+  __m128 s  = mask_xyz_ps(_mm_load_ps1(a+3));
   __m128 s2 = _mm_mul_ps(s, s);   // s^2
   __m128 ss = _mm_add_ps(s, s);   // 2*s
-
-  u = _mm_and_ps(u, xyz_mask);
-  s = _mm_and_ps(s, xyz_mask);
 
   __m128 z;
   __m128 e;

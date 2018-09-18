@@ -84,10 +84,14 @@ inline Quaternion operator*(const Quaternion& a, const Quaternion& b)
 
 inline Quaternion Quaternion::operator*(float u) const
 {
+#if defined(NO_SSE)
+  return { x*u, y*u, z*u, w*u };
+#else
   Quaternion b;
 
   intrin::vec4_const_mult(*this, u, b);
   return b;
+#endif
 }
 
 inline vec3 operator*(const Quaternion& q, const vec3& v)

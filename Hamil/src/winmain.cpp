@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
     printf("{ %.2f, %.2f, %.2f, %.2f }\n", q.x, q.y, q.z, q.w);
   };
 
-  //print_vec3(quat::from_euler(PIf, 0, 0)*quat::from_euler(0.0f, 0.0f, PIf/2.0f)*quat::from_euler(0.0f, PIf/2.0f, 0.0f) * vec3::right());
+  print_vec3(quat::from_euler(PIf, 0, 0)*quat::from_euler(0.0f, 0.0f, PIf/2.0f)*quat::from_euler(0.0f, PIf/2.0f, 0.0f) * vec3::right());
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
       .translate(-pos)
       .rotx(-pitch)
       .roty(yaw)
-      .translate(pos * 2)
+      .translate(pos * 2.0f)
       .matrix()
       ;
     eye = eye_mtx*eye;
@@ -531,15 +531,15 @@ int main(int argc, char *argv[])
     light_block.num_lights = 3;
 
     light_block.lights[0] = {
-      view*light_position[0],
+      view*vec4(light_position[0], 1.0f),
       vec3{ 1.0f, 0.0f, 0.0f }
     };
     light_block.lights[1] = {
-      view*light_position[1],
+      view*vec4(light_position[1], 1.0f),
       vec3{ 0.0f, 1.0f, 0.0f }
     };
     light_block.lights[2] = {
-      view*light_position[2],
+      view*vec4(light_position[2], 1.0f),
       vec3{ 0.0f, 0.0f, 1.0f }
     };
 

@@ -8,6 +8,10 @@
 #include <limits>
 #include <type_traits>
 
+// Uncomment the following line to disable use of SSE intrinsics 
+//   (intended for testing purposes)
+//#define NO_SSE
+
 constexpr double PI = 3.1415926535897932384626433832795;
 constexpr float PIf = (float)PI;
 
@@ -64,64 +68,64 @@ struct Vector2 {
 };
 
 template <typename T>
-Vector2<T> operator+(Vector2<T> a, Vector2<T> b)
+inline Vector2<T> operator+(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x+b.x, a.y+b.y };
 }
 
 template <typename T>
-Vector2<T> operator-(Vector2<T> a, Vector2<T> b)
+inline Vector2<T> operator-(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x-b.x, a.y-b.y };
 }
 
 template <typename T>
-Vector2<T> operator*(Vector2<T> a, Vector2<T> b)
+inline Vector2<T> operator*(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x*b.x, a.y*b.y };
 }
 
 template <typename T>
-Vector2<T> operator*(Vector2<T> a, T u)
+inline Vector2<T> operator*(Vector2<T> a, T u)
 {
   return Vector2<T>{ a.x*u, a.y*u };
 }
 
 template <typename T>
-Vector2<T>& operator+=(Vector2<T>& a, Vector2<T> b)
+inline Vector2<T>& operator+=(Vector2<T>& a, Vector2<T> b)
 {
   a = a+b;
   return a;
 }
 
 template <typename T>
-Vector2<T>& operator*=(Vector2<T>& a, Vector2<T>& b)
+inline Vector2<T>& operator*=(Vector2<T>& a, Vector2<T>& b)
 {
   a = a*b;
   return a;
 }
 
 template <typename T>
-Vector2<T>& operator*=(Vector2<T>& a, T u)
+inline Vector2<T>& operator*=(Vector2<T>& a, T u)
 {
   a = a*u;
   return a;
 }
 
 template <typename T>
-bool operator==(Vector2<T> a, Vector2<T> b)
+inline bool operator==(Vector2<T> a, Vector2<T> b)
 {
   return a.x == b.x && a.y == b.y;
 }
 
 template <typename T>
-bool operator!=(Vector2<T> a, Vector2<T> b)
+inline bool operator!=(Vector2<T> a, Vector2<T> b)
 {
   return a.x != b.x && a.y != b.y;
 }
 
 template <typename T>
-Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
+inline Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ -(b.y - a.y), b.x - a.x }.normalize();
 }
@@ -216,64 +220,64 @@ struct Vector3 {
 };
 
 template <typename T>
-Vector3<T> operator+(Vector3<T> a, Vector3<T> b)
+inline Vector3<T> operator+(Vector3<T> a, Vector3<T> b)
 {
   return Vector3<T>{ a.x+b.x, a.y+b.y, a.z+b.z };
 }
 
 template <typename T>
-Vector3<T> operator-(Vector3<T> a, Vector3<T> b)
+inline Vector3<T> operator-(Vector3<T> a, Vector3<T> b)
 {
   return Vector3<T>{ a.x-b.x, a.y-b.y, a.z-b.z };
 }
 
 template <typename T>
-Vector3<T> operator*(Vector3<T> a, Vector3<T> b)
+inline Vector3<T> operator*(Vector3<T> a, Vector3<T> b)
 {
   return Vector3<T>{ a.x*b.x, a.y*b.y, a.z*b.z };
 }
 
 template <typename T>
-Vector3<T> operator*(Vector3<T> a, T u)
+inline Vector3<T> operator*(Vector3<T> a, T u)
 {
   return Vector3<T>{ a.x*u, a.y*u, a.z*u };
 }
 
 template <typename T>
-Vector3<T>& operator+=(Vector3<T>& a, Vector3<T> b)
+inline Vector3<T>& operator+=(Vector3<T>& a, Vector3<T> b)
 {
   a = a+b;
   return a;
 }
 
 template <typename T>
-Vector3<T>& operator-=(Vector3<T>& a, Vector3<T> b)
+inline Vector3<T>& operator-=(Vector3<T>& a, Vector3<T> b)
 {
   a = a-b;
   return a;
 }
 
 template <typename T>
-Vector3<T> operator-(Vector3<T> v)
+inline Vector3<T> operator-(Vector3<T> v)
 {
   return Vector3<T>{ -v.x, -v.y, -v.z };
 }
 
 template <typename T>
-Vector3<T>& operator*=(Vector3<T>& a, T u)
+inline Vector3<T>& operator*=(Vector3<T>& a, T u)
 {
   a = a*u;
   return a;
 }
 
 template <typename T>
-bool operator==(Vector3<T> a, Vector3<T> b)
+inline bool operator==(Vector3<T> a, Vector3<T> b)
 {
   return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
 template <typename T>
-bool operator!=(Vector3<T> a, Vector3<T> b)
+inline bool operator!=(Vector3<T> a, Vector3<T> b)
 {
   return a.x != b.x && a.y != b.y && a.z != b.z;
 }
@@ -281,6 +285,8 @@ bool operator!=(Vector3<T> a, Vector3<T> b)
 using vec3  = Vector3<float>;
 using ivec3 = Vector3<int>;
 using uvec3 = Vector3<unsigned>;
+
+#if !defined(NO_SSE)
 
 // Extended to 4 floats and aligned siutably for SSE
 struct alignas(16) intrin_vec3 {
@@ -334,6 +340,8 @@ inline vec3 vec3::recip() const
   intrin::vec_recip(a, b);
   return b.toVec3();
 }
+
+#endif
 
 template <typename T>
 struct /* alignas(16) for intrin */ Vector4 {
@@ -393,51 +401,51 @@ struct /* alignas(16) for intrin */ Vector4 {
 };
 
 template <typename T>
-Vector4<T> operator+(Vector4<T> a, Vector4<T> b)
+inline Vector4<T> operator+(Vector4<T> a, Vector4<T> b)
 {
   return Vector4<T>{ (T)(a.x+b.x), (T)(a.y+b.y), (T)(a.z+b.z), (T)(a.w+b.w) };
 }
 
 template <typename T>
-Vector4<T> operator-(Vector4<T> a, Vector4<T> b)
+inline Vector4<T> operator-(Vector4<T> a, Vector4<T> b)
 {
   return Vector4<T>{ (T)(a.x-b.x), (T)(a.y-b.y), (T)(a.z-b.z), (T)(a.w-b.w) };
 }
 
 template <typename T>
-Vector4<T> operator*(Vector4<T> a, Vector4<T> b)
+inline Vector4<T> operator*(Vector4<T> a, Vector4<T> b)
 {
   return Vector4<T>{ a.x*b.x, a.y*b.y, a.z*b.z, a.w*b.w };
 }
 
 template <typename T>
-Vector4<T> operator*(Vector4<T> a, T u)
+inline Vector4<T> operator*(Vector4<T> a, T u)
 {
   return Vector4<T>{ a.x*u, a.y*u, a.z*u, a.w*u };
 }
 
 template <typename T>
-Vector4<T>& operator+=(Vector4<T>& a, Vector4<T> b)
+inline Vector4<T>& operator+=(Vector4<T>& a, Vector4<T> b)
 {
   a = a+b;
   return a;
 }
 
 template <typename T>
-Vector4<T>& operator*=(Vector4<T>& a, T u)
+inline Vector4<T>& operator*=(Vector4<T>& a, T u)
 {
   a = a*u;
   return a;
 }
 
 template <typename T>
-bool operator==(Vector4<T> a, Vector4<T> b)
+inline bool operator==(Vector4<T> a, Vector4<T> b)
 {
   return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
 }
 
 template <typename T>
-bool operator!=(Vector4<T> a, Vector4<T> b)
+inline bool operator!=(Vector4<T> a, Vector4<T> b)
 {
   return a.x != b.x && a.y != b.y && a.z != b.z && a.w != b.w;
 }
@@ -445,6 +453,8 @@ bool operator!=(Vector4<T> a, Vector4<T> b)
 using vec4  = Vector4<float>;
 using ivec4 = Vector4<int>;
 using uvec4 = Vector4<unsigned>;
+
+#if !defined(NO_SSE)
 
 inline vec4 operator*(vec4 a, float u)
 {
@@ -478,6 +488,8 @@ inline vec4 vec4::recip() const
   return b;
 }
 
+#endif
+
 template <typename T>
 struct Matrix3;
 
@@ -497,7 +509,7 @@ struct Matrix2 {
 };
 
 template <typename T>
-Matrix2<T> operator*(Matrix2<T> a, Matrix2<T> b)
+inline Matrix2<T> operator*(Matrix2<T> a, Matrix2<T> b)
 {
   return Matrix2<T>{
       a.d[0]*b.d[0]+a.d[1]*b.d[2], a.d[0]*b.d[1]+a.d[1]*b.d[3],
@@ -521,7 +533,7 @@ struct Matrix3 {
 };
 
 template <typename T>
-Matrix3<T> operator*(Matrix3<T> a, Matrix3<T> b)
+inline Matrix3<T> operator*(Matrix3<T> a, Matrix3<T> b)
 {
   return Matrix3<T>{
       a.d[0]*b.d[0]+a.d[1]*b.d[3]+a.d[2]*b.d[6], a.d[0]*b.d[1]+a.d[1]*b.d[4]+a.d[2]*b.d[7], a.d[0]*b.d[2]+a.d[1]*b.d[5]+a.d[2]*b.d[8],
@@ -582,7 +594,7 @@ struct alignas(16) Matrix4 {
 };
 
 template <typename T>
-Matrix4<T> operator+(const Matrix4<T>& a, const Matrix4<T>& b)
+inline Matrix4<T> operator+(const Matrix4<T>& a, const Matrix4<T>& b)
 {
   return {
     a[0]+b[0],   a[1]+b[1],   a[2]+b[2],   a[3]+b[3],
@@ -593,7 +605,7 @@ Matrix4<T> operator+(const Matrix4<T>& a, const Matrix4<T>& b)
 }
 
 template <typename T>
-Matrix4<T> operator*(const Matrix4<T>& a, const Matrix4<T>& b)
+inline Matrix4<T> operator*(const Matrix4<T>& a, const Matrix4<T>& b)
 {
   return Matrix4<T>{
       a.d[ 0]*b.d[ 0]+a.d[ 1]*b.d[ 4]+a.d[ 2]*b.d[ 8]+a.d[ 3]*b.d[12], a.d[ 0]*b.d[ 1]+a.d[ 1]*b.d[ 5]+a.d[ 2]*b.d[ 9]+a.d[ 3]*b.d[13], a.d[ 0]*b.d[2 ]+a.d[ 1]*b.d[ 6]+a.d[ 2]*b.d[10]+a.d[ 3]*b.d[14], a.d[ 0]*b.d[ 3]+a.d[ 1]*b.d[ 7]+a.d[ 2]*b.d[11]+a.d[ 3]*b.d[15],
@@ -604,7 +616,7 @@ Matrix4<T> operator*(const Matrix4<T>& a, const Matrix4<T>& b)
 }
 
 template <typename T>
-Matrix4<T> operator*(const Matrix4<T>& a, T b)
+inline Matrix4<T> operator*(const Matrix4<T>& a, T b)
 {
   return Matrix4<T>{
     a.d[0]*b,  a.d[1]*b,  a.d[2]*b,  a.d[3]*b,
@@ -612,6 +624,14 @@ Matrix4<T> operator*(const Matrix4<T>& a, T b)
     a.d[8]*b,  a.d[9]*b,  a.d[10]*b, a.d[11]*b,
     a.d[12]*b, a.d[13]*b, a.d[14]*b, a.d[15]*b,
   };
+}
+
+template <typename T>
+inline Matrix4<T>& operator*=(Matrix4<T>& a, T u)
+{
+  a = a*u;
+
+  return a;
 }
 
 template <typename T>
@@ -627,7 +647,7 @@ inline Matrix4<T> Matrix4<T>::inverse() const
   x.d[4]  = -d[4]*d[10]*d[15] + d[4]*d[11]*d[14] + d[8]*d[6]*d[15] - d[8]*d[7]*d[14] - d[12]*d[6]*d[11] + d[12]*d[7]*d[10];
   x.d[5]  = +d[0]*d[10]*d[15] - d[0]*d[11]*d[14] - d[8]*d[2]*d[15] + d[8]*d[3]*d[14] + d[12]*d[2]*d[11] - d[12]*d[3]*d[10];
   x.d[6]  = -d[0]*d[6]*d[15] + d[0]*d[7]*d[14] + d[4]*d[2]*d[15] - d[4]*d[3]*d[14] - d[12]*d[2]*d[7] + d[12]*d[3]*d[6];
-  x.d[7]  = +d[0]*d[6]*d[11] - d[0]*d[7]*d[10] - d[4]*[2]*d[11] + d[4]*d[3]*d[10] + d[8]*d[2]*d[7] - d[8]*d[3]*d[6];
+  x.d[7]  = +d[0]*d[6]*d[11] - d[0]*d[7]*d[10] - d[4]*d[2]*d[11] + d[4]*d[3]*d[10] + d[8]*d[2]*d[7] - d[8]*d[3]*d[6];
   x.d[8]  = +d[4]*d[9]*d[15] - d[4]*d[11]*d[13] - d[8]*d[5]*d[15] + d[8]*d[7]*d[13] + d[12]*d[5]*d[11] - d[12]*d[7]*d[9];
   x.d[9]  = -d[0]*d[9]*d[15] + d[0]*d[11]*d[13] + d[8]*d[1]*d[15]- d[8]*d[3]*d[13] - d[12]*d[1]*d[11] + d[12]*d[3]*d[9];
   x.d[10] = +d[0]*d[5]*d[15] - d[0]*d[7]*d[13] - d[4]*d[1]*d[15] + d[4]*d[3]*d[13] + d[12]*d[1]*d[7] - d[12]*d[3]*d[5];
@@ -645,8 +665,21 @@ inline Matrix4<T> Matrix4<T>::inverse() const
   return x;
 }
 
+template <typename T>
+inline Vector4<T> operator*(const Matrix4<T>& a, const Vector4<T>& b)
+{
+  return Vector4<T>{
+    a.d[0]*b.x  + a.d[1]*b.y  + a.d[2]*b.z  + a.d[3]*b.w,
+    a.d[4]*b.x  + a.d[5]*b.y  + a.d[6]*b.z  + a.d[7]*b.w,
+    a.d[8]*b.x  + a.d[9]*b.y  + a.d[10]*b.z + a.d[11]*b.w,
+    a.d[12]*b.x + a.d[13]*b.y + a.d[14]*b.z + a.d[15]*b.w,
+  };
+}
+
 using mat4  = Matrix4<float>;
 using imat4 = Matrix4<int>;
+
+#if !defined(NO_SSE)
 
 inline mat4 operator*(const mat4& a, const mat4& b)
 {
@@ -673,17 +706,6 @@ mat4 mat4::inverse() const
   return b;
 }
 
-template <typename T>
-Vector4<T> operator*(const Matrix4<T>& a, const Vector4<T>& b)
-{
-  return Vector4<T>{
-    a.d[ 0]*b.x+a.d[ 1]*b.y+a.d[ 2]*b.z+a.d[ 3]*b.w,
-    a.d[ 4]*b.x+a.d[ 5]*b.y+a.d[ 6]*b.z+a.d[ 7]*b.w,
-    a.d[ 8]*b.x+a.d[ 9]*b.y+a.d[10]*b.z+a.d[11]*b.w,
-    a.d[12]*b.x+a.d[13]*b.y+a.d[14]*b.z+a.d[15]*b.w,
-  };
-}
-
 inline vec4 operator*(const mat4& a, const vec4& b)
 {
   alignas(16) vec4 c;
@@ -691,5 +713,7 @@ inline vec4 operator*(const mat4& a, const vec4& b)
   intrin::mat4_vec4_mult(a, b, c);
   return c;
 }
+
+#endif
 
 #pragma pack(pop)

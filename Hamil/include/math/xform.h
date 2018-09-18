@@ -150,7 +150,7 @@ static vec4 unproject(vec3 v, mat4 modelviewprojection, ivec2 screen)
   auto inv_mvp = modelviewprojection.inverse();
   auto inv_screen = screen.cast<float>().recip();
 
-  vec4 p ={
+  vec4 p = {
     (v.x * inv_screen.x)*2.0f - 1.0f,
     (((float)screen.y - v.y) * inv_screen.y)*2.0f - 1.0f,
     2.0f*v.z - 1.0f,
