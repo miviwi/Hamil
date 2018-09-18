@@ -120,6 +120,7 @@ inline Quaternion& operator*=(Quaternion& a, const Quaternion& b)
 
 inline mat3 Quaternion::toMat3() const
 {
+#if defined(NO_SSE)
   float x2 = x*x,
     y2 = y*y,
     z2 = z*z;
@@ -136,6 +137,12 @@ inline mat3 Quaternion::toMat3() const
     2.0f*xy + 2.0f*zw,        1.0f - 2.0f*x2 - 2.0f*z2, 2.0f*yz - 2.0f*xw,
     2.0f*xz - 2.0f*yw,        2.0f*yz + 2.0f*xw,        1.0f - 2.0f*x2 - 2.0f*y2,
   };
+#else
+  alignas(16) mat4 m;
+
+  intrin::quat_to_mat4x3(*this, m.d);
+  return m.xyz();
+#endif
 }
 
 inline mat4 Quaternion::toMat4() const

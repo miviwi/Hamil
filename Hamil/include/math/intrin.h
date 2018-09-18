@@ -18,5 +18,6 @@ void mat4_vec4_mult(const float *a, const float *b, float *out);
 
 void quat_mult(const float *a, const float *b, float *out);
 void quat_vec3_mult(const float *a, const float *b, float *out);
+void quat_to_mat4x3(const float *a, float *out);
 
 }
