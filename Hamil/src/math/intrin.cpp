@@ -300,23 +300,23 @@ void quat_vec3_mult(const float *a, const float *b, float *out)
 void quat_to_mat4x3(const float *a, float *out)
 {
   __m128 q = _mm_load_ps(a);
-
   __m128 qq = _mm_add_ps(q, q);
+
   __m128 p = _mm_mul_ps(shuffle_ps(q, 1, 0, 0, 1), shuffle_ps(qq, 1, 1, 2, 2));
   __m128 r = _mm_mul_ps(shuffle_ps(q, 2, 3, 3, 3), shuffle_ps(qq, 2, 2, 1, 0));
-
   p = neg_ps(p, 1, 0, 0, 0);    // p = { -yy2, xy2, xz2, yz2 }
   r = neg_ps(r, 0, 0, 1, 1);    // r = { zz2, wz2, -wy2, -wx2 }
 
   __m128 l = _mm_mul_ps(q, qq);
-
   l = neg_ps(l, 1, 0, 0, 0);    // l = { -xx2, yy2, zz2, ww2 }
 
+  __m128 r_;
   __m128 m[3];
 
+  r_ = neg_ps(r, 0, 1, 1, 0);
   m[0] = _mm_sub_ps(
     p,                     // -yy2, xy2, xz2, yz2
-    neg_ps(r, 0, 1, 1, 0)  // zz2, -wz2, wy2, -wx2
+    r_                     // zz2, -wz2, wy2, -wx2
   );    // -yy2 - zz2, xy2 + wz2, xz2 - wy2
 
   m[1] = _mm_sub_ps(
@@ -330,11 +330,10 @@ void quat_to_mat4x3(const float *a, float *out)
   );    // xy2 - wz2, -xx2 - zz2, yz2 + wx2
 
 
-  r = neg_ps(r, 0, 0, 0, 1);  // zz2, wz2, -wy2, wx2
-
+  r_ = neg_ps(r, 0, 0, 0, 1);  // zz2, wz2, -wy2, wx2
   m[2] = _mm_sub_ps(
     _mm_shuffle_ps(p, l, _MM_SHUFFLE(3, 0, 3, 2)),   // xz2, yz2, -xx2
-    _mm_shuffle_ps(r, l, _MM_SHUFFLE(3, 1, 3, 2))    // -wy2, wx2, yy2
+    _mm_shuffle_ps(r_, l, _MM_SHUFFLE(3, 1, 3, 2))    // -wy2, wx2, yy2
   );
 
   m[0] = _mm_add_ps(m[0], _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f));
