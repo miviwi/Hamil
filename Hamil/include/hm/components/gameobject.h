@@ -3,7 +3,6 @@
 #include <hm/component.h>
 
 #include <string>
-#include <string_view>
 #include <vector>
 #include <functional>
 
@@ -23,7 +22,7 @@ struct GameObject : public Component {
   void destroyed();
 
 private:
-  std::string_view m_name;
+  const char *m_name;
 
   u32 m_parent;
   std::vector<u32> m_children;
@@ -31,5 +30,7 @@ private:
   void addChild(u32 self);
   void reapChild(u32& child);
 };
+
+//constexpr int x = sizeof(GameObject);
 
 }

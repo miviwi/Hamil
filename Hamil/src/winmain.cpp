@@ -386,6 +386,8 @@ int main(int argc, char *argv[])
   step_timer.reset();
   nudge_timer.stop();
 
+  auto scene = hm::entities().createGameObject("Scene");
+
   while(window.processMessages()) {
     win32::Timers::tick();
 
@@ -401,8 +403,6 @@ int main(int argc, char *argv[])
     eye = eye_mtx*eye;
 
     float nudge_force = 0.0f;
-
-    auto scene = hm::entities().createGameObject("Scene");
 
     while(auto input = window.getInput()) {
       cursor.input(input);

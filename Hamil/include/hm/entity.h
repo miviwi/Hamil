@@ -42,7 +42,7 @@ public:
   }
 
   template <typename T, typename... Args>
-  ComponentRef<T> addComponent(Args... args)
+  ComponentRef<T> addComponent(Args&&... args)
   {
     return components().createComponent<T>(id(), std::forward<Args>(args)...);
   }

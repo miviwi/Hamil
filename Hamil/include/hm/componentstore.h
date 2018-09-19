@@ -49,7 +49,7 @@ struct ComponentStoreBase : IComponentStore {
   }
 
   template <typename T, typename... Args>
-  T *createComponent(u32 id, Args... args)
+  T *createComponent(u32 id, Args&&... args)
   {
     checkComponent<T>();
 

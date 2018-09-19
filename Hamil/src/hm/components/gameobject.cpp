@@ -13,7 +13,7 @@ GameObject::GameObject(u32 entity, const std::string& name_, u32 parent_) :
   auto name_str = new char[sz];
 
   memcpy(name_str, name_.data(), sz); // ...and then copy it over as well
-  m_name = { name_str, sz-1 };
+  m_name = name_str;
 
   if(parent_ != Entity::Invalid) {
     parent().gameObject().addChild(entity);
@@ -27,7 +27,7 @@ GameObject::GameObject(u32 entity, const std::string& name_) :
 
 const char *GameObject::name() const
 {
-  return m_name.data();
+  return m_name;
 }
 
 Entity GameObject::parent() const
@@ -52,7 +52,7 @@ void GameObject::foreachChild(std::function<void(Entity)> fn)
 
 void GameObject::destroyed()
 {
-  delete m_name.data();
+  delete[] m_name;
 
   for(auto child : m_children) {
     Entity e = child;

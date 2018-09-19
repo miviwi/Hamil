@@ -25,7 +25,7 @@ public:
   }
 
   template <typename T, typename... Args>
-  ComponentRef<T> createComponent(EntityId entity, Args... args)
+  ComponentRef<T> createComponent(EntityId entity, Args&&... args)
   {
     return components().createComponent<T>(entity, std::forward<Args>(args)...);
   }
