@@ -13,8 +13,9 @@ namespace intrin {
 
 #define pshufd(r, i) epi32_ps(_mm_shuffle_epi32(ps_epi32(r), i))
 
-// The arguments are REVERSED compared to the Intel ordering i.e. the LOWEST component goes FIRST
-#define shuffle_ps(r, _0, _1, _2, _3) pshufd(r, _MM_SHUFFLE(_3, _2, _1, _0))
+// The selectors are REVERSED compared to the Intel ordering i.e. the LOWEST component goes FIRST
+#define shuffle_ps(r, _0, _1, _2, _3)     pshufd(r, _MM_SHUFFLE(_3, _2, _1, _0))
+#define shuffle2_ps(p, r, _0, _1, _2, _3) _mm_shuffle_ps(p, r, _MM_SHUFFLE(_3, _2, _1, _0))
 
 #define broadcast_ps(r, i) pshufd(r, _MM_SHUFFLE(i, i, i, i))
 
@@ -38,6 +39,12 @@ namespace intrin {
 // Clears the w component of a given vector
 #define mask_xyz_ps(r) \
   _mm_and_ps(r, epi32_ps(_mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)))
+
+// Swizzle component helpers
+#define X 0
+#define Y 1
+#define Z 2
+#define W 3
 
 void mat4_mult(const float *a, const float *b, float *out)
 {
@@ -173,11 +180,18 @@ void mat4_vec4_mult(const float *a, const float *b, float *out)
 
   __m128 y;
   __m128 z = _mm_setzero_ps();
-  for(int i = 0; i < 4; i++) {
-    y = _mm_mul_ps(_mm_load_ps1(b+i), x[i]);
 
-    z = _mm_add_ps(y, z);
-  }
+  y = _mm_mul_ps(_mm_load_ps1(b+0), x[0]);
+  z = _mm_add_ps(y, z);
+
+  y = _mm_mul_ps(_mm_load_ps1(b+1), x[1]);
+  z = _mm_add_ps(y, z);
+
+  y = _mm_mul_ps(_mm_load_ps1(b+2), x[2]);
+  z = _mm_add_ps(y, z);
+
+  y = _mm_mul_ps(_mm_load_ps1(b+3), x[3]);
+  z = _mm_add_ps(y, z);
 
   _mm_store_ps(out, z);
 }
@@ -192,7 +206,7 @@ void vec_dot(const float *a, const float *b, float *out)
 void vec_normalize(const float *a, float *out)
 {
   __m128 x = _mm_load_ps(a);
-  __m128 l2 = broadcast_ps(dot_ps(x, x), 0);
+  __m128 l2 = broadcast_ps(dot_ps(x, x), X);
 
   x = _mm_mul_ps(x, _mm_rsqrt_ps(l2));  // x = x * (1.0f / x.length())
 
@@ -239,11 +253,10 @@ void vec3_cross(const float *a, const float *b, float *out)
 void quat_mult(const float *a, const float *b, float *out)
 {
   __m128 x = _mm_load_ps(a);
-  __m128 y = _mm_load_ps(b);
 
-  __m128 x1 = shuffle_ps(x, 3, 2, 1, 0);
-  __m128 x2 = shuffle_ps(x, 2, 3, 0, 1);
-  __m128 x3 = shuffle_ps(x, 1, 0, 3, 2);
+  __m128 x1 = shuffle_ps(x, W, Z, Y, X);
+  __m128 x2 = shuffle_ps(x, Z, W, X, Y);
+  __m128 x3 = shuffle_ps(x, Y, X, W, Z);
 
   x1 = neg_ps(x1, 1, 1, 1, 0);   // x1 = { -x, -y, -z, w }
   x3 = neg_ps(x3, 1, 1, 1, 1);   // x3 = -x3
@@ -251,13 +264,13 @@ void quat_mult(const float *a, const float *b, float *out)
   __m128 z;
   __m128 w = _mm_setzero_ps();
  
-  z = _mm_mul_ps(x, broadcast_ps(y, 3));
+  z = _mm_mul_ps(x,  _mm_load_ps1(b+3));
   w = _mm_add_ps(w, z);
-  z = _mm_mul_ps(x1, broadcast_ps(y, 0));
+  z = _mm_mul_ps(x1, _mm_load_ps1(b+0));
   w = _mm_add_ps(w, z);
-  z = _mm_mul_ps(x2, broadcast_ps(y, 1));
+  z = _mm_mul_ps(x2, _mm_load_ps1(b+1));
   w = _mm_add_ps(w, z);
-  z = _mm_mul_ps(x3, broadcast_ps(y, 2));
+  z = _mm_mul_ps(x3, _mm_load_ps1(b+2));
   w = _mm_add_ps(w, z);
 
   _mm_store_ps(out, w);
@@ -266,7 +279,7 @@ void quat_mult(const float *a, const float *b, float *out)
 void quat_vec3_mult(const float *a, const float *b, float *out)
 {
   __m128 u = mask_xyz_ps(_mm_load_ps(a));
-  __m128 v = _mm_load_ps(b);       // don't have to mask_xyz_ps() here as v is a vec3
+  __m128 v = _mm_load_ps(b);   // don't have to mask_xyz_ps() here as v is a vec3
 
   __m128 s  = mask_xyz_ps(_mm_load_ps1(a+3));
   __m128 s2 = _mm_mul_ps(s, s);   // s^2
@@ -277,13 +290,13 @@ void quat_vec3_mult(const float *a, const float *b, float *out)
 
   e = dot_ps(u, v);
   e = _mm_add_ps(e, e);           // e = 2.0f*e
-  e = shuffle_ps(e, 0, 0, 0, 3);  // e = { e.x, e.x, e.x, 0.0f }
+  e = shuffle_ps(e, X, X, X, W);  // e = { e.x, e.x, e.x, 0.0f }
 
   z = _mm_mul_ps(u, e);  // z = u * 2*u.dot(v)
 
   e = dot_ps(u, u);
   e = _mm_sub_ps(s2, e);          // e = s*s - u.dot(u)
-  e = shuffle_ps(e, 0, 0, 0, 3);  // e = { e.x, e.x, e.x, 0.0f }
+  e = shuffle_ps(e, X, X, X, W);  // e = { e.x, e.x, e.x, 0.0f }
   e = _mm_mul_ps(v, e);
 
   z = _mm_add_ps(z, e);   // z = (u * 2*u.dot(v)) + v*(s*s - u.dot(u))
@@ -302,8 +315,8 @@ void quat_to_mat4x3(const float *a, float *out)
   __m128 q = _mm_load_ps(a);
   __m128 qq = _mm_add_ps(q, q);
 
-  __m128 p = _mm_mul_ps(shuffle_ps(q, 1, 0, 0, 1), shuffle_ps(qq, 1, 1, 2, 2));
-  __m128 r = _mm_mul_ps(shuffle_ps(q, 2, 3, 3, 3), shuffle_ps(qq, 2, 2, 1, 0));
+  __m128 p = _mm_mul_ps(shuffle_ps(q, Y, X, X, Y), shuffle_ps(qq, Y, Y, Z, Z));
+  __m128 r = _mm_mul_ps(shuffle_ps(q, Z, W, W, W), shuffle_ps(qq, Z, Z, Y, X));
   p = neg_ps(p, 1, 0, 0, 0);    // p = { -yy2, xy2, xz2, yz2 }
   r = neg_ps(r, 0, 0, 1, 1);    // r = { zz2, wz2, -wy2, -wx2 }
 
@@ -315,25 +328,23 @@ void quat_to_mat4x3(const float *a, float *out)
 
   r_ = neg_ps(r, 0, 1, 1, 0);
   m[0] = _mm_sub_ps(
-    p,                     // -yy2, xy2, xz2, yz2
-    r_                     // zz2, -wz2, wy2, -wx2
+    p,              // -yy2, xy2, xz2, yz2
+    r_              // zz2, -wz2, wy2, -wx2
   );    // -yy2 - zz2, xy2 + wz2, xz2 - wy2
 
   m[1] = _mm_sub_ps(
     shuffle_ps(
-      _mm_shuffle_ps(p, l, _MM_SHUFFLE(3, 0, 3, 1)),  // xy2, yz2, -xx2
-      0, 2, 1, 3),  // xy2, -xx2, yz2
+      shuffle2_ps(p, l, Y, W, X, W),  // xy2, yz2, -xx2
+      X, Z, Y, W),  // xy2, -xx2, yz2
     shuffle_ps(
-      _mm_shuffle_ps(r, l, _MM_SHUFFLE(3, 2, 3, 1)),  // wz2, -wx2, zz2
-      0, 2, 1, 3    // wz2, zz2, -wx2
-    )
+      shuffle2_ps(r, l, Y, W, Z, W),  // wz2, -wx2, zz2
+      X, Z, Y, W)   // wz2, zz2, -wx2
   );    // xy2 - wz2, -xx2 - zz2, yz2 + wx2
-
 
   r_ = neg_ps(r, 0, 0, 0, 1);  // zz2, wz2, -wy2, wx2
   m[2] = _mm_sub_ps(
-    _mm_shuffle_ps(p, l, _MM_SHUFFLE(3, 0, 3, 2)),   // xz2, yz2, -xx2
-    _mm_shuffle_ps(r_, l, _MM_SHUFFLE(3, 1, 3, 2))    // -wy2, wx2, yy2
+    shuffle2_ps(p, l,  Z, W, X, W),   // xz2, yz2, -xx2
+    shuffle2_ps(r_, l, Z, W, Y, W)    // -wy2, wx2, yy2
   );
 
   m[0] = _mm_add_ps(m[0], _mm_set_ps(0.0f, 0.0f, 0.0f, 1.0f));
@@ -342,13 +353,13 @@ void quat_to_mat4x3(const float *a, float *out)
 
   // Transpose 'm'
   __m128 t[2];
-  t[0] = _mm_shuffle_ps(m[0], m[1], _MM_SHUFFLE(1, 0, 1, 0)); // m(0, 0), m(0, 1), m(1, 0), m(1, 1)
-  t[1] = _mm_shuffle_ps(m[0], m[1], _MM_SHUFFLE(3, 2, 3, 2)); // m(0, 2), m(0, 3), m(1, 2), m(1, 3)
-                                                              // m(2, 0), m(2, 1), m(2, 2), m(2, 3)
+  t[0] = shuffle2_ps(m[0], m[1], X, Y, X, Y); // m(0, 0), m(0, 1), m(1, 0), m(1, 1)
+  t[1] = shuffle2_ps(m[0], m[1], Z, W, Z, W); // m(0, 2), m(0, 3), m(1, 2), m(1, 3)
+  //                                  m[2] =     m(2, 0), m(2, 1), m(2, 2), m(2, 3)
 
-  m[0] = _mm_shuffle_ps(t[0], m[2], _MM_SHUFFLE(3, 0, 2, 0)); // m(0, 0), m(1, 0), m(2, 0)
-  m[1] = _mm_shuffle_ps(t[0], m[2], _MM_SHUFFLE(3, 1, 3, 1)); // m(0, 1), m(1, 1), m(2, 1)
-  m[2] = _mm_shuffle_ps(t[1], m[2], _MM_SHUFFLE(3, 2, 2, 0)); // m(0, 2), m(1, 2), m(2, 2)
+  m[0] = shuffle2_ps(t[0], m[2], X, Z, X, W); // m(0, 0), m(1, 0), m(2, 0)
+  m[1] = shuffle2_ps(t[0], m[2], Y, W, Y, W); // m(0, 1), m(1, 1), m(2, 1)
+  m[2] = shuffle2_ps(t[1], m[2], X, Z, Z, W); // m(0, 2), m(1, 2), m(2, 2)
 
   _mm_store_ps(out + (0*4), m[0]);
   _mm_store_ps(out + (1*4), m[1]);
