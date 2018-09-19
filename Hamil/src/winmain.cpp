@@ -654,8 +654,8 @@ int main(int argc, char *argv[])
     if(picked_body) {
       auto entity = picked_body.user<hm::Entity>();
 
-      small_face.draw(util::fmt("picked(0x%.8x) at: { %.2f, %.2f, %.2f }",
-        entity.id(), picked_body.origin().x, picked_body.origin().y, picked_body.origin().z),
+      small_face.draw(util::fmt("picked(0x%.8x) at: %s",
+        entity.id(), math::to_str(picked_body.origin())),
         { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
     }
 
@@ -664,11 +664,8 @@ int main(int argc, char *argv[])
       hm::Entity entity = component().entity();
       bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
 
-      vec3 origin = rb.origin();
-
-      small_face.draw(util::fmt("%s(0x%.8x) at: { %.2f, %.2f, %.2f }",
-        component().name().data(), entity.id(),
-        origin.x, origin.y, origin.z),
+      small_face.draw(util::fmt("%s(0x%.8x) at: %s",
+        entity.gameObject().name(), entity.id(), math::to_str(rb.origin())),
         { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
       y += small_face.height();
     });

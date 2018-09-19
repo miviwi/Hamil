@@ -16,7 +16,11 @@ namespace intrin {
 #define ps_epi32(r) _mm_castps_si128(r)
 #define epi32_ps(r) _mm_castsi128_ps(r)
 
-#define pshufd(r, i) epi32_ps(_mm_shuffle_epi32(ps_epi32(r), i))
+#if defined(NO_AVX)
+#  define pshufd(r, i) epi32_ps(_mm_shuffle_epi32(ps_epi32(r), i))
+#else
+#  define pshufd(r, i) _mm_permute_ps(r, i)
+#endif
 
 // The selectors are REVERSED compared to the Intel ordering i.e. the LOWEST component goes FIRST
 #define shuffle_ps(r, _0, _1, _2, _3)     pshufd(r, _MM_SHUFFLE(_3, _2, _1, _0))

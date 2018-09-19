@@ -10,6 +10,8 @@
 
 namespace hm {
 
+struct GameObject;
+
 // Base class for Eugene/ComponentGen definitions.
 //   - Derived classes (i.e. 'Components') must be declared
 //     in the 'hm' namespace
@@ -18,6 +20,8 @@ public:
   Component(Entity e);
   
   Entity entity() const;
+
+  GameObject& gameObject() const;
 
   // Only returns 'true' when it's Entity is != Invalid and alive()
   operator bool() const;

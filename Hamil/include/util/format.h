@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <utility>
 #include <functional>
@@ -27,6 +28,14 @@ struct FmtForwarder<std::string> {
 };
 
 template <>
+struct FmtForwarder<std::string_view> {
+  static const char *forward(const std::string_view& s)
+  {
+    return s.data();
+  }
+};
+
+template <>
 struct FmtForwarder<std::vector<char>> {
   static const char *forward(const std::vector<char>& s)
   {
@@ -35,7 +44,7 @@ struct FmtForwarder<std::vector<char>> {
 };
 
 // Works just like sprintf, except the '%s' placeholder can accept
-//       std::string, std::vector<char>
+//       std::string, std::string_view, std::vector<char>
 // directly and do the correct thing (that is - it will call .data()
 // on them internally)
 template <typename... Args>

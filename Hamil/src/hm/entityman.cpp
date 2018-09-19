@@ -63,13 +63,15 @@ void EntityManager::destroyEntity(EntityId id)
   auto idx = findEntity(id);
   if(idx == util::HashIndex::Invalid) return;
 
+  Entity e = m_entities[idx];
+  e.removeComponent<GameObject>();
+
   m_entities[idx] = Entity::Invalid;
 }
 
 Entity EntityManager::createGameObject(const std::string& name)
 {
   auto e = createEntity();
-
   e.addComponent<GameObject>(name);
 
   return e;

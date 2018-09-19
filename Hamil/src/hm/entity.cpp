@@ -1,5 +1,6 @@
 #include <hm/entity.h>
 #include <hm/entityman.h>
+#include <hm/components/gameobject.h>
 
 namespace hm {
 
@@ -26,6 +27,11 @@ bool Entity::alive() const
 void Entity::destroy()
 {
   entities().destroyEntity(id());
+}
+
+GameObject& Entity::gameObject()
+{
+  return component<GameObject>().get();
 }
 
 }

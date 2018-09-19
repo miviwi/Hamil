@@ -7,6 +7,8 @@
 
 namespace hm {
 
+struct GameObject;
+
 using EntityId = u32;
 
 class Entity {
@@ -50,6 +52,8 @@ public:
   {
     components().removeComponent<T>(id());
   }
+
+  GameObject& gameObject();
 
 private:
   EntityId m_id;

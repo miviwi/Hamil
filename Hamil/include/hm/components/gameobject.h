@@ -3,22 +3,34 @@
 #include <hm/component.h>
 
 #include <string>
+#include <string_view>
+#include <vector>
+#include <functional>
 
 namespace hm {
 
-struct GameObject : public Component {
-  GameObject(u32 entity, const std::string& name_) :
-    Component(entity),
-    m_name(name_)
-  {
-  }
+class Entity;
 
-  const std::string& name() const;
+struct GameObject : public Component {
+  GameObject(u32 entity, const std::string& name_, u32 parent);
+  GameObject(u32 entity, const std::string& name_);
+  ~GameObject();
+
+  const char *name() const;
+
+  Entity parent() const;
+  void foreachChild(std::function<void(Entity)> fn);
 
   void destroyed();
 
 private:
-  std::string m_name;
+  std::string_view m_name;
+
+  u32 m_parent;
+  std::vector<u32> m_children;
+
+  void addChild(u32 self);
+  void reapChild(u32& child);
 };
 
 }
