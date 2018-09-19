@@ -31,7 +31,7 @@ void Entity::destroy()
 
 GameObject& Entity::gameObject()
 {
-  return component<GameObject>().get();
+  return *component<GameObject>().ptr();
 }
 
 }

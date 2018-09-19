@@ -5,7 +5,7 @@
 
 namespace hm {
 
-GameObject::GameObject(u32 entity, const std::string & name_, u32 parent_) :
+GameObject::GameObject(u32 entity, const std::string& name_, u32 parent_) :
   Component(entity),
   m_parent(parent_)
 {
@@ -13,7 +13,7 @@ GameObject::GameObject(u32 entity, const std::string & name_, u32 parent_) :
   auto name_str = new char[sz];
 
   memcpy(name_str, name_.data(), sz); // ...and then copy it over as well
-  m_name = { name_str, sz };
+  m_name = { name_str, sz-1 };
 
   if(parent_ != Entity::Invalid) {
     parent().gameObject().addChild(entity);
@@ -23,11 +23,6 @@ GameObject::GameObject(u32 entity, const std::string & name_, u32 parent_) :
 GameObject::GameObject(u32 entity, const std::string& name_) :
   GameObject(entity, name_, Entity::Invalid)
 {
-}
-
-GameObject::~GameObject()
-{
-  delete m_name.data();
 }
 
 const char *GameObject::name() const
@@ -57,6 +52,8 @@ void GameObject::foreachChild(std::function<void(Entity)> fn)
 
 void GameObject::destroyed()
 {
+  delete m_name.data();
+
   for(auto child : m_children) {
     Entity e = child;
     e.destroy();

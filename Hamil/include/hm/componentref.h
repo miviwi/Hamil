@@ -22,6 +22,11 @@ public:
     return *m;
   }
 
+  T *ptr()
+  {
+    return m;
+  }
+
   T& operator()()
   {
     return get();

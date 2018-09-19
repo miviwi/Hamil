@@ -47,8 +47,8 @@ HashIndex::HashIndex(const HashIndex& other) :
     m_chain    = new Index[m_chain_sz];
   }
 
-  memcpy(m_hash, other.m_hash, other.m_hash_sz);
-  memcpy(m_chain, other.m_chain, other.m_chain_sz);
+  memcpy(m_hash, other.m_hash, other.m_hash_sz * sizeof(Index));
+  memcpy(m_chain, other.m_chain, other.m_chain_sz * sizeof(Index));
 }
 
 HashIndex::HashIndex(HashIndex&& other) :
@@ -65,7 +65,7 @@ HashIndex::~HashIndex()
   dealloc();
 }
 
-HashIndex& HashIndex::operator=(const HashIndex & other)
+HashIndex& HashIndex::operator=(const HashIndex& other)
 {
   dealloc();
 
@@ -73,7 +73,7 @@ HashIndex& HashIndex::operator=(const HashIndex & other)
   return *this;
 }
 
-HashIndex& HashIndex::operator=(HashIndex && other)
+HashIndex& HashIndex::operator=(HashIndex&& other)
 {
   dealloc();
 
@@ -213,10 +213,8 @@ void HashIndex::resize(size_t chain_sz)
   auto old_chain = m_chain;
   m_chain = new Index[new_size];
 
-  memcpy(m_chain, old_chain, m_chain_sz);
+  memcpy(m_chain, old_chain, m_chain_sz*sizeof(Index));
   std::fill(m_chain+m_chain_sz, m_chain+new_size, Invalid);
-
-  delete[] old_chain;
 
   m_chain_sz = new_size;
 }

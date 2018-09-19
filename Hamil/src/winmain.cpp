@@ -402,6 +402,8 @@ int main(int argc, char *argv[])
 
     float nudge_force = 0.0f;
 
+    auto scene = hm::entities().createGameObject("Scene");
+
     while(auto input = window.getInput()) {
       cursor.input(input);
 
@@ -418,7 +420,7 @@ int main(int argc, char *argv[])
           ortho_projection = !ortho_projection;
         } else if(kb->keyDown('D')) {
           auto name = util::fmt("sphere%u", num_spheres);
-          auto entity = hm::entities().createGameObject(name);
+          auto entity = hm::entities().createGameObject(name, scene);
           auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
 
           entity.addComponent<hm::RigidBody>(body);
@@ -652,16 +654,16 @@ int main(int argc, char *argv[])
       { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
     if(picked_body) {
-      auto entity = picked_body.user<hm::Entity>();
-
-      small_face.draw(util::fmt("picked(0x%.8x) at: %s",
-        entity.id(), math::to_str(picked_body.origin())),
-        { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+      auto entity = picked_body.user<hm::Entity>(); 
+      if(entity && entity.gameObject().parent() == scene) {
+        small_face.draw(util::fmt("picked(0x%.8x) at: %s",
+          entity.id(), math::to_str(picked_body.origin())),
+          { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+      }
     }
 
     float y = 150.0f;
-    hm::components().foreach([&](hm::ComponentRef<hm::GameObject> component) {
-      hm::Entity entity = component().entity();
+    scene.gameObject().foreachChild([&](hm::Entity entity) {
       bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
 
       small_face.draw(util::fmt("%s(0x%.8x) at: %s",

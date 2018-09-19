@@ -14,7 +14,7 @@ namespace hm {
 class EntityManager : public IEntityManager {
 public:
   enum {
-    InitialEntities = 256,
+    InitialEntities = 1024,
   };
 
   EntityManager(IComponentManager::Ptr component_man);
@@ -22,7 +22,7 @@ public:
   virtual Entity createEntity();
   virtual void destroyEntity(EntityId id);
 
-  virtual Entity createGameObject(const std::string& name);
+  virtual Entity createGameObject(const std::string& name, Entity parent);
 
   virtual bool alive(EntityId id);
 
@@ -69,10 +69,10 @@ void EntityManager::destroyEntity(EntityId id)
   m_entities[idx] = Entity::Invalid;
 }
 
-Entity EntityManager::createGameObject(const std::string& name)
+Entity EntityManager::createGameObject(const std::string& name, Entity parent)
 {
   auto e = createEntity();
-  e.addComponent<GameObject>(name);
+  e.addComponent<GameObject>(name, parent.id());
 
   return e;
 }

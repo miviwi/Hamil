@@ -14,7 +14,6 @@ class Entity;
 struct GameObject : public Component {
   GameObject(u32 entity, const std::string& name_, u32 parent);
   GameObject(u32 entity, const std::string& name_);
-  ~GameObject();
 
   const char *name() const;
 

@@ -13,8 +13,8 @@ namespace hm {
 class ComponentManager : public IComponentManager {
 public:
   enum {
-    InitialHashSize       = 256,
-    InitialComponentsSize = 128,
+    InitialHashSize       = 1024,
+    InitialComponentsSize = 512,
   };
 
   ComponentManager()
