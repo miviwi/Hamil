@@ -4,6 +4,11 @@
 #include <xmmintrin.h>
 #include <pmmintrin.h>
 
+#if !defined(NO_AVX)
+#  include <smmintrin.h>
+#  include <immintrin.h>
+#endif
+
 #include <cassert>
 
 namespace intrin {
@@ -23,22 +28,43 @@ namespace intrin {
 #define neg_ps(r, _0, _1, _2, _3) \
   _mm_xor_ps(r, _mm_set_ps(_3 ? -0.0f : 0.0f, _2 ? -0.0f : 0.0f, _1 ? -0.0f : 0.0f, _0 ? -0.0f : 0.0f))
 
-// Yields the a.dot(b) in the lowest compoenent and 0.0f in the others
-#define dot_ps(a, b)                                 \
-  _mm_hadd_ps(                                       \
-    _mm_hadd_ps(_mm_mul_ps(a, b), _mm_setzero_ps()), \
-    _mm_setzero_ps()                                 \
+// Clears the W component of a given vector
+#define mask_xyz_ps(r) \
+  _mm_and_ps(r, epi32_ps(_mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)))
+
+// Yields the a.dot(b) in all the components
+#if defined(NO_AVX)
+#define dot_ps(a, b)                                   \
+  broadcast_ps(                                        \
+    _mm_hadd_ps(                                       \
+      _mm_hadd_ps(_mm_mul_ps(a, b), _mm_setzero_ps()), \
+      _mm_setzero_ps()                                 \
+    ), 0                                               \
   )
+#else
+#define dot_ps(a, b) _mm_dp_ps(a, b, 0xFF)
+#endif
+
+// Yields a.dot(b) of the XYZ components in all (i.e. in XYZ) of them
+//   and 0.0f in W
+#if defined(NO_AVX)
+#define dot_xyz_ps(a, b)                               \
+  shuffle_ps(                                          \
+    _mm_hadd_ps(                                       \
+      _mm_hadd_ps(mask_xyz_ps(_mm_mul_ps(a, b)),       \
+                  _mm_setzero_ps()),                   \
+      _mm_setzero_ps()                                 \
+    ), 0, 0, 0, 3                                      \
+  )
+#else
+#define dot_xyz_ps(a, b) _mm_dp_ps(a, b, 0x77)
+#endif
 
 #define cross_ps(a, b)                                                \
   _mm_sub_ps(                                                         \
-    _mm_mul_ps(shuffle_ps(a, 1, 2, 0, 0), shuffle_ps(b, 2, 0, 1, 0)), \
-    _mm_mul_ps(shuffle_ps(a, 2, 0, 1, 0), shuffle_ps(b, 1, 2, 0, 0))  \
+    _mm_mul_ps(shuffle_ps(a, 1, 2, 0, 3), shuffle_ps(b, 2, 0, 1, 3)), \
+    _mm_mul_ps(shuffle_ps(a, 2, 0, 1, 3), shuffle_ps(b, 1, 2, 0, 3))  \
   )
-
-// Clears the w component of a given vector
-#define mask_xyz_ps(r) \
-  _mm_and_ps(r, epi32_ps(_mm_set_epi32(0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF)))
 
 // Swizzle component helpers
 #define X 0
@@ -206,7 +232,7 @@ void vec_dot(const float *a, const float *b, float *out)
 void vec_normalize(const float *a, float *out)
 {
   __m128 x = _mm_load_ps(a);
-  __m128 l2 = broadcast_ps(dot_ps(x, x), X);
+  __m128 l2 = dot_ps(x, x);
 
   x = _mm_mul_ps(x, _mm_rsqrt_ps(l2));  // x = x * (1.0f / x.length())
 
@@ -278,8 +304,8 @@ void quat_mult(const float *a, const float *b, float *out)
 
 void quat_vec3_mult(const float *a, const float *b, float *out)
 {
-  __m128 u = mask_xyz_ps(_mm_load_ps(a));
-  __m128 v = _mm_load_ps(b);   // don't have to mask_xyz_ps() here as v is a vec3
+  __m128 u = _mm_load_ps(a);
+  __m128 v = _mm_load_ps(b);
 
   __m128 s  = mask_xyz_ps(_mm_load_ps1(a+3));
   __m128 s2 = _mm_mul_ps(s, s);   // s^2
@@ -288,15 +314,13 @@ void quat_vec3_mult(const float *a, const float *b, float *out)
   __m128 z;
   __m128 e;
 
-  e = dot_ps(u, v);
+  e = dot_xyz_ps(u, v);
   e = _mm_add_ps(e, e);           // e = 2.0f*e
-  e = shuffle_ps(e, X, X, X, W);  // e = { e.x, e.x, e.x, 0.0f }
 
   z = _mm_mul_ps(u, e);  // z = u * 2*u.dot(v)
 
-  e = dot_ps(u, u);
+  e = dot_xyz_ps(u, u);
   e = _mm_sub_ps(s2, e);          // e = s*s - u.dot(u)
-  e = shuffle_ps(e, X, X, X, W);  // e = { e.x, e.x, e.x, 0.0f }
   e = _mm_mul_ps(v, e);
 
   z = _mm_add_ps(z, e);   // z = (u * 2*u.dot(v)) + v*(s*s - u.dot(u))

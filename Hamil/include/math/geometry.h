@@ -8,9 +8,10 @@
 #include <limits>
 #include <type_traits>
 
-// Uncomment the following line to disable use of SSE intrinsics 
+// Uncomment the following line to disable use of SSE/AVX intrinsics 
 //   (intended for testing purposes)
 //#define NO_SSE
+//#define NO_AVX
 
 constexpr double PI = 3.1415926535897932384626433832795;
 constexpr float PIf = (float)PI;

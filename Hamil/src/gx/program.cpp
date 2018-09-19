@@ -240,7 +240,7 @@ void Program::link()
     std::vector<char> log(log_size);
     glGetProgramInfoLog(m, log_size, nullptr, log.data());
 
-    win32::panic(util::fmt("OpenGL program linking error:\n%s", log.data()).data(), win32::ShaderLinkingError);
+    win32::panic(util::fmt("OpenGL program linking error:\n%s", log).data(), win32::ShaderLinkingError);
   }
 }
 
@@ -321,7 +321,7 @@ Shader::Shader(Type type, const char *const sources[], size_t count)
     std::vector<char> log(log_size);
     glGetShaderInfoLog(m, log_size, nullptr, log.data());
 
-    win32::panic(util::fmt("OpenGL shader compilation error:\n%s", log.data()).data(), win32::ShaderCompileError);
+    win32::panic(util::fmt("OpenGL shader compilation error:\n%s", log).data(), win32::ShaderCompileError);
   }
 }
 

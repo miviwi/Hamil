@@ -1,6 +1,9 @@
 #pragma once
 
 #include <math/geometry.h>
+#include <math/quaternion.h>
+
+#include <string>
 
 static unsigned pow2_round(unsigned v)
 {
@@ -90,4 +93,16 @@ float smoothstep(T min, T max, float u)
 {
   u = clamp((u - min) / (max - min), 0.0f, 1.0f);
   return u*u*(3 - 2*u);
+}
+
+namespace math {
+
+std::string to_str(const vec2& v);
+std::string to_str(const ivec2& v);
+std::string to_str(const vec3& v);
+std::string to_str(const vec4& v);
+std::string to_str(const mat3& m);
+std::string to_str(const mat4& m);
+std::string to_str(const quat& q);
+
 }

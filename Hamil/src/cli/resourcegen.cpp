@@ -203,11 +203,11 @@ static yaml::Document shadergen(win32::File& file,
   }
 
   auto error_message = [&](const char *message) -> std::string {
-    return util::fmt("%s/%s.%s: %s", path.data(), name.data(), extension.data(), message);
+    return util::fmt("%s/%s.%s: %s", path, name, extension, message);
   };
   
   auto error_specified_twice = [&](const char *stage) -> std::string {
-    return error_message(util::fmt("shader(%s) specified twice!").data());
+    return error_message(util::fmt("shader(%s) specified twice!", stage).data());
   };
 
   util::splitlines(source, [&](const std::string& line) {
@@ -270,13 +270,13 @@ static yaml::Document shadergen(win32::File& file,
 static yaml::Document imagegen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension)
 {
-  auto location = util::fmt(".%s/%s.%s", path.data(), name.data(), extension.data());
+  auto location = util::fmt(".%s/%s.%s", path, name, extension);
   std::optional<yaml::Document> params = std::nullopt;
 
   printf("processing image: .%s...\n", location.data());
 
   try {
-    auto fname = util::fmt(".%s/%s.imageparams", path.data(), name.data());
+    auto fname = util::fmt(".%s/%s.imageparams", path, name);
     win32::File f_params(fname.data(), win32::File::Read, win32::File::OpenExisting);
 
     auto f_params_view = f_params.map(win32::File::ProtectRead);
@@ -297,7 +297,7 @@ static yaml::Document imagegen(win32::File& file,
   auto image_view = file.map(win32::File::ProtectRead);
   auto image      = stbi_load_from_memory(image_view.get<byte>(), (int)file.size(), &width, &height, &channels, 0);
 
-  if(!image) throw GenError(util::fmt("%s: invalid image file!", location.data()));
+  if(!image) throw GenError(util::fmt("%s: invalid image file!", location));
 
   auto meta = make_meta<res::Image>(name, path)->append(
     yaml::Scalar::from_str("location"),

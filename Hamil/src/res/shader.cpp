@@ -56,7 +56,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
 
       if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", src->str()));
     } else {
-      throw Error(util::fmt("unknown shader source type '%s'", src->tag().value().data()));
+      throw Error(util::fmt("unknown shader source type '%s'", src->tag().value()));
     }
 
     return ptr;
@@ -84,7 +84,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
           // ex.
           //     - wireframe.geom
           //     - blinnphong.frag
-          export_source(util::fmt("%s.%.4s", name.data(), stage_name), dst);
+          export_source(util::fmt("%s.%.4s", name, stage_name), dst);
         }
       }
     }

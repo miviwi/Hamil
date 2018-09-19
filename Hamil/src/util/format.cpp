@@ -8,7 +8,7 @@ namespace util {
 
 static char p_format_string_buf[4096];
 
-std::string fmt(const char *fmt, ...)
+std::string p_fmt(const char *fmt, ...)
 {
   va_list va;
   va_start(va, fmt);
