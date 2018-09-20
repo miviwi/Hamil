@@ -465,6 +465,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClInclude Include="include\util\lambdatraits.h" />
     <ClInclude Include="include\util\lfsr.h" />
     <ClInclude Include="include\util\opts.h" />
+    <ClInclude Include="include\util\smallvector.h" />
     <ClInclude Include="include\util\str.h" />
     <ClInclude Include="include\util\staticstring.h" />
     <ClInclude Include="include\util\tupleindex.h" />

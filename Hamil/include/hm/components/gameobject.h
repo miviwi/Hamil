@@ -2,6 +2,8 @@
 
 #include <hm/component.h>
 
+#include <util/smallvector.h>
+
 #include <string>
 #include <vector>
 #include <functional>
@@ -22,10 +24,13 @@ struct GameObject : public Component {
   void destroyed();
 
 private:
-  const char *m_name;
+  // The order of the members is very deliberate and avoids
+  //   alignment padding
 
   u32 m_parent;
-  std::vector<u32> m_children;
+  util::SmallVector<u32, 16> m_children;
+
+  const char *m_name;
 
   void addChild(u32 self);
   void reapChild(u32& child);
@@ -33,6 +38,7 @@ private:
   void compactChildren();
 };
 
-//constexpr int x = sizeof(GameObject);
+constexpr int z = sizeof(util::SmallVector<u32>);
+constexpr int x = sizeof(GameObject);
 
 }

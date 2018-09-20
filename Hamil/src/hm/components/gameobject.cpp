@@ -70,7 +70,7 @@ void GameObject::destroyed()
 
 void GameObject::addChild(u32 self)
 {
-  m_children.push_back(self);
+  m_children.append(self);
 }
 
 void GameObject::reapChild(u32& child)
@@ -82,8 +82,7 @@ void GameObject::compactChildren()
 {
   m_children.erase(
     std::remove_if(m_children.begin(), m_children.end(),
-      [](u32 child) { return child == Entity::Invalid; }),
-    m_children.end()
+      [](u32 child) { return child == Entity::Invalid; })
   );
 }
 
