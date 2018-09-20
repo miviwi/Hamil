@@ -35,7 +35,9 @@ struct Geometry {
   Geometry translate(vec2 t) const;
 
   Geometry clip(const Geometry& g) const;
+  Geometry contract(vec2 factor) const;
   Geometry contract(float factor) const;
+  Geometry expand(vec2 factor) const;
   Geometry expand(float factor) const;
 
   bool intersect(vec2 p) const;

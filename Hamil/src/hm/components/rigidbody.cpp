@@ -2,6 +2,8 @@
 
 #include <bt/btcommon.h>
 
+#include <cstdio>
+
 namespace hm {
 
 RigidBody::RigidBody(u32 entity, bt::RigidBody rb_) :

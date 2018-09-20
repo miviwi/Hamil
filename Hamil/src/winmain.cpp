@@ -331,10 +331,11 @@ int main(int argc, char *argv[])
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame<ui::PushButtonFrame>(iface, "b")
-    .frame(ui::create<ui::HSliderFrame>(iface, "near")
-            .range(1.0f, 100.0f))
-    .frame(ui::create<ui::LabelFrame>(iface, "near_val")
-            .caption(util::fmt("Near: %.2f  ", 0.0f))
+    .frame(ui::create<ui::HSliderFrame>(iface, "fov")
+            .range(60.0f, 120.0f))
+    .frame(ui::create<ui::LabelFrame>(iface, "fov_val")
+            .caption(util::fmt("Fov: %.2f  ", 0.0f))
+            .padding({ 20.0f, 0.0f })
             .gravity(ui::Frame::Center))
     ;
 
@@ -343,13 +344,13 @@ int main(int argc, char *argv[])
     window.quit();
   });
 
-  auto& near_slider = *iface.getFrameByName<ui::HSliderFrame>("near");
-  auto& near_val = *iface.getFrameByName<ui::LabelFrame>("near_val");
+  auto& fov_slider = *iface.getFrameByName<ui::HSliderFrame>("fov");
+  auto& fov_val = *iface.getFrameByName<ui::LabelFrame>("fov_val");
 
-  near_slider.onChange([&](ui::SliderFrame *target) {
-    near_val.caption(util::fmt("Near: %.2lf", target->value()));
+  fov_slider.onChange([&](ui::SliderFrame *target) {
+    fov_val.caption(util::fmt("Fov: %.2lf", target->value()));
   });
-  near_slider.value(1.0);
+  fov_slider.value(70.0f);
 
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
@@ -374,8 +375,6 @@ int main(int argc, char *argv[])
     }
   });
 
-  console.print(win32::StdStream::gets());
-
   auto fps_timer = win32::DeltaTimer();
   auto anim_timer = win32::LoopTimer().durationSeconds(2.5);
   auto step_timer = win32::DeltaTimer();
@@ -389,7 +388,11 @@ int main(int argc, char *argv[])
   auto scene = hm::entities().createGameObject("Scene");
 
   while(window.processMessages()) {
+    using hm::entities;
+    using hm::components;
+
     win32::Timers::tick();
+    console.print(win32::StdStream::gets());
 
     vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
@@ -413,14 +416,19 @@ int main(int argc, char *argv[])
         using win32::Keyboard;
 
         if(kb->keyDown('S')) {
-          world.startDbgSimulation();
+          components().foreach([&](hmRef<hm::RigidBody> rb) {
+            world.removeRigidBody(rb().rb);
+          });
+
+          scene.destroy();
+          scene = entities().createGameObject("Scene");
         } else if(kb->keyDown('Q')) {
           window.quit();
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
         } else if(kb->keyDown('D')) {
           auto name = util::fmt("sphere%u", num_spheres);
-          auto entity = hm::entities().createGameObject(name, scene);
+          auto entity = entities().createGameObject(name, scene);
           auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
 
           entity.addComponent<hm::RigidBody>(body);
@@ -476,9 +484,8 @@ int main(int argc, char *argv[])
       *zoom_mtx
       ;
 
-    auto persp = !ortho_projection ?
-      xform::perspective(70, (float)FramebufferSize.x/(float)FramebufferSize.y, near_slider.value(), 10e20f) :
-      xform::ortho(9.0f, -16.0f, -9.0f, 16.0f, 10.0f, 10e20f)*xform::scale(zoom*2.0f);
+    auto persp = xform::perspective(fov_slider.value(),
+      (float)FramebufferSize.x/(float)FramebufferSize.y, 10.0f, 10e20f);
 
     auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });
 
@@ -572,7 +579,7 @@ int main(int argc, char *argv[])
     }
 
     world.stepDbgSimulation(step_timer.elapsedSecondsf());
-    hm::components().foreach([&](hm::ComponentRef<hm::RigidBody> component) {
+    components().foreach([&](hmRef<hm::RigidBody> component) {
       bt::RigidBody rb = component().rb;
 
       if(rb.origin().distance2(vec3::zero()) > 10e3*10e3) {

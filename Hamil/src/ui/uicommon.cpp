@@ -31,17 +31,27 @@ Geometry Geometry::clip(const Geometry& g) const
   return Geometry{ da.x, da.y, db.x-da.x, db.y-da.y };
 }
 
-Geometry Geometry::contract(float factor) const
+Geometry Geometry::contract(vec2 factor) const
 {
   return Geometry(
-    x + factor, y + factor,
-    w - 2.0f*factor, h - 2.0f*factor
+    x + factor.x, y + factor.y,
+    w - 2.0f*factor.x, h - 2.0f*factor.y
   );
+}
+
+Geometry Geometry::contract(float factor) const
+{
+  return contract({ factor, factor });
+}
+
+Geometry Geometry::expand(vec2 factor) const
+{
+  return contract(-factor);
 }
 
 Geometry Geometry::expand(float factor) const
 {
-  return contract(-factor);
+  return contract({ -factor, -factor });
 }
 
 bool Geometry::intersect(vec2 p) const

@@ -37,3 +37,6 @@ private:
 };
 
 }
+
+template <typename T>
+using hmRef = hm::ComponentRef<T>;

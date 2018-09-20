@@ -4,7 +4,7 @@
 namespace ui {
 
 Frame::Frame(Ui &ui, const char *name, Geometry geom) :
-  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom)
+  m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom), m_pad({ 0.0f, 0.0f })
 {
   m_ui->registerFrame(this);
 }
@@ -61,7 +61,7 @@ Geometry Frame::geometry() const
 {
   Geometry g = m_geom;
   if(!g.w && !g.h) {
-    vec2 size = sizeHint();
+    vec2 size = sizeHint() + m_pad*2.0f;
     return {
       g.x, g.y,
       size.x, size.y
@@ -149,74 +149,20 @@ Frame& Frame::position(vec2 pos)
   return *this;
 }
 
+vec2 Frame::padding() const
+{
+  return m_pad;
+}
+
+Frame& Frame::padding(vec2 pad)
+{
+  m_pad = pad;
+
+  return *this;
+}
+
 void Frame::paint(VertexPainter& painter, Geometry parent)
 {
-  Geometry g = m_geom;
-  auto style = ownStyle();
-
-  auto ga = vec2{ g.x, g.y },
-    gb = vec2{ g.x+g.w, g.y+g.h };
-
-  vec2 circle = g.center();
-  vec2 c = g.center();
-
-  auto time = GetTickCount();
-  auto anim_time = 10000;
-
-  auto anim_factor = (float)(time % anim_time)/(float)anim_time;
-
-  float radius = lerp(0.0f, 55.0f/2.0f, anim_factor);
-
-  Color gray = { 100, 100, 100, 255 },
-    dark_gray = { 200, 200, 200, 255 };
-  Geometry bg_pos = { gb.x - 30.0f, ga.y, 30.0f, 30.0f };
-  vec2 close_btn = {
-    (bg_pos.w / 2.0f) + bg_pos.x,
-    (bg_pos.h / 2.0f) + bg_pos.y,
-  };
-
-  Geometry round_rect = {
-    g.x+15.0f, g.y+15.0f, 55.0f, 55.0f
-  };
-
-  vec2 title_pos = {
-    g.x+5.0f, g.y+style.font->ascender()
-  };
-
-  const char *title = "ui::Frame title goes here";
-
-  float angle = lerp(0.0f, 2.0f*PIf, anim_factor);
-
-  vec2 line_delta = {
-    cos(angle)*50.0f, sin(angle)*50.0f
-  };
-
-  auto pipeline = gx::Pipeline()
-    .alphaBlend()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
-
-  auto alpha = (byte)((sin(angle*2.0f)+1.0f)/2.0f*255.0f);
-
-  vec2 xo = { c.x + sin(angle)*30.0f, c.y };
-  float xr = 10.0f;
-
-  Color slider_color = style.button.color[0].luminance();
-
-  painter
-    .pipeline(pipeline)
-    .rect(g, style.bg.color)
-    .border(g, 1, style.border.color)
-    .text(*style.font.get(), title, title_pos, white())
-    //.border({ g.x+5.0f, title_pos.y-style.font->ascender()-style.font->descener(),
-    //        style.font->width(style.font->string(title)),
-    //        style.font->height(style.font->string(title)) }, white())
-    //.circleSegment(circle, 180.0f, angle, angle + (PI/2.0f), transparent(), white())
-    .line(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10, VertexPainter::CapRound, slider_color, slider_color)
-    .lineBorder(c-vec2{ 50.0f, 0.0f }, c+vec2{ 50.0f, 0.0f }, 10-1, VertexPainter::CapRound, black(), black())
-    //.rect({ c.x, c.y+m_animation.channel<float>(0), 50.0f, 50.0f }, Color(255, 0, 0))
-    ;
 }
 
 }

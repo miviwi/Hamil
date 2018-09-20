@@ -48,6 +48,9 @@ public:
 
   Frame& position(vec2 pos);
 
+  vec2 padding() const;
+  Frame& padding(vec2 pad);
+
   virtual void losingCapture();
   virtual void attached();
 
@@ -82,6 +85,7 @@ private:
   const char *m_name;
   Gravity m_gravity;
   Geometry m_geom;
+  vec2 m_pad;
 };
 
 template <typename T, typename... Args>

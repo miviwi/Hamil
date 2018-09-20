@@ -14,8 +14,6 @@ bool IComponentStore::compare_component(u32 id, Component *component)
 
 void IComponentStore::reap_component(Component *component)
 {
-  if(!component->entity()) return;
-
   component->m_entity = Entity();
 }
 

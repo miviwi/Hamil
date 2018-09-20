@@ -29,6 +29,8 @@ private:
 
   void addChild(u32 self);
   void reapChild(u32& child);
+
+  void compactChildren();
 };
 
 //constexpr int x = sizeof(GameObject);

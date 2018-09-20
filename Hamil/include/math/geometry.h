@@ -58,6 +58,8 @@ struct Vector2 {
 
   Vector2 recip() const { return { (T)1 / x, (T)1 / y }; }
 
+  Vector2 operator-() const { return { -x, -y }; }
+
   template <typename U>
   Vector2<U> cast() const
   {
@@ -203,10 +205,7 @@ struct Vector3 {
     return  l < (1e-6f * 1e-6f);
   }
 
-  Vector3 operator-() const
-  {
-    return { -x, -y, -z };
-  }
+  Vector3 operator-() const { return { -x, -y, -z }; }
 
   static Vector3 zero()    { return { (T)0, (T)0, (T)0 }; }
   static Vector3 up()      { return { (T)0, (T)1, (T)0 }; }
@@ -396,6 +395,8 @@ struct /* alignas(16) for intrin */ Vector4 {
   }
 
   Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }
+
+  Vector4 operator-() const { return { -x, -y, -z, -w }; }
 
   operator float *() { return (float *)this; }
   operator const float *() const { return (float *)this; }

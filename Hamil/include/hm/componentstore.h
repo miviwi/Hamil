@@ -27,11 +27,15 @@ protected:
 
 template <typename... Args>
 struct ComponentStoreBase : IComponentStore {
+  using Index = util::HashIndex::Index;
+
   using HashArray  = std::array<util::HashIndex, sizeof...(Args)>;
   using Components = std::tuple<std::vector<Args>...>;
+  using FreeLists  = std::array<std::vector<Index>, sizeof...(Args)>;
 
   HashArray  hashes;
   Components components;
+  FreeLists  free_lists;
 
   template <typename T>
   T *getComponentById(u32 id)
@@ -58,14 +62,11 @@ struct ComponentStoreBase : IComponentStore {
     util::HashIndex& hash  = getHash<TupleIndex>();
     std::vector<T>& bucket = getBucket<TupleIndex>();
 
-    auto index = (util::HashIndex::Index)bucket.size();
-
-    bucket.emplace_back(id, std::forward<Args>(args)...);
-    auto component = &bucket.back();
+    auto index = acquireComponent<T>(id, std::forward<Args>(args)...);
 
     hash.add(id, index);
 
-    return component;
+    return bucket.data() + index;
   }
 
   template <typename T>
@@ -81,9 +82,7 @@ struct ComponentStoreBase : IComponentStore {
     auto index = findComponent<TupleIndex>(id);
     auto component = bucket.data() + index;
 
-    component->destroyed();
-
-    reap_component(component);
+    destroyComponent(component);
     hash.remove(id, index);
   }
 
@@ -98,7 +97,7 @@ struct ComponentStoreBase : IComponentStore {
     for(auto& el : bucket) {
       auto& component = (Component&)el;
       if(!component) {
-        reap_component(&el);
+        destroyComponent(&el);
         continue;
       }
 
@@ -132,6 +131,12 @@ private:
   }
 
   template <size_t Idx>
+  std::vector<Index>& getFreeList()
+  {
+    return free_lists[Idx];
+  }
+
+  template <size_t Idx>
   util::HashIndex::Index findComponent(u32 id)
   {
     auto& bucket = getBucket<Idx>();
@@ -142,6 +147,49 @@ private:
     });
   }
 
+  template <typename T, typename... Args>
+  util::HashIndex::Index acquireComponent(u32 id, Args&&... args)
+  {
+    constexpr auto TupleIndex = tuple_index<T>();
+
+    auto& bucket = getBucket<TupleIndex>();
+    auto& free_list = getFreeList<TupleIndex>();
+    if(free_list.empty()) {
+      auto index = (Index)bucket.size();
+
+      bucket.emplace_back(id, std::forward<Args>(args)...);
+      return index;
+    }
+
+    auto index = free_list.back();
+    free_list.pop_back();
+
+    bucket[index] = T(id, std::forward<Args>(args)...);
+
+    return index;
+  }
+
+  template <typename T>
+  void destroyComponent(T *component)
+  {
+    if(!component->entity()) return; // The Component was already reaped
+
+    component->destroyed();
+    reap_component(component);
+    recycleComponent(component);
+  }
+
+  template <typename T>
+  void recycleComponent(T *component)
+  {
+    constexpr auto TupleIndex = tuple_index<T>();
+
+    auto& bucket = getBucket<TupleIndex>();
+    auto& free_list = getFreeList<TupleIndex>();
+    auto index = (Index)(component - bucket.data());
+
+    free_list.push_back(index);
+  }
 };
 
 IComponentStore *create_component_store(size_t hash_size, size_t components_size);

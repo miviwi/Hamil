@@ -2,8 +2,12 @@
 #include <hm/entity.h>
 
 #include <cstring>
+#include <algorithm>
 
 namespace hm {
+
+static constexpr float CompactionThreshold = 0.3f; // More than 30% dead children will cause 
+                                                   //   compactChildren() to be invoked
 
 GameObject::GameObject(u32 entity, const std::string& name_, u32 parent_) :
   Component(entity),
@@ -37,17 +41,21 @@ Entity GameObject::parent() const
 
 void GameObject::foreachChild(std::function<void(Entity)> fn)
 {
+  int dead_children = 0;
   for(auto& child : m_children) {
     Entity e = child;
-    if(!e) continue;  // Child was previously reaped
 
-    if(!e.alive()) {
+    if(!e) {    // Child was previously reaped
+      dead_children++;
+    } else if(!e.alive()) {
       reapChild(child);
-      continue;
+    } else {    // Child is alive
+      fn(e);
     }
-
-    fn(e);
   }
+
+  auto dead_fraction = (float)dead_children / (float)m_children.size();
+  if(dead_fraction > CompactionThreshold) compactChildren();
 }
 
 void GameObject::destroyed()
@@ -68,6 +76,15 @@ void GameObject::addChild(u32 self)
 void GameObject::reapChild(u32& child)
 {
   child = Entity::Invalid;
+}
+
+void GameObject::compactChildren()
+{
+  m_children.erase(
+    std::remove_if(m_children.begin(), m_children.end(),
+      [](u32 child) { return child == Entity::Invalid; }),
+    m_children.end()
+  );
 }
 
 }
