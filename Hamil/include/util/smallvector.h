@@ -37,7 +37,11 @@ public:
     if(index < InlineElems) {
       new(m_inline.data + index) T(elem);
     } else {
-      if(m_heap.capacity <= index) alloc((m_sz * 3)/2 /* m_sz * 1.5 */);
+      // Do a heap allocation when there isn't enough capacity or
+      //   we're switching from inline storage
+      if(index == InlineElems || m_heap.capacity <= index) {
+        alloc((m_sz * 3)/2 /* m_sz * 1.5 */);
+      }
 
       new(m_heap.ptr + index) T(elem);
     }
