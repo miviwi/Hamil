@@ -15,6 +15,13 @@ namespace util {
 template <typename T, size_t N = 32>
 class SmallVector {
 public:
+  enum {
+    InlineSize  = N - sizeof(u32),
+    InlineElems = InlineSize / sizeof(T),
+
+    InitialHeapElems = InlineElems < 32 ? 32 : 2*InlineElems,
+  };
+
   SmallVector() :
     m_sz(0)
   {
@@ -31,22 +38,21 @@ public:
   //   returns it's index
   u32 append(const T& elem)
   {
-    auto index = m_sz;
-    m_sz++;
-
-    if(index < InlineElems) {
-      new(m_inline.data + index) T(elem);
+    if(m_sz < InlineElems) {
+      new(m_inline.data + m_sz) T(elem);
     } else {
       // Do a heap allocation when there isn't enough capacity or
       //   we're switching from inline storage
-      if(index == InlineElems || m_heap.capacity <= index) {
+      if(m_sz == InlineElems) {
+        alloc(InitialHeapElems);
+      } else if(m_heap.capacity <= m_sz) {
         alloc((m_sz * 3)/2 /* m_sz * 1.5 */);
       }
 
-      new(m_heap.ptr + index) T(elem);
+      new(m_heap.ptr + m_sz) T(elem);
     }
 
-    return index;
+    return m_sz++;
   }
 
   // Removes an element from the end of the container
@@ -60,7 +66,7 @@ public:
   }
 
   // Sets 'end_ptr' as the new end of the vector
-  void erase(u32 *end_ptr)
+  void resize(u32 *end_ptr)
   {
     m_sz = end_ptr - data();
   }
@@ -83,11 +89,6 @@ public:
   u32 size() const { return m_sz; }
 
 private:
-  enum {
-    InlineSize  = N - sizeof(u32),
-    InlineElems = InlineSize / sizeof(T),
-  };
-
   u32 m_sz;
       
   union {
@@ -105,6 +106,8 @@ private:
 
   void alloc(u32 new_sz)
   {
+    new_sz = new_sz + (new_sz % 2); // Round to 2
+
     auto ptr = (T *)malloc(new_sz * sizeof(T)); // avoid initializing the elements
     auto old = data();
     for(u32 i = 0; i < m_sz; i++) {

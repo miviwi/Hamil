@@ -80,7 +80,7 @@ void GameObject::reapChild(u32& child)
 
 void GameObject::compactChildren()
 {
-  m_children.erase(
+  m_children.resize(
     std::remove_if(m_children.begin(), m_children.end(),
       [](u32 child) { return child == Entity::Invalid; })
   );
