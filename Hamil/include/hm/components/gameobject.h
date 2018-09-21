@@ -38,7 +38,4 @@ private:
   void compactChildren();
 };
 
-constexpr int z = sizeof(util::SmallVector<u32>);
-constexpr int x = sizeof(GameObject);
-
 }

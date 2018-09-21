@@ -15,6 +15,8 @@ namespace util {
 template <typename T, size_t N = 32>
 class SmallVector {
 public:
+  static_assert(N - sizeof(u32) >= sizeof(T), "N must be big enugh to hold at least one T!");
+
   enum {
     InlineSize  = N - sizeof(u32),
     InlineElems = InlineSize / sizeof(T),
@@ -29,9 +31,32 @@ public:
     m_heap.capacity = 0;
   }
 
+  SmallVector(const SmallVector& other) :
+    m_sz(other.m_sz),
+    m_heap(other.m_heap)
+  {
+    if(m_sz > InlineElems) {
+      m_heap.ptr = (T *)malloc(m_sz * sizeof(T));
+    }
+
+    auto src = other.data();
+    auto dst = data();
+    for(u32 i = 0; i < m_sz; i++) {
+      new(dst + i) T(src[i]);
+    }
+  }
+
   ~SmallVector()
   {
     dealloc();
+  }
+
+  SmallVector& operator=(const SmallVector& other)
+  {
+    this->~SmallVector();
+    new(this) SmallVector(other);
+
+    return *this;
   }
 
   // Appends 'elem' to the end of the container and
@@ -77,7 +102,7 @@ public:
   {
     if(m_sz <= InlineElems) return;
 
-    // TODO
+    alloc(m_sz);
   }
 
   T *begin() { return data(); }
@@ -87,6 +112,8 @@ public:
   const T *cend() const { return data() + m_sz; }
 
   u32 size() const { return m_sz; }
+
+  u32 capacity() const { return m_sz > InlineElems ? m_heap.capacity : InlineElems; }
 
 private:
   u32 m_sz;
