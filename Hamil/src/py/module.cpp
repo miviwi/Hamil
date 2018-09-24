@@ -332,6 +332,13 @@ TypeObject& TypeObject::mapping_methods(PyMappingMethods *mapping)
   return *this;
 }
 
+TypeObject& TypeObject::compare(richcmpfunc cmp)
+{
+  m.tp_richcompare = cmp;
+
+  return *this;
+}
+
 Dict TypeObject::dict()
 {
   auto py_dict = m.tp_dict;

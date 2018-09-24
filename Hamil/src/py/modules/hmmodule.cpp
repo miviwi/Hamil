@@ -79,6 +79,8 @@ static PyObject *Entity_Name(Entity *self, void *Py_UNUSED(closure))
   return PyUnicode_FromString(self->m.gameObject().name());
 }
 
+static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure));
+
 static PyObject *Entity_Repr(Entity *self)
 {
   return Unicode::from_format("<Entity 0x%.8x>", self->m.id()).move();
@@ -87,6 +89,36 @@ static PyObject *Entity_Repr(Entity *self)
 static PyObject *Entity_Str(Entity *self)
 {
   return Unicode::from_format("0x%.8x", self->m.id()).move();
+}
+
+static PyObject *Entity_Compare(Entity *self, PyObject *other, int op)
+{
+  if(!Entity_Check(other)) {
+    return Py_NotImplemented;
+  }
+
+  auto e = (Entity *)other;
+  switch(op) {
+  case Py_EQ:
+    if(self->m.id() == e->m.id()) {
+      Py_RETURN_TRUE;
+    } else {
+      Py_RETURN_FALSE;
+    }
+    break; 
+
+  case Py_NE:
+    if(self->m.id() != e->m.id()) {
+      Py_RETURN_TRUE;
+    } else {
+      Py_RETURN_FALSE;
+    }
+    break;
+
+  default: PyErr_SetNone(PyExc_TypeError);
+  }
+
+  return nullptr;
 }
 
 static TypeObject EntityType = 
@@ -103,13 +135,17 @@ static TypeObject EntityType =
       GetSetDef()
         .name("name")
         .doc("Entity name => gameObject().name()")
-        .get((getter)Entity_Name)))
+        .get((getter)Entity_Name),
+      GetSetDef()
+        .name("gameObject")
+        .get((getter)Entity_GameObject)))
     .methods(EntityMethods(
         MethodDef()
           .name("destroy")
           .doc("destroy the Entity")
           .flags(METH_VARARGS)
           .method(Entity_Destroy)))
+    .compare((richcmpfunc)Entity_Compare)
     .repr((reprfunc)Entity_Repr)
     .str((reprfunc)Entity_Str)
   ;
@@ -125,6 +161,68 @@ static PyObject *Entity_FromEntity(hm::Entity e)
   obj->m = e;
 
   return (PyObject *)obj;
+}
+
+struct GameObjectToken;
+
+static MethodDefList<GameObjectToken> GameObjectMethods;
+static GetSetDefList<GameObjectToken> GameObjectGetSet;
+
+struct GameObject {
+  PyObject_HEAD;
+
+  hmRef<hm::GameObject> m;
+};
+
+static int GameObject_Check(PyObject *obj);
+static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref);
+
+static int GameObject_Init(GameObject *self, PyObject *args, PyObject *kwds)
+{
+  return 0;
+}
+
+static PyObject *GameObject_Name(GameObject *self, void *Py_UNUSED(closure))
+{
+  return PyUnicode_FromString(self->m().name());
+}
+
+static PyObject *GameObject_Parent(GameObject *self, void *Py_UNUSED(closure))
+{
+  return Entity_FromEntity(self->m().parent());
+}
+
+static TypeObject GameObjectType = 
+  TypeObject()
+    .name("GameObject")
+    .doc("wrapper around a hm::GameObject")
+    .getset(GameObjectGetSet(
+      GetSetDef()
+        .name("name")
+        .get((getter)GameObject_Name),
+      GetSetDef()
+        .name("parent")
+        .get((getter)GameObject_Parent)))
+    .size(sizeof(GameObject))
+    .init((initproc)GameObject_Init)
+  ;
+
+static int GameObject_Check(PyObject *obj)
+{
+  return GameObjectType.check(obj);
+}
+
+static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref)
+{
+  auto self = GameObjectType.newObject<GameObject>();
+  self->m = ref;
+
+  return (PyObject *)self;
+}
+
+static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure))
+{
+  return GameObject_FromRef(self->m.component<hm::GameObject>());
 }
 
 struct HmToken;
@@ -154,6 +252,7 @@ PyObject *PyInit_hm()
 {
   auto self = Module::create(HmModule.py())
     .addType(EntityType)
+    .addType(GameObjectType)
     ;
 
   EntityType.dict().set("Invalid", Long(hm::Entity::Invalid));

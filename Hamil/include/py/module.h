@@ -169,6 +169,8 @@ public:
   TypeObject& sequence_methods(PySequenceMethods *sequence);
   TypeObject& mapping_methods(PyMappingMethods *mapping);
 
+  TypeObject& compare(richcmpfunc cmp);
+
   Dict dict();
 
   PyObject *py();
