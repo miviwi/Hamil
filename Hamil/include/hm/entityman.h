@@ -16,6 +16,7 @@ public:
   using Ptr = std::unique_ptr<IEntityManager>;
 
   virtual Entity createEntity() = 0;
+  virtual Entity findEntity(const std::string& name) = 0;
   virtual void destroyEntity(EntityId id) = 0;
 
   // Creates an Entity with a 'GameObject' Component

@@ -10,6 +10,7 @@
 
 namespace py {
 
+class Dict;
 class TypeObject;
 
 class Module : public Object {
@@ -167,6 +168,8 @@ public:
   TypeObject& number_methods(PyNumberMethods *number);
   TypeObject& sequence_methods(PySequenceMethods *sequence);
   TypeObject& mapping_methods(PyMappingMethods *mapping);
+
+  Dict dict();
 
   PyObject *py();
 

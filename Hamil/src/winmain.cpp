@@ -662,7 +662,7 @@ int main(int argc, char *argv[])
 
     if(picked_body) {
       auto entity = picked_body.user<hm::Entity>(); 
-      if(entity && entity.gameObject().parent() == scene) {
+      if(entity && entity.alive() && entity.gameObject().parent() == scene) {
         small_face.draw(util::fmt("picked(0x%.8x) at: %s",
           entity.id(), math::to_str(picked_body.origin())),
           { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });

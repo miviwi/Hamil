@@ -1,4 +1,5 @@
 #include <py/module.h>
+#include <py/collections.h>
 
 #include <cstring>
 #include <algorithm>
@@ -329,6 +330,14 @@ TypeObject& TypeObject::mapping_methods(PyMappingMethods *mapping)
 {
   m.tp_as_mapping = mapping;
   return *this;
+}
+
+Dict TypeObject::dict()
+{
+  auto py_dict = m.tp_dict;
+  Py_INCREF(py_dict);
+
+  return Dict(py_dict);
 }
 
 PyObject *TypeObject::py()

@@ -1,5 +1,6 @@
 #include <hm/entityman.h>
 #include <hm/componentman.h>
+#include <hm/componentref.h>
 #include <hm/components/gameobject.h>
 
 #include <util/lfsr.h>
@@ -20,6 +21,7 @@ public:
   EntityManager(IComponentManager::Ptr component_man);
 
   virtual Entity createEntity();
+  virtual Entity findEntity(const std::string& name);
   virtual void destroyEntity(EntityId id);
 
   virtual Entity createGameObject(const std::string& name, Entity parent);
@@ -56,6 +58,18 @@ Entity EntityManager::createEntity()
   m_entities_hash.add(id, idx);
 
   return id;
+}
+
+Entity EntityManager::findEntity(const std::string& name)
+{
+  Entity e = Entity::Invalid;
+  components().foreach([&](ComponentRef<GameObject> game_object) {
+    if(game_object().name() == name) {
+      e = game_object().entity();
+    }
+  });
+
+  return e;
 }
 
 void EntityManager::destroyEntity(EntityId id)

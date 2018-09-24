@@ -9,6 +9,7 @@
 #include <py/modules/mathmodule.h>
 #include <py/modules/yamlmodule.h>
 #include <py/modules/resmodule.h>
+#include <py/modules/hmmodule.h>
 
 #include <marshal.h>
 
@@ -18,18 +19,19 @@ namespace py {
 
 Dict p_globals(nullptr);
 
-static ModuleDef hm = 
+static ModuleDef hpy = 
   ModuleDef()
-    .name("hm")
+    .name("hpy")
   ;
 
-PyObject *PyInit_hm()
+PyObject *PyInit_hpy()
 {
-  auto self = Module::create(hm.py())
+  auto self = Module::create(hpy.py())
     .addObject("win32", PyInit_win32())
-    .addObject("math", PyInit_math())
-    .addObject("yaml", PyInit_yaml())
-    .addObject("res", PyInit_res())
+    .addObject("math",  PyInit_math())
+    .addObject("yaml",  PyInit_yaml())
+    .addObject("res",   PyInit_res())
+    .addObject("hm",    PyInit_hm())
     ;
 
   return *self;
@@ -37,7 +39,7 @@ PyObject *PyInit_hm()
 
 
 static _inittab p_modules[] ={
-  { "hm", PyInit_hm },
+  { "hpy", PyInit_hpy },
 
   { nullptr }
 };
