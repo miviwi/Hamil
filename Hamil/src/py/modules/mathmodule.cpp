@@ -31,9 +31,6 @@ struct vec2 {
   ::vec2 m;
 };
 
-static int Vec2_Check(PyObject *obj);
-static PyObject *Vec2_FromVec2(::vec2 v);
-
 #define VEC2_INIT_ERR "argument to vec2() must be number(s) or another vec2"
 
 static int Vec2_Init(vec2 *self, PyObject *args, PyObject *kwds)
@@ -252,6 +249,12 @@ PyObject *Vec2_FromVec2(::vec2 v)
   return (PyObject *)obj;
 }
 
+::vec2 Vec2_AsVec2(PyObject *obj)
+{
+  auto self = (vec2 *)obj;
+  return self->m;
+}
+
 struct Vec3Token;
 static MemberDefList<Vec3Token> Vec3Members;
 static MethodDefList<Vec3Token> Vec3Methods;
@@ -262,8 +265,8 @@ struct vec3 {
   ::vec3 m;
 };
 
-static int Vec3_Check(PyObject *obj);
-static PyObject *Vec3_FromVec3(::vec3 v);
+int Vec3_Check(PyObject *obj);
+PyObject *Vec3_FromVec3(::vec3 v);
 
 #define VEC3_INIT_ERR "argument to vec3() must be one of number(s), vec3"
 
@@ -501,17 +504,23 @@ static TypeObject Vec3_Type =
     .str((reprfunc)Vec3_Str)
   ;
 
-static int Vec3_Check(PyObject *obj)
+int Vec3_Check(PyObject *obj)
 {
   return Vec3_Type.check(obj);
 }
 
-static PyObject *Vec3_FromVec3(::vec3 v)
+PyObject *Vec3_FromVec3(::vec3 v)
 {
   auto obj = Vec3_Type.newObject<vec3>();
   obj->m = v;
 
   return (PyObject *)obj;
+}
+
+::vec3 Vec3_AsVec3(PyObject *obj)
+{
+  auto self = (vec3 *)obj;
+  return self->m;
 }
 
 struct Vec4Token;
@@ -524,8 +533,8 @@ struct vec4 {
   ::vec4 m;
 };
 
-static int Vec4_Check(PyObject *obj);
-static PyObject *Vec4_FromVec4(::vec4 v);
+int Vec4_Check(PyObject *obj);
+PyObject *Vec4_FromVec4(::vec4 v);
 
 #define VEC4_INIT_ERR "argument to vec4() must be one of number(s), vec2, vec3, vec4"
 
@@ -713,17 +722,23 @@ static TypeObject Vec4_Type =
     .str((reprfunc)Vec4_Str)
   ;
 
-static int Vec4_Check(PyObject *obj)
+int Vec4_Check(PyObject *obj)
 {
   return Vec4_Type.check(obj);
 }
 
-static PyObject *Vec4_FromVec4(::vec4 v)
+PyObject *Vec4_FromVec4(::vec4 v)
 {
   auto obj = Vec4_Type.newObject<vec4>();
   obj->m = v;
 
   return (PyObject *)obj;
+}
+
+::vec4 Vec4_AsVec4(PyObject *obj)
+{
+  auto self = (vec4 *)obj;
+  return self->m;
 }
 
 struct Mat4Token;

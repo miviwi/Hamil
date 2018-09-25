@@ -23,6 +23,7 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
       ui().capture(this);
     } else if(mouse->buttonUp(Mouse::Left)) {
       m_state = Default;
+      ui().capture(nullptr);
     }
 
     if(m_state == Moving && mouse->buttons & Mouse::Left) {

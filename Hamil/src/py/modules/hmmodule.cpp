@@ -1,4 +1,5 @@
 #include <py/modules/hmmodule.h>
+#include <py/modules/btmodule.h>
 #include <py/module.h>
 #include <py/types.h>
 #include <py/collections.h>
@@ -81,8 +82,17 @@ static PyObject *Entity_Name(Entity *self, void *Py_UNUSED(closure))
 
 static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure));
 
+static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure))
+{
+  return RigidBody_FromRigidBody(self->m.component<hm::RigidBody>().get().rb);
+}
+
 static PyObject *Entity_Repr(Entity *self)
 {
+  if(!self->m) {
+    return PyUnicode_FromString("<Entity::Invalid>");
+  }
+
   return Unicode::from_format("<Entity 0x%.8x>", self->m.id()).move();
 }
 
@@ -138,7 +148,10 @@ static TypeObject EntityType =
         .get((getter)Entity_Name),
       GetSetDef()
         .name("gameObject")
-        .get((getter)Entity_GameObject)))
+        .get((getter)Entity_GameObject),
+      GetSetDef()
+        .name("rigidBody")
+        .get((getter)Entity_RigidBody)))
     .methods(EntityMethods(
         MethodDef()
           .name("destroy")

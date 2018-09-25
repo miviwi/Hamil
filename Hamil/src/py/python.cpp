@@ -9,6 +9,7 @@
 #include <py/modules/mathmodule.h>
 #include <py/modules/yamlmodule.h>
 #include <py/modules/resmodule.h>
+#include <py/modules/btmodule.h>
 #include <py/modules/hmmodule.h>
 
 #include <marshal.h>
@@ -31,12 +32,12 @@ PyObject *PyInit_hpy()
     .addObject("math",  PyInit_math())
     .addObject("yaml",  PyInit_yaml())
     .addObject("res",   PyInit_res())
+    .addObject("bt",    PyInit_bt())
     .addObject("hm",    PyInit_hm())
     ;
 
   return *self;
 }
-
 
 static _inittab p_modules[] ={
   { "hpy", PyInit_hpy },
