@@ -108,6 +108,11 @@ static PyObject *Vec2_Mul(vec2 *self, PyObject *other)
   return nullptr;
 }
 
+static PyObject *Vec2_Neg(vec2 *self)
+{
+  return Vec2_FromVec2(-self->m);
+}
+
 static PyObject *Vec2_Length(vec2 *self, PyObject *Py_UNUSED(arg))
 {
   return PyFloat_FromDouble(self->m.length());
@@ -158,7 +163,7 @@ static PyNumberMethods Vec2NumberMethods = {
   nullptr, /* nb_remainder */
   nullptr, /* nb_divmod */
   nullptr, /* nb_power */
-  nullptr, /* nb_negative */
+  (unaryfunc) Vec2_Neg, /* nb_negative */
   nullptr, /* nb_positive */
   nullptr, /* nb_absolute */
   nullptr, /* nb_bool */
@@ -345,6 +350,11 @@ static PyObject *Vec3_Mul(vec3 *self, PyObject *other)
   return nullptr;
 }
 
+static PyObject *Vec3_Neg(vec3 *self)
+{
+  return Vec3_FromVec3(-self->m);
+}
+
 static PyObject *Vec3_XY(vec3 *self, PyObject *Py_UNUSED(arg))
 {
   return Vec2_FromVec2(self->m.xy());
@@ -411,7 +421,7 @@ static PyNumberMethods Vec3NumberMethods = {
   nullptr, /* nb_remainder */
   nullptr, /* nb_divmod */
   nullptr, /* nb_power */
-  nullptr, /* nb_negative */
+  (unaryfunc)Vec3_Neg, /* nb_negative */
   nullptr, /* nb_positive */
   nullptr, /* nb_absolute */
   nullptr, /* nb_bool */
@@ -618,6 +628,11 @@ static PyObject *Vec4_Mul(vec4 *self, PyObject *other)
   return nullptr;
 }
 
+static PyObject *Vec4_Neg(vec4 *self)
+{
+  return Vec4_FromVec4(-self->m);
+}
+
 static PyObject *Vec4_XYZ(vec4 *self, PyObject *Py_UNUSED(arg))
 {
   return Vec3_FromVec3(self->m.xyz());
@@ -646,7 +661,7 @@ static PyNumberMethods Vec4NumberMethods = {
   nullptr, /* nb_remainder */
   nullptr, /* nb_divmod */
   nullptr, /* nb_power */
-  nullptr, /* nb_negative */
+  (unaryfunc)Vec4_Neg, /* nb_negative */
   nullptr, /* nb_positive */
   nullptr, /* nb_absolute */
   nullptr, /* nb_bool */

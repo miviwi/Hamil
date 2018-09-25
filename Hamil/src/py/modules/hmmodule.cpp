@@ -12,7 +12,24 @@
 #include <hm/componentref.h>
 #include <hm/components/all.h>
 
+#include <string>
+#include <unordered_map>
+#include <functional>
+
 namespace py {
+
+struct ComponentToken;
+
+struct Component {
+  PyObject_HEAD;
+};
+
+static TypeObject ComponentType = 
+  TypeObject()
+    .name("Component")
+    .doc("base class for all Components")
+    .size(sizeof(Component))
+  ;
 
 struct EntityToken;
 static MemberDefList<EntityToken> EntityMembers;
@@ -54,6 +71,42 @@ static int Entity_Init(Entity *self, PyObject *args, PyObject *kwds)
   return 0;
 }
 
+static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure));
+static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure));
+
+static PyObject *Entity_Component(Entity *self, PyObject *arg)
+{
+  if(!PyType_Check(arg)) {
+    PyErr_SetString(PyExc_TypeError, "component() must be called with a single type object argument");
+    return nullptr;
+  }
+
+  auto type = (PyTypeObject *)arg;
+
+  // The requested Component's type name
+  auto component_name = Unicode(PyObject_GetAttrString(arg, "__name__")).str();
+
+  if(!PyType_IsSubtype(type, (PyTypeObject *)ComponentType.py())) {
+    auto err = Unicode::from_format("'%s' is not a Component!", component_name.data());
+
+    PyErr_SetObject(PyExc_ValueError, err.move());
+    return nullptr;
+  }
+
+  static const std::unordered_map<std::string,
+    std::function<PyObject *(Entity *self, void *)>> component_map = {
+    { "GameObject", Entity_GameObject },
+    { "RigidBody",  Entity_RigidBody },
+  };
+
+  auto it = component_map.find(component_name);
+  if(it == component_map.end()) {
+    Py_RETURN_NONE;
+  }
+
+  return it->second(self, nullptr);
+}
+
 static PyObject *Entity_Destroy(Entity *self, PyObject *args)
 {
   if(PyTuple_Size(args) > 0) {
@@ -79,8 +132,6 @@ static PyObject *Entity_Name(Entity *self, void *Py_UNUSED(closure))
 {
   return PyUnicode_FromString(self->m.gameObject().name());
 }
-
-static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure));
 
 static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure))
 {
@@ -153,6 +204,11 @@ static TypeObject EntityType =
         .name("rigidBody")
         .get((getter)Entity_RigidBody)))
     .methods(EntityMethods(
+        MethodDef()
+          .name("component")
+          .doc("returns the Component of the given type associated with this Entity")
+          .flags(METH_O)
+          .method(Entity_Component),
         MethodDef()
           .name("destroy")
           .doc("destroy the Entity")
@@ -228,6 +284,7 @@ static TypeObject GameObjectType =
   TypeObject()
     .name("GameObject")
     .doc("wrapper around a hm::GameObject")
+    .base(ComponentType)
     .getset(GameObjectGetSet(
       GetSetDef()
         .name("name")
