@@ -187,8 +187,17 @@ struct GameObject {
   hmRef<hm::GameObject> m;
 };
 
+struct GameObjectIterator {
+  PyObject_HEAD;
+
+  hm::GameObjectIterator m;
+};
+
 static int GameObject_Check(PyObject *obj);
 static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref);
+
+static int GameObjectIterator_Check(PyObject *obj);
+static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it);
 
 static int GameObject_Init(GameObject *self, PyObject *args, PyObject *kwds)
 {
@@ -205,6 +214,16 @@ static PyObject *GameObject_Parent(GameObject *self, void *Py_UNUSED(closure))
   return Entity_FromEntity(self->m().parent());
 }
 
+static PyObject *GameObject_GetIter(GameObject *self)
+{
+  return GameObjectIterator_FromIter(self->m().begin());
+}
+
+static PyObject *GameObject_Children(GameObject *self, void *Py_UNUSED(closure))
+{
+  return GameObject_GetIter(self);
+}
+
 static TypeObject GameObjectType = 
   TypeObject()
     .name("GameObject")
@@ -215,9 +234,14 @@ static TypeObject GameObjectType =
         .get((getter)GameObject_Name),
       GetSetDef()
         .name("parent")
-        .get((getter)GameObject_Parent)))
+        .get((getter)GameObject_Parent),
+      GetSetDef()
+        .name("children")
+        .doc("returns an iterator object for the GameObject's children (same as iter(gameObject))")
+        .get((getter)GameObject_Children)))
     .size(sizeof(GameObject))
     .init((initproc)GameObject_Init)
+    .iter((getiterfunc)GameObject_GetIter)
   ;
 
 static int GameObject_Check(PyObject *obj)
@@ -236,6 +260,46 @@ static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref)
 static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure))
 {
   return GameObject_FromRef(self->m.component<hm::GameObject>());
+}
+
+static PyObject *GameObjectIterator_GetIter(GameObjectIterator *self)
+{
+  Py_INCREF(self);
+  return (PyObject *)self;
+}
+
+static PyObject *GameObjectIterator_Next(GameObjectIterator *self)
+{
+  if(self->m.atEnd()) {
+    return nullptr; // No more elements
+  }
+
+  auto next = Entity_FromEntity(*self->m);
+  self->m++;
+
+  return next;
+}
+
+static TypeObject GameObjectIteratorType =
+  TypeObject()
+    .name("GameObjectIterator")
+    .doc("iterator for a given GameObject's children")
+    .size(sizeof(GameObjectIterator))
+    .iter((getiterfunc)GameObjectIterator_GetIter)
+    .iternext((iternextfunc)GameObjectIterator_Next)
+  ;
+
+static int GameObjectIterator_Check(PyObject *obj)
+{
+  return GameObjectIteratorType.check(obj);
+}
+
+static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it)
+{
+  auto self = GameObjectIteratorType.newObject<GameObjectIterator>();
+  self->m = it;
+
+  return (PyObject *)self;
 }
 
 struct HmToken;
@@ -266,6 +330,7 @@ PyObject *PyInit_hm()
   auto self = Module::create(HmModule.py())
     .addType(EntityType)
     .addType(GameObjectType)
+    .addType(GameObjectIteratorType)
     ;
 
   EntityType.dict().set("Invalid", Long(hm::Entity::Invalid));

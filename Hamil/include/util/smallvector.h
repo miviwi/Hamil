@@ -24,6 +24,9 @@ public:
     InitialHeapElems = InlineElems < 32 ? 32 : 2*InlineElems,
   };
 
+  using Iterator      = T *;
+  using ConstIterator = const T *;
+
   SmallVector() :
     m_sz(0)
   {

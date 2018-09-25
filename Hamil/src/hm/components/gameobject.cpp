@@ -1,6 +1,7 @@
 #include <hm/components/gameobject.h>
 #include <hm/entity.h>
 
+#include <cassert>
 #include <cstring>
 #include <algorithm>
 
@@ -68,6 +69,16 @@ void GameObject::destroyed()
   }
 }
 
+GameObjectIterator GameObject::begin()
+{
+  return GameObjectIterator(&m_children, m_children.begin());
+}
+
+GameObjectIterator GameObject::end()
+{
+  return GameObjectIterator(&m_children, m_children.end());
+}
+
 void GameObject::addChild(u32 self)
 {
   m_children.append(self);
@@ -84,6 +95,52 @@ void GameObject::compactChildren()
     std::remove_if(m_children.begin(), m_children.end(),
       [](u32 child) { return child == Entity::Invalid; })
   );
+}
+
+GameObjectIterator::GameObjectIterator(Children *children, Children::Iterator it) :
+  m(children), m_it(it)
+{
+}
+
+Entity GameObjectIterator::operator*() const
+{
+  return Entity(*m_it);
+}
+
+GameObjectIterator& GameObjectIterator::operator++()
+{
+  assert(m_it != m->end() && "Moved GameObjectIterator past end!");
+
+  m_it++;
+  do {
+    Entity e = *m_it;
+    if(e && e.alive()) break;
+  } while(m_it != m->end());
+
+  return *this;
+}
+
+GameObjectIterator GameObjectIterator::operator++(int)
+{
+  auto self = *this;
+  ++*this;
+
+  return self;
+}
+
+bool GameObjectIterator::operator==(const GameObjectIterator& other) const
+{
+  return m_it == other.m_it;
+}
+
+bool GameObjectIterator::operator!=(const GameObjectIterator& other) const
+{
+  return m_it != other.m_it;
+}
+
+bool GameObjectIterator::atEnd() const
+{
+  return m_it == m->end();
 }
 
 }

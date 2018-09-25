@@ -7,10 +7,36 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <iterator>
 
 namespace hm {
 
 class Entity;
+
+struct GameObjectIterator :
+  std::iterator<
+    std::forward_iterator_tag,
+    Entity
+  > {
+
+  using Children = util::SmallVector<u32, 16>;
+
+  GameObjectIterator(Children *children, Children::Iterator it);
+
+  Entity operator*() const;
+
+  GameObjectIterator& operator++();
+  GameObjectIterator operator++(int);
+
+  bool operator==(const GameObjectIterator& other) const;
+  bool operator!=(const GameObjectIterator& other) const;
+
+  bool atEnd() const;
+
+private:
+  Children *m;
+  Children::Iterator m_it;
+};
 
 struct GameObject : public Component {
   GameObject(u32 entity, const std::string& name_, u32 parent);
@@ -22,6 +48,9 @@ struct GameObject : public Component {
   void foreachChild(std::function<void(Entity)> fn);
 
   void destroyed();
+
+  GameObjectIterator begin();
+  GameObjectIterator end();
 
 private:
   // The order of the members is very deliberate and avoids
