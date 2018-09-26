@@ -48,7 +48,7 @@ CpuInfo cpuid()
 
   __cpuid(cpuid, CpuIdFeatures);
 
-  cpu.rtdsc = (edx >> CpuIdTSCBit) & 1;
+  cpu.rdtsc = (edx >> CpuIdTSCBit) & 1;
 
   cpu.sse   = (edx >> CpuIdSSEBit)   & 1;
   cpu.sse2  = (edx >> CpuIdSSE2Bit)  & 1;
@@ -88,7 +88,7 @@ int cpuid_to_str(const CpuInfo& cpu, char *buf, size_t buf_sz)
     "F16C:   %s",
     cpu.vendor,
 
-    yesno(cpu.rtdsc),
+    yesno(cpu.rdtsc),
 
     yesno(cpu.sse), yesno(cpu.sse2), yesno(cpu.sse3), yesno(cpu.ssse3),
     yesno(cpu.sse41), yesno(cpu.sse42), yesno(cpu.avx), yesno(cpu.fma),
@@ -102,10 +102,19 @@ void check_sse_sse2_support()
 {
   auto cpu = cpuid();
 
-  if(cpu.rtdsc &&  // RTDSC is almost certainly supported but check just to be sure :)
+  if(cpu.rdtsc &&  // RDTSC is almost certainly supported but check just to be sure :)
     cpu.sse && cpu.sse2 && cpu.sse3) return;
 
   panic("Your CPU doesn't support the required SSE extensions (SSE, SSE2, SSE3)", NoSSESupportError);
+}
+
+void check_avx_support()
+{
+  auto cpu = cpuid();
+
+  if(cpu.avx) return;
+
+  panic("Your CPU doesn't support the AVX extensions", NoAVXSupportError);
 }
 
 }

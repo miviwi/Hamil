@@ -61,6 +61,11 @@ static PyObject *RigidBody_ApplyImpulse(RigidBody *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
+static PyObject *RigidBody_Repr(RigidBody *self)
+{
+  return Unicode::from_format("<btRigidBody at 0x%p>", self->m.get()).move();
+}
+
 static TypeObject RigidBodyType =
   TypeObject()
     .name("RigidBody")
@@ -81,6 +86,8 @@ static TypeObject RigidBodyType =
         .name("applyImpulse")
         .method(RigidBody_ApplyImpulse)
         .flags(METH_VARARGS)))
+    .repr((reprfunc)RigidBody_Repr)
+    .str((reprfunc)RigidBody_Repr)
   ;
 
 int RigidBody_Check(PyObject *obj)

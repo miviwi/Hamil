@@ -133,11 +133,6 @@ static PyObject *Entity_Name(Entity *self, void *Py_UNUSED(closure))
   return PyUnicode_FromString(self->m.gameObject().name());
 }
 
-static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure))
-{
-  return RigidBody_FromRigidBody(self->m.component<hm::RigidBody>().get().rb);
-}
-
 static PyObject *Entity_Repr(Entity *self)
 {
   if(!self->m) {
@@ -280,6 +275,11 @@ static PyObject *GameObject_Children(GameObject *self, void *Py_UNUSED(closure))
   return GameObject_GetIter(self);
 }
 
+static PyObject *GameObject_Repr(GameObject *self)
+{
+  return Unicode::from_format("<hm::GameObject of Entity(0x%.8x)>", self->m().entity().id()).move();
+}
+
 static TypeObject GameObjectType = 
   TypeObject()
     .name("GameObject")
@@ -299,6 +299,8 @@ static TypeObject GameObjectType =
     .size(sizeof(GameObject))
     .init((initproc)GameObject_Init)
     .iter((getiterfunc)GameObject_GetIter)
+    .repr((reprfunc)GameObject_Repr)
+    .str((reprfunc)GameObject_Repr)
   ;
 
 static int GameObject_Check(PyObject *obj)
@@ -312,11 +314,6 @@ static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref)
   self->m = ref;
 
   return (PyObject *)self;
-}
-
-static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure))
-{
-  return GameObject_FromRef(self->m.component<hm::GameObject>());
 }
 
 static PyObject *GameObjectIterator_GetIter(GameObjectIterator *self)
@@ -359,6 +356,67 @@ static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it)
   return (PyObject *)self;
 }
 
+struct HmRigidBodyToken;
+
+static MemberDefList<HmRigidBodyToken> HmRigidBodyMembers;
+static GetSetDefList<HmRigidBodyToken> HmRigidBodyGetSet;
+
+struct HmRigidBody {
+  PyObject_HEAD;
+
+  hmRef<hm::RigidBody> m;
+};
+
+static int HmRigidBody_Check(PyObject *obj);
+static PyObject *HmRigidBody_FromRef(hmRef<hm::RigidBody> ref);
+
+static PyObject *HmRigidBody_Rb(HmRigidBody *self, void *Py_UNUSED(closure))
+{
+  return RigidBody_FromRigidBody(self->m().rb);
+}
+
+static PyObject *HmRigidBody_Repr(GameObject *self)
+{
+  return Unicode::from_format("<hm::RigidBody of Entity(0x%.8x)>", self->m().entity().id()).move();
+}
+
+static TypeObject HmRigidBodyType = 
+  TypeObject()
+    .name("RigidBody")
+    .base(ComponentType)
+    .size(sizeof(HmRigidBody))
+    .getset(HmRigidBodyGetSet(
+      GetSetDef()
+        .name("rb")
+        .doc("returns the btRigidBody")
+        .get((getter)HmRigidBody_Rb)))
+    .repr((reprfunc)HmRigidBody_Repr)
+    .str((reprfunc)HmRigidBody_Repr)
+  ;
+
+static int HmRigidBody_Check(PyObject *obj)
+{
+  return HmRigidBodyType.check(obj);
+}
+
+static PyObject *HmRigidBody_FromRef(hmRef<hm::RigidBody> ref)
+{
+  auto self = HmRigidBodyType.newObject<HmRigidBody>();
+  self->m = ref;
+
+  return (PyObject *)self;
+}
+
+static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure))
+{
+  return GameObject_FromRef(self->m.component<hm::GameObject>());
+}
+
+static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure))
+{
+  return HmRigidBody_FromRef(self->m.component<hm::RigidBody>());
+}
+
 struct HmToken;
 
 static MethodDefList<HmToken> HmMethods;
@@ -388,6 +446,7 @@ PyObject *PyInit_hm()
     .addType(EntityType)
     .addType(GameObjectType)
     .addType(GameObjectIteratorType)
+    .addType(HmRigidBodyType)
     ;
 
   EntityType.dict().set("Invalid", Long(hm::Entity::Invalid));

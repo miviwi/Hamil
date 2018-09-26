@@ -7,7 +7,7 @@ namespace win32 {
 struct CpuInfo {
   char vendor[16];
 
-  u32 rtdsc : 1;
+  u32 rdtsc : 1;
 
   u32 sse   : 1;
   u32 sse2  : 1;
@@ -31,5 +31,6 @@ CpuInfo cpuid();
 int cpuid_to_str(const CpuInfo& cpu, char *buf, size_t buf_sz);
 
 void check_sse_sse2_support();
+void check_avx_support();
 
 }

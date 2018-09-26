@@ -6,7 +6,7 @@ enum : int {
   UnknownError = 1<<31,         // all panic codes are < 0
 
   // win32 related errors
-  NoSSESupportError,
+  NoSSESupportError, NoAVXSupportError,
   QueryPerformanceCounterError,
   InputDeviceRegistartionError,
 

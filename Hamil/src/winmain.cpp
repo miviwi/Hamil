@@ -391,8 +391,10 @@ int main(int argc, char *argv[])
     using hm::entities;
     using hm::components;
 
+    auto std_stream = win32::StdStream::gets();
+
     win32::Timers::tick();
-    console.print(win32::StdStream::gets());
+    if(std_stream.size()) console.print(std_stream);
 
     vec4 eye{ 0, 0, 60.0f/zoom, 1 };
 
