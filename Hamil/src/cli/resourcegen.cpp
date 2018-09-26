@@ -311,11 +311,7 @@ static yaml::Document imagegen(win32::File& file,
 
   printf("        ...done!\n\n");
 
-  auto doc = yaml::Document(yaml::Node::Ptr(meta));
-  puts(doc.toString().data());
-
-
-  return doc;
+  return yaml::Node::Ptr(meta);
 }
 
 }
