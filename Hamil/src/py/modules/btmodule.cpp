@@ -33,13 +33,8 @@ static PyObject *RigidBody_Origin(RigidBody *self, PyObject *Py_UNUSED(closure))
   return Vec3_FromVec3(self->m.origin());
 }
 
-static PyObject *RigidBody_Activate(RigidBody *self, PyObject *args)
+static PyObject *RigidBody_Activate(RigidBody *self, PyObject *Py_UNUSED(arg))
 {
-  if(PyTuple_Size(args) > 0) {
-    PyErr_SetString(PyExc_ValueError, "activate() takes no arguments");
-    return nullptr;
-  }
-
   self->m.activate();
   Py_RETURN_NONE;
 }
@@ -81,7 +76,7 @@ static TypeObject RigidBodyType =
         .name("activate")
         .doc("should be called after applyImpulse() etc. to potentially wake up the RigidBody")
         .method(RigidBody_Activate)
-        .flags(METH_VARARGS),
+        .flags(METH_NOARGS),
       MethodDef()
         .name("applyImpulse")
         .method(RigidBody_ApplyImpulse)

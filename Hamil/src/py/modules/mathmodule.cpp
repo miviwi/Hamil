@@ -24,6 +24,7 @@ static MethodDefList<MathToken> MathMethods;
 struct Vec2Token;
 static MemberDefList<Vec2Token> Vec2Members;
 static MethodDefList<Vec2Token> Vec2Methods;
+static GetSetDefList<Vec2Token> Vec2GetSet;
 
 struct vec2 {
   PyObject_HEAD;
@@ -201,7 +202,7 @@ static PyNumberMethods Vec2NumberMethods = {
 
 static TypeObject Vec2_Type =
   TypeObject()
-    .name("math.vec2")
+    .name("vec2")
     .doc("2D vector with xy/st components (which alias each other)")
     .size(sizeof(vec2))
     .init((initproc)Vec2_Init)
@@ -210,12 +211,16 @@ static TypeObject Vec2_Type =
       MemberDef().name("y").offset(offsetof(vec2, m.y)).type(T_FLOAT),
       MemberDef().name("s").offset(offsetof(vec2, m.s)).type(T_FLOAT),
       MemberDef().name("t").offset(offsetof(vec2, m.t)).type(T_FLOAT)))
-    .methods(Vec2Methods(
-      MethodDef()
+    .getset(Vec2GetSet(
+      GetSetDef()
         .name("length")
         .doc("returns the vectors magnitude (length)")
-        .method(Vec2_Length)
-        .flags(METH_NOARGS),
+        .get((getter)Vec2_Length),
+      GetSetDef()
+        .name("normalize")
+        .doc("returns the vector divided by it's length (which makes it a unit vector/direction)")
+        .get((getter)Vec2_Normalize)))
+    .methods(Vec2Methods(
       MethodDef()
         .name("dot")
         .doc("returns the scalar (dot) product of the vector")
@@ -230,12 +235,7 @@ static TypeObject Vec2_Type =
         .name("distance")
         .doc("returns the distance between two vectors")
         .method(Vec2_Distance)
-        .flags(METH_O),
-      MethodDef()
-        .name("normalize")
-        .doc("returns the vector divided by it's length (which makes it a unit vector/direction)")
-        .method(Vec2_Normalize)
-        .flags(METH_NOARGS)))
+        .flags(METH_O)))
     .number_methods(&Vec2NumberMethods)
     .repr((reprfunc)Vec2_Repr)
     .str((reprfunc)Vec2_Str)
@@ -263,6 +263,7 @@ PyObject *Vec2_FromVec2(::vec2 v)
 struct Vec3Token;
 static MemberDefList<Vec3Token> Vec3Members;
 static MethodDefList<Vec3Token> Vec3Methods;
+static GetSetDefList<Vec3Token> Vec3GetSet;
 
 struct vec3 {
   PyObject_HEAD;
@@ -473,27 +474,25 @@ static TypeObject Vec3_Type =
       MemberDef().name("s").offset(offsetof(vec3, m.s)).type(T_FLOAT),
       MemberDef().name("t").offset(offsetof(vec3, m.t)).type(T_FLOAT),
       MemberDef().name("p").offset(offsetof(vec3, m.p)).type(T_FLOAT)))
-    .methods(Vec3Methods(
-      MethodDef()
+    .getset(Vec3GetSet(
+      GetSetDef()
         .name("xy")
         .doc("returns a vec2 (without the 'z' component)")
-        .method(Vec3_XY)
-        .flags(METH_NOARGS),
-      MethodDef()
+        .get((getter)Vec3_XY),
+      GetSetDef()
         .name("length")
         .doc("returns the mgnitude (length) of the vector")
-        .method(Vec3_Length)
-        .flags(METH_NOARGS),
+        .get((getter)Vec3_Length),
+      GetSetDef()
+        .name("normalize")
+        .doc("returns the vector divided by it's length (which makes it a unit vector/direction)")
+        .get((getter)Vec3_Normalize)))
+    .methods(Vec3Methods(
       MethodDef()
         .name("dot")
         .doc("returns the scalar (dot) product of the vector")
         .method(Vec3_Dot)
         .flags(METH_O),
-      MethodDef()
-        .name("normalize")
-        .doc("returns the vector divided by it's length (which makes it a unit vector/direction)")
-        .method(Vec3_Normalize)
-        .flags(METH_NOARGS),
       MethodDef()
         .name("cross")
         .doc("returns the vector (cross) product of the vector")
@@ -536,6 +535,7 @@ PyObject *Vec3_FromVec3(::vec3 v)
 struct Vec4Token;
 static MemberDefList<Vec4Token> Vec4Members;
 static MethodDefList<Vec4Token> Vec4Methods;
+static GetSetDefList<Vec4Token> Vec4GetSet;
 
 struct vec4 {
   PyObject_HEAD;
@@ -716,17 +716,16 @@ static TypeObject Vec4_Type =
       MemberDef().name("t").offset(offsetof(vec4, m.t)).type(T_FLOAT),
       MemberDef().name("p").offset(offsetof(vec4, m.p)).type(T_FLOAT),
       MemberDef().name("q").offset(offsetof(vec4, m.q)).type(T_FLOAT)))
-    .methods(Vec4Methods(
-      MethodDef()
+    .getset(Vec4GetSet(
+      GetSetDef()
         .name("xyz")
         .doc("returns a vec3 (without the 'w' comopnent)")
-        .method(Vec4_XYZ)
-        .flags(METH_NOARGS),
-      MethodDef()
+        .get((getter)Vec4_XYZ),
+      GetSetDef()
         .name("length")
-         .doc("returns the magnitude (length) of the vector")
-        .method(Vec4_Length)
-        .flags(METH_NOARGS),
+        .doc("returns the magnitude (length) of the vector")
+        .get((getter)Vec4_Length)))
+    .methods(Vec4Methods(
       MethodDef()
         .name("dot")
         .doc("returns the scalar (dot) product of the vector")

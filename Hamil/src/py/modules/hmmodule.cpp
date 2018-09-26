@@ -107,13 +107,8 @@ static PyObject *Entity_Component(Entity *self, PyObject *arg)
   return it->second(self, nullptr);
 }
 
-static PyObject *Entity_Destroy(Entity *self, PyObject *args)
+static PyObject *Entity_Destroy(Entity *self, PyObject *Py_UNUSED(arg))
 {
-  if(PyTuple_Size(args) > 0) {
-    PyErr_SetString(PyExc_ValueError, "destroy() must be called with no arguments");
-    return nullptr;
-  }
-
   self->m.destroy();
   Py_RETURN_NONE;
 }
@@ -207,7 +202,7 @@ static TypeObject EntityType =
       MethodDef()
         .name("destroy")
         .doc("destroy the Entity")
-        .flags(METH_VARARGS)
+        .flags(METH_NOARGS)
         .method(Entity_Destroy)))
     .compare((richcmpfunc)Entity_Compare)
     .repr((reprfunc)Entity_Repr)
