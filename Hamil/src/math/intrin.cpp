@@ -226,6 +226,17 @@ void mat4_vec4_mult(const float *a, const float *b, float *out)
   _mm_store_ps(out, z);
 }
 
+void mat4_const_mult(const float *a, float u, float *out)
+{
+  __m128 x[] = { _mm_load_ps(a+0), _mm_load_ps(a+4), _mm_load_ps(a+8), _mm_load_ps(a+12) };
+  __m128 y = _mm_load1_ps(&u);
+
+  _mm_store_ps(out+0,  _mm_mul_ps(x[0], y));
+  _mm_store_ps(out+4,  _mm_mul_ps(x[1], y));
+  _mm_store_ps(out+8,  _mm_mul_ps(x[2], y));
+  _mm_store_ps(out+12, _mm_mul_ps(x[3], y));
+}
+
 void vec_dot(const float *a, const float *b, float *out)
 {
   __m128 dot = dot_ps(_mm_load_ps(a), _mm_load_ps(b));

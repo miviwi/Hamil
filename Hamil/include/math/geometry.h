@@ -691,6 +691,14 @@ inline mat4 operator*(const mat4& a, const mat4& b)
   return c;
 }
 
+inline mat4 operator*(const mat4& a, float u)
+{
+  mat4 c;
+
+  intrin::mat4_const_mult(a, u, c);
+  return c;
+}
+
 mat4 mat4::transpose() const
 {
   mat4 b;
