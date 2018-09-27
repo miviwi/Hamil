@@ -13,7 +13,7 @@ template <typename T>
 struct XXHash {
   size_t operator()(const T& x) const
   {
-    return xxh::xxhash<64>(x);
+    return xxh::xxhash<64>(&x, sizeof(x));
   }
 };
 

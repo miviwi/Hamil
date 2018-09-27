@@ -170,27 +170,21 @@ static PyObject *Entity_Compare(Entity *self, PyObject *other, int op)
   }
 
   auto e = (Entity *)other;
+
+  hm::EntityId a = self->m.id(), b = e->m.id();
+  bool result = false;
   switch(op) {
-  case Py_EQ:
-    if(self->m.id() == e->m.id()) {
-      Py_RETURN_TRUE;
-    } else {
-      Py_RETURN_FALSE;
-    }
-    break; 
+  case Py_EQ: result = a == b; break;
+  case Py_NE: result = a != b; break;
 
-  case Py_NE:
-    if(self->m.id() != e->m.id()) {
-      Py_RETURN_TRUE;
-    } else {
-      Py_RETURN_FALSE;
-    }
-    break;
-
-  default: PyErr_SetNone(PyExc_TypeError);
+  default:  // The op was neiter Py_EQ nor Py_NE
+    PyErr_SetNone(PyExc_TypeError);
+    return nullptr;
   }
 
-  return nullptr;
+  if(!result) Py_RETURN_FALSE;
+
+  Py_RETURN_TRUE;
 }
 
 static TypeObject EntityType = 
@@ -214,7 +208,7 @@ static TypeObject EntityType =
     .methods(EntityMethods(
       MethodDef()
         .name("component")
-        .doc("returns the Component of the given type associated with this Entity")
+        .doc("returns the Component of the given type associated with this Entity (or None)")
         .flags(METH_O)
         .method(Entity_Component),
       MethodDef()
@@ -287,6 +281,8 @@ static PyObject *GameObject_Children(GameObject *self, void *Py_UNUSED(closure))
 
 static PyObject *GameObject_Repr(GameObject *self)
 {
+  if(!self->m) return PyObject_Repr(Py_None);
+
   return Unicode::from_format("<hm::GameObject of Entity(0x%.8x)>", self->m().entity().id()).move();
 }
 
@@ -391,6 +387,8 @@ static PyObject *HmRigidBody_Shape(HmRigidBody *self, void *Py_UNUSED(closure))
 
 static PyObject *HmRigidBody_Repr(GameObject *self)
 {
+  if(!self->m) return PyObject_Repr(Py_None);
+
   return Unicode::from_format("<hm::RigidBody of Entity(0x%.8x)>", self->m().entity().id()).move();
 }
 
@@ -462,9 +460,14 @@ PyObject *PyInit_hm()
 {
   auto self = Module::create(HmModule.py())
     .addType(EntityType)
+    .addType(ComponentType)
+
+    // Components
     .addType(GameObjectType)
-    .addType(GameObjectIteratorType)
     .addType(HmRigidBodyType)
+
+    // Misc.
+    .addType(GameObjectIteratorType)
     ;
 
   EntityType.dict().set("Invalid", Long(hm::Entity::Invalid));
