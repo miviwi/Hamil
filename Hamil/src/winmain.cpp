@@ -523,15 +523,15 @@ int main(int argc, char *argv[])
 
     light_block.lights[0] = {
       view*vec4(light_position[0], 1.0f),
-      vec3{ 1.0f, 0.0f, 0.0f }
+      vec3{ 1.0f, 1.0f, 1.0f }
     };
     light_block.lights[1] = {
       view*vec4(light_position[1], 1.0f),
-      vec3{ 0.0f, 1.0f, 0.0f }
+      vec3{ 1.0f, 1.0f, 0.0f }
     };
     light_block.lights[2] = {
       view*vec4(light_position[2], 1.0f),
-      vec3{ 0.0f, 0.0f, 1.0f }
+      vec3{ 0.0f, 1.0f, 1.0f }
     };
 
     light_ubo.upload(&light_block, 0, 1);
