@@ -8,6 +8,7 @@
 
 #include <bt/bullet.h>
 #include <bt/rigidbody.h>
+#include <bt/collisionshape.h>
 
 namespace py {
 
@@ -63,7 +64,7 @@ static PyObject *RigidBody_Repr(RigidBody *self)
 
 static TypeObject RigidBodyType =
   TypeObject()
-    .name("RigidBody")
+    .name("bt.RigidBody")
     .doc("btRigidBody wrapper")
     .size(sizeof(RigidBody))
     .init((initproc)RigidBody_Init)
@@ -98,6 +99,51 @@ PyObject *RigidBody_FromRigidBody(bt::RigidBody rb)
   return (PyObject *)self;
 }
 
+struct CollisionShapeToken;
+
+static MemberDefList<CollisionShapeToken> CollisionShapeMembers;
+static MethodDefList<CollisionShapeToken> CollisionShapeMethods;
+static GetSetDefList<CollisionShapeToken> CollisionShapeGetSet;
+
+struct CollisionShape {
+  PyObject_HEAD;
+
+  bt::CollisionShape m;
+};
+
+static int CollisionShape_Init(CollisionShape *self, PyObject *args, PyObject *kwds)
+{
+  return 0;
+}
+
+static PyObject *CollisionShape_Repr(CollisionShape *self)
+{
+  return Unicode::from_format("<btCollisionShape at 0x%p>", self->m.get()).move();
+}
+
+static TypeObject CollisionShapeType =
+  TypeObject()
+    .name("bt.CollisionShape")
+    .doc("btCollisionShape wrapper")
+    .size(sizeof(CollisionShape))
+    .init((initproc)CollisionShape_Init)
+    .repr((reprfunc)CollisionShape_Repr)
+    .str((reprfunc)CollisionShape_Repr)
+  ;
+
+int CollisionShapeCheck(PyObject *obj)
+{
+  return CollisionShapeType.check(obj);
+}
+
+PyObject *CollisionShape_FromCollisionShape(bt::CollisionShape shape)
+{
+  auto self = CollisionShapeType.newObject<CollisionShape>();
+  self->m = shape;
+
+  return (PyObject *)self;
+}
+
 struct BtToken;
 
 static ModuleDef BtModule = 
@@ -110,6 +156,7 @@ PyObject *PyInit_bt()
 {
   auto self = Module::create(BtModule.py())
     .addType(RigidBodyType)
+    .addType(CollisionShapeType)
     ;
 
   return *self;

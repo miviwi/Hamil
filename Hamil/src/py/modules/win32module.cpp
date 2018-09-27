@@ -83,7 +83,7 @@ static PyObject *Time_To_Us(Time *self, void *Py_UNUSED(closure))
 
 static TypeObject Time_Type =
   TypeObject()
-    .name("Time")
+    .name("win32.Time")
     .doc("opaque value representing time")
     .size(sizeof(Time))
     .init((initproc)Time_Init)
@@ -152,7 +152,7 @@ static PyObject *Timer_Stop(Timer *self, PyObject *Py_UNUSED(arg))
 
 static TypeObject Timer_Type =
   TypeObject()
-    .name("Timer")
+    .name("win32.Timer")
     .doc("Base type for various <...>Timer objects.\nHas no real utility on it's own")
     .size(sizeof(Timer))
     .methods(TimerMethods(
@@ -199,7 +199,7 @@ static PyObject *DeltaTimer_ElapsedTicks(DeltaTimer *self, void *Py_UNUSED(closu
 
 static TypeObject DeltaTimer_Type =
   TypeObject()
-    .name("DeltaTimer")
+    .name("win32.DeltaTimer")
     .doc("gives the amount of time elapsed since reset()")
     .size(sizeof(DeltaTimer))
     .base(Timer_Type)
@@ -267,7 +267,7 @@ static PyObject *DurationTimer_HasElapsed(DurationTimer *self, void *Py_UNUSED(c
 
 static TypeObject DurationTimer_Type =
   TypeObject()
-    .name("DurationTimer")
+    .name("win32.DurationTimer")
     .doc("tracks how much of DurationTimer.duration has passed the since reset()")
     .size(sizeof(DurationTimer))
     .base(Timer_Type)
@@ -349,7 +349,7 @@ static PyObject *LoopTimer_ElapsedLoops(LoopTimer *self, void *Py_UNUSED(closure
 
 static TypeObject LoopTimer_Type = 
   TypeObject()
-    .name("LoopTimer")
+    .name("win32.LoopTimer")
     .doc("tracks duration passed analogously to DurationTimer, extending that by also counting the number of loops")
     .size(sizeof(LoopTimer))
     .base(Timer_Type)

@@ -386,9 +386,20 @@ bool Bytes::py_type_check(PyObject *self)
   return PyBytes_Check(self);
 }
 
+Type Type::ref(PyObject *type)
+{
+  Py_INCREF(type);
+  return Type(type);
+}
+
 std::string Type::name() const
 {
   return attr("__name__").str();
+}
+
+bool Type::isSubtype(const Type& parent) const
+{
+  return PyType_IsSubtype((PyTypeObject *)py(), (PyTypeObject *)parent.py());
 }
 
 bool Type::py_type_check(PyObject *self)

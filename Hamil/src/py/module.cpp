@@ -32,7 +32,15 @@ Module Module::exec(const char *name, const Object& co, const char *filename)
 
 Module& Module::addType(TypeObject& type)
 {
-  PyModule_AddObject(py(), ((PyTypeObject *)type.py())->tp_name, type.py());
+  auto type_object = (PyTypeObject *)type.py();
+
+  std::string name = type_object->tp_name;
+  auto last_dot = name.rfind('.');
+
+  // If there is no dot use the entire string as the name
+  last_dot = last_dot == std::string::npos ? 0 : last_dot;
+
+  PyModule_AddObject(py(), name.substr(last_dot+1).data(), type.py());
   return *this;
 }
 

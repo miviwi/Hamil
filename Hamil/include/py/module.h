@@ -135,6 +135,9 @@ private:
   PyGetSetDef m;
 };
 
+// Only to be used in 'static' declarations for ModuleDef's
+//   - For a python 'type' object interface see the
+//     'Type' class in <py/types.h>
 class TypeObject {
 public:
   TypeObject();

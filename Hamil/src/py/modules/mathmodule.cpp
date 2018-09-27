@@ -202,7 +202,7 @@ static PyNumberMethods Vec2NumberMethods = {
 
 static TypeObject Vec2_Type =
   TypeObject()
-    .name("vec2")
+    .name("math.vec2")
     .doc("2D vector with xy/st components (which alias each other)")
     .size(sizeof(vec2))
     .init((initproc)Vec2_Init)
@@ -460,7 +460,7 @@ static PyNumberMethods Vec3NumberMethods = {
 
 static TypeObject Vec3_Type = 
   TypeObject()
-    .name("vec3")
+    .name("math.vec3")
     .doc("3D vector, with xyz/rgb/stp components (which alias each other)")
     .size(sizeof(vec3))
     .init((initproc)Vec3_Init)
@@ -699,7 +699,7 @@ static PyNumberMethods Vec4NumberMethods = {
 
 static TypeObject Vec4_Type = 
   TypeObject()
-    .name("vec4")
+    .name("math.vec4")
     .doc("4D vector, with xyzw/rgba/stpq components (which alias each other)")
     .size(sizeof(vec4))
     .init((initproc)Vec4_Init)
@@ -966,7 +966,7 @@ static PySequenceMethods Mat4SequenceMethods = {
 
 static TypeObject Mat4_Type = 
   TypeObject()
-    .name("mat4")
+    .name("math.mat4")
     .doc("4x4 Matrix indexed like a list (in the range <0; 15>)")
     .size(sizeof(mat4))
     .init((initproc)Mat4_Init)
@@ -1180,7 +1180,7 @@ static PyObject *Transform_Matrix(Transform *self, PyObject *Py_UNUSED(arg))
 
 static TypeObject Transform_Type = 
   TypeObject()
-    .name("Transform")
+    .name("math.Transform")
     .doc("transformation matrix builder")
     .size(sizeof(Transform))
     .init((initproc)Transform_Init)
@@ -1216,7 +1216,7 @@ static TypeObject Transform_Type =
 
 static ModuleDef XformModule =
   ModuleDef()
-    .name("Math.xform")
+    .name("math.xform")
     .doc("functions for operating on 4x4 transformation matrices")
     .methods(XformMethods(
       MethodDef()

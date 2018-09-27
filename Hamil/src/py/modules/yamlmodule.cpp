@@ -66,7 +66,7 @@ static PyObject *Node_GetAttr(Node *self, PyObject *attr)
 
 static TypeObject Node_Type =
   TypeObject()
-    .name("Node")
+    .name("yaml.Node")
     .doc("object representing a yaml value")
     .size(sizeof(Node))
     .init((initproc)Node_Init)
@@ -155,7 +155,7 @@ static PyObject *Document_Root(Document *self, void *Py_UNUSED(closure))
 
 static TypeObject Document_Type =
   TypeObject()
-    .name("Document")
+    .name("yaml.Document")
     .doc("holds the root yaml.Node")
     .size(sizeof(Document))
     .init((initproc)Document_Init)

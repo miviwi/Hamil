@@ -16,6 +16,7 @@ class btConstraintSolver;
 
 class btMotionState;
 
+class btCollisionShape;
 class btCollisionObject;
 class btRigidBody;
 

@@ -7,6 +7,8 @@
 
 namespace bt {
 
+class CollisionShape;
+
 // Non-owning wrapper around btRigidBody
 class RigidBody {
 public:
@@ -45,6 +47,8 @@ public:
   void applyImpulse(const vec3& force, const vec3& rel_pos);
 
   bool hasMotionState() const;
+
+  CollisionShape collisionShape() const;
 
   operator bool() const;
 

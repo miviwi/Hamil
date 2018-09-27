@@ -1,4 +1,5 @@
 #include <bt/rigidbody.h>
+#include <bt/collisionshape.h>
 #include <bt/btcommon.h>
 
 namespace bt {
@@ -86,6 +87,11 @@ void RigidBody::applyImpulse(const vec3& force, const vec3& rel_pos)
 bool RigidBody::hasMotionState() const
 {
   return getMotionState();
+}
+
+CollisionShape RigidBody::collisionShape() const
+{
+  return CollisionShape(m->getCollisionShape());
 }
 
 btMotionState *RigidBody::getMotionState() const

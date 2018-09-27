@@ -26,7 +26,7 @@ struct Component {
 
 static TypeObject ComponentType = 
   TypeObject()
-    .name("Component")
+    .name("hm.Component")
     .doc("base class for all Components")
     .size(sizeof(Component))
   ;
@@ -81,12 +81,13 @@ static PyObject *Entity_Component(Entity *self, PyObject *arg)
     return nullptr;
   }
 
-  auto type = (PyTypeObject *)arg;
+  auto type      = Type::ref(arg);
+  auto component = Type::ref(ComponentType.py());
 
   // The requested Component's type name
-  auto component_name = Unicode(PyObject_GetAttrString(arg, "__name__")).str();
+  auto component_name = type.name();
 
-  if(!PyType_IsSubtype(type, (PyTypeObject *)ComponentType.py())) {
+  if(!type.isSubtype(component)) {
     auto err = Unicode::from_format("'%s' is not a Component!", component_name.data());
 
     PyErr_SetObject(PyExc_ValueError, err.move());
@@ -121,11 +122,6 @@ static PyObject *Entity_Id(Entity *self, void *Py_UNUSED(closure))
 static PyObject *Entity_Alive(Entity *self, void *Py_UNUSED(closure))
 {
   return PyBool_FromLong(self->m.alive());
-}
-
-static PyObject *Entity_Name(Entity *self, void *Py_UNUSED(closure))
-{
-  return PyUnicode_FromString(self->m.gameObject().name());
 }
 
 static PyObject *Entity_Repr(Entity *self)
@@ -174,7 +170,7 @@ static PyObject *Entity_Compare(Entity *self, PyObject *other, int op)
 
 static TypeObject EntityType = 
   TypeObject()
-    .name("Entity")
+    .name("hm.Entity")
     .doc("wrapper around a hm::Entity")
     .size(sizeof(Entity))
     .init((initproc)Entity_Init)
@@ -184,15 +180,9 @@ static TypeObject EntityType =
         .doc("raw Entity id (u32)")
         .get((getter)Entity_Id),
       GetSetDef()
-        .name("name")
-        .doc("Entity name => gameObject().name()")
-        .get((getter)Entity_Name),
-      GetSetDef()
         .name("gameObject")
-        .get((getter)Entity_GameObject),
-      GetSetDef()
-        .name("rigidBody")
-        .get((getter)Entity_RigidBody)))
+        .doc("returns the Entities associated hm.GameObject => e.component(hm.GameObject)")
+        .get((getter)Entity_GameObject)))
     .methods(EntityMethods(
       MethodDef()
         .name("component")
@@ -277,7 +267,7 @@ static PyObject *GameObject_Repr(GameObject *self)
 
 static TypeObject GameObjectType = 
   TypeObject()
-    .name("GameObject")
+    .name("hm.GameObject")
     .doc("wrapper around a hm::GameObject")
     .base(ComponentType)
     .getset(GameObjectGetSet(
@@ -289,11 +279,10 @@ static TypeObject GameObjectType =
         .get((getter)GameObject_Parent),
       GetSetDef()
         .name("children")
-        .doc("returns an iterator object for the GameObject's children (same as iter(gameObject))")
+        .doc("returns an iterator object for the GameObject's children")
         .get((getter)GameObject_Children)))
     .size(sizeof(GameObject))
     .init((initproc)GameObject_Init)
-    .iter((getiterfunc)GameObject_GetIter)
     .repr((reprfunc)GameObject_Repr)
     .str((reprfunc)GameObject_Repr)
   ;
@@ -331,7 +320,7 @@ static PyObject *GameObjectIterator_Next(GameObjectIterator *self)
 
 static TypeObject GameObjectIteratorType =
   TypeObject()
-    .name("GameObjectIterator")
+    .name("hm.GameObjectIterator")
     .doc("iterator for a given GameObject's children")
     .size(sizeof(GameObjectIterator))
     .iter((getiterfunc)GameObjectIterator_GetIter)
@@ -370,6 +359,11 @@ static PyObject *HmRigidBody_Rb(HmRigidBody *self, void *Py_UNUSED(closure))
   return RigidBody_FromRigidBody(self->m().rb);
 }
 
+static PyObject *HmRigidBody_Shape(HmRigidBody *self, void *Py_UNUSED(closure))
+{
+  return CollisionShape_FromCollisionShape(self->m().shape);
+}
+
 static PyObject *HmRigidBody_Repr(GameObject *self)
 {
   return Unicode::from_format("<hm::RigidBody of Entity(0x%.8x)>", self->m().entity().id()).move();
@@ -377,14 +371,18 @@ static PyObject *HmRigidBody_Repr(GameObject *self)
 
 static TypeObject HmRigidBodyType = 
   TypeObject()
-    .name("RigidBody")
+    .name("hm.RigidBody")
     .base(ComponentType)
     .size(sizeof(HmRigidBody))
     .getset(HmRigidBodyGetSet(
       GetSetDef()
         .name("rb")
         .doc("returns the btRigidBody")
-        .get((getter)HmRigidBody_Rb)))
+        .get((getter)HmRigidBody_Rb),
+      GetSetDef()
+        .name("shape")
+        .doc("returns the btRigidBody's btCollisionShape")
+        .get((getter)HmRigidBody_Shape)))
     .repr((reprfunc)HmRigidBody_Repr)
     .str((reprfunc)HmRigidBody_Repr)
   ;

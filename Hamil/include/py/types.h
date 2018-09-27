@@ -12,7 +12,10 @@ class Type : public Object {
 public:
   using Object::Object;
 
+  static Type ref(PyObject *type);
+
   std::string name() const;
+  bool isSubtype(const Type& parent) const;
 
   static bool py_type_check(PyObject *self);
 };
