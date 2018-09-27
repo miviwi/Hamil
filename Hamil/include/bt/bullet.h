@@ -22,8 +22,12 @@ class btRigidBody;
 
 namespace bt {
 
+class CollisionShapeManager;
+
 void init();
 void finalize();
+
+CollisionShapeManager& shapes();
 
 btVector3 to_btVector3(const vec3& v);
 vec3 from_btVector3(const btVector3& v);

@@ -20,18 +20,46 @@ namespace py {
 
 struct ComponentToken;
 
-struct Component {
+static GetSetDefList<ComponentToken> ComponentGetSet;
+
+// The layout of this struct relies on the fact that all Components
+//   MUST start with the PyObject_HEAD followed by a 'hmRef',
+//   which internally is just a pointer i.e. a cast from a
+//   hmRef<hm::GameObject> to a hmRef<hm::Component> will produce
+//   the correct results (downcast the internal pointer)
+struct pComponent {
   PyObject_HEAD;
+
+  hmRef<hm::Component> m;
 };
+
+static PyObject *Component_Entity(pComponent *self, void *Py_UNUSED(closure))
+{
+  return Entity_FromEntity(self->m().entity());
+}
+
+static PyObject *Component_GameObject(pComponent *self, void *Py_UNUSED(closure))
+{
+  return GameObject_FromRef(self->m().entity().component<hm::GameObject>());
+}
 
 static TypeObject ComponentType = 
   TypeObject()
     .name("hm.Component")
     .doc("base class for all Components")
-    .size(sizeof(Component))
+    .size(0)
+    .getset(ComponentGetSet(
+      GetSetDef()
+        .name("entity")
+        .doc("returns the Component's corresponding Entity")
+        .get((getter)Component_Entity),
+      GetSetDef()
+        .name("gameObject")
+        .get((getter)Component_GameObject)))
   ;
 
 struct EntityToken;
+
 static MemberDefList<EntityToken> EntityMembers;
 static MethodDefList<EntityToken> EntityMethods;
 static GetSetDefList<EntityToken> EntityGetSet;
@@ -41,9 +69,6 @@ struct Entity {
 
   hm::Entity m;
 };
-
-static int Entity_Check(PyObject *obj);
-static PyObject *Entity_FromEntity(hm::Entity e);
 
 #define ENTITY_INIT_ERR "Entity can only be initailized with another Entity or an integer id"
 
@@ -180,8 +205,11 @@ static TypeObject EntityType =
         .doc("raw Entity id (u32)")
         .get((getter)Entity_Id),
       GetSetDef()
+        .name("alive")
+        .get((getter)Entity_Alive),
+      GetSetDef()
         .name("gameObject")
-        .doc("returns the Entities associated hm.GameObject => e.component(hm.GameObject)")
+        .doc("returns the Entity's associated hm.GameObject => e.component(hm.GameObject)")
         .get((getter)Entity_GameObject)))
     .methods(EntityMethods(
       MethodDef()
@@ -199,12 +227,12 @@ static TypeObject EntityType =
     .str((reprfunc)Entity_Str)
   ;
 
-static int Entity_Check(PyObject *obj)
+int Entity_Check(PyObject *obj)
 {
   return EntityType.check(obj);
 }
 
-static PyObject *Entity_FromEntity(hm::Entity e)
+PyObject *Entity_FromEntity(hm::Entity e)
 {
   auto obj = EntityType.newObject<Entity>();
   obj->m = e;
@@ -228,9 +256,6 @@ struct GameObjectIterator {
 
   hm::GameObjectIterator m;
 };
-
-static int GameObject_Check(PyObject *obj);
-static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref);
 
 static int GameObjectIterator_Check(PyObject *obj);
 static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it);
@@ -287,12 +312,12 @@ static TypeObject GameObjectType =
     .str((reprfunc)GameObject_Repr)
   ;
 
-static int GameObject_Check(PyObject *obj)
+int GameObject_Check(PyObject *obj)
 {
   return GameObjectType.check(obj);
 }
 
-static PyObject *GameObject_FromRef(hmRef<hm::GameObject> ref)
+PyObject *GameObject_FromRef(hm::ComponentRef<hm::GameObject> ref)
 {
   auto self = GameObjectType.newObject<GameObject>();
   self->m = ref;

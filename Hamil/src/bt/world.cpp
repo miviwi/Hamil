@@ -1,4 +1,5 @@
 #include <bt/world.h>
+#include <bt/collisionshape.h>
 #include <bt/btcommon.h>
 
 #include <math/geometry.h>
@@ -49,21 +50,20 @@ void DynamicsWorld::removeRigidBody(RigidBody rb)
   m_world->removeRigidBody(rb.m);
 }
 
-static btAlignedObjectArray<btCollisionShape *> shapes;
+static CollisionShape p_sphere;
 
 void DynamicsWorld::initDbgSimulation()
 {
   m_world->setGravity({ 0.0f, -10.0f, 0.0f });
   {
-    auto ground_shape = new btBoxShape({ 50.0f, 0.5f, 50.0f, });
-    shapes.push_back(ground_shape);
+    auto ground_shape = shapes().box({ 50.0f, 0.5f, 50.0f, });
 
     btTransform transform;
     transform.setIdentity();
     transform.setOrigin({ 0.0f, -1.5f, -6.0f });
 
     auto rb_info = btRigidBody::btRigidBodyConstructionInfo(
-      0.0f, nullptr, ground_shape
+      0.0f, nullptr, ground_shape.bt()
     );
     auto body = new btRigidBody(rb_info);
     body->setWorldTransform(transform);
@@ -73,10 +73,7 @@ void DynamicsWorld::initDbgSimulation()
     m_world->addRigidBody(body);
   }
 
-  {
-    auto sphere_shape = new btSphereShape(1.0f);
-    shapes.push_back(sphere_shape);
-  }
+  p_sphere = shapes().sphere(1.0f);
 }
 
 void DynamicsWorld::startDbgSimulation()
@@ -89,21 +86,17 @@ void DynamicsWorld::startDbgSimulation()
 
 RigidBody DynamicsWorld::createDbgSimulationRigidBody(vec3 sphere, bool active)
 {
-  auto sphere_shape = shapes[1];
-
   btTransform transform;
   transform.setIdentity();
 
   btScalar  mass          = 1.0f;
-  btVector3 local_inertia = { 0.0f, 0.0f, 0.0f };
-
-  sphere_shape->calculateLocalInertia(mass, local_inertia);
+  btVector3 local_inertia = to_btVector3(p_sphere.calculateLocalInertia(mass));
 
   transform.setOrigin(to_btVector3(sphere));
 
   auto motion_state = new btDefaultMotionState(transform);
   auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
-    mass, motion_state, sphere_shape, local_inertia
+    mass, motion_state, p_sphere.bt(), local_inertia
   );
   auto body = new btRigidBody(rb_info);
   if(!active) body->setActivationState(DISABLE_SIMULATION);

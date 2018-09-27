@@ -116,9 +116,19 @@ static int CollisionShape_Init(CollisionShape *self, PyObject *args, PyObject *k
   return 0;
 }
 
+static PyObject *CollisionShape_Name(CollisionShape *self, PyObject *Py_UNUSED(closure))
+{
+  return PyUnicode_FromString(self->m.name());
+}
+
 static PyObject *CollisionShape_Repr(CollisionShape *self)
 {
   return Unicode::from_format("<btCollisionShape at 0x%p>", self->m.get()).move();
+}
+
+static PyObject *CollisionShape_Str(CollisionShape *self)
+{
+  return CollisionShape_Name(self, nullptr);
 }
 
 static TypeObject CollisionShapeType =
@@ -126,9 +136,14 @@ static TypeObject CollisionShapeType =
     .name("bt.CollisionShape")
     .doc("btCollisionShape wrapper")
     .size(sizeof(CollisionShape))
+    .getset(CollisionShapeGetSet(
+      GetSetDef()
+        .name("name")
+        .doc("name of the btCollisionShape type (for debugging)")
+        .get((getter)CollisionShape_Name)))
     .init((initproc)CollisionShape_Init)
     .repr((reprfunc)CollisionShape_Repr)
-    .str((reprfunc)CollisionShape_Repr)
+    .str((reprfunc)CollisionShape_Str)
   ;
 
 int CollisionShapeCheck(PyObject *obj)
