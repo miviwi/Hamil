@@ -32,3 +32,10 @@ struct SkyboxUniforms : gx::Uniforms {
 
   Sampler uEnvironmentMap;
 };
+
+struct CompositeUniforms : gx::Uniforms {
+  Name composite;
+
+  Sampler uUi;
+  Sampler uScene;
+};

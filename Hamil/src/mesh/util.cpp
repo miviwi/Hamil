@@ -17,6 +17,11 @@ std::tuple<std::vector<PNVertex>, std::vector<u16>> sphere(uint rings, uint sect
       auto x = cos(2.0f*PIf * s * S) * sin(PIf * r * R);
       auto z = sin(2.0f*PIf * s * S) * sin(PIf * r * R);
 
+      // Flush very small values to 0.0f
+      if(fabs(x) < 10e-6f) x = 0.0f;
+      if(fabs(y) < 10e-6f) y = 0.0f;
+      if(fabs(z) < 10e-6f) z = 0.0f;
+
       verts.push_back({
         { x, y, z },
         { x, y, z }, 

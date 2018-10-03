@@ -10,6 +10,8 @@ namespace win32 {
 static LARGE_INTEGER p_perf_freq = { 0 };
 static LARGE_INTEGER p_perf_counter = { 0 };
 
+alignas(i64) volatile i64 p_ticks;
+
 void Timers::init()
 {
   auto result = QueryPerformanceFrequency(&p_perf_freq);
@@ -25,11 +27,15 @@ void Timers::finalize()
 void Timers::tick()
 {
   QueryPerformanceCounter(&p_perf_counter);
+
+  InterlockedExchange64(&p_ticks, p_perf_counter.QuadPart);
 }
 
 Time Timers::ticks()
 {
-  return (Time)p_perf_counter.QuadPart;
+  return (Time)p_ticks; // 'p_ticks' is declared as volatile and properly
+                        //   aligned which is enough for MSVC to guarantee 
+                        //   atomicity of the read
 }
 
 double Timers::timef_s()
@@ -54,7 +60,7 @@ Time Timers::time_us()
 
 Time Timers::ticks_per_s()
 {
-  return (Time)p_perf_freq.QuadPart;
+  return (Time)p_perf_freq.QuadPart; // The frequency never changes during runtime
 }
 
 Time Timers::ticks_to_s(Time ticks)

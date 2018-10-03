@@ -77,6 +77,8 @@ public:
   // Alias for blit(fb, rect, rect, mask, filter)
   void copy(Framebuffer& fb, ivec4 rect, unsigned mask, Sampler::Param filter);
 
+  void clear(unsigned mask);
+
   Status status();
   bool complete();
 
@@ -112,8 +114,5 @@ private:
   unsigned m_draw_buffers;
   std::vector<GLuint> m_rb;
 };
-
-// FIXME: no idea where to put this...
-void clear(unsigned mask);
 
 }

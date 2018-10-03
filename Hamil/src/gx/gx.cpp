@@ -10,7 +10,7 @@ bool is_color_format(Format fmt)
   switch(fmt) {
   case depth:
   case depth_stencil:
-  case depth16: case depth24: case depth32: case depthf:
+  case depth16: case depth24: case depth32: case depth32f:
   case depth24_stencil8:
     return false;
   }

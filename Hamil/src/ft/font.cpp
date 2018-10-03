@@ -139,7 +139,7 @@ void main() {
 )VTX";
 
 const char *Font::frag_shader = R"FRAG(
-const float font_gamma = 1.8f;
+const float font_gamma = 2.2f;
 
 vec4 sampleFontAtlas(in sampler2D atlas, vec2 uv)
 {

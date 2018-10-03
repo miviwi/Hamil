@@ -175,10 +175,29 @@ int main(int argc, char *argv[])
   skybox_arr.label("SKYBOX");
   skybox_arr.end();
 
+  std::vector<vec2> fullscreen_quad = {
+    { -1.0f,  1.0f },
+    { -1.0f, -1.0f },
+    {  1.0f, -1.0f },
+    {  1.0f,  1.0f },
+  };
+
+  auto fullscreen_quad_fmt = gx::VertexFormat()
+    .attr(gx::f32, 2);
+  
+  gx::VertexBuffer fullscreen_quad_vbuf(gx::Buffer::Static);
+  fullscreen_quad_vbuf.init(fullscreen_quad.data(), fullscreen_quad.size());
+
+  gx::VertexArray fullscreen_quad_arr(fullscreen_quad_fmt, fullscreen_quad_vbuf);
+
+  fullscreen_quad_arr.label("fullscreen_quad");
+  fullscreen_quad_arr.end();
+
   res::Handle<res::Shader> r_phong = R.shader.shaders.phong,
     r_program = R.shader.shaders.program,
     r_tex = R.shader.shaders.tex,
-    r_skybox = R.shader.shaders.skybox;
+    r_skybox = R.shader.shaders.skybox,
+    r_composite = R.shader.shaders.composite;
 
   auto program     = gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);
@@ -188,26 +207,46 @@ int main(int argc, char *argv[])
   auto skybox_program = gx::make_program(
     r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox);
 
+  auto composite_program = gx::make_program(
+    r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite);
+
   program.label("program");
   tex_program.label("TEX_program");
 
   skybox_program.label("SKYBOX_program");
 
   gx::Texture2D fb_tex(gx::rgb8);
+  gx::Texture2D fb_pos(gx::rgb32f);
   gx::Framebuffer fb;
 
-  fb_tex.initMultisample(2, FramebufferSize.x, FramebufferSize.y);
+  fb_tex.initMultisample(1, FramebufferSize.x, FramebufferSize.y);
+  fb_pos.initMultisample(1, FramebufferSize.x, FramebufferSize.y);
   //fb_tex.init(FramebufferSize.x, FramebufferSize.y);
   fb_tex.label("FB_tex");
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
+    .tex(fb_pos, 0, gx::Framebuffer::Color(1))
     .renderbuffer(gx::depth24, gx::Framebuffer::Depth);
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
 
   fb.label("FB");
+  
+  gx::Texture2D fb_ui_tex(gx::rgba8);
+  gx::Framebuffer fb_ui;
+
+  fb_ui_tex.initMultisample(4, FramebufferSize.x, FramebufferSize.y);
+  fb_ui_tex.label("FB_ui_tex");
+
+  fb_ui.use()
+    .tex(fb_ui_tex, 0, gx::Framebuffer::Color(0));
+  if(fb.status() != gx::Framebuffer::Complete) {
+    win32::panic("couln't create UI Framebuffer!", win32::FramebufferError);
+  }
+
+  fb_ui.label("FB_ui");
 
   gx::Framebuffer fb_resolve;
 
@@ -225,6 +264,19 @@ int main(int argc, char *argv[])
     .cull(gx::Pipeline::Back)
     .seamlessCubemap()
     .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f);
+
+  auto pipeline_ui = gx::Pipeline()
+    .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+    .noDepthTest()
+    .alphaBlend()
+    .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f)
+    ;
+
+  auto pipeline_composite = gx::Pipeline()
+    .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+    .noDepthTest()
+    .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f, }, 1.0f)
+    ;
 
   float r = 1280.0f;
   float b = 720.0f;
@@ -514,8 +566,8 @@ int main(int argc, char *argv[])
     pipeline.use();
     gx::tex_unit(0, tex, sampler);
 
-    fb.use();
-    gx::clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
+    fb.use()
+      .clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
 
     view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
@@ -621,18 +673,13 @@ int main(int argc, char *argv[])
 
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
-      color = { 0, 0, 0, (float)i };
+      color ={ 0, 0, 0, (float)i };
       model = xform::Transform()
         .scale(0.2f)
         .translate(pos)
         .matrix()
         ;
       drawsphere();
-
-      vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FramebufferSize);
-      screen.y -= 10;
-
-      small_face.draw(util::fmt("Light %d", i+1), screen, { 1, 1, 1 });
     }
 
     gx::tex_unit(1, cubemap, cubemap_sampler);
@@ -650,6 +697,24 @@ int main(int argc, char *argv[])
       ;
     skybox_arr.end();
 
+    pipeline_ui.use();
+
+    fb_ui.use()
+      .clear(gx::Framebuffer::ColorBit);
+
+    for(int i = 0; i < light_block.num_lights; i++) {
+      model = xform::Transform()
+        .scale(0.2f)
+        .translate(light_position[i])
+        .matrix()
+        ;
+
+      vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FramebufferSize);
+      screen.y -= 10;
+
+      small_face.draw(util::fmt("Light %d", i+1), screen, { 1, 1, 1 });
+    }
+
     float fps = 1.0f / step_timer.elapsedSecondsf();
 
     constexpr float smoothing = 0.9f;
@@ -659,11 +724,11 @@ int main(int argc, char *argv[])
     face.draw(util::fmt("FPS: %.2f", fps),
       vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
 
-    small_face.draw(util::fmt("Traingles: %zu", num_tris),
+    small_face.draw(util::fmt("Triangles: %zu", num_tris),
       { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
     if(picked_body) {
-      auto entity = picked_body.user<hm::Entity>(); 
+      auto entity = picked_body.user<hm::Entity>();
       if(entity && entity.alive() && entity.gameObject().parent() == scene) {
         small_face.draw(util::fmt("picked(0x%.8x) at: %s",
           entity.id(), math::to_str(picked_body.origin())),
@@ -684,9 +749,23 @@ int main(int argc, char *argv[])
     iface.paint();
     cursor.paint();
 
-    fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-            gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
+    // Resolve the main Framebuffer and composite the Ui on top of it
+    gx::tex_unit(4, fb_ui_tex, sampler);
+    gx::tex_unit(5, fb_tex, sampler);
 
+    pipeline_composite.use();
+
+    fb_resolve.use()
+      .clear(gx::Framebuffer::ColorBit);
+
+    composite_program.use()
+      .uniformSampler(U.composite.uUi, 4)
+      .uniformSampler(U.composite.uScene, 5)
+      .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
+
+   /* fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
+      gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
+*/
     fb_resolve.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },

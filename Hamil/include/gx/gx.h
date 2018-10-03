@@ -15,15 +15,21 @@ enum Component {
 
 enum Format {
   r = GL_RED, rg = GL_RG, rgb = GL_RGB, rgba = GL_RGBA,
+  srgb = GL_SRGB,
   depth = GL_DEPTH_COMPONENT, depth_stencil = GL_DEPTH_STENCIL,
 
   r8 = GL_R8, r16 = GL_R16,
   rgb8 = GL_RGB8, rgb565 = GL_RGB565,
   rgb5a1 = GL_RGB5_A1, rgba8 = GL_RGBA8,
 
+  r16f = GL_R16F, r32f = GL_R32F,
+  rg16f = GL_RG16F, rg32f = GL_RG32F,
+  rgb16f = GL_RGB16F, rgb32f = GL_RGB32F,
+  rgba16f = GL_RGBA16F, rgbaf32 = GL_RGBA32F,
+
   depth16 = GL_DEPTH_COMPONENT16,
   depth24 = GL_DEPTH_COMPONENT24,
-  depth32 = GL_DEPTH_COMPONENT32, depthf = GL_DEPTH_COMPONENT32F,
+  depth32 = GL_DEPTH_COMPONENT32, depth32f = GL_DEPTH_COMPONENT32F,
   depth24_stencil8 = GL_DEPTH24_STENCIL8,
 };
 

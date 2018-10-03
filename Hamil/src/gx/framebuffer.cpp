@@ -113,6 +113,13 @@ void Framebuffer::copy(Framebuffer& fb, ivec4 rect, unsigned mask, Sampler::Para
   blit(fb, rect, rect, mask, filter);
 }
 
+void Framebuffer::clear(unsigned mask)
+{
+  use();
+
+  glClear(mask);
+}
+
 Framebuffer::Status Framebuffer::status()
 {
   use();
@@ -251,11 +258,6 @@ void Framebuffer::setupDrawBuffers()
 
   glDrawBuffers(NumDrawBuffers, bufs);
   m_draw_buffers &= ~DrawBuffersNeedSetup;
-}
-
-void clear(unsigned mask)
-{
-  glClear(mask);
 }
 
 }
