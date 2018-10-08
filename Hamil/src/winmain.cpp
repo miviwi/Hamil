@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
   res::init();
   hm::init();
 
-  win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
+  win32::File bunny_f("bunny.obj", win32::File::Read, win32::File::OpenExisting);
   auto bunny = bunny_f.map(win32::File::ProtectRead);
 
   auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     const auto& bunny_vn = bunny_mesh.normals();
     for(size_t i = 0; i < bunny_v.size(); i++) {
       bunny_verts.push_back(bunny_v[i]);
-      bunny_verts.push_back(bunny_vn[i]);
+     // bunny_verts.push_back(bunny_vn[i]);
     }
   }
 
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
-    .attr(gx::f32, 3);
+    .attrAlias(0, gx::f32, 3);
 
   gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
   gx::IndexBuffer bunny_ibuf(gx::Buffer::Static, gx::u16);

@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <functional>
 #include <regex>
 
@@ -76,6 +77,8 @@ void resourcegen(std::vector<std::string> resources)
     enum_resources("");
   }
 
+  std::set<res::Resource::Id> guids;
+
   for(const auto& resource : resources) {
     // [1] = path
     // [2] = name
@@ -96,6 +99,13 @@ void resourcegen(std::vector<std::string> resources)
 
     auto meta = it->second(f, name, path, extension);
     auto meta_data = meta.toString();
+
+    auto inserted = guids.insert(meta("guid")->as<yaml::Scalar>()->ui()).second;
+    if(!inserted) {
+      printf("FATAL! guid collision detected (%s)\n", resource.data());
+      printf("        aborting...\n");
+      return;
+    }
 
     auto f_name = util::fmt("./%s/%s.meta",
       meta("path")->as<yaml::Scalar>()->str(),

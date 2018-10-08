@@ -14,8 +14,11 @@ namespace mesh {
 enum : char {
   Comment = '#',
 
-  Object  = 'o',
-  Shading = 's',
+  Object   = 'o',
+  Group    = 'g',
+  Shading  = 's',
+  Material = 'm',
+  UseMtl   = 'u',
 
   Vertex   = 'v',
   TexCoord = 't',
@@ -70,8 +73,11 @@ void ObjLoader::parseLine(std::string::const_iterator it)
     break;
 
   case Object: break; // TODO
+  case Group: break;
 
-  case Shading: break; // Ignore
+  case Shading: break;   //  Ignore
+  case Material: break;  // -- || --
+  case UseMtl: break;    // -- || -- 
 
   default: throw ParseError();
   }
@@ -111,20 +117,24 @@ ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
   const char *pos = str;
   auto it = triangle.begin();
   while(*pos) {
-    // Too many vertices
-    if(it == triangle.end()) throw NonTriangularFaceError();
+    char *end = nullptr;
+    auto read_index = [&]() -> uint {
+      return std::strtoul(pos, &end, 0);
+    };
 
     while(isspace(*pos)) pos++;
     if(*pos == '\0') break;
 
-    char *end = nullptr;
-    it->v = std::strtoul(pos, &end, 0);
+    // Too many vertices
+    if(it == triangle.end()) throw NonTriangularFaceError();
+
+    it->v = read_index();
 
     if(*end == '/') {
       pos = end+1;
       if(*pos != '/') {
         pos = end;
-        it->vt = std::strtoul(pos, &end, 0);
+        it->vt = read_index();
       } else {
         end = (char *)pos;
       }
@@ -132,7 +142,7 @@ ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
 
     if(*end == '/') {
       pos = end+1;
-      it->vn = std::strtoul(pos, &end, 0);
+      it->vn = read_index();
     }
 
     pos = end+1;

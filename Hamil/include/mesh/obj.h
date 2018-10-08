@@ -52,6 +52,10 @@ public:
 
   ObjLoader& load(const char *data, size_t sz);
 
+  // DO NOT chain this method through load() as it will
+  //    cause a dangling refernce to be returned
+  // The ObjLoader object must be kept around in order to 
+  //   access the mesh(es)
   const ObjMesh& mesh() const;
 
 private:
