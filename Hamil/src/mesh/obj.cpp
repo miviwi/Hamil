@@ -5,14 +5,17 @@
 #include <cassert>
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 
 #include <string>
-#include <regex>
 
 namespace mesh {
 
 enum : char {
   Comment = '#',
+
+  Object  = 'o',
+  Shading = 's',
 
   Vertex   = 'v',
   TexCoord = 't',
@@ -66,6 +69,10 @@ void ObjLoader::parseLine(std::string::const_iterator it)
     m_mesh.m_tris.push_back(loadTriangle(it));
     break;
 
+  case Object: break; // TODO
+
+  case Shading: break; // Ignore
+
   default: throw ParseError();
   }
 }
@@ -95,19 +102,45 @@ vec3 ObjLoader::loadNormal(std::string::const_iterator it)
   return loadVec3(it);
 }
 
-static const std::regex p_face(R"r((\d+)(?:\/(\d+)?\/(\d+))?)r", std::regex::optimize);
-
-ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator it)
+ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
 {
-  const char *str = &(*it);
+  const char *str = &(*str_it);
 
   ObjMesh::Triangle triangle;
-  auto num_verts = sscanf(str, "%u %u %u",
-    &triangle[0].v,
-    &triangle[1].v,
-    &triangle[2].v);
 
-  if(num_verts != 3) throw NonTriangularFaceError();
+  const char *pos = str;
+  auto it = triangle.begin();
+  while(*pos) {
+    // Too many vertices
+    if(it == triangle.end()) throw NonTriangularFaceError();
+
+    while(isspace(*pos)) pos++;
+    if(*pos == '\0') break;
+
+    char *end = nullptr;
+    it->v = std::strtoul(pos, &end, 0);
+
+    if(*end == '/') {
+      pos = end+1;
+      if(*pos != '/') {
+        pos = end;
+        it->vt = std::strtoul(pos, &end, 0);
+      } else {
+        end = (char *)pos;
+      }
+    }
+
+    if(*end == '/') {
+      pos = end+1;
+      it->vn = std::strtoul(pos, &end, 0);
+    }
+
+    pos = end+1;
+    it++;
+  }
+
+  // Not enough vertices
+  if(it != triangle.end()) throw NonTriangularFaceError();
 
   // .obj indices are 1-based, but in C++ 0-based ones
   //   are preffered so convert them
@@ -123,6 +156,11 @@ ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator it)
 const std::vector<vec3>& ObjMesh::vertices() const
 {
   return m_v;
+}
+
+const std::vector<vec3>& ObjMesh::normals() const
+{
+  return m_vn;
 }
 
 const std::vector<ObjMesh::Triangle>& ObjMesh::faces() const

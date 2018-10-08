@@ -25,6 +25,7 @@ public:
   using Triangle = std::array<Vertex, 3>;
 
   const std::vector<vec3>& vertices() const;
+  const std::vector<vec3>& normals() const;
 
   const std::vector<Triangle>& faces() const;
 
@@ -52,8 +53,6 @@ public:
   ObjLoader& load(const char *data, size_t sz);
 
   const ObjMesh& mesh() const;
-
-
 
 private:
   void parseLine(std::string::const_iterator it);

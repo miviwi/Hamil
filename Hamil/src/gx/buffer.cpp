@@ -23,12 +23,27 @@ void *Buffer::map(Access access)
   return glMapBuffer(m_target, access);
 }
 
+void *Buffer::map(Access access, GLintptr off, GLint sz, uint flags)
+{
+  use();
+
+  return glMapBufferRange(m_target, off, sz, access | (GLbitfield)flags);
+}
+
 void Buffer::unmap()
 {
   use();
 
   auto result = glUnmapBuffer(m_target);
   assert(result && "failed to unmap buffer!");
+}
+
+void Buffer::flush(ssize_t off, ssize_t sz)
+{
+  use();
+
+  assert(sz > 0 && "Attempting to flush a mapping with unknown size without specifying one!");
+  glFlushMappedBufferRange(m_target, off, sz);
 }
 
 void Buffer::label(const char *lbl)
@@ -50,7 +65,7 @@ void Buffer::init(size_t elem_sz, size_t elem_count)
   size_t sz = elem_sz*elem_count;
 
   use();
-  glBufferData(m_target, sz, nullptr, usage());
+  glBufferData(m_target, sz, nullptr, m_usage);
 }
 
 void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
@@ -58,7 +73,7 @@ void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
   size_t sz = elem_sz*elem_count;
 
   use();
-  glBufferData(m_target, sz, data, usage());
+  glBufferData(m_target, sz, data, m_usage);
 }
 
 void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count)
@@ -67,15 +82,6 @@ void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem
 
   use();
   glBufferSubData(m_target, offset*elem_sz, sz, data);
-}
-
-GLenum Buffer::usage() const
-{
-  static const GLenum table[] = {
-    ~0u,
-    GL_STATIC_DRAW, GL_DYNAMIC_DRAW, GL_STREAM_DRAW,
-  };
-  return table[m_usage];
 }
 
 VertexBuffer::VertexBuffer(Usage usage) :

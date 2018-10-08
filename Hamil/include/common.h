@@ -5,6 +5,8 @@
 
 typedef unsigned char byte;
 
+typedef intptr_t ssize_t;
+
 typedef unsigned int uint;
 typedef unsigned long ulong;
 typedef unsigned long long ulonglong;

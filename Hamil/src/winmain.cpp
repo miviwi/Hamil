@@ -101,14 +101,24 @@ int main(int argc, char *argv[])
   res::init();
   hm::init();
 
-  win32::File bunny_f("bunny.obj", win32::File::Read, win32::File::OpenExisting);
+  win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
   auto bunny = bunny_f.map(win32::File::ProtectRead);
 
   auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
   const auto& bunny_mesh = obj_loader.mesh();
 
-  const auto& bunny_verts = bunny_mesh.vertices();
+  std::vector<vec3> bunny_verts;
   std::vector<u16> bunny_inds;
+
+  {
+    bunny_verts.reserve(bunny_mesh.vertices().size());
+    const auto& bunny_v = bunny_mesh.vertices();
+    const auto& bunny_vn = bunny_mesh.normals();
+    for(size_t i = 0; i < bunny_v.size(); i++) {
+      bunny_verts.push_back(bunny_v[i]);
+      bunny_verts.push_back(bunny_vn[i]);
+    }
+  }
 
   bunny_inds.reserve(bunny_mesh.faces().size());
   for(const auto& face : bunny_mesh.faces()) {
@@ -116,6 +126,7 @@ int main(int argc, char *argv[])
   }
 
   auto bunny_fmt = gx::VertexFormat()
+    .attr(gx::f32, 3)
     .attr(gx::f32, 3);
 
   gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
@@ -572,16 +583,7 @@ int main(int argc, char *argv[])
 
     size_t num_tris = 0;
 
-    mat4 modelview = view*model;
-    program.use()
-      .uniformMatrix4x4(U.program.uProjection, persp)
-      .uniformMatrix4x4(U.program.uModelView, modelview)
-      .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
-      .uniformVector4(U.program.uCol, color)
-      .draw(gx::Triangles, bunny_arr, bunny_inds.size());
-    bunny_arr.end();
-
-    auto drawsphere = [&]()
+   auto drawsphere = [&]()
     {
       mat4 modelview = view*model;
       program.use()
@@ -602,6 +604,15 @@ int main(int argc, char *argv[])
       .clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
 
     view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
+
+    mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(1.0f);
+    program.use()
+      .uniformMatrix4x4(U.program.uProjection, persp)
+      .uniformMatrix4x4(U.program.uModelView, modelview)
+      .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
+      .uniformVector4(U.program.uCol, { 0.7f, 0.7f, 0.7f, -1.0f })
+      .draw(gx::Triangles, bunny_arr, bunny_inds.size());
+    bunny_arr.end();
 
     light_block.num_lights = 3;
 
