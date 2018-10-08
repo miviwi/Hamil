@@ -62,6 +62,7 @@
 #include <res/image.h>
 
 #include <mesh/util.h>
+#include <mesh/obj.h>
 
 #include <hm/hamil.h>
 #include <hm/entity.h>
@@ -100,10 +101,34 @@ int main(int argc, char *argv[])
   res::init();
   hm::init();
 
-  printf("%s\n", math::to_str(
-    quat::from_euler(PIf, 0, 0)
-    *quat::from_euler(0.0f, 0.0f, PIf/2.0f)
-    *quat::from_euler(0.0f, PIf/2.0f, 0.0f) * vec3::down()).data());
+  win32::File bunny_f("bunny.obj", win32::File::Read, win32::File::OpenExisting);
+  auto bunny = bunny_f.map(win32::File::ProtectRead);
+
+  auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
+  const auto& bunny_mesh = obj_loader.mesh();
+
+  const auto& bunny_verts = bunny_mesh.vertices();
+  std::vector<u16> bunny_inds;
+
+  bunny_inds.reserve(bunny_mesh.faces().size());
+  for(const auto& face : bunny_mesh.faces()) {
+    for(const auto& v : face) bunny_inds.push_back((u16)v.v);
+  }
+
+  auto bunny_fmt = gx::VertexFormat()
+    .attr(gx::f32, 3);
+
+  gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
+  gx::IndexBuffer bunny_ibuf(gx::Buffer::Static, gx::u16);
+
+  bunny_vbuf.init(bunny_verts.data(), bunny_verts.size());
+  bunny_ibuf.init(bunny_inds.data(), bunny_inds.size());
+
+  bunny_vbuf.label("BUNNY_vtx");
+  bunny_ibuf.label("BUNNY_ind");
+
+  gx::IndexedVertexArray bunny_arr(bunny_fmt, bunny_vbuf, bunny_ibuf);
+  bunny_arr.label("BUNNY");
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -342,13 +367,13 @@ int main(int argc, char *argv[])
 
   };
 
-  gx::VertexBuffer vbuf(gx::Buffer::Static);
-  gx::IndexBuffer  ibuf(gx::Buffer::Static, gx::u16);
+  gx::VertexBuffer sphere_vbuf(gx::Buffer::Static);
+  gx::IndexBuffer  sphere_ibuf(gx::Buffer::Static, gx::u16);
 
-  vbuf.init(sphere_verts.data(), sphere_verts.size());
-  ibuf.init(sphere_inds.data(), sphere_inds.size());
+  sphere_vbuf.init(sphere_verts.data(), sphere_verts.size());
+  sphere_ibuf.init(sphere_inds.data(), sphere_inds.size());
 
-  gx::IndexedVertexArray arr(fmt, vbuf, ibuf);
+  gx::IndexedVertexArray sphere_arr(fmt, sphere_vbuf, sphere_ibuf);
 
   auto line_fmt = gx::VertexFormat()
     .attr(gx::f32, 3);
@@ -547,6 +572,15 @@ int main(int argc, char *argv[])
 
     size_t num_tris = 0;
 
+    mat4 modelview = view*model;
+    program.use()
+      .uniformMatrix4x4(U.program.uProjection, persp)
+      .uniformMatrix4x4(U.program.uModelView, modelview)
+      .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
+      .uniformVector4(U.program.uCol, color)
+      .draw(gx::Triangles, bunny_arr, bunny_inds.size());
+    bunny_arr.end();
+
     auto drawsphere = [&]()
     {
       mat4 modelview = view*model;
@@ -555,13 +589,11 @@ int main(int argc, char *argv[])
         .uniformMatrix4x4(U.program.uModelView, modelview)
         .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
         .uniformVector4(U.program.uCol, color)
-        .draw(gx::Triangles, arr, sphere_inds.size());
-      arr.end();
+        .draw(gx::Triangles, sphere_arr, sphere_inds.size());
+      sphere_arr.end();
 
-      num_tris += sphere_inds.size() / 3;
+      num_tris += bunny_inds.size() / 3;
     };
-
-    mat4 modelview = xform::identity();
 
     pipeline.use();
     gx::tex_unit(0, tex, sampler);
@@ -712,7 +744,7 @@ int main(int argc, char *argv[])
       vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FramebufferSize);
       screen.y -= 10;
 
-      small_face.draw(util::fmt("Light %d", i+1), screen, { 1, 1, 1 });
+      small_face.draw(util::fmt("Light %d", i+1), screen, { 1.0f, 1.0f, 1.0f });
     }
 
     float fps = 1.0f / step_timer.elapsedSecondsf();

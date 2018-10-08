@@ -135,6 +135,7 @@ void VertexArray::label(const char *lbl)
   use();
 
   glObjectLabel(GL_VERTEX_ARRAY, m, -1, lbl);
+  unbind();
 #endif
 }
 

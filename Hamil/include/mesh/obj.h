@@ -12,11 +12,21 @@ namespace mesh {
 
 class ObjMesh {
 public:
+  enum : uint {
+    None = ~0u
+  };
+
   struct Vertex {
-    uint v, vt, vn;
+    uint v  = None;
+    uint vt = None;
+    uint vn = None;
   };
 
   using Triangle = std::array<Vertex, 3>;
+
+  const std::vector<vec3>& vertices() const;
+
+  const std::vector<Triangle>& faces() const;
 
 private:
   friend class ObjLoader;
@@ -36,7 +46,14 @@ public:
   struct ParseError : public Error {
   };
 
+  struct NonTriangularFaceError : Error {
+  };
+
   ObjLoader& load(const char *data, size_t sz);
+
+  const ObjMesh& mesh() const;
+
+
 
 private:
   void parseLine(std::string::const_iterator it);
@@ -47,7 +64,8 @@ private:
   vec3 loadTexCoord(std::string::const_iterator it);
   vec3 loadNormal(std::string::const_iterator it);
 
-  ObjMesh::Triangle loadTraingle(std::string::const_iterator it);
+  // TODO!
+  ObjMesh::Triangle loadTriangle(std::string::const_iterator it);
 
   ObjMesh m_mesh;
 };
