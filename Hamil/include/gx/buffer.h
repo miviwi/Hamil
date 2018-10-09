@@ -2,11 +2,13 @@
 
 #include <gx/gx.h>
 
+#include <util/ref.h>
+
 #include <cstdint>
 
 namespace gx {
 
-class Buffer {
+class Buffer : public Ref {
 public:
   enum Usage {
     Invalid,
@@ -36,7 +38,6 @@ public:
     Unsynchronized  = GL_MAP_UNSYNCHRONIZED_BIT,
   };
 
-  Buffer(const Buffer&) = delete;
   ~Buffer();
 
   virtual void use() const;
@@ -67,7 +68,7 @@ protected:
 };
 
 template <typename T>
-class BufferView {
+class BufferView : public Ref {
 public:
   BufferView(Buffer& buf, Buffer::Access access) :
     m(&buf), m_sz(-1),
@@ -78,8 +79,11 @@ public:
     m(&buf), m_sz(sz),
     m_ptr(buf.map(access, off, sz, flags))
   { }
-  BufferView(const BufferView& other) = delete;
-  ~BufferView() { m->unmap(); }
+
+  ~BufferView()
+  {
+    if(!deref()) m->unmap();
+  }
 
   T *get(size_t offset) { return (T *)m_ptr + offset; }
   T& operator[](size_t offset) { return *get(offset); }

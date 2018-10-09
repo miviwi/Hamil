@@ -13,6 +13,8 @@ Buffer::Buffer(Usage usage,GLenum target) :
 
 Buffer::~Buffer()
 {
+  if(deref()) return;
+
   glDeleteBuffers(1, &m);
 }
 

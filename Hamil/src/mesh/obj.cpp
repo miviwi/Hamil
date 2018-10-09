@@ -27,8 +27,22 @@ enum : char {
   Face = 'f',
 };
 
+enum : size_t {
+  InitialVertices  = 4096,
+  InitialTexCoords = 4096,
+  InitialNormals   = 4096,
+
+  InitialFaces = 4096,
+};
+
 ObjLoader& ObjLoader::load(const char *data, size_t sz)
 {
+  m_mesh.m_v.reserve(InitialVertices);
+  m_mesh.m_vt.reserve(InitialTexCoords);
+  m_mesh.m_vn.reserve(InitialNormals);
+
+  m_mesh.m_tris.reserve(InitialVertices);
+
   util::splitlines(std::string(data, sz), [this](const std::string& line) {
     auto it = line.begin();
     while(it != line.end() && isspace(*it)) it++; // skip leading whitespace
@@ -88,7 +102,7 @@ vec3 ObjLoader::loadVec3(std::string::const_iterator it)
   const char *str = &(*it);
 
   vec3 v;
-  sscanf(str, "%f %f %f", &v.x, &v.y, &v.z);
+  sscanf(str, "%f%f%f", &v.x, &v.y, &v.z);
 
   return v;
 }

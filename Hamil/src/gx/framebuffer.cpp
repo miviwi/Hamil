@@ -18,6 +18,8 @@ Framebuffer::Framebuffer() :
 
 Framebuffer::~Framebuffer()
 {
+  if(deref()) return;
+
   glDeleteFramebuffers(1, &m);
   glDeleteRenderbuffers((GLsizei)m_rb.size(), m_rb.data());
 }

@@ -2,6 +2,8 @@
 
 #include <gx/gx.h>
 #include <gx/texture.h>
+
+#include <util/ref.h>
 #include <math/geometry.h>
 
 #include <vector>
@@ -17,7 +19,7 @@ class Renderbuffer;
 //   - etc... up to Color(7)
 //
 // Checking for completeness (via status()/complete()) must be done manually!
-class Framebuffer {
+class Framebuffer : public Ref {
 public:
   enum BindTarget {
     Read = GL_READ_FRAMEBUFFER, Draw = GL_DRAW_FRAMEBUFFER,
@@ -53,7 +55,6 @@ public:
   static Attachment Color(int index);
 
   Framebuffer();
-  Framebuffer(const Framebuffer&) = delete;
   ~Framebuffer();
 
   Framebuffer& use();
