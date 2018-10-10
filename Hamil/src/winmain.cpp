@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     const auto& bunny_vn = bunny_mesh.normals();
     for(size_t i = 0; i < bunny_v.size(); i++) {
       bunny_verts.push_back(bunny_v[i]);
-      bunny_verts.push_back(bunny_vn[i]);
+      //bunny_verts.push_back(bunny_vn[i]);
     }
   }
 
@@ -132,9 +132,16 @@ int main(int argc, char *argv[])
 
   halfedge.build(bunny_inds.size());
 
+  mesh::HalfEdge::Vertex v = 0;
+  printf("\nWalking Vertex(%u) neighbours...\n", v);
+  halfedge.walkVertexNeighbours(v, [](mesh::HalfEdge::Vertex v) {
+    printf("    Vertex(%u)\n", v);
+  });
+  printf("\n");
+
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
-    .attr(gx::f32, 3);
+    .attrAlias(0, gx::f32, 3);
 
   gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
   gx::IndexBuffer bunny_ibuf(gx::Buffer::Static, gx::u16);

@@ -31,6 +31,11 @@ struct HalfEdge {
     std::array<Vertex, 3> v;
   };
 
+  HalfEdge() :
+    opposite(None), next(None),
+    vertex(None), face(None), edge(None)
+  { }
+
   Index opposite;
   Index next;
 
@@ -56,6 +61,9 @@ public:
   struct ButterflyVertexError : public Error {
   };
 
+  struct InvalidQueryError : public Error {
+  };
+
   HalfEdgeStructure();
 
   void addTraingle(HalfEdge::Vertex v0, HalfEdge::Vertex v1, HalfEdge::Vertex v2);
@@ -64,10 +72,19 @@ public:
   //   to actually build the half-edge structure
   void build(size_t num_verts);
 
+  const HalfEdge& halfedge(HalfEdge::Vertex a, HalfEdge::Vertex b) const;
+
+  using VertexVisitor = std::function<void(HalfEdge::Vertex)>;
+  void walkVertexNeighbours(HalfEdge::Vertex v, VertexVisitor visitor) const;
+
+  using FaceVisitor = std::function<void(const HalfEdge::Face&)>;
+  void walkFaceNeighbours(HalfEdge::Vertex v, FaceVisitor visitor) const;
+
 private:
   // Intermediate structures
   std::unique_ptr<EdgeSet> m_edge_set;
   Edges m_edges;
+
   Faces m_faces;
 
   HalfEdges m_halfedges;

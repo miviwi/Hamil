@@ -157,9 +157,47 @@ void HalfEdgeStructure::build(size_t num_verts)
   // No longer needed as well
   m_edges.clear();
   m_edges.shrink_to_fit();
+}
 
-  m_faces.clear();
-  m_faces.shrink_to_fit();
+const HalfEdge& HalfEdgeStructure::halfedge(HalfEdge::Vertex a, HalfEdge::Vertex b) const
+{
+  auto it = m_edge_to_halfedge.find({ a, b });
+  if(it == m_edge_to_halfedge.end()) throw InvalidQueryError();
+
+  return m_halfedges.at(it->second);
+}
+
+void HalfEdgeStructure::walkVertexNeighbours(HalfEdge::Vertex v, VertexVisitor visitor) const
+{
+  const auto start = m_vert_he[v];
+  auto hei = start;
+
+  do {
+    const auto& he = m_halfedges[hei];
+    const auto& opposite = m_halfedges[he.opposite];
+
+    visitor(he.vertex);
+
+    hei = opposite.next;
+  } while(hei != start);
+}
+
+void HalfEdgeStructure::walkFaceNeighbours(HalfEdge::Vertex v, FaceVisitor visitor) const
+{
+  const auto start = m_vert_he[v];
+  auto hei = start;
+
+  do {
+    const auto& he = m_halfedges[hei];
+    const auto& opposite = m_halfedges[he.opposite];
+
+    if(he.face != HalfEdge::None) {
+      const auto& face = m_faces[he.face];
+      visitor(face);
+    }
+
+    hei = opposite.next;
+  } while(hei != start);
 }
 
 }
