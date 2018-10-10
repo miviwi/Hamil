@@ -49,7 +49,16 @@ Framebuffer& Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment a
   m_samples = tex.m_samples;
 
   checkIfBound();
-  glFramebufferTexture(m_bound, attachement(att), tex.m, level);
+  glFramebufferTexture(m_bound, attachment(att), tex.m, level);
+  drawBuffer(att);
+
+  return *this;
+}
+
+Framebuffer & Framebuffer::tex(const Texture2DArray& tex, unsigned level, unsigned layer, Attachment att)
+{
+  checkIfBound();
+  glFramebufferTextureLayer(m_bound, attachment(att), tex.m, level, layer);
   drawBuffer(att);
 
   return *this;
@@ -163,7 +172,7 @@ void Framebuffer::label(const char *label)
 #endif
 }
 
-GLenum Framebuffer::attachement(Attachment att)
+GLenum Framebuffer::attachment(Attachment att)
 {
   if(att >= Color0) return GL_COLOR_ATTACHMENT0 + (att-Color0);
   else if(att == Depth) return GL_DEPTH_ATTACHMENT;
@@ -184,7 +193,7 @@ GLuint Framebuffer::create_rendebuffer()
 void Framebuffer::framebufferRenderbuffer(GLuint rb, Attachment att)
 {
   checkIfBound();
-  glFramebufferRenderbuffer(m_bound, attachement(att), GL_RENDERBUFFER, rb);
+  glFramebufferRenderbuffer(m_bound, attachment(att), GL_RENDERBUFFER, rb);
 }
 
 void Framebuffer::checkIfBound()
@@ -221,6 +230,13 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
   case GL_TEXTURE: {
     GLenum target = m_samples ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
     glBindTexture(target, name);
+
+    // Check if we've chosen the target properly,
+    //   if not retry with another
+    if(glGetError() == GL_INVALID_OPERATION) {
+      target = GL_TEXTURE_2D_ARRAY;
+      glBindTexture(target, name);
+    }
 
     int level = -1;
     glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,

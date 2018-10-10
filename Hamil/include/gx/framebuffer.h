@@ -62,6 +62,7 @@ public:
 
   // The width and height are inferred from the Texture
   Framebuffer& tex(const Texture2D& tex, unsigned level, Attachment att);
+  Framebuffer& tex(const Texture2DArray& tex, unsigned level, unsigned layer, Attachment att);
 
   // The width and height are inferred from the Color(0) attachemenet
   //   - Errors will occur if it doesn't exist!
@@ -93,7 +94,7 @@ private:
     DrawBuffersNeedSetup = 1<<(sizeof(unsigned)*CHAR_BIT - 1),
   };
 
-  static GLenum attachement(Attachment att);
+  static GLenum attachment(Attachment att);
 
   GLuint create_rendebuffer();
   void framebufferRenderbuffer(GLuint rb, Attachment att);

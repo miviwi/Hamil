@@ -62,6 +62,7 @@
 #include <res/image.h>
 
 #include <mesh/util.h>
+#include <mesh/halfedge.h>
 #include <mesh/obj.h>
 
 #include <hm/hamil.h>
@@ -120,10 +121,16 @@ int main(int argc, char *argv[])
     }
   }
 
+  mesh::HalfEdgeStructure halfedge;
+
   bunny_inds.reserve(bunny_mesh.faces().size());
   for(const auto& face : bunny_mesh.faces()) {
     for(const auto& v : face) bunny_inds.push_back((u16)v.v);
+
+    halfedge.addTraingle(face[0].v, face[1].v, face[2].v);
   }
+
+  halfedge.build(bunny_inds.size());
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
