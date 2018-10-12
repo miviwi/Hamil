@@ -7,8 +7,6 @@
 
 namespace mesh {
 
-using DirectedEdgeMap = std::map<HalfEdge::Edge, HalfEdge::Index>;
-
 HalfEdgeStructure::HalfEdgeStructure()
 {
   m_edge_set = std::make_unique<EdgeSet>();
@@ -138,7 +136,7 @@ void HalfEdgeStructure::build(size_t num_verts)
     const auto opposite = m_halfedges[hei].opposite;
     const auto origin = m_halfedges[opposite].vertex;
 
-    vert_to_boundary[origin].insert(hei);
+    vert_to_boundary[origin].emplace(hei);
     if(vert_to_boundary[origin].size() > 1) throw ButterflyVertexError();
   }
 
@@ -155,8 +153,8 @@ void HalfEdgeStructure::build(size_t num_verts)
   }
 
   // No longer needed as well
-  m_edges.clear();
-  m_edges.shrink_to_fit();
+  //m_edges.clear();
+  //m_edges.shrink_to_fit();
 }
 
 const HalfEdge& HalfEdgeStructure::halfedge(HalfEdge::Vertex a, HalfEdge::Vertex b) const

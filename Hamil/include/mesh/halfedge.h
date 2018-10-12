@@ -44,6 +44,7 @@ struct HalfEdge {
   Index edge;
 };
 
+// TODO: Broken as of now!
 class HalfEdgeStructure {
 public:
   using EdgeSet   = std::set<HalfEdge::Edge>;
@@ -53,7 +54,7 @@ public:
 
   using IndexVector = std::vector<HalfEdge::Index>;
 
-  using EdgeToHalfEdge = std::map<HalfEdge::Edge, HalfEdge::Index>;
+  using DirectedEdgeMap = std::map<HalfEdge::Edge, HalfEdge::Index>;
 
   struct Error {
   };
@@ -93,7 +94,7 @@ private:
   IndexVector m_face_he;
   IndexVector m_edge_he;
 
-  EdgeToHalfEdge m_edge_to_halfedge;
+  DirectedEdgeMap m_edge_to_halfedge;
 };
 
 }
