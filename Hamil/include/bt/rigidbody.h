@@ -36,6 +36,8 @@ public:
   }
 
   RigidBody& activate();
+  RigidBody& forceActivate();
+  RigidBody& deactivate();
 
   xform::Transform worldTransform() const;
   mat4 worldTransformMatrix() const;
@@ -43,6 +45,9 @@ public:
   vec3 origin() const;
   vec3 localInertia() const;
   vec3 centerOfMass() const;
+
+  float rollingFriction() const;
+  RigidBody& rollingFriction(float friction);
 
   void applyImpulse(const vec3& force, const vec3& rel_pos);
 
@@ -54,6 +59,10 @@ public:
 
   bool operator==(const RigidBody& other) const;
   bool operator!=(const RigidBody& other) const;
+
+  // Allocates a new btRigidBody with a btDefaultMotionState when mass > 0.0f
+  //   i.e. when the body isn't static
+  static RigidBody create(CollisionShape shape, vec3 origin, float mass = 0.0f, bool active = true);
 
 protected:
   RigidBody(btRigidBody *m_);

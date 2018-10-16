@@ -99,20 +99,12 @@ void DynamicsWorld::initDbgSimulation()
   m_world->setGravity({ 0.0f, -10.0f, 0.0f });
   {
     auto ground_shape = shapes().box({ 50.0f, 0.5f, 50.0f, });
+    vec3 origin = { 0.0f, -1.5f, -6.0f };
 
-    btTransform transform;
-    transform.setIdentity();
-    transform.setOrigin({ 0.0f, -1.5f, -6.0f });
+    auto body = RigidBody::create(ground_shape, origin, 0.0f, false);
+    body.rollingFriction(0.2f);
 
-    auto rb_info = btRigidBody::btRigidBodyConstructionInfo(
-      0.0f, nullptr, ground_shape.bt()
-    );
-    auto body = new btRigidBody(rb_info);
-    body->setWorldTransform(transform);
-    body->setActivationState(DISABLE_SIMULATION);
-    body->setRollingFriction(0.2f);
-
-    m_world->addRigidBody(body);
+    addRigidBody(body);
   }
 
   p_sphere = shapes().sphere(1.0f);
@@ -128,22 +120,7 @@ void DynamicsWorld::startDbgSimulation()
 
 RigidBody DynamicsWorld::createDbgSimulationRigidBody(vec3 sphere, bool active)
 {
-  btTransform transform;
-  transform.setIdentity();
-
-  btScalar  mass          = 1.0f;
-  btVector3 local_inertia = to_btVector3(p_sphere.calculateLocalInertia(mass));
-
-  transform.setOrigin(to_btVector3(sphere));
-
-  auto motion_state = new btDefaultMotionState(transform);
-  auto rb_info      = btRigidBody::btRigidBodyConstructionInfo(
-    mass, motion_state, p_sphere.bt(), local_inertia
-  );
-  auto body = new btRigidBody(rb_info);
-  if(!active) body->setActivationState(DISABLE_SIMULATION);
-
-  return body;
+  return RigidBody::create(p_sphere, sphere, 1.0f, active);
 }
 
 void DynamicsWorld::stepDbgSimulation(float dt)

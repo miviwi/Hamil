@@ -10,6 +10,7 @@
 
 namespace bt {
 
+// PIMPL class
 class DynamicsWorldConfig;
 
 class DynamicsWorld : public Ref {
@@ -24,6 +25,8 @@ public:
   DynamicsWorld();
   ~DynamicsWorld();
 
+  // Returns the underlying handle
+  //   to a btDynamicsWorld as a void *
   void *get() const;
 
   void addRigidBody(RigidBody rb);
