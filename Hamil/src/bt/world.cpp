@@ -6,16 +6,57 @@
 
 namespace bt {
 
-DynamicsWorld::DynamicsWorld()
+class DynamicsWorldConfig {
+public:
+  ~DynamicsWorldConfig();
+
+  btCollisionConfiguration *m_collision_config;
+  btDispatcher             *m_collision_dispatch;
+  btBroadphaseInterface    *m_collision_broadphase;
+  btConstraintSolver       *m_collision_solver;
+
+  static DynamicsWorldConfig *create_default();
+
+  btDynamicsWorld *discreteWorldFromConfig();
+
+protected:
+  DynamicsWorldConfig() = default;
+
+private:
+  friend DynamicsWorld;
+};
+
+DynamicsWorldConfig::~DynamicsWorldConfig()
 {
-  m_collision_config     = new btDefaultCollisionConfiguration();
-  m_collision_dispatch   = new btCollisionDispatcher(m_collision_config);
-  m_collision_broadphase = new btDbvtBroadphase();
-  m_collision_solver     = new btSequentialImpulseConstraintSolver();
-  
-  m_world = new btDiscreteDynamicsWorld(
+  delete m_collision_solver;
+  delete m_collision_broadphase;
+  delete m_collision_dispatch;
+  delete m_collision_config;
+}
+
+DynamicsWorldConfig *DynamicsWorldConfig::create_default()
+{
+  auto self = new DynamicsWorldConfig();
+
+  self->m_collision_config     = new btDefaultCollisionConfiguration();
+  self->m_collision_dispatch   = new btCollisionDispatcher(self->m_collision_config);
+  self->m_collision_broadphase = new btDbvtBroadphase();
+  self->m_collision_solver     = new btSequentialImpulseConstraintSolver();
+
+  return self;
+}
+
+btDynamicsWorld *DynamicsWorldConfig::discreteWorldFromConfig()
+{
+  return new btDiscreteDynamicsWorld(
     m_collision_dispatch, m_collision_broadphase, m_collision_solver, m_collision_config
   );
+}
+
+DynamicsWorld::DynamicsWorld()
+{
+  m_config = DynamicsWorldConfig::create_default();
+  m_world  = m_config->discreteWorldFromConfig();
 }
 
 DynamicsWorld::~DynamicsWorld()
@@ -33,11 +74,12 @@ DynamicsWorld::~DynamicsWorld()
   });
 
   delete m_world;
+  delete m_config;
+}
 
-  delete m_collision_solver;
-  delete m_collision_broadphase;
-  delete m_collision_dispatch;
-  delete m_collision_config;
+void *DynamicsWorld::get() const
+{
+  return m_world;
 }
 
 void DynamicsWorld::addRigidBody(RigidBody rb)

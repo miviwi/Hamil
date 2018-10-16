@@ -30,6 +30,9 @@ Object Collection::get(const Object& key) const
 
 void Collection::set(const Object& key, const Object& item)
 {
+  Py_INCREF(*key);
+  Py_INCREF(*item);
+
   PyObject_SetItem(py(), *key, *item);
 }
 
@@ -84,11 +87,16 @@ Object Dict::get(const char *key) const
 
 void Dict::set(const Object& key, const Object& item)
 {
+  Py_INCREF(*key);
+  Py_INCREF(*item);
+
   PyDict_SetItem(py(), *key, *item);
 }
 
 void Dict::set(const char *key, const Object& item)
 {
+  Py_INCREF(*item);
+
   PyDict_SetItemString(py(), key, *item);
 }
 

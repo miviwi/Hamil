@@ -10,6 +10,8 @@
 
 namespace bt {
 
+class DynamicsWorldConfig;
+
 class DynamicsWorld : public Ref {
 public:
   static constexpr float SimulationRate = 60.0f /* Hz */;
@@ -21,6 +23,8 @@ public:
 
   DynamicsWorld();
   ~DynamicsWorld();
+
+  void *get() const;
 
   void addRigidBody(RigidBody rb);
   void removeRigidBody(RigidBody rb);
@@ -42,11 +46,7 @@ private:
   // Iterates BACKWARDS
   void foreachRigidBody(BtRigidBodyIter fn);
 
-  btCollisionConfiguration *m_collision_config;
-  btDispatcher             *m_collision_dispatch;
-  btBroadphaseInterface    *m_collision_broadphase;
-  btConstraintSolver       *m_collision_solver;
-
+  DynamicsWorldConfig *m_config;
   btDynamicsWorld *m_world;
 };
 

@@ -18,12 +18,14 @@
 
 #include <uniforms.h>
 #include <gx/gx.h>
+#include <gx/info.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
 #include <gx/pipeline.h>
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
+#include <gx/renderpass.h>
 
 #include <ft/font.h>
 
@@ -44,6 +46,7 @@
 #include <py/exception.h>
 #include <py/types.h>
 #include <py/collections.h>
+#include <py/modules/btmodule.h>
 
 #include <yaml/document.h>
 #include <yaml/node.h>
@@ -117,7 +120,7 @@ int main(int argc, char *argv[])
     const auto& bunny_vn = bunny_mesh.normals();
     for(size_t i = 0; i < bunny_v.size(); i++) {
       bunny_verts.push_back(bunny_v[i]);
-      //bunny_verts.push_back(bunny_vn[i]);
+      bunny_verts.push_back(bunny_vn[i]);
     }
   }
 
@@ -130,7 +133,7 @@ int main(int argc, char *argv[])
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
-    .attrAlias(0, gx::f32, 3);
+    .attr(gx::f32, 3);
 
   gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
   gx::IndexBuffer bunny_ibuf(gx::Buffer::Static, gx::u16);
@@ -146,6 +149,8 @@ int main(int argc, char *argv[])
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
+
+  py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
 
   res::load(R.shader.shaders.ids);
   res::load(R.image.ids);
@@ -170,6 +175,8 @@ int main(int argc, char *argv[])
 
   gx::Texture2D tex(gx::rgb);
   auto sampler = gx::Sampler::repeat2d_linear()
+    .param(gx::Sampler::Anisotropy, 16.0f);
+  auto floor_sampler = gx::Sampler::repeat2d_mipmap()
     .param(gx::Sampler::Anisotropy, 16.0f);
 
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
@@ -297,24 +304,44 @@ int main(int argc, char *argv[])
 
   fb_resolve.label("FB_resolve");
 
-  auto pipeline = gx::Pipeline()
-    .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-    .depthTest(gx::Pipeline::LessEqual)
-    .cull(gx::Pipeline::Back)
-    .seamlessCubemap()
-    .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f);
+  auto resolve_sampler = gx::Sampler::edgeclamp2d();
 
-  auto pipeline_ui = gx::Pipeline()
-    .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-    .noDepthTest()
-    .alphaBlend()
-    .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f)
+  auto scene_pass = gx::RenderPass()
+    .framebuffer(fb)
+    .textures({
+      { 0, { &tex, &floor_sampler }},
+      { 1, { &cubemap, &cubemap_sampler }}
+    })
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .depthTest(gx::Pipeline::LessEqual)
+      .cull(gx::Pipeline::Back)
+      .seamlessCubemap()
+      .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
-  auto pipeline_composite = gx::Pipeline()
-    .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-    .noDepthTest()
-    .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f, }, 1.0f)
+  auto ui_pass = gx::RenderPass()
+    .framebuffer(fb_ui)
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .noDepthTest()
+      .alphaBlend()
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColor)
+    ;
+
+  auto resolve_pass = gx::RenderPass()
+    .framebuffer(fb_resolve)
+    .textures({
+      { 4, { &fb_ui_tex, &resolve_sampler }},
+      { 5, { &fb_tex, &resolve_sampler }}
+    })
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .noDepthTest()
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f, }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColor)
     ;
 
   float r = 1280.0f;
@@ -412,9 +439,6 @@ int main(int argc, char *argv[])
   floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
 
   gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
-
-  auto floor_sampler = gx::Sampler::repeat2d_mipmap()
-    .param(gx::Sampler::Anisotropy, 16.0f);
 
   ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
 
@@ -530,7 +554,7 @@ int main(int argc, char *argv[])
 
           num_spheres++;
         } else if(kb->keyDown('W')) {
-          pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
+          //pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
         } else if(kb->keyDown('`')) {
           console.toggle();
         }
@@ -586,7 +610,7 @@ int main(int argc, char *argv[])
 
     size_t num_tris = 0;
 
-   auto drawsphere = [&]()
+    auto drawsphere = [&]()
     {
       mat4 modelview = view*model;
       program.use()
@@ -600,11 +624,7 @@ int main(int argc, char *argv[])
       num_tris += bunny_inds.size() / 3;
     };
 
-    pipeline.use();
-    gx::tex_unit(0, tex, sampler);
-
-    fb.use()
-      .clear(gx::Framebuffer::ColorBit|gx::Framebuffer::DepthBit);
+    scene_pass.begin();
 
     view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
@@ -707,7 +727,6 @@ int main(int argc, char *argv[])
 
     modelview = view*model;
 
-    gx::tex_unit(0, tex, floor_sampler);
     tex_program.use()
       .uniformMatrix4x4(U.tex.uProjection, persp)
       .uniformMatrix4x4(U.tex.uModelView, modelview)
@@ -728,8 +747,6 @@ int main(int argc, char *argv[])
       drawsphere();
     }
 
-    gx::tex_unit(1, cubemap, cubemap_sampler);
-
     gx::Pipeline()
       .depthTest(gx::Pipeline::LessEqual)
       .noCull()
@@ -743,10 +760,7 @@ int main(int argc, char *argv[])
       ;
     skybox_arr.end();
 
-    pipeline_ui.use();
-
-    fb_ui.use()
-      .clear(gx::Framebuffer::ColorBit);
+    ui_pass.begin();
 
     for(int i = 0; i < light_block.num_lights; i++) {
       model = xform::Transform()
@@ -796,13 +810,7 @@ int main(int argc, char *argv[])
     cursor.paint();
 
     // Resolve the main Framebuffer and composite the Ui on top of it
-    gx::tex_unit(4, fb_ui_tex, sampler);
-    gx::tex_unit(5, fb_tex, sampler);
-
-    pipeline_composite.use();
-
-    fb_resolve.use()
-      .clear(gx::Framebuffer::ColorBit);
+    resolve_pass.begin();
 
     composite_program.use()
       .uniformSampler(U.composite.uUi, 4)

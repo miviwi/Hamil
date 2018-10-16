@@ -8,6 +8,8 @@
 
 namespace gx {
 
+class GxInfo;
+
 enum Component {
   Zero = GL_ZERO, One = GL_ONE,
   Red = GL_RED, Green = GL_GREEN, Blue  = GL_BLUE, Alpha = GL_ALPHA,
@@ -58,11 +60,17 @@ static constexpr std::array<Face, 6> Faces = {
   PosZ, NegZ,
 };
 
+enum {
+  NumTexUnits = 16,
+};
+
 bool is_color_format(Format fmt);
 
 // must be called AFTER creating a win32::Window!
 void init();
 void finalize();
+
+GxInfo& info();
 
 void p_bind_VertexArray(unsigned array);
 unsigned p_unbind_VertexArray();

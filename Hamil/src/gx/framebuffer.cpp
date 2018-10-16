@@ -74,7 +74,7 @@ Framebuffer& Framebuffer::renderbuffer(Format fmt, Attachment att)
 Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att)
 {
   auto rb = create_rendebuffer();
-  m_rb.push_back(rb);
+  m_rb.append(rb);
 
   glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, fmt, w, h);
   framebufferRenderbuffer(rb, att);
@@ -93,7 +93,7 @@ Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, 
 Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att)
 {
   auto rb = create_rendebuffer();
-  m_rb.push_back(rb);
+  m_rb.append(rb);
 
   m_samples = samples;
 

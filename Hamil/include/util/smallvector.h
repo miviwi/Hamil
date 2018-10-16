@@ -108,6 +108,8 @@ public:
     alloc(m_sz);
   }
 
+  T *data() const { return (T *)(m_sz > InlineElems ? m_heap.ptr : m_inline.data); }
+
   T *begin() { return data(); }
   T *end() { return data() + m_sz; }
 
@@ -131,8 +133,6 @@ private:
       T data[InlineElems];
     } m_inline;
   };
-
-  T *data() const { return (T *)(m_sz > InlineElems ? m_heap.ptr : m_inline.data); }
 
   void alloc(u32 new_sz)
   {

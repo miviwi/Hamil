@@ -1,9 +1,14 @@
 #include <gx/gx.h>
+#include <gx/info.h>
+
+#include <memory>
 
 namespace gx {
 
 GLuint p_last_array = ~0u;
 GLuint p_dummy_vao;
+
+std::unique_ptr<GxInfo> p_info;
 
 bool is_color_format(Format fmt)
 {
@@ -31,11 +36,20 @@ void init()
 #if !defined(NDEBUG)
   glObjectLabel(GL_VERTEX_ARRAY, p_dummy_vao, 1, "$");
 #endif
+
+  p_info.reset(GxInfo::create());
 }
 
 void finalize()
 {
   glDeleteVertexArrays(1, &p_dummy_vao);
+
+  p_info.reset();
+}
+
+GxInfo& info()
+{
+  return *p_info;
 }
 
 void p_bind_VertexArray(unsigned array)

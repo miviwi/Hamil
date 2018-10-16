@@ -9,6 +9,7 @@
 #include <bt/bullet.h>
 #include <bt/rigidbody.h>
 #include <bt/collisionshape.h>
+#include <bt/world.h>
 
 namespace py {
 
@@ -146,7 +147,7 @@ static TypeObject CollisionShapeType =
     .str((reprfunc)CollisionShape_Str)
   ;
 
-int CollisionShapeCheck(PyObject *obj)
+int CollisionShape_Check(PyObject *obj)
 {
   return CollisionShapeType.check(obj);
 }
@@ -155,6 +156,86 @@ PyObject *CollisionShape_FromCollisionShape(bt::CollisionShape shape)
 {
   auto self = CollisionShapeType.newObject<CollisionShape>();
   self->m = shape;
+
+  return (PyObject *)self;
+}
+
+struct DynamicsWorldToken;
+
+static MemberDefList<DynamicsWorldToken> DynamicsWorldMembers;
+static MethodDefList<DynamicsWorldToken> DynamicsWorldMethods;
+static GetSetDefList<DynamicsWorldToken> DynamicsWorldGetSet;
+
+struct DynamicsWorld {
+  PyObject_HEAD;
+
+  bt::DynamicsWorld m;
+};
+
+static int DynamicsWorld_Init(DynamicsWorld *self, PyObject *args, PyObject *kwds)
+{
+  return 0;
+}
+
+static PyObject *DynamicsWorld_AddRigidBody(DynamicsWorld *self, PyObject *arg)
+{
+  if(!RigidBody_Check(arg)) {
+    PyErr_SetString(PyExc_TypeError, "addRigidBody() accepts a single bt.RigidBody argument");
+    return nullptr;
+  }
+
+  auto rb = (RigidBody *)arg;
+  self->m.addRigidBody(rb->m);
+
+  Py_RETURN_NONE;
+}
+
+static PyObject *DynamicsWorld_RemoveRigidBody(DynamicsWorld *self, PyObject *arg)
+{
+  if(!RigidBody_Check(arg)) {
+    PyErr_SetString(PyExc_TypeError, "removeRigidBody() accepts a single bt.RigidBody argument");
+    return nullptr;
+  }
+
+  auto rb = (RigidBody *)arg;
+  self->m.removeRigidBody(rb->m);
+
+  Py_RETURN_NONE;
+}
+
+static PyObject *DynamicsWorld_Repr(DynamicsWorld *self)
+{
+  return Unicode::from_format("<btDynamicsWorld at 0x%p>", self->m.get()).move();
+}
+
+static TypeObject DynamicsWorldType =
+  TypeObject()
+    .name("bt.DynamicsWorld")
+    .doc("btDynamicsWorld wrapper")
+    .size(sizeof(DynamicsWorld))
+    .methods(DynamicsWorldMethods(
+      MethodDef()
+        .name("addRigidBody")
+        .method(DynamicsWorld_AddRigidBody)
+        .flags(METH_O),
+      MethodDef()
+        .name("removeRigidBody")
+        .method(DynamicsWorld_RemoveRigidBody)
+        .flags(METH_O)))
+    .init((initproc)DynamicsWorld_Init)
+    .repr((reprfunc)DynamicsWorld_Repr)
+    .str((reprfunc)DynamicsWorld_Repr)
+  ;
+
+int DynamicsWorld_Check(PyObject *obj)
+{
+  return DynamicsWorldType.check(obj);
+}
+
+PyObject *DynamicsWorld_FromDynamicsWorld(bt::DynamicsWorld world)
+{
+  auto self = DynamicsWorldType.newObject<DynamicsWorld>();
+  self->m = world;
 
   return (PyObject *)self;
 }
@@ -172,6 +253,7 @@ PyObject *PyInit_bt()
   auto self = Module::create(BtModule.py())
     .addType(RigidBodyType)
     .addType(CollisionShapeType)
+    .addType(DynamicsWorldType)
     ;
 
   return *self;

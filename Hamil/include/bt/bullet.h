@@ -9,13 +9,8 @@ class btVector3;
 class btTransform;
 
 class btDynamicsWorld;
-class btCollisionConfiguration;
-class btDispatcher;
-class btBroadphaseInterface;
-class btConstraintSolver;
 
 class btMotionState;
-
 class btCollisionShape;
 class btCollisionObject;
 class btRigidBody;

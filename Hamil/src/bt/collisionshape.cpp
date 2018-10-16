@@ -96,6 +96,7 @@ void CollisionShapeManager::destroy(CollisionShape& shape)
   assert(shape.refs() == 2 && "Attempted to destroy a CollisionShape with more than 1 ref!");
 
   delete shape.m;
+  shape.m = nullptr;
   shape.deref();
 
   m_shapes.erase(shape); // The final deref() will occur here automatically

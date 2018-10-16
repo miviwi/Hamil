@@ -4,9 +4,8 @@
 #include <gx/texture.h>
 
 #include <util/ref.h>
+#include <util/smallvector.h>
 #include <math/geometry.h>
-
-#include <vector>
 
 namespace gx {
 
@@ -114,7 +113,7 @@ private:
   GLenum m_bound;
   unsigned m_samples;
   unsigned m_draw_buffers;
-  std::vector<GLuint> m_rb;
+  util::SmallVector<GLuint> m_rb;
 };
 
 }
