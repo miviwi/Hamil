@@ -396,6 +396,11 @@ struct /* alignas(16) for intrin */ Vector4 {
 
   Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }
 
+  Vector4 perspectiveDivide() const
+  {
+    return (*this) * (1.0f/w);
+  }
+
   Vector4 operator-() const { return { -x, -y, -z, -w }; }
 
   operator float *() { return (float *)this; }
@@ -487,6 +492,14 @@ inline vec4 vec4::recip() const
   alignas(16) vec4 b;
 
   intrin::vec_recip(*this, b);
+  return b;
+}
+
+inline vec4 vec4::perspectiveDivide() const
+{
+  alignas(16) vec4 b;
+
+  intrin::vec4_const_recip_mult(*this, w, b);
   return b;
 }
 

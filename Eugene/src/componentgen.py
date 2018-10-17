@@ -16,6 +16,9 @@ def main(db, args):
     with open('components.h', 'w') as header, open('components.cpp', 'w') as src:
         header.write(
         """#include <hm/componentstore.h>
+#include <hm/component.h>
+
+#include <string>
 
 namespace hm {
 
@@ -24,6 +27,13 @@ namespace hm {
         src.write(
         """#include "components.h"
 
+#include <hm/components/all.h>
+
+#include <unordered_map>
+
+namespace hm {
+
+static const std::unordered_map<std::string, Component::Tag> p_tags = {
 """)
         tu = cxx.CxxTranslationUnit(
             # Need to pick a TranslationUnit with #include <hm/compoents/all.h>
@@ -43,6 +53,19 @@ namespace hm {
 
         for component in components:
             header.write(f"struct {component};\n")
+            src.write(f"  {{ \"{component}\", {component}::tag() }},\n")
+
+        src.write(
+        """};
+
+Component::Tag tag_from_string(const std::string& tag)
+{
+    auto it = p_tags.find(tag);
+    if(it == p_tags.end()) return "";
+
+    return it->second;
+}
+""")
 
         header.write(
         """
@@ -57,6 +80,13 @@ using ComponentStore = ComponentStoreBase<""")
         """
     >;
 
+Component::Tag tag_from_string(const std::string& tag);
+
+}
+""")
+
+        src.write(
+        """
 }
 """)
 

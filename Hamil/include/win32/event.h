@@ -28,6 +28,8 @@ public:
     using Error::Error;
   };
 
+  // The 'state' parameter correspnds to the Event's initial signaled state -
+  //   true - signaled, false - NOT signaled
   Event(bool state, unsigned flags = 0, const char *name = nullptr);
 
   void state(bool s) { s ? set() : reset(); }

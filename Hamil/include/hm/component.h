@@ -4,6 +4,7 @@
 #include <hm/entity.h>
 
 #include <util/hashindex.h>
+#include <util/staticstring.h>
 
 #include <array>
 #include <vector>
@@ -17,10 +18,13 @@ struct GameObject;
 //     in the 'hm' namespace
 class Component {
 public:
+  using Tag = util::StaticString;
+
   Component(Entity e);
+
+  static constexpr Tag tag() { return "Component"; }
   
   Entity entity() const;
-
   GameObject& gameObject() const;
 
   // Only returns 'true' when it's Entity is != Invalid and alive()

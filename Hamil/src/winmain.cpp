@@ -15,6 +15,7 @@
 #include <win32/file.h>
 #include <win32/stdstream.h>
 #include <win32/mman.h>
+#include <win32/thread.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -104,6 +105,26 @@ int main(int argc, char *argv[])
   bt::init();
   res::init();
   hm::init();
+
+  std::vector<win32::Thread> threads;
+  for(int i = 0; i < 5; i++) {
+    threads.emplace_back([=]() -> ulong {
+      win32::DeltaTimer timer;
+      timer.reset();
+
+      win32::DeltaTimer sleep_timer;
+loop:
+      sleep_timer.reset();
+
+      Sleep(5000 + 1000*i);
+      printf("Hello from aux_thread(%6u)! @ %.1lfs (slept %.1lfs)\n",
+        win32::Thread::current_thread_id(),
+        timer.elapsedSecondsf(), sleep_timer.elapsedSecondsf());
+      goto loop;
+
+      return 0;
+    });
+  }
 
   win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
   auto bunny = bunny_f.map(win32::File::ProtectRead);

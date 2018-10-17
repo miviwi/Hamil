@@ -23,6 +23,8 @@ typedef int64_t i64;
 
 #define STUB() assert(0 && "stub " __FUNCSIG__ "!");
 
+#define INTRIN_INLINE __forceinline
+
 template <typename T>
 class StridePtr {
 public:

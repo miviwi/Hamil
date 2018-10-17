@@ -3,6 +3,7 @@
 #include <common.h>
 
 #include <math/geometry.h>
+#include <util/ref.h>
 #include <gx/texture.h>
 #include <gx/vertex.h>
 #include <gx/buffer.h>
@@ -21,7 +22,7 @@ using Position = Vector2<i16>;
 using UV = Vector2<u16>;
 
 enum {
-  TexImageUnit = 15,
+  TexImageUnit = gx::NumTexUnits-1, // Use the last tex unit
 
   NumCharVerts = 4,
   NumCharIndices = 5,
@@ -29,9 +30,11 @@ enum {
   PrimitiveRestartIndex = 0xFFFF,
 };
 
+// PIMPL classes
 class pFace;
 class pGlyph;
 class pString;
+// -------------
 
 class FontFamily {
 public:
@@ -46,7 +49,6 @@ private:
 struct String : public Ref {
 public:
   String() : m(nullptr) { }
-  String(pString *p) : m(p) { }
   ~String();
 
   float width() const;
@@ -54,6 +56,9 @@ public:
 
   // Number of generated indices
   unsigned num() const;
+
+protected:
+  String(pString *p) : m(p) { }
 
 private:
   friend class Font;

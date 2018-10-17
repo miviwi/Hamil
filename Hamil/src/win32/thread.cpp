@@ -6,26 +6,68 @@
 
 namespace win32 {
 
+class ThreadData {
+public:
+  Thread::Id id;
+  Thread::Fn fn;
+  Thread::OnExit on_exit;
+
+protected:
+  ThreadData() = default;
+
+private:
+  friend Thread;
+};
+
 DWORD Thread::ThreadProcTrampoline(void *param)
 {
-  auto self = (Thread *)param;
+  // The lpParameter is actually a pointer to this Thread's m_data
+  auto self = (ThreadData *)param;
 
-  return self->m_fn();
+  // Actually execute the Thread's code
+  DWORD exit_code = self->fn();
+
+  // Call the OnExit handler if it has been set
+  if(auto on_exit = self->on_exit) {
+    on_exit();
+  }
+
+  return exit_code;
 }
 
 Thread::Thread(Fn fn, bool suspended) :
-  m_id(0), m_fn(std::move(fn))
+  m_data(new ThreadData())
 {
   DWORD dwCreationFlags = 0;
   dwCreationFlags |= suspended ? CREATE_SUSPENDED : 0;
 
-  m = CreateThread(nullptr, 0, ThreadProcTrampoline, this, dwCreationFlags, &m_id);
+  m_data->id = InvalidId;  // Will be initialized by CreateThread
+  m_data->fn = std::move(fn);
+
+  m = CreateThread(nullptr, 0, ThreadProcTrampoline, m_data, dwCreationFlags, &m_data->id);
   if(!m) throw CreateError(GetLastError());
+}
+
+Thread::~Thread()
+{
+  // Only CHECK the ref-count so it's not decremented twice
+  //   - See the comment above Waitable
+  if(refs() > 1) return;
+
+  // A count == 1 means somebody down the line will decrement
+  //   it (i.e. set it to 0), thus the object is already dead
+  //   and we need to clean it up
+  delete m_data;
 }
 
 Thread::Id Thread::id() const
 {
-  return m_id;
+  return m_data->id;
+}
+
+Thread::Id Thread::current_thread_id()
+{
+  return GetCurrentThreadId();
 }
 
 ulong Thread::exitCode() const
@@ -34,6 +76,13 @@ ulong Thread::exitCode() const
   if(!GetExitCodeThread(m, &exit_code)) throw Error(GetLastError());
 
   return exit_code;
+}
+
+Thread& Thread::onExit(OnExit on_exit)
+{
+  m_data->on_exit = on_exit;
+
+  return *this;
 }
 
 }

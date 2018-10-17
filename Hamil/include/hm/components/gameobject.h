@@ -42,6 +42,8 @@ struct GameObject : public Component {
   GameObject(u32 entity, const std::string& name_, u32 parent);
   GameObject(u32 entity, const std::string& name_);
 
+  static constexpr Tag tag() { return "GameObject"; }
+
   const char *name() const;
 
   Entity parent() const;

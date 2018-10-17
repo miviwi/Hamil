@@ -328,6 +328,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClCompile Include="src\math\quaternion.cpp" />
     <ClCompile Include="src\math\transform.cpp" />
     <ClCompile Include="src\math\util.cpp" />
+    <ClCompile Include="src\math\xform.cpp" />
     <ClCompile Include="src\mesh\halfedge.cpp" />
     <ClCompile Include="src\mesh\obj.cpp" />
     <ClCompile Include="src\mesh\util.cpp" />
@@ -413,6 +414,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClInclude Include="include\hm\entity.h" />
     <ClInclude Include="include\hm\entityman.h" />
     <ClInclude Include="include\math\compare.h" />
+    <ClInclude Include="include\math\intrin.hh" />
     <ClInclude Include="include\math\quaternion.h" />
     <ClInclude Include="include\math\transform.h" />
     <ClInclude Include="include\math\util.h" />
@@ -533,6 +535,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
   </ItemGroup>
   <ItemGroup>
     <None Include="build.eugene" />
+    <None Include="cpp.hint" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>

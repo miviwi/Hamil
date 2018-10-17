@@ -52,6 +52,8 @@ File::File(const char *path, Access access) :
 
 File::~File()
 {
+  if(refs() > 1) return;
+
   delete[] m_full_path;
 }
 

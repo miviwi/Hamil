@@ -119,13 +119,13 @@ static PyObject *Entity_Component(Entity *self, PyObject *arg)
     return nullptr;
   }
 
-  static const std::unordered_map<std::string,
+  static const std::unordered_map<hm::Component::Tag,
     std::function<PyObject *(Entity *self, void *)>> component_map = {
-    { "GameObject", Entity_GameObject },
-    { "RigidBody",  Entity_RigidBody },
+    { hm::GameObject::tag(), Entity_GameObject },
+    { hm::RigidBody::tag(),  Entity_RigidBody },
   };
 
-  auto it = component_map.find(component_name);
+  auto it = component_map.find(hm::tag_from_string(component_name));
   if(it == component_map.end()) {
     Py_RETURN_NONE;
   }
