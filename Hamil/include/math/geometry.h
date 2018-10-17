@@ -467,7 +467,7 @@ inline vec4 operator*(vec4 a, float u)
 {
   alignas(16) vec4 b;
 
-  intrin::vec4_const_mult(a, u, b);
+  intrin::vec4_scalar_mult(a, u, b);
   return b;
 }
 
@@ -499,7 +499,7 @@ inline vec4 vec4::perspectiveDivide() const
 {
   alignas(16) vec4 b;
 
-  intrin::vec4_const_recip_mult(*this, w, b);
+  intrin::vec4_scalar_recip_mult(*this, w, b);
   return b;
 }
 
@@ -708,7 +708,7 @@ inline mat4 operator*(const mat4& a, float u)
 {
   mat4 c;
 
-  intrin::mat4_const_mult(a, u, c);
+  intrin::mat4_scalar_mult(a, u, c);
   return c;
 }
 

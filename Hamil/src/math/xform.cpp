@@ -110,9 +110,10 @@ mat4 frutsum(float t, float l, float b, float r, float n, float f)
 
 mat4 perspective(float fovy, float aspect, float n, float f)
 {
-  float w, h;
+  constexpr float inv_deg2rad = 1.0f / (360.0f*PIf);
 
-  h = tanf(fovy / (360.0f*PIf)) * n;
+  float w, h;
+  h = tanf(fovy * inv_deg2rad) * n;
   w = h * aspect;
 
   return frutsum(h, -w, -h, w, n, f);
@@ -120,7 +121,7 @@ mat4 perspective(float fovy, float aspect, float n, float f)
 
 mat4 look_at(vec3 eye, vec3 target, vec3 up)
 {
-  vec3 forward = (eye-target).normalize();
+  vec3 forward = vec3::direction(target, eye);
   vec3 left = up.cross(forward).normalize();
 
   up = forward.cross(left);
@@ -146,8 +147,8 @@ vec2 project(vec4 v, mat4 modelviewprojection, ivec2 screen)
   auto screenf = screen.cast<float>();
 
   return {
-    (v.x+1)/2 * screenf.x,
-    screenf.y - ((v.y+1)/2 * screenf.y)
+    (v.x+1.0f) * (1.0f/2.0f) * screenf.x,
+    screenf.y - ((v.y+1.0f) * (1.0f/2.0f) * screenf.y)
   };
 }
 
@@ -156,7 +157,7 @@ vec4 unproject(vec3 v, mat4 modelviewprojection, ivec2 screen)
   auto inv_mvp = modelviewprojection.inverse();
   auto inv_screen = screen.cast<float>().recip();
 
-  vec4 p ={
+  vec4 p = {
     (v.x * inv_screen.x)*2.0f - 1.0f,
     (((float)screen.y - v.y) * inv_screen.y)*2.0f - 1.0f,
     2.0f*v.z - 1.0f,

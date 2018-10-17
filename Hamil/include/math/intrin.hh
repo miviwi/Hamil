@@ -225,7 +225,7 @@ void mat4_vec4_mult(const float *a, const float *b, float *out)
   _mm_store_ps(out, z);
 }
 
-void mat4_const_mult(const float *a, float u, float *out)
+void mat4_scalar_mult(const float *a, float u, float *out)
 {
   __m128 x[] ={ _mm_load_ps(a+0), _mm_load_ps(a+4), _mm_load_ps(a+8), _mm_load_ps(a+12) };
   __m128 y = _mm_load1_ps(&u);
@@ -262,7 +262,7 @@ void vec_recip(const float *a, float *out)
   _mm_store_ps(out, x);
 }
 
-void vec4_const_mult(const float *a, float u, float *out)
+void vec4_scalar_mult(const float *a, float u, float *out)
 {
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps1(&u);
@@ -270,7 +270,7 @@ void vec4_const_mult(const float *a, float u, float *out)
   _mm_store_ps(out, _mm_mul_ps(x, y));
 }
 
-void vec4_const_recip_mult(const float *a, float u, float *out)
+void vec4_scalar_recip_mult(const float *a, float u, float *out)
 {
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps1(&u);
