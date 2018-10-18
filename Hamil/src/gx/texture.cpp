@@ -36,6 +36,13 @@ void Texture::init(unsigned w, unsigned h)
   setDefaultParameters(m_target);
 }
 
+void Texture::init(ivec2 sz)
+{
+  assert((sz.x >= 0 && sz.y >= 0) && "Attempted to init a Texture with negative size!");
+
+  init((unsigned)sz.x, (unsigned)sz.y);
+}
+
 void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
 {
   use();
@@ -144,6 +151,13 @@ void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
 
   use();
   glTexImage2DMultisample(m_target, m_samples, m_format, w, h, GL_TRUE);
+}
+
+void Texture2D::initMultisample(unsigned samples, ivec2 sz)
+{
+  assert((sz.x >= 0 && sz.y >= 0) && "Attempted to initMultisample a Texture with negative size!");
+
+  initMultisample(samples, (unsigned)sz.x, (unsigned)sz.y);
 }
 
 Sampler::Sampler()

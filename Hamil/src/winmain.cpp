@@ -55,6 +55,7 @@
 #include <bt/bullet.h>
 #include <bt/world.h>
 #include <bt/rigidbody.h>
+#include <bt/ray.h>
 
 #include <resources.h>
 #include <res/res.h>
@@ -105,26 +106,6 @@ int main(int argc, char *argv[])
   bt::init();
   res::init();
   hm::init();
-
-  std::vector<win32::Thread> threads;
-  for(int i = 0; i < 5; i++) {
-    threads.emplace_back([=]() -> ulong {
-      win32::DeltaTimer timer;
-      timer.reset();
-
-      win32::DeltaTimer sleep_timer;
-loop:
-      sleep_timer.reset();
-
-      Sleep(5000 + 1000*i);
-      printf("Hello from aux_thread(%6u)! @ %.1lfs (slept %.1lfs)\n",
-        win32::Thread::current_thread_id(),
-        timer.elapsedSecondsf(), sleep_timer.elapsedSecondsf());
-      goto loop;
-
-      return 0;
-    });
-  }
 
   win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
   auto bunny = bunny_f.map(win32::File::ProtectRead);
@@ -282,12 +263,12 @@ loop:
 
   skybox_program.label("SKYBOX_program");
 
-  gx::Texture2D fb_tex(gx::rgb8);
+  gx::Texture2D fb_tex(gx::rgb16f);
   gx::Texture2D fb_pos(gx::rgb32f);
   gx::Framebuffer fb;
 
-  fb_tex.initMultisample(1, FramebufferSize.x, FramebufferSize.y);
-  fb_pos.initMultisample(1, FramebufferSize.x, FramebufferSize.y);
+  fb_tex.initMultisample(1, FramebufferSize);
+  fb_pos.initMultisample(1, FramebufferSize);
   //fb_tex.init(FramebufferSize.x, FramebufferSize.y);
   fb_tex.label("FB_tex");
 
@@ -304,7 +285,7 @@ loop:
   gx::Texture2D fb_ui_tex(gx::rgba8);
   gx::Framebuffer fb_ui;
 
-  fb_ui_tex.initMultisample(4, FramebufferSize.x, FramebufferSize.y);
+  fb_ui_tex.initMultisample(4, FramebufferSize);
   fb_ui_tex.label("FB_ui_tex");
 
   fb_ui.use()
@@ -315,15 +296,15 @@ loop:
 
   fb_ui.label("FB_ui");
 
-  gx::Framebuffer fb_resolve;
+  gx::Framebuffer fb_composite;
 
-  fb_resolve.use()
-    .renderbuffer(FramebufferSize.x, FramebufferSize.y, gx::rgb8, gx::Framebuffer::Color(0));
-  if(fb_resolve.status() != gx::Framebuffer::Complete) {
-    win32::panic("couldn't create MSAA resolve Framebuffer!", win32::FramebufferError);
+  fb_composite.use()
+    .renderbuffer(FramebufferSize, gx::rgb8, gx::Framebuffer::Color(0));
+  if(fb_composite.status() != gx::Framebuffer::Complete) {
+    win32::panic("couldn't create composite Framebuffer!", win32::FramebufferError);
   }
 
-  fb_resolve.label("FB_resolve");
+  fb_composite.label("FB_composite");
 
   auto resolve_sampler = gx::Sampler::edgeclamp2d();
 
@@ -352,8 +333,8 @@ loop:
     .clearOp(gx::RenderPass::ClearColor)
     ;
 
-  auto resolve_pass = gx::RenderPass()
-    .framebuffer(fb_resolve)
+  auto composite_pass = gx::RenderPass()
+    .framebuffer(fb_composite)
     .textures({
       { 4, { &fb_ui_tex, &resolve_sampler }},
       { 5, { &fb_tex, &resolve_sampler }}
@@ -685,9 +666,11 @@ loop:
     bt::RigidBody picked_body;
     vec3 hit_normal;
     if(mouse_ray.w != 0.0f) {
-      auto to = eye.xyz() + mouse_ray_direction*10e10f;
-
-      picked_body = world.pickDbgSimulation(eye.xyz(), to, hit_normal);
+      auto hit = world.rayTestClosest(bt::Ray::from_direction(eye.xyz(), mouse_ray_direction));
+      if(hit) {
+        picked_body = hit.rigidBody();
+        hit_normal  = hit.normal();
+      }
     }
 
     if(picked_body && picked_body.hasMotionState()) {
@@ -719,7 +702,7 @@ loop:
         .applyImpulse(-hit_normal*force_factor, center_of_mass);
     }
 
-    world.stepDbgSimulation(step_timer.elapsedSecondsf());
+    world.step(step_timer.elapsedSecondsf());
     components().foreach([&](hmRef<hm::RigidBody> component) {
       bt::RigidBody rb = component().rb;
 
@@ -831,7 +814,7 @@ loop:
     cursor.paint();
 
     // Resolve the main Framebuffer and composite the Ui on top of it
-    resolve_pass.begin();
+    composite_pass.begin();
 
     composite_program.use()
       .uniformSampler(U.composite.uUi, 4)
@@ -841,7 +824,7 @@ loop:
    /* fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 */
-    fb_resolve.blitToWindow(
+    fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);

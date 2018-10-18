@@ -1,5 +1,6 @@
 #include <bt/world.h>
 #include <bt/collisionshape.h>
+#include <bt/ray.h>
 #include <bt/btcommon.h>
 
 #include <math/geometry.h>
@@ -92,6 +93,33 @@ void DynamicsWorld::removeRigidBody(RigidBody rb)
   m_world->removeRigidBody(rb.m);
 }
 
+RayClosestHit DynamicsWorld::rayTestClosest(Ray ray)
+{
+  auto from = to_btVector3(ray.m_from);
+  auto to   = to_btVector3(ray.m_to);
+
+  btCollisionWorld::ClosestRayResultCallback callback(from, to);
+
+  m_world->rayTest(from, to, callback);
+  if(callback.hasHit()) {
+    RayClosestHit hit;
+
+    hit.m_collision_object = callback.m_collisionObject;
+
+    hit.m_hit_point  = from_btVector3(callback.m_hitPointWorld);
+    hit.m_hit_normal = from_btVector3(callback.m_hitNormalWorld);
+
+    return hit;
+  }
+
+  return RayClosestHit();
+}
+
+void DynamicsWorld::step(float dt)
+{
+  m_world->stepSimulation(dt, SimulationMaxSubsteps);
+}
+
 static CollisionShape p_sphere;
 
 void DynamicsWorld::initDbgSimulation()
@@ -121,37 +149,6 @@ void DynamicsWorld::startDbgSimulation()
 RigidBody DynamicsWorld::createDbgSimulationRigidBody(vec3 sphere, bool active)
 {
   return RigidBody::create(p_sphere, sphere, 1.0f, active);
-}
-
-void DynamicsWorld::stepDbgSimulation(float dt)
-{
-  m_world->stepSimulation(dt, SimulationMaxSubsteps);
-}
-
-void DynamicsWorld::stepDbgSimulation(float dt, RigidBodyIter fn) 
-{
-  stepDbgSimulation(dt);
-
-  foreachRigidBody([&](btRigidBody *rb) {
-    fn(rb);
-  });
-}
-
-RigidBody DynamicsWorld::pickDbgSimulation(vec3 ray_from, vec3 ray_to, vec3& hit_normal)
-{
-  auto from = to_btVector3(ray_from);
-  auto to   = to_btVector3(ray_to);
-
-  btCollisionWorld::ClosestRayResultCallback callback(from, to);
-
-  m_world->rayTest(from, to, callback);
-  if(callback.hasHit()) {
-    hit_normal = from_btVector3(callback.m_hitNormalWorld);
-
-    return (btRigidBody *)btRigidBody::upcast(callback.m_collisionObject);
-  }
-
-  return nullptr;
 }
 
 void DynamicsWorld::foreachObject(BtCollisionObjectIter fn)

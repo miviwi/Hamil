@@ -16,6 +16,7 @@ public:
   /* --------------- Texture2D init methods ---------------- */
 
   void init(unsigned w, unsigned h); // Initializes MipMap level 0
+  void init(ivec2 sz);
 
   void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
@@ -69,6 +70,7 @@ public:
   virtual ~Texture2D();
 
   void initMultisample(unsigned samples, unsigned w, unsigned h);
+  void initMultisample(unsigned samples, ivec2 sz);
 
 private:
   friend class Framebuffer;

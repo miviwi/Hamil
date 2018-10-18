@@ -303,6 +303,15 @@ struct alignas(16) intrin_vec3 {
   operator float *() { return d; }
 };
 
+inline vec3 operator*(const vec3& v, float u)
+{
+  auto a = intrin_vec3(v);
+  auto b = intrin_vec3();
+
+  intrin::vec4_scalar_mult(a, u, b);
+  return b.toVec3();
+}
+
 inline float vec3::dot(const vec3& v) const
 {
   auto a = intrin_vec3(*this);

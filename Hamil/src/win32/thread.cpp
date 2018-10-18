@@ -21,14 +21,14 @@ private:
 
 DWORD Thread::ThreadProcTrampoline(void *param)
 {
-  // The lpParameter is actually a pointer to this Thread's m_data
+  // The lpParameter is a pointer to this Thread's m_data
   auto self = (ThreadData *)param;
 
   // Actually execute the Thread's code
   DWORD exit_code = self->fn();
 
   // Call the OnExit handler if it has been set
-  if(auto on_exit = self->on_exit) {
+  if(auto& on_exit = self->on_exit) {
     on_exit();
   }
 

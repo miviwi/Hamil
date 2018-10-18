@@ -415,9 +415,23 @@ void quat_to_mat4x3(const float *a, float *out)
   _mm_store_ps(out + (2*4), m[2]);
 }
 
+// Avoid global namespace pollution
+
 #undef X
 #undef Y
 #undef Z
 #undef W
+
+#undef cross_ps
+#undef dot_xyz_ps
+#undef dot_ps
+#undef mask_xyz_ps
+#undef neg_ps
+#undef broadcast_ps
+#undef shuffle2_ps
+#undef shuffle_ps
+#undef pshufd
+#undef epi32_ps
+#undef ps_epi32
 
 }

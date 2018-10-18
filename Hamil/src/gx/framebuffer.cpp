@@ -55,7 +55,7 @@ Framebuffer& Framebuffer::tex(const Texture2D& tex, unsigned level, Attachment a
   return *this;
 }
 
-Framebuffer & Framebuffer::tex(const Texture2DArray& tex, unsigned level, unsigned layer, Attachment att)
+Framebuffer& Framebuffer::tex(const Texture2DArray& tex, unsigned level, unsigned layer, Attachment att)
 {
   checkIfBound();
   glFramebufferTextureLayer(m_bound, attachment(att), tex.m, level, layer);
@@ -83,6 +83,13 @@ Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attac
   return *this;
 }
 
+Framebuffer& Framebuffer::renderbuffer(ivec2 sz, Format fmt, Attachment att)
+{
+  assert((sz.x >= 0 && sz.y >= 0) && "Attempted to create a renderbuffer with negative size!");
+
+  return renderbuffer((unsigned)sz.x, (unsigned)sz.y, fmt, att);
+}
+
 Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, Attachment att)
 {
   auto dimensions = getColorAttachement0Dimensions();
@@ -102,6 +109,13 @@ Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, 
   drawBuffer(att);
 
   return *this;
+}
+
+Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, ivec2 sz, Format fmt, Attachment att)
+{
+  assert((sz.x >= 0 && sz.y >= 0) && "Attempted to create a renderbufferMultisample with negative size!");
+
+  return renderbufferMultisample(samples, (unsigned)sz.x, (unsigned)sz.y, fmt, att);
 }
 
 void Framebuffer::blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)

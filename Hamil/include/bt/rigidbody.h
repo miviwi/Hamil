@@ -72,6 +72,7 @@ protected:
 
 private:
   friend class DynamicsWorld;
+  friend class RayClosestHit;
 
   btRigidBody *m;
 };

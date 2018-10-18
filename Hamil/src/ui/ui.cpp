@@ -81,8 +81,6 @@ uniform int uType;
 uniform vec4 uTextColor;
 uniform float uImagePage;
 
-const float UiGamma = 1.2f;
-
 in VertexData {
   vec4 color;
   vec2 uv;
@@ -118,9 +116,6 @@ void main() {
 
     default: color = vec4(0); break;
   }
-
-  vec3 srgb_color = pow(color.rgb, vec3(1.0f/UiGamma));
-  color = vec4(srgb_color, color.a);
 }
 
 )FRAG";

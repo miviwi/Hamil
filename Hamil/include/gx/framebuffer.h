@@ -67,10 +67,12 @@ public:
   //   - Errors will occur if it doesn't exist!
   Framebuffer& renderbuffer(Format fmt, Attachment att);
   Framebuffer& renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att);
+  Framebuffer& renderbuffer(ivec2 sz, Format fmt, Attachment att);
 
   // See the note for renderbuffer(fmt, att)...
   Framebuffer& renderbufferMultisample(unsigned samples, Format fmt, Attachment att);
   Framebuffer& renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att);
+  Framebuffer& renderbufferMultisample(unsigned samples, ivec2 sz, Format fmt, Attachment att);
 
   void blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
   void blitToWindow(ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter);
