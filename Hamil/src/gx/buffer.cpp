@@ -1,4 +1,6 @@
 #include <gx/buffer.h>
+#include <gx/texture.h>
+#include <gx/framebuffer.h>
 
 #include <cassert>
 #include <cstring>
@@ -18,34 +20,28 @@ Buffer::~Buffer()
   glDeleteBuffers(1, &m);
 }
 
-void *Buffer::map(Access access)
+BufferView Buffer::map(Access access)
 {
   use();
+  auto ptr = glMapBuffer(m_target, access);
 
-  return glMapBuffer(m_target, access);
+  return BufferView(*this, m_target, ptr);
 }
 
-void *Buffer::map(Access access, GLintptr off, GLint sz, uint flags)
+BufferView Buffer::map(Access access, GLintptr off, GLint sz, uint flags)
 {
   use();
 
-  return glMapBufferRange(m_target, off, sz, access | (GLbitfield)flags);
-}
+  GLbitfield gl_access = 0;
+  switch(access) {
+  case Read: gl_access = GL_MAP_READ_BIT; break;
+  case Write: gl_access = GL_MAP_WRITE_BIT; break;
 
-void Buffer::unmap()
-{
-  use();
+  case ReadWrite: gl_access = GL_MAP_READ_BIT|GL_MAP_WRITE_BIT; break;
+  }
+  auto ptr = glMapBufferRange(m_target, off, sz,  gl_access | (GLbitfield)flags);
 
-  auto result = glUnmapBuffer(m_target);
-  assert(result && "failed to unmap buffer!");
-}
-
-void Buffer::flush(ssize_t off, ssize_t sz)
-{
-  use();
-
-  assert(sz > 0 && "Attempting to flush a mapping with unknown size without specifying one!");
-  glFlushMappedBufferRange(m_target, off, sz);
+  return BufferView(*this, m_target, ptr, sz);
 }
 
 void Buffer::label(const char *lbl)
@@ -84,6 +80,54 @@ void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem
 
   use();
   glBufferSubData(m_target, offset*elem_sz, sz, data);
+}
+
+BufferView::BufferView(const Buffer& buf, GLenum target, void *ptr, ssize_t sz) :
+  m(buf), m_target(target), m_sz(sz), m_ptr(ptr)
+{
+}
+
+BufferView::~BufferView()
+{
+  if(!deref()) return;
+
+  unmap();
+}
+
+void *BufferView::get() const
+{
+  return m_ptr;
+}
+
+uint8_t& BufferView::operator[](size_t offset)
+{
+  return *(get<uint8_t>() + offset);
+}
+
+void BufferView::flush(ssize_t off)
+{
+  flush(off, m_sz);
+}
+
+void BufferView::flush(ssize_t off, ssize_t sz)
+{
+  m.use();
+
+  assert(sz > 0 && "Attempting to flush a mapping with unknown size without specifying one!");
+  glFlushMappedBufferRange(m_target, off, sz);
+}
+
+void BufferView::unmap()
+{
+  m.use();
+
+  auto result = glUnmapBuffer(m_target);
+  assert(result && "failed to unmap buffer!");
+
+  m_target = GL_INVALID_ENUM;
+
+  m_ptr = nullptr;
+  m_sz = -1;
 }
 
 VertexBuffer::VertexBuffer(Usage usage) :
@@ -135,6 +179,128 @@ void UniformBuffer::bindToIndex(unsigned idx, size_t offset, size_t size)
 void UniformBuffer::bindToIndex(unsigned idx, size_t size)
 {
   bindToIndex(idx, 0, size);
+}
+
+PixelBuffer::PixelBuffer(Usage usage, TransferDirection xfer_dir) :
+  Buffer(usage, target_for_xfer_direction(xfer_dir))
+{
+}
+
+void PixelBuffer::uploadTexture(Texture& tex,
+  unsigned mip, unsigned w, unsigned h, Format fmt, Type type, size_t off)
+{
+  assertUpload();
+
+  use();
+  tex.use();
+
+  glTexImage2D(tex.m_target, mip, tex.m_format, w, h, 0, fmt, type, (void *)(uintptr_t)off);
+
+  unbind();
+}
+
+void PixelBuffer::uploadTexture(Texture& tex,
+  unsigned mip, unsigned w, unsigned h, unsigned d, Format fmt, Type type, size_t off)
+{
+  assertUpload();
+
+  use();
+  tex.use();
+
+  glTexImage3D(tex.m_target, mip, tex.m_format, w, h, d, 0, fmt, type, (void *)(uintptr_t)off);
+
+  unbind();
+}
+
+void PixelBuffer::uploadTexture(Texture& tex,
+  unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h, Format fmt, Type type, size_t off)
+{
+  assertUpload();
+
+  use();
+  tex.use();
+
+  glTexSubImage2D(tex.m_target, mip, x, y, w, h, fmt, type, (void *)(uintptr_t)off);
+
+  unbind();
+}
+
+void PixelBuffer::uploadTexture(Texture& tex,
+  unsigned mip, unsigned x, unsigned y, unsigned z, unsigned w, unsigned h, unsigned d,
+  Format fmt, Type type, size_t off)
+{
+  assertUpload();
+
+  use();
+  tex.use();
+
+  glTexSubImage3D(tex.m_target, mip, x, y, z, w, h, d, fmt, type, (void *)(uintptr_t)off);
+
+  unbind();
+}
+
+void PixelBuffer::downloadTexture(Texture& tex, unsigned mip, Format fmt, Type type, size_t off)
+{
+  assertDownload();
+
+  use();
+  tex.use();
+
+  glGetTexImage(tex.m_target, mip, fmt, type, (void *)(uintptr_t)off);
+
+  unbind();
+}
+
+void PixelBuffer::downloadFramebuffer(Framebuffer& fb,
+  int w, int h, Format fmt, Type type, unsigned attachment, size_t off)
+{
+  downloadFramebuffer(fb, 0, 0, w, h, fmt, type, attachment, off);
+}
+
+void PixelBuffer::downloadFramebuffer(Framebuffer& fb,
+  int x, int y, int w, int h, Format fmt, Type type, unsigned attachment, size_t off)
+{
+  assertDownload();
+
+  use();
+  fb.use(gx::Framebuffer::Read);
+
+  glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment);
+  glReadPixels(x, y, w, h, fmt, type, (void *)(uintptr_t)off);
+
+  unbind();
+}
+
+PixelBuffer& PixelBuffer::transferDirection(TransferDirection xfer_dir)
+{
+  m_target = target_for_xfer_direction(xfer_dir);
+  return *this;
+}
+
+GLenum PixelBuffer::target_for_xfer_direction(TransferDirection xfer_dir)
+{
+  switch(xfer_dir) {
+  case Upload:   return GL_PIXEL_UNPACK_BUFFER;
+  case Download: return GL_PIXEL_PACK_BUFFER;
+  }
+
+  return GL_INVALID_ENUM;
+}
+
+void PixelBuffer::assertUpload()
+{
+  assert(m_target == GL_PIXEL_UNPACK_BUFFER && "Attempted an Upload operation with a Download PixelBufer!");
+}
+
+void PixelBuffer::assertDownload()
+{
+  assert(m_target == GL_PIXEL_PACK_BUFFER && "Attempted a Download operation with an Upload PixelBufer!");
+}
+
+void PixelBuffer::unbind()
+{
+  // Unbind the PBO so further texture operations proceed normally
+  glBindBuffer(m_target, 0);
 }
 
 }

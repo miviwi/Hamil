@@ -49,12 +49,14 @@ public:
   void label(const char *lbl);
 
 protected:
+  friend class Framebuffer;
+  friend class PixelBuffer;
+
   Texture(GLenum target, Format format);
 
   void use();
 
   friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
-  friend class Framebuffer;
 
   GLenum m_target;
   Format m_format;

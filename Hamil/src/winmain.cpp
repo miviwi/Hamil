@@ -16,6 +16,7 @@
 #include <win32/stdstream.h>
 #include <win32/mman.h>
 #include <win32/thread.h>
+#include <win32/mutex.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -82,7 +83,6 @@
 #include <vector>
 #include <array>
 #include <utility>
-
 
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
@@ -504,6 +504,10 @@ int main(int argc, char *argv[])
 
   auto scene = hm::entities().createGameObject("Scene");
 
+  gx::PixelBuffer pbo(gx::Buffer::StaticRead, gx::PixelBuffer::Download);
+  pbo.label("PBO_test");
+  pbo.init(sizeof(u8)*3, FramebufferSize.x*FramebufferSize.y);
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -559,6 +563,16 @@ int main(int argc, char *argv[])
           //pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
         } else if(kb->keyDown('`')) {
           console.toggle();
+        } else if(kb->keyDown('F')) {
+          const size_t PboSize = sizeof(u8)*3*FramebufferSize.x*FramebufferSize.y;
+
+          pbo.downloadFramebuffer(fb_composite, FramebufferSize.x, FramebufferSize.y,
+            gx::rgb, gx::u8);
+
+          auto pbo_view = pbo.map(gx::Buffer::Read, 0, PboSize);
+
+          win32::File screenshot("screenshot.bin", win32::File::Write, win32::File::CreateAlways);
+          screenshot.write(pbo_view.get(), PboSize);
         }
       } else if(auto mouse = input->get<win32::Mouse>()) {
         using win32::Mouse;
@@ -824,6 +838,8 @@ int main(int argc, char *argv[])
    /* fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 */
+
+
     fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },

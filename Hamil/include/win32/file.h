@@ -116,11 +116,9 @@ class FileView : public Ref {
 public:
   ~FileView();
 
-  FileView& operator=(const FileView& other) = delete;
-
   void *get() const;
   template <typename T> T *get() const { return (T *)get(); }
-  uint8_t& operator[](size_t offset);
+  u8& operator[](size_t offset);
 
   size_t size() const;
 
@@ -129,7 +127,7 @@ public:
   void unmap();
 
 private:
-  friend class File;
+  friend File;
 
   FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size);
 
