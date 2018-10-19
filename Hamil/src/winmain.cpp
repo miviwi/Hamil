@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
       py::exec(command);
       console.print(">>> " + win32::StdStream::gets());
     } catch(py::Exception e) {
-      std::string exception_type = e.type().attr("__name__").str();
+      std::string exception_type = e.type().name();
       if(exception_type == "SystemExit") exit(0);
 
       console.print(exception_type);
@@ -504,9 +504,11 @@ int main(int argc, char *argv[])
 
   auto scene = hm::entities().createGameObject("Scene");
 
-  gx::PixelBuffer pbo(gx::Buffer::StaticRead, gx::PixelBuffer::Download);
+  const size_t PboSize = sizeof(u8)*3 * FramebufferSize.area();
+
+  gx::PixelBuffer pbo(gx::Buffer::DynamicRead, gx::PixelBuffer::Download);
   pbo.label("PBO_test");
-  pbo.init(sizeof(u8)*3, FramebufferSize.x*FramebufferSize.y);
+  pbo.init(1, PboSize);
 
   while(window.processMessages()) {
     using hm::entities;
@@ -564,10 +566,10 @@ int main(int argc, char *argv[])
         } else if(kb->keyDown('`')) {
           console.toggle();
         } else if(kb->keyDown('F')) {
-          const size_t PboSize = sizeof(u8)*3*FramebufferSize.x*FramebufferSize.y;
-
           pbo.downloadFramebuffer(fb_composite, FramebufferSize.x, FramebufferSize.y,
             gx::rgb, gx::u8);
+
+          //pbo.downloadTexture(tex, 1, gx::rgb, gx::u8);
 
           auto pbo_view = pbo.map(gx::Buffer::Read, 0, PboSize);
 

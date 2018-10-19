@@ -34,12 +34,21 @@ BufferView Buffer::map(Access access, GLintptr off, GLint sz, uint flags)
 
   GLbitfield gl_access = 0;
   switch(access) {
-  case Read: gl_access = GL_MAP_READ_BIT; break;
+  case Read:  gl_access = GL_MAP_READ_BIT; break;
   case Write: gl_access = GL_MAP_WRITE_BIT; break;
 
   case ReadWrite: gl_access = GL_MAP_READ_BIT|GL_MAP_WRITE_BIT; break;
   }
+
   auto ptr = glMapBufferRange(m_target, off, sz,  gl_access | (GLbitfield)flags);
+  if(!ptr) {
+    // It's illegal to { MapInvalidate, MapInvalidateRange, MapUnsynchronized }
+    //   a buffer intended for reading
+    if(gl_access & GL_MAP_READ_BIT && flags != MapDefault) throw InvalidMapFlagsError();
+
+    // Unknown error
+    throw MapError();
+  }
 
   return BufferView(*this, m_target, ptr, sz);
 }
@@ -179,6 +188,11 @@ void UniformBuffer::bindToIndex(unsigned idx, size_t offset, size_t size)
 void UniformBuffer::bindToIndex(unsigned idx, size_t size)
 {
   bindToIndex(idx, 0, size);
+}
+
+TexelBuffer::TexelBuffer(Usage usage) :
+  Buffer(usage, GL_TEXTURE_BUFFER)
+{
 }
 
 PixelBuffer::PixelBuffer(Usage usage, TransferDirection xfer_dir) :

@@ -2,6 +2,7 @@
 #include <gx/framebuffer.h>
 #include <gx/texture.h>
 #include <gx/pipeline.h>
+#include <gx/program.h>
 
 namespace gx {
 
@@ -54,7 +55,7 @@ RenderPass& RenderPass::clearOp(unsigned op)
 }
 
 const RenderPass& RenderPass::begin() const
-{
+{ 
   m_framebuffer->use();
   m_pipeline.use();
 

@@ -320,4 +320,21 @@ TextureCubeMap::~TextureCubeMap()
 {
 }
 
+TextureBuffer::TextureBuffer(Format format, TexelBuffer& buf) :
+  Texture(GL_TEXTURE_BUFFER, format),
+  m_buf(buf)
+{
+  buffer(buf);
+}
+
+TextureBuffer& TextureBuffer::buffer(TexelBuffer& buf)
+{
+  m_buf = buf;
+
+  use();
+  glTexBuffer(m_target, m_format, m_buf.m);
+
+  return *this;
+}
+
 }

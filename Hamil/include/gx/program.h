@@ -118,6 +118,8 @@ public:
 
   void label(const char *lbl);
 
+  static void unbind();
+
 private:
   void link();
   void getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[]);

@@ -43,6 +43,15 @@ public:
     MapUnsynchronized  = GL_MAP_UNSYNCHRONIZED_BIT,
   };
 
+  struct Error {
+  };
+
+  struct InvalidMapFlagsError : public Error {
+  };
+
+  struct MapError : public Error {
+  };
+
   ~Buffer();
 
   virtual void use() const;
@@ -120,6 +129,14 @@ public:
   void bindToIndex(unsigned idx);
   void bindToIndex(unsigned idx, size_t offset, size_t size);
   void bindToIndex(unsigned idx, size_t size);
+};
+
+class TexelBuffer : public Buffer {
+public:
+  TexelBuffer(Usage usage);
+
+private:
+  friend class TextureBuffer;
 };
 
 // PixelBuffer(..., Upload)   -> The buffer will be a source of Texture data

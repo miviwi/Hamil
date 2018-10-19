@@ -54,7 +54,12 @@ struct Vector2 {
   T distance(const Vector2& v) const
   {
     return sqrt(distance2(v));
-  };
+  }
+
+  T area() const
+  {
+    return x*y;
+  }
 
   Vector2 recip() const { return { (T)1 / x, (T)1 / y }; }
 

@@ -226,6 +226,12 @@ void Program::label(const char *lbl)
 #endif
 }
 
+void Program::unbind()
+{
+  p_last_program = 0;
+  glUseProgram(0);
+}
+
 void Program::link()
 {
   glLinkProgram(m);

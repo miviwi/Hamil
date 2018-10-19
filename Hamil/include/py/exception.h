@@ -2,6 +2,7 @@
 
 #include <common.h>
 #include <py/object.h>
+#include <py/types.h>
 
 #include <string>
 
@@ -13,15 +14,16 @@ public:
 
   static bool occured();
 
-  const Object& type() const;
+  const Type& type() const;
   const Object& value() const;
   const Object& traceback() const;
 
 protected:
-  Exception(Object type, Object value, Object traceback);
+  Exception(Type type, Object value, Object traceback);
 
 private:
-  Object m_type, m_val, m_trace;
+  Type m_type;
+  Object m_val, m_trace;
 };
 
 }

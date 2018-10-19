@@ -1,6 +1,8 @@
 #pragma once
 
 #include <gx/gx.h>
+#include <gx/buffer.h>
+
 #include <util/ref.h>
 #include <math/geometry.h>
 
@@ -97,6 +99,16 @@ public:
   TextureCubeMap(Format format);
   TextureCubeMap(const TextureCubeMap& other) = delete;
   virtual ~TextureCubeMap();
+};
+
+class TextureBuffer : public Texture {
+public:
+  TextureBuffer(Format format, TexelBuffer& buf);
+
+  TextureBuffer& buffer(TexelBuffer& buf);
+
+private:
+  TexelBuffer m_buf;
 };
 
 // - param() DOES NOT check the validity of it's arguments

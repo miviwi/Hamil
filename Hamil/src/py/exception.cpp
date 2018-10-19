@@ -7,9 +7,10 @@ namespace py {
 
 Exception Exception::fetch()
 {
-  Object otype = nullptr,
-    oval = nullptr,
+  Type otype = nullptr;
+  Object oval = nullptr,
     otrace = nullptr;
+
   PyObject *type = nullptr,
     *val = nullptr,
     *trace = nullptr;
@@ -25,7 +26,7 @@ bool Exception::occured()
   return PyErr_Occurred();
 }
 
-const Object& Exception::type() const
+const Type& Exception::type() const
 {
   return m_type;
 }
@@ -40,7 +41,7 @@ const Object& Exception::traceback() const
   return m_trace;
 }
 
-Exception::Exception(Object type, Object value, Object traceback) :
+Exception::Exception(Type type, Object value, Object traceback) :
   m_type(type), m_val(value), m_trace(traceback)
 {
 }
