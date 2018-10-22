@@ -65,7 +65,7 @@ public:
   enum {
     InitialPages = 2,
 
-    TexImageUnit = 14,
+    TexImageUnit = gx::NumTexUnits-2,
   };
 
   static constexpr uvec2 AtlasSize{ 1024, 1024 };

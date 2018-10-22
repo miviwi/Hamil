@@ -98,7 +98,7 @@ BufferView::BufferView(const Buffer& buf, GLenum target, void *ptr, ssize_t sz) 
 
 BufferView::~BufferView()
 {
-  if(!deref()) return;
+  if(deref()) return;
 
   unmap();
 }

@@ -298,7 +298,8 @@ void Program::getUniformBlockOffsets()
 }
 
 static const char *p_shader_source[256] = {
-  "#version 330 core\n\n"         // comma omitted
+  "#version 330 core\n\n"         // Concatenate the strings
+  "layout(row_major) uniform;\n"
   "layout(std140) uniform;\n\n",
   nullptr,
 };
@@ -327,7 +328,17 @@ Shader::Shader(Type type, const char *const sources[], size_t count)
     std::vector<char> log(log_size);
     glGetShaderInfoLog(m, log_size, nullptr, log.data());
 
-    win32::panic(util::fmt("OpenGL shader compilation error:\n%s", log).data(), win32::ShaderCompileError);
+    // Concatenate all the sources
+    std::string source;
+    const char **source_ptr = p_shader_source;
+    while(*source_ptr) {
+      source += *source_ptr;
+      source_ptr++;
+    }
+
+    win32::panic(
+      util::fmt("OpenGL shader compilation error:\n%s\nSource: %s\n", log, source).data(),
+      win32::ShaderCompileError);
   }
 }
 

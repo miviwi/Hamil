@@ -5,22 +5,6 @@
 struct ProgramUniforms : gx::Uniforms {
   Name program;
 
-  mat4 uModelView;
-  mat4 uProjection;
-  mat3 uNormal;
-
-  vec4 uCol;
-  vec4 uLightPosition;
-};
-
-struct TexUniforms : gx::Uniforms {
-  Name tex;
-
-  mat4 uModelView;
-  mat4 uProjection;
-  mat3 uNormal;
-  mat4 uTexMatrix;
-
   Sampler uTex;
 };
 

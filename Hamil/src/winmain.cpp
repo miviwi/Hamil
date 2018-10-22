@@ -113,6 +113,8 @@ int main(int argc, char *argv[])
   auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
   const auto& bunny_mesh = obj_loader.mesh();
 
+  bunny.unmap();
+
   std::vector<vec3> bunny_verts;
   std::vector<u16> bunny_inds;
 
@@ -135,16 +137,16 @@ int main(int argc, char *argv[])
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
-    .attr(gx::f32, 3);
+    .attr(gx::f32, 3)
+    .attrAlias(0, gx::f32, 2);
 
   gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
   gx::IndexBuffer bunny_ibuf(gx::Buffer::Static, gx::u16);
+  bunny_vbuf.label("BUNNY_vtx");
+  bunny_ibuf.label("BUNNY_ind");
 
   bunny_vbuf.init(bunny_verts.data(), bunny_verts.size());
   bunny_ibuf.init(bunny_inds.data(), bunny_inds.size());
-
-  bunny_vbuf.label("BUNNY_vtx");
-  bunny_ibuf.label("BUNNY_ind");
 
   gx::IndexedVertexArray bunny_arr(bunny_fmt, bunny_vbuf, bunny_ibuf);
   bunny_arr.label("BUNNY");
@@ -171,7 +173,8 @@ int main(int argc, char *argv[])
 
   auto fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
-    .attr(gx::f32, 3);
+    .attr(gx::f32, 3)
+    .attrAlias(0, gx::f32, 2);
 
   res::Handle<res::Image> r_texture = R.image.tex;
 
@@ -184,7 +187,7 @@ int main(int argc, char *argv[])
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
 
-  byte cubemap_colors[][3] ={
+  byte cubemap_colors[][3] = {
     { 0x20, 0x20, 0x20, },
     { 0x20, 0x20, 0x20, },
     { 0x20, 0x20, 0x20, },
@@ -194,14 +197,14 @@ int main(int argc, char *argv[])
   };
 
   gx::TextureCubeMap cubemap(gx::rgb);
+  cubemap.label("SKYBOX_cubemap");
+
   for(size_t i = 0; i < gx::Faces.size(); i++) {
     auto face  = gx::Faces[i];
     void *data = cubemap_colors[i];
 
     cubemap.init(data, 0, face, 1, gx::rgb, gx::u8);
   }
-
-  cubemap.label("SKYBOX_cubemap");
 
   auto cubemap_sampler = gx::Sampler::repeat2d_linear();
 
@@ -219,9 +222,7 @@ int main(int argc, char *argv[])
   skybox_ibuf.init(skybox_inds.data(), skybox_inds.size());
 
   gx::IndexedVertexArray skybox_arr(skybox_fmt, skybox_vbuf, skybox_ibuf);
-
   skybox_arr.label("SKYBOX");
-  skybox_arr.end();
 
   std::vector<vec2> fullscreen_quad = {
     { -1.0f,  1.0f },
@@ -237,20 +238,15 @@ int main(int argc, char *argv[])
   fullscreen_quad_vbuf.init(fullscreen_quad.data(), fullscreen_quad.size());
 
   gx::VertexArray fullscreen_quad_arr(fullscreen_quad_fmt, fullscreen_quad_vbuf);
-
   fullscreen_quad_arr.label("fullscreen_quad");
-  fullscreen_quad_arr.end();
 
   res::Handle<res::Shader> r_phong = R.shader.shaders.phong,
     r_program = R.shader.shaders.program,
-    r_tex = R.shader.shaders.tex,
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
-  auto program     = gx::make_program(
+  auto program = gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);
-  auto tex_program = gx::make_program(
-    r_tex->source(res::Shader::Vertex), r_tex->source(res::Shader::Fragment), U.tex);
 
   auto skybox_program = gx::make_program(
     r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox);
@@ -259,11 +255,10 @@ int main(int argc, char *argv[])
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite);
 
   program.label("program");
-  tex_program.label("TEX_program");
 
   skybox_program.label("SKYBOX_program");
 
-  gx::Texture2D fb_tex(gx::rgb16f);
+  gx::Texture2D fb_tex(gx::rgb10);
   gx::Texture2D fb_pos(gx::rgb32f);
   gx::Framebuffer fb;
 
@@ -275,7 +270,7 @@ int main(int argc, char *argv[])
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
     .tex(fb_pos, 0, gx::Framebuffer::Color(1))
-    .renderbuffer(gx::depth24, gx::Framebuffer::Depth);
+    .renderbuffer(gx::depth16, gx::Framebuffer::Depth);
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
@@ -346,6 +341,60 @@ int main(int argc, char *argv[])
     .clearOp(gx::RenderPass::ClearColor)
     ;
 
+  static constexpr uint MatrixBinding = 0;
+  struct MatrixBlock {
+    mat4 modelview;
+    mat4 projection;
+    mat4 normal;
+    mat4 tex;
+  } matrix_block;
+
+  enum Material : uint {
+    Unshaded,
+    PhongColored,
+    PhongProceduralColored,
+    PhongTextured,
+  };
+
+  static constexpr uint MaterialBinding = 1;
+  struct MaterialBlock {
+    union {
+      uint material;
+      vec4 pad_;
+    };
+    vec4 color;
+
+    MaterialBlock() :
+      material(0)
+    { }
+  } material_block;
+
+  struct Light {
+    vec4 position, color;
+  };
+
+  static constexpr uint LightBinding = 2;
+  struct LightBlock {
+    Light lights[4];
+    int num_lights;
+  } light_block;
+
+  gx::UniformBuffer matrix_ubo(gx::Buffer::Dynamic);
+  matrix_ubo.label("UBO_matrix");
+  matrix_ubo.init(sizeof(MatrixBlock), 1);
+  matrix_ubo.bindToIndex(MatrixBinding);
+
+  gx::UniformBuffer material_ubo(gx::Buffer::Dynamic);
+  material_ubo.label("UBO_material");
+  material_ubo.init(sizeof(MaterialBlock), 1);
+  material_ubo.bindToIndex(MaterialBinding);
+
+  gx::UniformBuffer light_ubo(gx::Buffer::Dynamic);
+  light_ubo.label("UBO_lights");
+  light_ubo.init(sizeof(LightBlock), 1);
+  light_ubo.bindToIndex(LightBinding);
+
+
   float r = 1280.0f;
   float b = 720.0f;
 
@@ -364,26 +413,9 @@ int main(int argc, char *argv[])
   auto& sphere_verts = std::get<0>(sphere);
   auto& sphere_inds  = std::get<1>(sphere);
 
-  struct Light {
-    vec4 position, color;
-  };
-
-  struct LightBlock {
-    Light lights[4];
-    int num_lights;
-  };
-
-  LightBlock light_block;
-
-  gx::UniformBuffer light_ubo(gx::Buffer::Dynamic);
-
-  light_ubo.label("UBO_lights");
-
-  light_ubo.init(sizeof(LightBlock), 1);
-  light_ubo.bindToIndex(0);
-
-  program.uniformBlockBinding("LightBlock", 0);
-  tex_program.uniformBlockBinding("LightBlock", 0);
+  program.uniformBlockBinding("MatrixBlock", MatrixBinding);
+  program.uniformBlockBinding("MaterialBlock", MaterialBinding);
+  program.uniformBlockBinding("LightBlock", LightBinding);
 
   vec3 light_position[] = {
     { 0, 6, 0 },
@@ -391,24 +423,39 @@ int main(int argc, char *argv[])
     { 20, 6, 0 },
   };
 
-  std::vector<vec2> floor_vtxs = {
-    { -1.0f, 1.0f },  { 0.0f, 1.0f },
-    { -1.0f, -1.0f }, { 0.0f, 0.0f },
-    { 1.0f, -1.0f },  { 1.0f, 0.0f },
-
-    { 1.0f, -1.0f },  { 1.0f, 0.0f },
-    { 1.0f, 1.0f },   { 1.0f, 1.0f },
-    { -1.0f, 1.0f },  { 0.0f, 1.0f },
-
-    { -1.0f, 1.0f },  { 0.0f, 1.0f },
-    { 1.0f, -1.0f },  { 1.0f, 0.0f },
-    { -1.0f, -1.0f }, { 0.0f, 0.0f },
-
-    { 1.0f, -1.0f },  { 1.0f, 0.0f },
-    { -1.0f, 1.0f },  { 0.0f, 1.0f },
-    { 1.0f, 1.0f },   { 1.0f, 1.0f },
-
+  struct FloorVtx {
+    vec3 pos;
+    vec3 normal;
+    vec2 tex_coord;
   };
+
+  std::vector<FloorVtx> floor_vtxs = {
+    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 0.0f, 1.0f } },
+    { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 0.0f, 0.0f } },
+    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 1.0f, 0.0f } },
+
+    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 1.0f, 0.0f } },
+    { {  1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 1.0f, 1.0f } },
+    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 0.0f, 1.0f } },
+
+    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f } },
+    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f } },
+    { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f } },
+
+    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f } },
+    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f } },
+    { {  1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f } },
+  };
+
+  auto floor_fmt = gx::VertexFormat()
+    .attr(gx::f32, 3)
+    .attr(gx::f32, 3)
+    .attr(gx::f32, 2);
+
+  gx::VertexBuffer floor_vbuf(gx::Buffer::Static);
+  floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
+
+  gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
 
   gx::VertexBuffer sphere_vbuf(gx::Buffer::Static);
   gx::IndexBuffer  sphere_ibuf(gx::Buffer::Static, gx::u16);
@@ -419,7 +466,9 @@ int main(int argc, char *argv[])
   gx::IndexedVertexArray sphere_arr(fmt, sphere_vbuf, sphere_ibuf);
 
   auto line_fmt = gx::VertexFormat()
-    .attr(gx::f32, 3);
+    .attr(gx::f32, 3)
+    .attrAlias(0, gx::f32, 3)
+    .attrAlias(0, gx::f32, 2);
 
   auto line = mesh::box(0.05f, 0.5f, 0.05f);
   auto line_vtxs = std::get<0>(line);
@@ -432,16 +481,6 @@ int main(int argc, char *argv[])
   line_ibuf.init(line_inds.data(), line_inds.size());
 
   gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
-
-  auto floor_fmt = gx::VertexFormat()
-    .attr(gx::f32, 2)
-    .attr(gx::f32, 2);
-
-  gx::VertexBuffer floor_vbuf(gx::Buffer::Static);
-  floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
-
-  gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
-
   ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
 
   iface.realSize(FramebufferSize.cast<float>());
@@ -620,40 +659,18 @@ int main(int argc, char *argv[])
       ;
 
     auto persp = xform::perspective(fov_slider.value(),
-      (float)FramebufferSize.x/(float)FramebufferSize.y, 10.0f, 10e20f);
+      (float)FramebufferSize.x/(float)FramebufferSize.y, 50.0f, 10e20f);
 
-    auto view = xform::look_at(sun, pos, vec3{ 0, 1, 0 });
+    auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
+
+    auto texmatrix = xform::Transform()
+      .scale(3.0f)
+      .matrix()
+      ;
 
     vec4 color;
 
     size_t num_tris = 0;
-
-    auto drawsphere = [&]()
-    {
-      mat4 modelview = view*model;
-      program.use()
-        .uniformMatrix4x4(U.program.uProjection, persp)
-        .uniformMatrix4x4(U.program.uModelView, modelview)
-        .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
-        .uniformVector4(U.program.uCol, color)
-        .draw(gx::Triangles, sphere_arr, sphere_inds.size());
-      sphere_arr.end();
-
-      num_tris += bunny_inds.size() / 3;
-    };
-
-    scene_pass.begin();
-
-    view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
-
-    mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(1.0f);
-    program.use()
-      .uniformMatrix4x4(U.program.uProjection, persp)
-      .uniformMatrix4x4(U.program.uModelView, modelview)
-      .uniformMatrix3x3(U.program.uNormal, modelview.inverse().transpose())
-      .uniformVector4(U.program.uCol, { 0.7f, 0.7f, 0.7f, -1.0f })
-      .draw(gx::Triangles, bunny_arr, bunny_inds.size());
-    bunny_arr.end();
 
     light_block.num_lights = 3;
 
@@ -670,7 +687,67 @@ int main(int argc, char *argv[])
       vec3{ 0.0f, 1.0f, 1.0f }
     };
 
-    light_ubo.upload(&light_block, 0, 1);
+    matrix_block.projection = persp;
+    matrix_block.tex = texmatrix;
+
+    auto upload_ubos = [&]()
+    {
+#if 0
+      auto matrix_ubo_view = matrix_ubo.map(gx::Buffer::Write,
+        0, sizeof(MatrixBlock), gx::Buffer::MapInvalidate);
+      auto material_ubo_view = material_ubo.map(gx::Buffer::Write,
+        0, sizeof(MaterialBlock), gx::Buffer::MapInvalidate);
+      auto light_ubo_view = light_ubo.map(gx::Buffer::Write,
+        0, sizeof(LightBlock), gx::Buffer::MapInvalidate);
+
+      memcpy(matrix_ubo_view.get(), &matrix_block, sizeof(MatrixBlock));
+      memcpy(material_ubo_view.get(), &material_block, sizeof(MaterialBlock));
+      memcpy(light_ubo_view.get(), &light_block, sizeof(LightBlock));
+
+      matrix_ubo_view.flush();
+      material_ubo_view.flush();
+      light_ubo_view.flush();
+#else
+      matrix_ubo.upload(&matrix_block, 0, 1);
+      material_ubo.upload(&material_block, 0, 1);
+      light_ubo.upload(&light_block, 0, 1);
+#endif
+    };
+
+    auto drawsphere = [&](bool shaded = true)
+    {
+      mat4 modelview = view*model;
+
+      matrix_block.modelview = modelview;
+      matrix_block.normal = modelview.inverse().transpose();
+
+      material_block.material = shaded ? PhongProceduralColored : Unshaded;
+      material_block.color = color;
+
+      upload_ubos();
+
+      program.use()
+        .draw(gx::Triangles, sphere_arr, sphere_inds.size());
+      sphere_arr.end();
+
+      num_tris += sphere_inds.size() / 3;
+    };
+
+    scene_pass.begin();
+
+    mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
+
+    matrix_block.modelview = modelview;
+    matrix_block.normal = modelview.inverse().transpose();
+
+    material_block.material = PhongColored;
+    material_block.color = { 0.7f, 0.7f, 0.7f, 1.0f };
+
+    upload_ubos();
+
+    program.use()
+      .draw(gx::Triangles, bunny_arr, bunny_inds.size());
+    bunny_arr.end();
 
     auto rot = xform::identity()
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
@@ -701,10 +778,17 @@ int main(int argc, char *argv[])
         .translate(picked_body.origin())
         .matrix();
 
+      auto modelview = view*model;
+
+      matrix_block.modelview = modelview;
+      matrix_block.normal = modelview.inverse().transpose();
+
+      material_block.material = Unshaded;
+      material_block.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+      upload_ubos();
+
       program.use()
-        .uniformMatrix4x4(U.program.uProjection, persp)
-        .uniformMatrix4x4(U.program.uModelView, view*model)
-        .uniformVector4(U.program.uCol, { 0, 0, 0, 0.0f })
         .draw(gx::Triangles, line_arr, line_inds.size());
       line_arr.end();
     }
@@ -728,9 +812,9 @@ int main(int argc, char *argv[])
         return;
       }
 
-      color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), -1.0f };
-
+      color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
       model = rb.worldTransformMatrix();
+
       drawsphere();
     });
 
@@ -740,31 +824,30 @@ int main(int argc, char *argv[])
       *xform::rotx(PIf/2.0f)
       ;
 
-    auto texmatrix = xform::Transform()
-      .scale(3.0f)
-      .matrix()
-      ;
-
     modelview = view*model;
 
-    tex_program.use()
-      .uniformMatrix4x4(U.tex.uProjection, persp)
-      .uniformMatrix4x4(U.tex.uModelView, modelview)
-      .uniformMatrix3x3(U.tex.uNormal, modelview.inverse().transpose())
-      .uniformMatrix4x4(U.tex.uTexMatrix, texmatrix)
-      .uniformSampler(U.tex.uTex, 0)
+    matrix_block.modelview = modelview;
+    matrix_block.normal = modelview.inverse().transpose();
+
+    material_block.material = PhongTextured;
+
+    upload_ubos();
+
+    program.use()
+      .uniformSampler(U.program.uTex, 0)
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
     num_tris += floor_vtxs.size() / 3;
 
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
-      color ={ 0, 0, 0, (float)i };
+      color = light_block.lights[i].color;
       model = xform::Transform()
         .scale(0.2f)
         .translate(pos)
         .matrix()
         ;
-      drawsphere();
+
+      drawsphere(false);
     }
 
     gx::Pipeline()
