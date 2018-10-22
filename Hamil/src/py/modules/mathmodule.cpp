@@ -1055,6 +1055,7 @@ static PyObject *Xform_Rotate(PyObject *self, PyObject *args, PyObject *kwds)
 struct TransformToken;
 static MemberDefList<TransformToken> TransformMembers;
 static MethodDefList<TransformToken> TransformMethods;
+static GetSetDefList<TransformToken> TransformGetSet;
 
 struct Transform {
   PyObject_HEAD;
@@ -1173,12 +1174,32 @@ static PyObject *Transform_Transform(Transform *self, PyObject *arg)
   return (PyObject *)self;
 }
 
-static PyObject *Transform_Matrix(Transform *self, PyObject *Py_UNUSED(arg))
+static PyObject *Transform_Matrix(Transform *self, void *Py_UNUSED(closure))
 {
   return Mat4_FromMat4(self->m.matrix());
 }
 
-static TypeObject Transform_Type = 
+static PyObject *Transform_Translation(Transform *self, void *Py_UNUSED(closure))
+{
+  return Vec3_FromVec3(self->m.translation());
+}
+
+static PyObject *Transform_GetScale(Transform *self, void *Py_UNUSED(closure))
+{
+  return Vec3_FromVec3(self->m.scale());
+}
+
+static PyObject *Transform_Rotation(Transform *self, void *Py_UNUSED(closure))
+{
+  return Mat4_FromMat4(::mat4::from_mat3(self->m.rotation()));
+}
+
+static PyObject *Transform_Orientation(Transform *self, void *Py_UNUSED(closure))
+{
+  Py_RETURN_NOTIMPLEMENTED;
+}
+
+static TypeObject TransformType = 
   TypeObject()
     .name("math.Transform")
     .doc("transformation matrix builder")
@@ -1204,15 +1225,46 @@ static TypeObject Transform_Type =
         .name("transform")
         .doc("applies a transformation (takes a mat4)")
         .method(Transform_Transform)
-        .flags(METH_O),
-      MethodDef()
+        .flags(METH_O)))
+    .getset(TransformGetSet(
+      GetSetDef()
         .name("matrix")
         .doc("returns a matrix which will apply the transformations")
-        .method(Transform_Matrix)
-        .flags(METH_NOARGS)))
+        .get((getter)Transform_Matrix),
+      GetSetDef()
+        .name("translation")
+        .get((getter)Transform_Translation),
+      GetSetDef()
+        .name("getScale")
+        .get((getter)Transform_GetScale),
+      GetSetDef()
+        .name("rotation")
+        .get((getter)Transform_Rotation),
+      GetSetDef()
+        .name("orientation")
+        .get((getter)Transform_Orientation)))
     .repr((reprfunc)Transform_Repr)
     .str((reprfunc)Transform_Str)
   ;
+
+int Transform_Check(PyObject *obj)
+{
+  return TransformType.check(obj);
+}
+
+PyObject *Transform_FromTransform(const xform::Transform& transform)
+{
+  auto self = TransformType.newObject<Transform>();
+  self->m = transform;
+
+  return (PyObject *)self;
+}
+
+xform::Transform Transform_AsTransform(PyObject *obj)
+{
+  auto self = (Transform *)obj;
+  return self->m;
+}
 
 static ModuleDef XformModule =
   ModuleDef()
@@ -1239,7 +1291,7 @@ static ModuleDef XformModule =
 PyObject *PyInit_xform()
 {
   auto self = Module::create(XformModule.py())
-    .addType(Transform_Type)
+    .addType(TransformType)
     ;
 
   return *self;

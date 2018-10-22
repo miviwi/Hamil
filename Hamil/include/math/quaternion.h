@@ -89,7 +89,7 @@ inline Quaternion Quaternion::operator*(float u) const
 #else
   Quaternion b;
 
-  intrin::vec4_scalar_mult(*this, u, b);
+  intrin::vec_scalar_mult(*this, u, b);
   return b;
 #endif
 }

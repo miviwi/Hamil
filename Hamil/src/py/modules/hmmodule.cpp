@@ -1,4 +1,5 @@
 #include <py/modules/hmmodule.h>
+#include <py/modules/mathmodule.h>
 #include <py/modules/btmodule.h>
 #include <py/module.h>
 #include <py/types.h>
@@ -98,6 +99,7 @@ static int Entity_Init(Entity *self, PyObject *args, PyObject *kwds)
 
 static PyObject *Entity_GameObject(Entity *self, void *Py_UNUSED(closure));
 static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure));
+static PyObject *Entity_Transform(Entity *self, void *Py_UNUSED(closure));
 
 static PyObject *Entity_Component(Entity *self, PyObject *arg)
 {
@@ -123,6 +125,7 @@ static PyObject *Entity_Component(Entity *self, PyObject *arg)
     std::function<PyObject *(Entity *self, void *)>> component_map = {
     { hm::GameObject::tag(), Entity_GameObject },
     { hm::RigidBody::tag(),  Entity_RigidBody },
+    { hm::Transform::tag(),  Entity_Transform },
   };
 
   auto it = component_map.find(hm::tag_from_string(component_name));
@@ -166,7 +169,7 @@ static PyObject *Entity_Str(Entity *self)
 static PyObject *Entity_Compare(Entity *self, PyObject *other, int op)
 {
   if(!Entity_Check(other)) {
-    return Py_NotImplemented;
+    Py_RETURN_NOTIMPLEMENTED;
   }
 
   auto e = (Entity *)other;
@@ -361,6 +364,65 @@ static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it)
   return (PyObject *)self;
 }
 
+struct HmTransformToken;
+
+static MemberDefList<HmTransformToken> HmTransformMembers;
+static MethodDefList<HmTransformToken> HmTransformMethods;
+static GetSetDefList<HmTransformToken> HmTransformGetSet;
+
+struct HmTransform {
+  PyObject_HEAD;
+
+  hmRef<hm::Transform> m;
+};
+
+static int HmTransform_Check(PyObject *obj);
+static PyObject *HmTransform_FromRef(hmRef<hm::Transform> ref);
+
+static int HmTransform_Init(HmTransform *self, PyObject *args, PyObject *kwds)
+{
+  return 0;
+}
+
+static PyObject *HmTransform_T(HmTransform *self, void *Py_UNUSED(closure))
+{
+  return Transform_FromTransform(self->m().t);
+}
+
+static PyObject *HmTransform_Repr(HmTransform *self)
+{
+  return Unicode::from_format("<hm::Transform of Entity(0x%.8x)>", self->m().entity().id()).move();
+}
+
+static TypeObject HmTransformType =
+  TypeObject()
+    .name("hm.Transform")
+    .doc("wrapper around a hm::Transform")
+    .base(ComponentType)
+    .getset(HmTransformGetSet(
+      GetSetDef()
+        .name("t")
+        .doc("The math.Transform object which stores the transform")
+        .get((getter)HmTransform_T)))
+    .size(sizeof(HmTransform))
+    .init((initproc)HmTransform_Init)
+    .repr((reprfunc)HmTransform_Repr)
+    .str((reprfunc)HmTransform_Repr)
+  ;
+
+static int HmTransform_Check(PyObject *obj)
+{
+  return HmTransformType.check(obj);
+}
+
+static PyObject *HmTransform_FromRef(hmRef<hm::Transform> ref)
+{
+  auto self = HmTransformType.newObject<HmTransform>();
+  self->m = ref;
+
+  return (PyObject *)self;
+}
+
 struct HmRigidBodyToken;
 
 static MemberDefList<HmRigidBodyToken> HmRigidBodyMembers;
@@ -433,6 +495,11 @@ static PyObject *Entity_RigidBody(Entity *self, void *Py_UNUSED(closure))
   return HmRigidBody_FromRef(self->m.component<hm::RigidBody>());
 }
 
+static PyObject *Entity_Transform(Entity *self, void *Py_UNUSED(closure))
+{
+  return HmTransform_FromRef(self->m.component<hm::Transform>());
+}
+
 struct HmToken;
 
 static MethodDefList<HmToken> HmMethods;
@@ -465,6 +532,7 @@ PyObject *PyInit_hm()
     // Components
     .addType(GameObjectType)
     .addType(HmRigidBodyType)
+    .addType(HmTransformType)
 
     // Misc.
     .addType(GameObjectIteratorType)

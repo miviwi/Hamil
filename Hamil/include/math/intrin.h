@@ -7,10 +7,10 @@ namespace intrin {
 INTRIN_INLINE void vec_dot(const float *a, const float *b, float *out);
 INTRIN_INLINE void vec_normalize(const float *a, float *out);
 INTRIN_INLINE void vec_recip(const float *a, float *out);
+INTRIN_INLINE void vec_scalar_mult(const float *a, float u, float *out);
 
 INTRIN_INLINE void vec3_cross(const float *a, const float *b, float *out);
 
-INTRIN_INLINE void vec4_scalar_mult(const float *a, float u, float *out);
 INTRIN_INLINE void vec4_scalar_recip_mult(const float *a, float u, float *out);
 INTRIN_INLINE void vec4_lerp(const float *a, const float *b, float u, float *out);
 

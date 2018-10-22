@@ -313,7 +313,7 @@ inline vec3 operator*(const vec3& v, float u)
   auto a = intrin_vec3(v);
   auto b = intrin_vec3();
 
-  intrin::vec4_scalar_mult(a, u, b);
+  intrin::vec_scalar_mult(a, u, b);
   return b.toVec3();
 }
 
@@ -481,7 +481,7 @@ inline vec4 operator*(vec4 a, float u)
 {
   alignas(16) vec4 b;
 
-  intrin::vec4_scalar_mult(a, u, b);
+  intrin::vec_scalar_mult(a, u, b);
   return b;
 }
 
@@ -529,7 +529,7 @@ template <typename T>
 struct Matrix2 {
   T d[2*2];
 
-  T operator()(unsigned col, unsigned row) const { return d[col*2 + row]; }
+  T operator()(unsigned col, unsigned row) const { return d[col + row*2]; }
 
   Matrix2& operator *=(Matrix2& b) { *this = *this * b; return *this; }
 
@@ -551,9 +551,20 @@ using imat2 = Matrix2<int>;
 
 template <typename T>
 struct Matrix3 {
+  using Vector = Vector3<T>;
+
   T d[3*3];
 
-  T operator()(unsigned col, unsigned row) const { return d[col*3 + row]; }
+  static Matrix3 from_rows(const Vector& a, const Vector& b, const Vector& c)
+  {
+    return {
+      a.x, a.y, a.z,
+      b.x, b.y, b.z,
+      c.x, c.y, c.z,
+    };
+  }
+
+  T operator()(unsigned col, unsigned row) const { return d[col + row*3]; }
 
   Matrix3& operator *=(Matrix3& b) { *this = *this * b; return *this; }
 
@@ -576,9 +587,26 @@ using imat3 = Matrix3<int>;
 
 template <typename T>
 struct alignas(16) Matrix4 {
+  using Vector = Vector4<T>;
+
   T d[4*4];
 
-  T operator()(unsigned col, unsigned row) const { return d[col*4 + row]; }
+  static Matrix4 from_rows(const Vector& a, const Vector& b, const Vector& c, const Vector& d)
+  {
+    return {
+      a.x, a.y, a.z, a.w,
+      b.x, b.y, b.z, b.w,
+      c.x, c.y, c.z, c.w,
+      d.x, d.y, d.z, d.w,
+    };
+  }
+
+  T operator()(unsigned col, unsigned row) const { return d[row*4 + col]; }
+
+  Vector column(unsigned col) const
+  {
+    return { d[col + 0], d[col + 4], d[col + 8], d[col + 12] };
+  }
 
   static Matrix4 from_mat3(const Matrix3<T>& m)
   {
@@ -616,6 +644,15 @@ struct alignas(16) Matrix4 {
   Vector3<T> translation() const
   {
     return { d[3], d[7], d[11] };
+  }
+
+  Vector3<T> scale() const
+  {
+    vec3 x = column(0).xyz();
+    vec3 y = column(1).xyz();
+    vec3 z = column(2).xyz();
+
+    return { x.length(), y.length(), z.length() };
   }
 
   operator float *() { return d; }

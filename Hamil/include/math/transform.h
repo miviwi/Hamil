@@ -30,13 +30,12 @@ public:
   const mat4& matrix() const;
 
   vec3 translation() const;
-
-  // Returns the diagonal components of the underlying matrix
   vec3 scale() const;
+  mat3 rotation() const;
 
   // Extracts the orientation from the upper-left 3x3 part of
-  //   the underlying matrix via Quaternion::from_mat4()
-  // Will break with non-uniform scales/shears
+  //   the underlying matrix via Quaternion::from_mat3()
+  // Will break with shears/reflections
   Quaternion orientation() const;
 
 private:

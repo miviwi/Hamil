@@ -103,12 +103,22 @@ vec3 Transform::translation() const
 
 vec3 Transform::scale() const
 {
-  return { m(0, 0), m(1, 1), m(2, 2) };
+  return m.scale();
+}
+
+mat3 Transform::rotation() const
+{
+  auto r = m.xyz();
+  auto s = m.scale().recip();
+
+  r *= mat3::from_rows(s, s, s);
+
+  return r;
 }
 
 Quaternion Transform::orientation() const
 {
-  return Quaternion::from_mat4(m);
+  return Quaternion::from_mat3(rotation());
 }
 
 }

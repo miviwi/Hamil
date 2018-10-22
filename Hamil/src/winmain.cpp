@@ -549,6 +549,19 @@ int main(int argc, char *argv[])
   pbo.label("PBO_test");
   pbo.init(1, PboSize);
 
+  auto create_floor = [&]()
+  {
+    auto floor = hm::entities().createGameObject("floor", scene);
+    floor.addComponent<hm::Transform>(
+      vec3(0.0f, -1.01f, -6.0f),
+      quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
+      vec3(50.0f));
+
+    return floor;
+  };
+
+  auto floor = create_floor();
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -586,6 +599,8 @@ int main(int argc, char *argv[])
 
           scene.destroy();
           scene = entities().createGameObject("Scene");
+
+          floor = create_floor();
         } else if(kb->keyDown('Q')) {
           window.quit();
         } else if(kb->keyDown('O')) {
@@ -595,6 +610,7 @@ int main(int argc, char *argv[])
           auto entity = entities().createGameObject(name, scene);
           auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
 
+          entity.addComponent<hm::Transform>(body.worldTransform());
           entity.addComponent<hm::RigidBody>(body);
 
           world.addRigidBody(body);
@@ -803,6 +819,16 @@ int main(int argc, char *argv[])
     }
 
     world.step(step_timer.elapsedSecondsf());
+
+    // Update Transforms
+    components().foreach([&](hmRef<hm::RigidBody> rb) {
+      auto entity = rb().entity();
+      auto transform = entity.component<hm::Transform>();
+
+      transform() = rb().rb.worldTransform();
+    });
+
+    // Draw the Entities
     components().foreach([&](hmRef<hm::RigidBody> component) {
       bt::RigidBody rb = component().rb;
 
@@ -813,18 +839,12 @@ int main(int argc, char *argv[])
       }
 
       color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
-      model = rb.worldTransformMatrix();
+      model = component().entity().component<hm::Transform>().get().matrix();
 
       drawsphere();
     });
 
-    model = xform::identity()
-      *xform::translate(0.0f, -1.01f, -6.0f)
-      *xform::scale(50.0f)
-      *xform::rotx(PIf/2.0f)
-      ;
-
-    modelview = view*model;
+    modelview = view * floor.component<hm::Transform>().get().matrix();
 
     matrix_block.modelview = modelview;
     matrix_block.normal = modelview.inverse().transpose();
@@ -901,6 +921,8 @@ int main(int argc, char *argv[])
 
     float y = 150.0f;
     scene.gameObject().foreachChild([&](hm::Entity entity) {
+      if(!entity.component<hm::RigidBody>()) return;
+
       bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
 
       small_face.draw(util::fmt("%s(0x%.8x) at: %s",

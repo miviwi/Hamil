@@ -262,7 +262,7 @@ void vec_recip(const float *a, float *out)
   _mm_store_ps(out, x);
 }
 
-void vec4_scalar_mult(const float *a, float u, float *out)
+void vec_scalar_mult(const float *a, float u, float *out)
 {
   __m128 x = _mm_load_ps(a);
   __m128 y = _mm_load_ps1(&u);
