@@ -182,9 +182,9 @@ int main(int argc, char *argv[])
 
   res::Handle<res::Image> r_texture = R.image.tex;
 
-  auto tex_id = pool.acquireTexture<gx::Texture2D>("TEX", gx::rgb);
+  auto tex_id = pool.createTexture<gx::Texture2D>("TEX", gx::rgb);
   auto& tex = pool.getTexture<gx::Texture2D>(tex_id);
-  auto floor_sampler_id = pool.acquire<gx::Sampler>("FLOOR_sampler", 
+  auto floor_sampler_id = pool.create<gx::Sampler>("FLOOR_sampler", 
     gx::Sampler::repeat2d_mipmap()
       .param(gx::Sampler::Anisotropy, 16.0f));
 
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
     { 0x20, 0x20, 0x20, },
   };
 
-  auto cubemap_id = pool.acquireTexture<gx::TextureCubeMap>("SKYBOX_cubemap", gx::rgb);
+  auto cubemap_id = pool.createTexture<gx::TextureCubeMap>("SKYBOX_cubemap", gx::rgb);
   auto& cubemap = pool.getTexture<gx::TextureCubeMap>(cubemap_id);
 
   for(size_t i = 0; i < gx::Faces.size(); i++) {
@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
     cubemap.init(data, 0, face, 1, gx::rgb, gx::u8);
   }
 
-  auto cubemap_sampler_id = pool.acquire<gx::Sampler>("CUBEMAP_sampler",
+  auto cubemap_sampler_id = pool.create<gx::Sampler>("CUBEMAP_sampler",
     gx::Sampler::repeat2d_linear());
 
   auto skybox_fmt = gx::VertexFormat()
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
   gx::VertexBuffer fullscreen_quad_vbuf(gx::Buffer::Static);
   fullscreen_quad_vbuf.init(fullscreen_quad.data(), fullscreen_quad.size());
 
-  auto fullscreen_quad_arr_id = pool.acquire<gx::VertexArray>("fullscreen_quad",
+  auto fullscreen_quad_arr_id = pool.create<gx::VertexArray>("fullscreen_quad",
     fullscreen_quad_fmt, fullscreen_quad_vbuf);
   auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
@@ -251,22 +251,22 @@ int main(int argc, char *argv[])
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
-  auto program_id = pool.acquire<gx::Program>("program", gx::make_program(
+  auto program_id = pool.create<gx::Program>("program", gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program));
   auto& program = pool.get<gx::Program>(program_id);
 
-  auto skybox_program_id = pool.acquire<gx::Program>("SKYBOX_program", gx::make_program(
+  auto skybox_program_id = pool.create<gx::Program>("SKYBOX_program", gx::make_program(
     r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox));
   auto& skybox_program = pool.get<gx::Program>(skybox_program_id);
 
-  auto composite_program_id = pool.acquire<gx::Program>("COMPOSITE_program", gx::make_program(
+  auto composite_program_id = pool.create<gx::Program>("COMPOSITE_program", gx::make_program(
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
   auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
-  auto fb_tex_id = pool.acquireTexture<gx::Texture2D>("FB_tex", gx::rgb10);
+  auto fb_tex_id = pool.createTexture<gx::Texture2D>("FB_tex", gx::rgb10);
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
   gx::Texture2D fb_pos(gx::rgb32f);
-  auto fb_id = pool.acquire<gx::Framebuffer>("FB");
+  auto fb_id = pool.create<gx::Framebuffer>("FB");
   auto& fb = pool.get<gx::Framebuffer>(fb_id);
 
   fb_tex.initMultisample(1, FramebufferSize);
@@ -281,9 +281,9 @@ int main(int argc, char *argv[])
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
   
-  auto fb_ui_tex_id = pool.acquireTexture<gx::Texture2D>("FB_ui_tex", gx::rgba8);
+  auto fb_ui_tex_id = pool.createTexture<gx::Texture2D>("FB_ui_tex", gx::rgba8);
   auto& fb_ui_tex = pool.getTexture<gx::Texture2D>(fb_ui_tex_id);
-  auto fb_ui_id = pool.acquire<gx::Framebuffer>("FB_ui");
+  auto fb_ui_id = pool.create<gx::Framebuffer>("FB_ui");
   auto& fb_ui = pool.get<gx::Framebuffer>(fb_ui_id);
 
   fb_ui_tex.initMultisample(4, FramebufferSize);
@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
     win32::panic("couln't create UI Framebuffer!", win32::FramebufferError);
   }
 
-  auto fb_composite_id = pool.acquire<gx::Framebuffer>("FB_composite");
+  auto fb_composite_id = pool.create<gx::Framebuffer>("FB_composite");
   auto& fb_composite = pool.get<gx::Framebuffer>(fb_composite_id);
 
   fb_composite.use()
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
     win32::panic("couldn't create composite Framebuffer!", win32::FramebufferError);
   }
 
-  auto resolve_sampler_id = pool.acquire<gx::Sampler>(gx::Sampler::edgeclamp2d());
+  auto resolve_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d());
 
   static constexpr uint MatrixBinding = 0;
   struct MatrixBlock {
@@ -343,15 +343,15 @@ int main(int argc, char *argv[])
     int num_lights;
   } light_block;
 
-  auto matrix_ubo_id = pool.acquireBuffer<gx::UniformBuffer>("UBO_matrix", gx::Buffer::Dynamic);
+  auto matrix_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_matrix", gx::Buffer::Dynamic);
   auto& matrix_ubo = pool.getBuffer<gx::UniformBuffer>(matrix_ubo_id);
   matrix_ubo.init(sizeof(MatrixBlock), 1);
 
-  auto material_ubo_id = pool.acquireBuffer<gx::UniformBuffer>("UBO_material", gx::Buffer::Dynamic);
+  auto material_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_material", gx::Buffer::Dynamic);
   auto& material_ubo = pool.getBuffer<gx::UniformBuffer>(material_ubo_id);
   material_ubo.init(sizeof(MaterialBlock), 1);
 
-  auto light_ubo_id = pool.acquireBuffer<gx::UniformBuffer>("UBO_lights", gx::Buffer::Dynamic);
+  auto light_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_lights", gx::Buffer::Dynamic);
   auto& light_ubo = pool.getBuffer<gx::UniformBuffer>(light_ubo_id);
   light_ubo.init(sizeof(LightBlock), 1);
 

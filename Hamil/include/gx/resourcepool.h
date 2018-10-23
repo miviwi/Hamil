@@ -33,7 +33,7 @@ public:
   ResourcePool(const ResourcePool& other) = delete;
 
   template <typename T, typename... Args>
-  Id acquire(Args... args)
+  Id create(Args... args)
   {
     auto& vec = getVector<T>();
     auto id = (Id)vec.size();
@@ -44,7 +44,7 @@ public:
   }
 
   template <typename T, typename... Args>
-  Id acquire(const char *label, Args... args)
+  Id create(const char *label, Args... args)
   {
     auto& vec = getVector<T>();
     auto id = (Id)vec.size();
@@ -56,27 +56,27 @@ public:
   }
 
   template <typename T, typename... Args>
-  Id acquireTexture(Args... args)
+  Id createTexture(Args... args)
   {
-    return acquire<TextureHandle>(TextureHandle::create<T>(std::forward<Args>(args)...));
+    return create<TextureHandle>(TextureHandle::create<T>(std::forward<Args>(args)...));
   }
 
   template <typename T, typename... Args>
-  Id acquireTexture(const char *label, Args... args)
+  Id createTexture(const char *label, Args... args)
   {
-    return acquire<TextureHandle>(label, TextureHandle::create<T>(std::forward<Args>(args)...));
+    return create<TextureHandle>(label, TextureHandle::create<T>(std::forward<Args>(args)...));
   }
 
   template <typename T, typename... Args>
-  Id acquireBuffer(Args... args)
+  Id createBuffer(Args... args)
   {
-    return acquire<BufferHandle>(BufferHandle::create<T>(std::forward<Args>(args)...));
+    return create<BufferHandle>(BufferHandle::create<T>(std::forward<Args>(args)...));
   }
 
   template <typename T, typename... Args>
-  Id acquireBuffer(const char *label, Args... args)
+  Id createBuffer(const char *label, Args... args)
   {
-    return acquire<BufferHandle>(label, BufferHandle::create<T>(std::forward<Args>(args)...));
+    return create<BufferHandle>(label, BufferHandle::create<T>(std::forward<Args>(args)...));
   }
 
   template <typename T> T& get(Id id) { return getVector<T>().at(id); }

@@ -170,7 +170,7 @@ unsigned IndexBuffer::elemSize() const
   return 0;
 }
 
-static GLuint p_last_uniform[NumUniformBindings] ={
+static GLuint p_last_uniform[NumUniformBindings] = {
   ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
   ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
   ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
