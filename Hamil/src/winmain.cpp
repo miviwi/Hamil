@@ -263,9 +263,9 @@ int main(int argc, char *argv[])
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
   auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
-  auto fb_tex_id = pool.createTexture<gx::Texture2D>("FB_tex", gx::rgb10);
+  auto fb_tex_id = pool.createTexture<gx::Texture2D>("FB_tex", gx::rgb10, gx::Texture::Multisample);
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
-  gx::Texture2D fb_pos(gx::rgb32f);
+  gx::Texture2D fb_pos(gx::rgb32f, gx::Texture::Multisample);
   auto fb_id = pool.create<gx::Framebuffer>("FB");
   auto& fb = pool.get<gx::Framebuffer>(fb_id);
 
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
   
-  auto fb_ui_tex_id = pool.createTexture<gx::Texture2D>("FB_ui_tex", gx::rgba8);
+  auto fb_ui_tex_id = pool.createTexture<gx::Texture2D>("FB_ui_tex", gx::rgba8, gx::Texture::Multisample);
   auto& fb_ui_tex = pool.getTexture<gx::Texture2D>(fb_ui_tex_id);
   auto fb_ui_id = pool.create<gx::Framebuffer>("FB_ui");
   auto& fb_ui = pool.get<gx::Framebuffer>(fb_ui_id);

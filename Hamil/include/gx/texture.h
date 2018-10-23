@@ -15,6 +15,11 @@ class Sampler;
 
 class Texture : public Ref {
 public:
+  enum Flags {
+    Default = 0,
+    Multisample = (1<<0),
+  };
+
   virtual ~Texture();
 
   /* --------------- Texture2D init methods ---------------- */
@@ -49,6 +54,8 @@ public:
 
   void generateMipmaps();
 
+  void use();
+
   // Can only be called after init[Multisample]()
   void label(const char *lbl);
 
@@ -57,8 +64,6 @@ protected:
   friend class PixelBuffer;
 
   Texture(GLenum target, Format format);
-
-  void use();
 
   friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
 
@@ -71,7 +76,7 @@ private:
 
 class Texture2D : public Texture {
 public:
-  Texture2D(Format format);
+  Texture2D(Format format, Flags flags = Default);
   virtual ~Texture2D();
 
   void initMultisample(unsigned samples, unsigned w, unsigned h);
@@ -85,7 +90,7 @@ private:
 
 class Texture2DArray : public Texture {
 public:
-  Texture2DArray(Format format);
+  Texture2DArray(Format format, Flags flags = Default);
   virtual ~Texture2DArray();
 
   void initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers);
@@ -131,8 +136,11 @@ public:
   Texture& get();
   Texture& operator()();
 
-  // Needed for ResourcePool::acquire(const char *label, ...)
+  // Needed for ResourcePool::create(const char *label, ...)
   void label(const char *lbl);
+
+  // Needed for ResourcePool::create(const char *, ...)
+  void use();
 
 protected:
   TextureHandle(Texture *tex);
@@ -175,6 +183,9 @@ public:
   Sampler& param(ParamName name, Param p);
   Sampler& param(ParamName name, float value);
   Sampler& param(ParamName name, vec4 value);
+
+  // Dummy method for ResourcePool::create(const char *, ...)
+  void use() { }
 
   void label(const char *lbl);
 

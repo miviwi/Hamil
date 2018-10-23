@@ -33,13 +33,13 @@ public:
     m_lock(lock)
   {
   }
-  LockGuard(const LockGuard& other) = delete;
   ~LockGuard()
   {
     m_lock.release();
   }
 
 protected:
+  LockGuard(const LockGuard& other) = default;
 
 private:
   friend Mutex;

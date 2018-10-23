@@ -11,6 +11,7 @@ Framebuffer::Attachment Framebuffer::Color(int index)
 }
 
 Framebuffer::Framebuffer() :
+  m_samples(0),
   m_draw_buffers(DrawBuffersNeedSetup)
 {
   glGenFramebuffers(1, &m);
@@ -76,7 +77,11 @@ Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attac
   auto rb = create_rendebuffer();
   m_rb.append(rb);
 
-  glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, fmt, w, h);
+  if(m_samples) {
+    glRenderbufferStorageMultisample(GL_RENDERBUFFER, m_samples, fmt, w, h);
+  } else {
+    glRenderbufferStorage(GL_RENDERBUFFER, fmt, w, h);
+  }
   framebufferRenderbuffer(rb, att);
   drawBuffer(att);
 

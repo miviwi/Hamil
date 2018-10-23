@@ -356,4 +356,9 @@ void BufferHandle::label(const char *lbl)
   get().label(lbl);
 }
 
+void BufferHandle::use()
+{
+  get().use();
+}
+
 }

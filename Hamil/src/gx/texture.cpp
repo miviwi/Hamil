@@ -137,8 +137,8 @@ void Texture::label(const char *lbl)
 #endif
 }
 
-Texture2D::Texture2D(Format format) :
-  Texture(GL_TEXTURE_2D, format), m_samples(0)
+Texture2D::Texture2D(Format format, Flags flags) :
+  Texture(flags & Multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, format), m_samples(0)
 {
 }
 
@@ -162,8 +162,9 @@ void Texture2D::initMultisample(unsigned samples, ivec2 sz)
   initMultisample(samples, (unsigned)sz.x, (unsigned)sz.y);
 }
 
-Texture2DArray::Texture2DArray(Format format) :
-  Texture(GL_TEXTURE_2D_ARRAY, format), m_samples(0)
+Texture2DArray::Texture2DArray(Format format, Flags flags) :
+  Texture(flags & Multisample ? GL_TEXTURE_2D_MULTISAMPLE_ARRAY : GL_TEXTURE_2D_ARRAY, format),
+  m_samples(0)
 {
 }
 
@@ -231,6 +232,11 @@ Texture& TextureHandle::operator()()
 void TextureHandle::label(const char *lbl)
 {
   get().label(lbl);
+}
+
+void TextureHandle::use()
+{
+  get().use();
 }
 
 Sampler::Sampler()

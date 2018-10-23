@@ -50,6 +50,7 @@ public:
     auto id = (Id)vec.size();
 
     auto resource = vec.emplace_back(std::forward<Args>(args)...);
+    resource.use();
     resource.label(label);
 
     return id;
