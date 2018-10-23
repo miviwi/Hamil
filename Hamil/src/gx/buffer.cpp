@@ -7,7 +7,7 @@
 
 namespace gx {
 
-Buffer::Buffer(Usage usage,GLenum target) :
+Buffer::Buffer(Usage usage, GLenum target) :
   m_usage(usage), m_target(target)
 {
   glGenBuffers(1, &m);
@@ -40,7 +40,7 @@ BufferView Buffer::map(Access access, GLintptr off, GLint sz, uint flags)
   case ReadWrite: gl_access = GL_MAP_READ_BIT|GL_MAP_WRITE_BIT; break;
   }
 
-  auto ptr = glMapBufferRange(m_target, off, sz,  gl_access | (GLbitfield)flags);
+  auto ptr = glMapBufferRange(m_target, off, sz, gl_access | (GLbitfield)flags);
   if(!ptr) {
     // It's illegal to { MapInvalidate, MapInvalidateRange, MapUnsynchronized }
     //   a buffer intended for reading
@@ -170,6 +170,12 @@ unsigned IndexBuffer::elemSize() const
   return 0;
 }
 
+static GLuint p_last_uniform[NumUniformBindings] ={
+  ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
+  ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
+  ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
+};
+
 UniformBuffer::UniformBuffer(Usage usage) :
   Buffer(usage, GL_UNIFORM_BUFFER)
 {
@@ -177,11 +183,17 @@ UniformBuffer::UniformBuffer(Usage usage) :
 
 void UniformBuffer::bindToIndex(unsigned idx)
 {
+  if(p_last_uniform[idx] == m) return;
+
+  p_last_uniform[idx] = m;
   glBindBufferBase(m_target, idx, m);
 }
 
 void UniformBuffer::bindToIndex(unsigned idx, size_t offset, size_t size)
 {
+  if(p_last_uniform[idx] == m) return;
+
+  p_last_uniform[idx] = m;
   glBindBufferRange(m_target, idx, m, offset, size);
 }
 
@@ -315,6 +327,33 @@ void PixelBuffer::unbind()
 {
   // Unbind the PBO so further texture operations proceed normally
   glBindBuffer(m_target, 0);
+}
+
+BufferHandle::BufferHandle(Buffer *buf) :
+  m(buf)
+{
+}
+
+BufferHandle::~BufferHandle()
+{
+  if(deref()) return;
+
+  delete m;
+}
+
+Buffer& BufferHandle::get()
+{
+  return *m;
+}
+
+Buffer& BufferHandle::operator()()
+{
+  return get();
+}
+
+void BufferHandle::label(const char *lbl)
+{
+  get().label(lbl);
 }
 
 }

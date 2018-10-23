@@ -62,6 +62,7 @@ static constexpr std::array<Face, 6> Faces = {
 
 enum {
   NumTexUnits = 16,
+  NumUniformBindings = 36,
 };
 
 bool is_color_format(Format fmt);

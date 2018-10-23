@@ -67,39 +67,32 @@ public:
     return acquire<TextureHandle>(label, TextureHandle::create<T>(std::forward<Args>(args)...));
   }
 
-  template <typename T>
-  T& get(Id id)
+  template <typename T, typename... Args>
+  Id acquireBuffer(Args... args)
   {
-    return getVector<T>().at(id);
+    return acquire<BufferHandle>(BufferHandle::create<T>(std::forward<Args>(args)...));
   }
 
-  template <typename T>
-  const T& get(Id id) const
+  template <typename T, typename... Args>
+  Id acquireBuffer(const char *label, Args... args)
   {
-    return getVector<T>().at(id);
+    return acquire<BufferHandle>(label, BufferHandle::create<T>(std::forward<Args>(args)...));
   }
 
-  template <typename T>
-  T& getTexture(Id id)
-  {
-    return getTexture(id).get<T>();
-  }
+  template <typename T> T& get(Id id) { return getVector<T>().at(id); }
+  template <typename T> const T& get(Id id) const { return getVector<T>().at(id); }
 
-  TextureHandle& getTexture(Id id)
-  {
-    return get<TextureHandle>(id);
-  }
+  template <typename T> T& getTexture(Id id) { return getTexture(id).get<T>(); }
+  TextureHandle& getTexture(Id id) { return get<TextureHandle>(id); }
 
-  template <typename T>
-  const T& getTexture(Id id) const
-  {
-    return getTexture(id).get<T>();
-  }
+  template <typename T> const T& getTexture(Id id) const { return getTexture(id).get<T>(); }
+  const TextureHandle& getTexture(Id id) const { return get<TextureHandle>(id); }
 
-  const TextureHandle& getTexture(Id id) const
-  {
-    return get<TextureHandle>(id);
-  }
+  template <typename T> T& getBuffer(Id id) { return getBuffer(id).get<T>(); }
+  BufferHandle& getBuffer(Id id) { return get<BufferHandle>(id); }
+
+  template <typename T> const T& getBuffer(Id id) const { return getBuffer(id).get<T>(); }
+  const BufferHandle& getBuffer(Id id) const { return get<BufferHandle>(id); }
 
   template <typename T>
   T& operator()(Id id)
@@ -128,7 +121,8 @@ private:
     IndexedVertexArray,
     Framebuffer,
     TextureHandle,
-    Sampler
+    Sampler,
+    BufferHandle
   > m_resources;
 };
 

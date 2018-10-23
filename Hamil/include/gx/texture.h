@@ -125,12 +125,13 @@ public:
   {
     static_assert(std::is_base_of_v<Texture, T>, "T must be a Texture!");
 
-    return *(T *)m;
+    return (T&)get();
   }
 
   Texture& get();
   Texture& operator()();
 
+  // Needed for ResourcePool::acquire(const char *label, ...)
   void label(const char *lbl);
 
 protected:

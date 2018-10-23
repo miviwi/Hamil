@@ -5,6 +5,8 @@
 #include <util/ref.h>
 
 #include <cstdint>
+#include <utility>
+#include <type_traits>
 
 namespace gx {
 
@@ -187,6 +189,37 @@ private:
   void assertDownload();
 
   void unbind();
+};
+
+class BufferHandle : public Ref {
+public:
+  ~BufferHandle();
+
+  template <typename Buf, typename... Args>
+  static BufferHandle create(Args... args)
+  {
+    return new Buf(std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  T& get()
+  {
+    static_assert(std::is_base_of_v<Buffer, T>, "T must be a Buffer!");
+
+    return (T&)get();
+  }
+
+  Buffer& get();
+  Buffer& operator()();
+
+  // Needed for ResourcePool::acquire(const char *label, ...)
+  void label(const char *lbl);
+
+protected:
+  BufferHandle(Buffer *buf);
+
+private:
+  Buffer *m;
 };
 
 }

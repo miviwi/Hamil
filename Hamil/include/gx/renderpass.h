@@ -32,12 +32,17 @@ public:
 
   using TextureAndSampler = std::tuple<ResourcePool::Id /* texture */, ResourcePool::Id /* sampler */>;
 
+  template <typename T>
+  using PairInitList = std::initializer_list<std::pair<unsigned, T>>;
+
   RenderPass();
   ~RenderPass();
 
   RenderPass& framebuffer(ResourcePool::Id fb);
   RenderPass& texture(unsigned unit, ResourcePool::Id tex, ResourcePool::Id sampler);
-  RenderPass& textures(std::initializer_list<std::pair<unsigned, TextureAndSampler>> tus);
+  RenderPass& textures(PairInitList<TextureAndSampler> tus);
+  RenderPass& uniformBuffer(unsigned index, ResourcePool::Id buf);
+  RenderPass& uniformBuffers(PairInitList<ResourcePool::Id /* buf */> bufs);
   RenderPass& pipeline(const Pipeline& p);
   RenderPass& clearOp(unsigned op);
 
@@ -46,6 +51,7 @@ public:
 private:
   ResourcePool::Id m_framebuffer;
   std::array<TextureAndSampler, NumTexUnits> m_texunits;
+  std::array<ResourcePool::Id /* UniformBuffer */, NumUniformBindings> m_uniform_bufs;
   Pipeline m_pipeline;
 
   unsigned m_clear;

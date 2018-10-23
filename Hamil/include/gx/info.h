@@ -24,7 +24,12 @@ public:
   //   - glGet(GL_MAX_UNIFORM_BLOCK_SIZE)
   size_t maxUniformBlockSize() const;
 
-  // The maximum i+1 which can be passed to gx::tex_unit(i, ...) >= 16
+  // Maximum i+1 which can be used as 'index' in
+  //   glBindBuffer<Base,Range>(GL_UNIFORM_BUFFER, index, ...) >= 36
+  //   - glGet(GL_MAX_UNIFORM_BUFFER_BINDINGS)
+  size_t maxUniformBufferBindings() const;
+
+  // Maximum i+1 which can be passed to gx::tex_unit(i, ...) >= 16
   //   - glGet(GL_MAX_TEXTURE_IMAGE_UNITS)
   size_t maxTextureUnits() const;
 
@@ -47,6 +52,9 @@ private:
 
   // GL_MAX_UNIFORM_BLOCK_SIZE
   size_t m_max_uniform_block_sz;
+
+  // GL_MAX_UNIFORM_BUFFER_BINDINGS
+  size_t m_max_uniform_bindings;
 
   // GL_MAX_TEXTURE_IMAGE_UNITS
   size_t m_max_tex_image_units;

@@ -305,44 +305,6 @@ int main(int argc, char *argv[])
 
   auto resolve_sampler_id = pool.acquire<gx::Sampler>(gx::Sampler::edgeclamp2d());
 
-  auto scene_pass = gx::RenderPass()
-    .framebuffer(fb_id)
-    .textures({
-      { 0u, { tex_id, floor_sampler_id }},
-      { 1u, { cubemap_id, cubemap_sampler_id }}
-    })
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-      .depthTest(gx::Pipeline::LessEqual)
-      .cull(gx::Pipeline::Back)
-      .seamlessCubemap()
-      .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f))
-    .clearOp(gx::RenderPass::ClearColorDepth)
-    ;
-
-  auto ui_pass = gx::RenderPass()
-    .framebuffer(fb_ui_id)
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-      .noDepthTest()
-      .alphaBlend()
-      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f))
-    .clearOp(gx::RenderPass::ClearColor)
-    ;
-
-  auto composite_pass = gx::RenderPass()
-    .framebuffer(fb_composite_id)
-    .textures({
-      { 4u, { fb_ui_tex_id, resolve_sampler_id }},
-      { 5u, { fb_tex_id, resolve_sampler_id }}
-    })
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-      .noDepthTest()
-      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f, }, 1.0f))
-    .clearOp(gx::RenderPass::ClearColor)
-    ;
-
   static constexpr uint MatrixBinding = 0;
   struct MatrixBlock {
     mat4 modelview;
@@ -381,21 +343,64 @@ int main(int argc, char *argv[])
     int num_lights;
   } light_block;
 
-  gx::UniformBuffer matrix_ubo(gx::Buffer::Dynamic);
-  matrix_ubo.label("UBO_matrix");
+  auto matrix_ubo_id = pool.acquireBuffer<gx::UniformBuffer>("UBO_matrix", gx::Buffer::Dynamic);
+  auto& matrix_ubo = pool.getBuffer<gx::UniformBuffer>(matrix_ubo_id);
   matrix_ubo.init(sizeof(MatrixBlock), 1);
-  matrix_ubo.bindToIndex(MatrixBinding);
 
-  gx::UniformBuffer material_ubo(gx::Buffer::Dynamic);
-  material_ubo.label("UBO_material");
+  auto material_ubo_id = pool.acquireBuffer<gx::UniformBuffer>("UBO_material", gx::Buffer::Dynamic);
+  auto& material_ubo = pool.getBuffer<gx::UniformBuffer>(material_ubo_id);
   material_ubo.init(sizeof(MaterialBlock), 1);
-  material_ubo.bindToIndex(MaterialBinding);
 
-  gx::UniformBuffer light_ubo(gx::Buffer::Dynamic);
-  light_ubo.label("UBO_lights");
+  auto light_ubo_id = pool.acquireBuffer<gx::UniformBuffer>("UBO_lights", gx::Buffer::Dynamic);
+  auto& light_ubo = pool.getBuffer<gx::UniformBuffer>(light_ubo_id);
   light_ubo.init(sizeof(LightBlock), 1);
-  light_ubo.bindToIndex(LightBinding);
 
+  program.uniformBlockBinding("MatrixBlock", MatrixBinding);
+  program.uniformBlockBinding("MaterialBlock", MaterialBinding);
+  program.uniformBlockBinding("LightBlock", LightBinding);
+
+  auto scene_pass = gx::RenderPass()
+    .framebuffer(fb_id)
+    .textures({
+      { 0u, { tex_id, floor_sampler_id }},
+      { 1u, { cubemap_id, cubemap_sampler_id }}
+    })
+    .uniformBuffers({
+      { MatrixBinding, matrix_ubo_id },
+      { MaterialBinding, material_ubo_id },
+      { LightBinding, light_ubo_id },
+    })
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .depthTest(gx::Pipeline::LessEqual)
+      .cull(gx::Pipeline::Back)
+      .seamlessCubemap()
+      .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColorDepth)
+    ;
+
+  auto ui_pass = gx::RenderPass()
+    .framebuffer(fb_ui_id)
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .noDepthTest()
+      .alphaBlend()
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColor)
+    ;
+
+  auto composite_pass = gx::RenderPass()
+    .framebuffer(fb_composite_id)
+    .textures({
+      { 4u, { fb_ui_tex_id, resolve_sampler_id }},
+      { 5u, { fb_tex_id, resolve_sampler_id }}
+    })
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .noDepthTest()
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f, }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColor)
+    ;
 
   float r = 1280.0f;
   float b = 720.0f;
@@ -414,10 +419,6 @@ int main(int argc, char *argv[])
 
   auto& sphere_verts = std::get<0>(sphere);
   auto& sphere_inds  = std::get<1>(sphere);
-
-  program.uniformBlockBinding("MatrixBlock", MatrixBinding);
-  program.uniformBlockBinding("MaterialBlock", MaterialBinding);
-  program.uniformBlockBinding("LightBlock", LightBinding);
 
   vec3 light_position[] = {
     { 0, 6, 0 },
@@ -947,7 +948,6 @@ int main(int argc, char *argv[])
    /* fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 */
-
 
     fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
