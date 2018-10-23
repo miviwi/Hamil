@@ -18,6 +18,8 @@ Texture::Texture(GLenum target, Format format) :
 
 Texture::~Texture()
 {
+  if(deref()) return;
+
   glDeleteTextures(1, &m);
 }
 
@@ -160,6 +162,77 @@ void Texture2D::initMultisample(unsigned samples, ivec2 sz)
   initMultisample(samples, (unsigned)sz.x, (unsigned)sz.y);
 }
 
+Texture2DArray::Texture2DArray(Format format) :
+  Texture(GL_TEXTURE_2D_ARRAY, format), m_samples(0)
+{
+}
+
+Texture2DArray::~Texture2DArray()
+{
+}
+
+void Texture2DArray::initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers)
+{
+  m_samples = samples;
+  if(m_target == GL_TEXTURE_2D_ARRAY) m_target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+
+  use();
+  glTexImage3DMultisample(m_target, m_samples, m_format, w, h, layers, GL_TRUE);
+}
+
+TextureCubeMap::TextureCubeMap(Format format) :
+  Texture(GL_TEXTURE_CUBE_MAP, format)
+{
+}
+
+TextureCubeMap::~TextureCubeMap()
+{
+}
+
+TextureBuffer::TextureBuffer(Format format, TexelBuffer& buf) :
+  Texture(GL_TEXTURE_BUFFER, format),
+  m_buf(buf)
+{
+  buffer(buf);
+}
+
+TextureBuffer& TextureBuffer::buffer(TexelBuffer& buf)
+{
+  m_buf = buf;
+
+  use();
+  glTexBuffer(m_target, m_format, m_buf.m);
+
+  return *this;
+}
+
+TextureHandle::TextureHandle(Texture *tex) :
+  m(tex)
+{
+}
+
+TextureHandle::~TextureHandle()
+{
+  if(deref()) return;
+
+  delete m;
+}
+
+Texture& TextureHandle::get()
+{
+  return *m;
+}
+
+Texture& TextureHandle::operator()()
+{
+  return get();
+}
+
+void TextureHandle::label(const char *lbl)
+{
+  get().label(lbl);
+}
+
 Sampler::Sampler()
 {
   glGenSamplers(1, &m);
@@ -250,6 +323,13 @@ Sampler& Sampler::param(ParamName name, vec4 value)
   return *this;
 }
 
+void Sampler::label(const char *lbl)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_SAMPLER, m, -1, lbl);
+#endif
+}
+
 GLenum Sampler::pname(ParamName name)
 {
   static const GLenum table[] = {
@@ -293,48 +373,5 @@ static void setDefaultParameters(GLenum target)
   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-Texture2DArray::Texture2DArray(Format format) :
-  Texture(GL_TEXTURE_2D_ARRAY, format), m_samples(0)
-{
-}
-
-Texture2DArray::~Texture2DArray()
-{
-}
-
-void Texture2DArray::initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers)
-{
-  m_samples = samples;
-  if(m_target == GL_TEXTURE_2D_ARRAY) m_target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-
-  use();
-  glTexImage3DMultisample(m_target, m_samples, m_format, w, h, layers, GL_TRUE);
-}
-
-TextureCubeMap::TextureCubeMap(Format format) :
-  Texture(GL_TEXTURE_CUBE_MAP, format)
-{
-}
-
-TextureCubeMap::~TextureCubeMap()
-{
-}
-
-TextureBuffer::TextureBuffer(Format format, TexelBuffer& buf) :
-  Texture(GL_TEXTURE_BUFFER, format),
-  m_buf(buf)
-{
-  buffer(buf);
-}
-
-TextureBuffer& TextureBuffer::buffer(TexelBuffer& buf)
-{
-  m_buf = buf;
-
-  use();
-  glTexBuffer(m_target, m_format, m_buf.m);
-
-  return *this;
-}
 
 }

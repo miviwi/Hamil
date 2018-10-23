@@ -1,7 +1,9 @@
 #pragma once
 
 #include <gx/gx.h>
+
 #include <math/geometry.h>
+#include <util/ref.h>
 
 #include <string>
 #include <vector>
@@ -66,13 +68,13 @@ enum Primitive {
   TriangleStrip = GL_TRIANGLE_STRIP,
 };
 
-class Program {
+class Program : public Ref {
 public:
   using OffsetMap = std::unordered_map<std::string, size_t>;
 
   Program(const Shader& vertex, const Shader& fragment);
   Program(const Shader& vertex, const Shader& geometry, const Shader& fragment);
-  Program(const Program&) = delete;
+  Program(const Program& other) = default;
   Program(Program&& other);
   ~Program();
 

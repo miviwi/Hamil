@@ -28,6 +28,8 @@
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
 #include <gx/renderpass.h>
+#include <gx/resourcepool.h>
+#include <gx/commandbuffer.h>
 
 #include <ft/font.h>
 
@@ -171,6 +173,8 @@ int main(int argc, char *argv[])
 
   int animate = -1;
 
+  gx::ResourcePool pool(64);
+
   auto fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3)
@@ -178,11 +182,11 @@ int main(int argc, char *argv[])
 
   res::Handle<res::Image> r_texture = R.image.tex;
 
-  gx::Texture2D tex(gx::rgb);
-  auto sampler = gx::Sampler::repeat2d_linear()
-    .param(gx::Sampler::Anisotropy, 16.0f);
-  auto floor_sampler = gx::Sampler::repeat2d_mipmap()
-    .param(gx::Sampler::Anisotropy, 16.0f);
+  auto tex_id = pool.acquireTexture<gx::Texture2D>("TEX", gx::rgb);
+  auto& tex = pool.getTexture<gx::Texture2D>(tex_id);
+  auto floor_sampler_id = pool.acquire<gx::Sampler>("FLOOR_sampler", 
+    gx::Sampler::repeat2d_mipmap()
+      .param(gx::Sampler::Anisotropy, 16.0f));
 
   tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
   tex.generateMipmaps();
@@ -196,8 +200,8 @@ int main(int argc, char *argv[])
     { 0x20, 0x20, 0x20, },
   };
 
-  gx::TextureCubeMap cubemap(gx::rgb);
-  cubemap.label("SKYBOX_cubemap");
+  auto cubemap_id = pool.acquireTexture<gx::TextureCubeMap>("SKYBOX_cubemap", gx::rgb);
+  auto& cubemap = pool.getTexture<gx::TextureCubeMap>(cubemap_id);
 
   for(size_t i = 0; i < gx::Faces.size(); i++) {
     auto face  = gx::Faces[i];
@@ -206,7 +210,8 @@ int main(int argc, char *argv[])
     cubemap.init(data, 0, face, 1, gx::rgb, gx::u8);
   }
 
-  auto cubemap_sampler = gx::Sampler::repeat2d_linear();
+  auto cubemap_sampler_id = pool.acquire<gx::Sampler>("CUBEMAP_sampler",
+    gx::Sampler::repeat2d_linear());
 
   auto skybox_fmt = gx::VertexFormat()
     .attr(gx::f32, 3);
@@ -237,35 +242,36 @@ int main(int argc, char *argv[])
   gx::VertexBuffer fullscreen_quad_vbuf(gx::Buffer::Static);
   fullscreen_quad_vbuf.init(fullscreen_quad.data(), fullscreen_quad.size());
 
-  gx::VertexArray fullscreen_quad_arr(fullscreen_quad_fmt, fullscreen_quad_vbuf);
-  fullscreen_quad_arr.label("fullscreen_quad");
+  auto fullscreen_quad_arr_id = pool.acquire<gx::VertexArray>("fullscreen_quad",
+    fullscreen_quad_fmt, fullscreen_quad_vbuf);
+  auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
   res::Handle<res::Shader> r_phong = R.shader.shaders.phong,
     r_program = R.shader.shaders.program,
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
-  auto program = gx::make_program(
-    r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program);
+  auto program_id = pool.acquire<gx::Program>("program", gx::make_program(
+    r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program));
+  auto& program = pool.get<gx::Program>(program_id);
 
-  auto skybox_program = gx::make_program(
-    r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox);
+  auto skybox_program_id = pool.acquire<gx::Program>("SKYBOX_program", gx::make_program(
+    r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox));
+  auto& skybox_program = pool.get<gx::Program>(skybox_program_id);
 
-  auto composite_program = gx::make_program(
-    r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite);
+  auto composite_program_id = pool.acquire<gx::Program>("COMPOSITE_program", gx::make_program(
+    r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
+  auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
-  program.label("program");
-
-  skybox_program.label("SKYBOX_program");
-
-  gx::Texture2D fb_tex(gx::rgb10);
+  auto fb_tex_id = pool.acquireTexture<gx::Texture2D>("FB_tex", gx::rgb10);
+  auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
   gx::Texture2D fb_pos(gx::rgb32f);
-  gx::Framebuffer fb;
+  auto fb_id = pool.acquire<gx::Framebuffer>("FB");
+  auto& fb = pool.get<gx::Framebuffer>(fb_id);
 
   fb_tex.initMultisample(1, FramebufferSize);
   fb_pos.initMultisample(1, FramebufferSize);
   //fb_tex.init(FramebufferSize.x, FramebufferSize.y);
-  fb_tex.label("FB_tex");
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
@@ -274,14 +280,13 @@ int main(int argc, char *argv[])
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
-
-  fb.label("FB");
   
-  gx::Texture2D fb_ui_tex(gx::rgba8);
-  gx::Framebuffer fb_ui;
+  auto fb_ui_tex_id = pool.acquireTexture<gx::Texture2D>("FB_ui_tex", gx::rgba8);
+  auto& fb_ui_tex = pool.getTexture<gx::Texture2D>(fb_ui_tex_id);
+  auto fb_ui_id = pool.acquire<gx::Framebuffer>("FB_ui");
+  auto& fb_ui = pool.get<gx::Framebuffer>(fb_ui_id);
 
   fb_ui_tex.initMultisample(4, FramebufferSize);
-  fb_ui_tex.label("FB_ui_tex");
 
   fb_ui.use()
     .tex(fb_ui_tex, 0, gx::Framebuffer::Color(0));
@@ -289,9 +294,8 @@ int main(int argc, char *argv[])
     win32::panic("couln't create UI Framebuffer!", win32::FramebufferError);
   }
 
-  fb_ui.label("FB_ui");
-
-  gx::Framebuffer fb_composite;
+  auto fb_composite_id = pool.acquire<gx::Framebuffer>("FB_composite");
+  auto& fb_composite = pool.get<gx::Framebuffer>(fb_composite_id);
 
   fb_composite.use()
     .renderbuffer(FramebufferSize, gx::rgb8, gx::Framebuffer::Color(0));
@@ -299,15 +303,13 @@ int main(int argc, char *argv[])
     win32::panic("couldn't create composite Framebuffer!", win32::FramebufferError);
   }
 
-  fb_composite.label("FB_composite");
-
-  auto resolve_sampler = gx::Sampler::edgeclamp2d();
+  auto resolve_sampler_id = pool.acquire<gx::Sampler>(gx::Sampler::edgeclamp2d());
 
   auto scene_pass = gx::RenderPass()
-    .framebuffer(fb)
+    .framebuffer(fb_id)
     .textures({
-      { 0, { &tex, &floor_sampler }},
-      { 1, { &cubemap, &cubemap_sampler }}
+      { 0u, { tex_id, floor_sampler_id }},
+      { 1u, { cubemap_id, cubemap_sampler_id }}
     })
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
@@ -319,7 +321,7 @@ int main(int argc, char *argv[])
     ;
 
   auto ui_pass = gx::RenderPass()
-    .framebuffer(fb_ui)
+    .framebuffer(fb_ui_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
       .noDepthTest()
@@ -329,10 +331,10 @@ int main(int argc, char *argv[])
     ;
 
   auto composite_pass = gx::RenderPass()
-    .framebuffer(fb_composite)
+    .framebuffer(fb_composite_id)
     .textures({
-      { 4, { &fb_ui_tex, &resolve_sampler }},
-      { 5, { &fb_tex, &resolve_sampler }}
+      { 4u, { fb_ui_tex_id, resolve_sampler_id }},
+      { 5u, { fb_tex_id, resolve_sampler_id }}
     })
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
@@ -749,7 +751,7 @@ int main(int argc, char *argv[])
       num_tris += sphere_inds.size() / 3;
     };
 
-    scene_pass.begin();
+    scene_pass.begin(pool);
 
     mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
 
@@ -757,7 +759,7 @@ int main(int argc, char *argv[])
     matrix_block.normal = modelview.inverse().transpose();
 
     material_block.material = PhongColored;
-    material_block.color = { 0.7f, 0.7f, 0.7f, 1.0f };
+    material_block.color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
     upload_ubos();
 
@@ -883,7 +885,7 @@ int main(int argc, char *argv[])
       ;
     skybox_arr.end();
 
-    ui_pass.begin();
+    ui_pass.begin(pool);
 
     for(int i = 0; i < light_block.num_lights; i++) {
       model = xform::Transform()
@@ -935,7 +937,7 @@ int main(int argc, char *argv[])
     cursor.paint();
 
     // Resolve the main Framebuffer and composite the Ui on top of it
-    composite_pass.begin();
+    composite_pass.begin(pool);
 
     composite_program.use()
       .uniformSampler(U.composite.uUi, 4)
@@ -956,6 +958,8 @@ int main(int argc, char *argv[])
 
     step_timer.reset();
   }
+
+  pool.purge();
 
   hm::finalize();
   res::finalize();

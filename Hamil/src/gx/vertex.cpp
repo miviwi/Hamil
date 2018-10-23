@@ -111,6 +111,8 @@ VertexArray::VertexArray(const VertexFormat& fmt, const VertexBuffer& buf) :
 
 VertexArray::~VertexArray()
 {
+  if(deref()) return;
+
   glDeleteVertexArrays(1, &m);
 }
 

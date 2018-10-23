@@ -2,6 +2,9 @@
 
 #include <gx/gx.h>
 #include <gx/pipeline.h>
+#include <gx/resourcepool.h>
+
+#include <util/ref.h>
 
 #include <array>
 #include <tuple>
@@ -14,10 +17,7 @@ class Framebuffer;
 class Texture;
 class Sampler;
 
-// The RenderPass doesn't own any of it's Framebuffers, Textures, Samplers etc.
-//   which means they MUST be alive before calling begin() or undefined behaviour
-//   will occur
-class RenderPass {
+class RenderPass : public Ref {
 public:
   enum ClearOp : unsigned {
     NoClear,
@@ -30,20 +30,21 @@ public:
     ClearAll = ~0u,
   };
 
-  using TextureAndSampler = std::tuple<Texture *, Sampler *>;
+  using TextureAndSampler = std::tuple<ResourcePool::Id /* texture */, ResourcePool::Id /* sampler */>;
 
   RenderPass();
+  ~RenderPass();
 
-  RenderPass& framebuffer(Framebuffer& fb);
-  RenderPass& texture(unsigned unit, Texture& tex, Sampler& sampler);
-  RenderPass& textures(std::initializer_list<std::pair<unsigned /* unit */, TextureAndSampler>> tus);
+  RenderPass& framebuffer(ResourcePool::Id fb);
+  RenderPass& texture(unsigned unit, ResourcePool::Id tex, ResourcePool::Id sampler);
+  RenderPass& textures(std::initializer_list<std::pair<unsigned, TextureAndSampler>> tus);
   RenderPass& pipeline(const Pipeline& p);
   RenderPass& clearOp(unsigned op);
 
-  const RenderPass& begin() const;
+  const RenderPass& begin(ResourcePool& pool) const;
 
 private:
-  Framebuffer *m_framebuffer;
+  ResourcePool::Id m_framebuffer;
   std::array<TextureAndSampler, NumTexUnits> m_texunits;
   Pipeline m_pipeline;
 

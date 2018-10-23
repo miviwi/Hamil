@@ -54,6 +54,8 @@ Program::Program(Program&& other) :
 
 Program::~Program()
 {
+  if(deref()) return;
+
   glDeleteProgram(m);
 }
 

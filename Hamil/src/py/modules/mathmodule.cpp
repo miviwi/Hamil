@@ -1184,7 +1184,7 @@ static PyObject *Transform_Translation(Transform *self, void *Py_UNUSED(closure)
   return Vec3_FromVec3(self->m.translation());
 }
 
-static PyObject *Transform_GetScale(Transform *self, void *Py_UNUSED(closure))
+static PyObject *Transform_Scaling(Transform *self, void *Py_UNUSED(closure))
 {
   return Vec3_FromVec3(self->m.scale());
 }
@@ -1235,8 +1235,8 @@ static TypeObject TransformType =
         .name("translation")
         .get((getter)Transform_Translation),
       GetSetDef()
-        .name("getScale")
-        .get((getter)Transform_GetScale),
+        .name("scaling")
+        .get((getter)Transform_Scaling),
       GetSetDef()
         .name("rotation")
         .get((getter)Transform_Rotation),

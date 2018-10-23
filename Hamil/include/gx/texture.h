@@ -6,13 +6,15 @@
 #include <util/ref.h>
 #include <math/geometry.h>
 
+#include <utility>
+#include <type_traits>
+
 namespace gx {
 
 class Sampler;
 
-class Texture {
+class Texture : public Ref {
 public:
-  Texture(const Texture& other) = delete;
   virtual ~Texture();
 
   /* --------------- Texture2D init methods ---------------- */
@@ -70,7 +72,6 @@ private:
 class Texture2D : public Texture {
 public:
   Texture2D(Format format);
-  Texture2D(const Texture2D& other) = delete;
   virtual ~Texture2D();
 
   void initMultisample(unsigned samples, unsigned w, unsigned h);
@@ -85,7 +86,6 @@ private:
 class Texture2DArray : public Texture {
 public:
   Texture2DArray(Format format);
-  Texture2DArray(const Texture2DArray& other) = delete;
   virtual ~Texture2DArray();
 
   void initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers);
@@ -97,7 +97,6 @@ private:
 class TextureCubeMap : public Texture {
 public:
   TextureCubeMap(Format format);
-  TextureCubeMap(const TextureCubeMap& other) = delete;
   virtual ~TextureCubeMap();
 };
 
@@ -109,6 +108,36 @@ public:
 
 private:
   TexelBuffer m_buf;
+};
+
+class TextureHandle : public Ref {
+public:
+  ~TextureHandle();
+
+  template <typename Tex, typename... Args>
+  static TextureHandle create(Args... args)
+  {
+    return new Tex(std::forward<Args>(args)...);
+  }
+
+  template <typename T>
+  T& get()
+  {
+    static_assert(std::is_base_of_v<Texture, T>, "T must be a Texture!");
+
+    return *(T *)m;
+  }
+
+  Texture& get();
+  Texture& operator()();
+
+  void label(const char *lbl);
+
+protected:
+  TextureHandle(Texture *tex);
+
+private:
+  Texture *m;
 };
 
 // - param() DOES NOT check the validity of it's arguments
@@ -145,6 +174,8 @@ public:
   Sampler& param(ParamName name, Param p);
   Sampler& param(ParamName name, float value);
   Sampler& param(ParamName name, vec4 value);
+
+  void label(const char *lbl);
 
 private:
   friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);

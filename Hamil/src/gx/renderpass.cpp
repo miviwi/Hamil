@@ -7,22 +7,26 @@
 namespace gx {
 
 RenderPass::RenderPass() :
-  m_framebuffer(nullptr),
   m_clear(NoClear)
 {
-  for(auto& tu : m_texunits) tu = { nullptr, nullptr };
+  for(auto& tu : m_texunits) tu = { ResourcePool::Invalid, ResourcePool::Invalid };
 }
 
-RenderPass& RenderPass::framebuffer(Framebuffer& fb)
+RenderPass::~RenderPass()
 {
-  m_framebuffer = &fb;
+  if(deref()) return;
+}
+
+RenderPass& RenderPass::framebuffer(ResourcePool::Id fb)
+{
+  m_framebuffer = fb;
 
   return *this;
 }
 
-RenderPass& RenderPass::texture(unsigned unit, Texture& tex, Sampler& sampler)
+RenderPass& RenderPass::texture(unsigned unit, ResourcePool::Id tex, ResourcePool::Id sampler)
 {
-  m_texunits[unit] = { &tex, &sampler };
+  m_texunits[unit] = { tex, sampler };
 
   return *this;
 }
@@ -30,7 +34,10 @@ RenderPass& RenderPass::texture(unsigned unit, Texture& tex, Sampler& sampler)
 RenderPass& RenderPass::textures(std::initializer_list<std::pair<unsigned, TextureAndSampler>> tus)
 {
   for(const auto& tu : tus) {
-    m_texunits[tu.first] = tu.second;
+    auto tex     = std::get<0>(tu.second);
+    auto sampler = std::get<1>(tu.second);
+
+    texture(tu.first, tex, sampler);
   }
 
   return *this;
@@ -54,23 +61,26 @@ RenderPass& RenderPass::clearOp(unsigned op)
   return *this;
 }
 
-const RenderPass& RenderPass::begin() const
+const RenderPass& RenderPass::begin(ResourcePool& pool) const
 { 
-  m_framebuffer->use();
+  auto& framebuffer = pool.get<Framebuffer>(m_framebuffer);
+
+  framebuffer.use();
   m_pipeline.use();
 
   for(unsigned tui = 0; tui < (unsigned)m_texunits.size(); tui++) {
     const auto& tu = m_texunits[tui];
 
-    const Texture *tex     = std::get<0>(tu);
-    const Sampler *sampler = std::get<1>(tu);
+    auto tex_id     = std::get<0>(tu);
+    auto sampler_id = std::get<1>(tu);
+    if(tex_id == ResourcePool::Invalid || sampler_id == ResourcePool::Invalid) continue;
 
-    if(tex && sampler) {
-      gx::tex_unit(tui, *tex, *sampler);
-    }
+    auto& tex     = pool.getTexture(tex_id);
+    auto& sampler = pool.get<Sampler>(sampler_id);
+    gx::tex_unit(tui, tex(), sampler);
   }
 
-  if(m_clear) m_framebuffer->clear(m_clear);
+  if(m_clear) framebuffer.clear(m_clear);
 
   return *this;
 }

@@ -2,6 +2,8 @@
 
 #include <gx/gx.h>
 
+#include <util/ref.h>
+
 #include <cstdint>
 #include <vector>
 
@@ -54,10 +56,9 @@ private:
   std::vector<Desc> m_descs;
 };
 
-class VertexArray {
+class VertexArray : public Ref {
 public:
   VertexArray(const VertexFormat& fmt, const VertexBuffer& buf);
-  VertexArray(const VertexArray&) = delete;
   ~VertexArray();
 
   size_t elemSize() const;
