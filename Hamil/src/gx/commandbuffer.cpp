@@ -9,6 +9,7 @@ namespace gx {
 
 CommandBuffer::CommandBuffer(size_t initial_alloc) :
   m_pool(nullptr),
+  m_memory(nullptr),
   m_program(nullptr),
   m_last_draw(NonIndexedDraw)
 {
@@ -46,11 +47,11 @@ CommandBuffer& CommandBuffer::drawIndexed(Primitive p, ResourceId indexed_vertex
   return appendCommand(make_draw_indexed(p, indexed_vertex_array, num_inds));
 }
 
-CommandBuffer& CommandBuffer::uploadUnifoms(ResourceId buf, MemoryPool::Handle h, size_t sz)
+CommandBuffer& CommandBuffer::bufferUpload(ResourceId buf, MemoryPool::Handle h, size_t sz)
 {
   checkResourceId(buf);
 
-  return appendCommand(make_upload_uniforms(buf, h, sz));
+  return appendCommand(make_buffer_upload(buf, h, sz));
 }
 
 CommandBuffer& CommandBuffer::end()
@@ -149,7 +150,9 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
     drawCommand(fetch_extra());
     break;
 
-  case OpUploadUniforms:
+  case OpBufferUpload:
+    assertMemoryPool();
+
     uploadCommand(fetch_extra());
     break;
 
@@ -229,6 +232,11 @@ void CommandBuffer::checkXferSize(size_t sz)
 void CommandBuffer::assertProgram()
 {
   assert(m_program && "Command requires a bound Program!");
+}
+
+void CommandBuffer::assertMemoryPool()
+{
+  assert(m_memory && "Command requires a bound MemoryPool!");
 }
 
 CommandBuffer::Command CommandBuffer::op_opcode(u32 op)
@@ -320,14 +328,14 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_draw_indexed(Primitive p,
   return c;
 }
 
-CommandBuffer::CommandWithExtra CommandBuffer::make_upload_uniforms(ResourceId buf,
+CommandBuffer::CommandWithExtra CommandBuffer::make_buffer_upload(ResourceId buf,
   MemoryPool::Handle h, size_t sz)
 {
   checkHandleRange(h);
   checkXferSize(sz);
 
   CommandWithExtra c;
-  c.command = (OpUploadUniforms << OpShift) | buf;
+  c.command = (OpBufferUpload << OpShift) | buf;
   c.extra = (sz << OpExtraXferSizeShift) | (h >> MemoryPool::AllocAlignShift);
 
   return c;

@@ -65,11 +65,12 @@ public:
     OpDraw, OpDrawIndexed,
 
     // CommandWithExtra where:
-    //   - OpData encodes the UniformBuffer ResourceId
+    //   - OpData encodes the Buffer ResourceId
     //   - Bits [31;16] of OpExtra encode the upload size (in bytes)
     //   - Bits [15;0] of OpExtra encode the
-   //        MemoryPool::Handle >> MemoryPool::AllocAlignBits
-    OpUploadUniforms,
+    //        MemoryPool::Handle >> MemoryPool::AllocAlignBits
+    OpBufferUpload,
+
     OpSetUniform,
 
     OpEnd,
@@ -101,7 +102,7 @@ public:
   CommandBuffer& program(ResourceId prog);
   CommandBuffer& draw(Primitive p, ResourceId vertex_array, size_t num_verts);
   CommandBuffer& drawIndexed(Primitive p, ResourceId indexed_vertex_array, size_t num_inds);
-  CommandBuffer& uploadUnifoms(ResourceId buf, MemoryPool::Handle h, size_t sz);
+  CommandBuffer& bufferUpload(ResourceId buf, MemoryPool::Handle h, size_t sz);
 
   // Must be called after the last recorded command!
   CommandBuffer& end();
@@ -155,6 +156,7 @@ private:
   static void checkXferSize(size_t sz);
 
   void assertProgram();
+  void assertMemoryPool();
 
   static Command op_opcode(u32 op);
   static u32 op_data(u32 op);
@@ -170,7 +172,7 @@ private:
   static CommandWithExtra make_draw(Primitive p, ResourceId array, size_t num_verts);
   static CommandWithExtra make_draw_indexed(Primitive p, ResourceId array, size_t num_inds);
 
-  static CommandWithExtra make_upload_uniforms(ResourceId buf, MemoryPool::Handle h, size_t sz);
+  static CommandWithExtra make_buffer_upload(ResourceId buf, MemoryPool::Handle h, size_t sz);
 
   std::vector<u32> m_commands;
   ResourcePool *m_pool;

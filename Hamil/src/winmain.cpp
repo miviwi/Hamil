@@ -580,9 +580,9 @@ int main(int argc, char *argv[])
   auto floor = create_floor();
 
   auto command_buf = gx::CommandBuffer::begin()
-    .uploadUnifoms(matrix_ubo_id, matrix_block_handle, sizeof(MatrixBlock))
-    .uploadUnifoms(material_ubo_id, material_block_handle, sizeof(MaterialBlock))
-    .uploadUnifoms(light_ubo_id, light_block_handle, sizeof(LightBlock))
+    .bufferUpload(matrix_ubo_id, matrix_block_handle, sizeof(MatrixBlock))
+    .bufferUpload(material_ubo_id, material_block_handle, sizeof(MaterialBlock))
+    .bufferUpload(light_ubo_id, light_block_handle, sizeof(LightBlock))
     .renderPass(scene_pass_id)
     .program(program_id)
     .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
