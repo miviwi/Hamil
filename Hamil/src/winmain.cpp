@@ -29,6 +29,7 @@
 #include <gx/framebuffer.h>
 #include <gx/renderpass.h>
 #include <gx/resourcepool.h>
+#include <gx/memorypool.h>
 #include <gx/commandbuffer.h>
 
 #include <ft/font.h>
@@ -138,6 +139,7 @@ int main(int argc, char *argv[])
   }
 
   gx::ResourcePool pool(64);
+  gx::MemoryPool memory(1024);
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
@@ -305,14 +307,13 @@ int main(int argc, char *argv[])
   }
 
   auto resolve_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d());
-
   static constexpr uint MatrixBinding = 0;
   struct MatrixBlock {
     mat4 modelview;
     mat4 projection;
     mat4 normal;
     mat4 tex;
-  } matrix_block;
+  };
 
   enum Material : uint {
     Unshaded,
@@ -332,7 +333,7 @@ int main(int argc, char *argv[])
     MaterialBlock() :
       material(0)
     { }
-  } material_block;
+  };
 
   struct Light {
     vec4 position, color;
@@ -342,7 +343,16 @@ int main(int argc, char *argv[])
   struct LightBlock {
     Light lights[4];
     int num_lights;
-  } light_block;
+  };
+
+  auto matrix_block_handle = memory.alloc(sizeof(MatrixBlock));
+  auto& matrix_block = *memory.ptr<MatrixBlock>(matrix_block_handle);
+
+  auto material_block_handle = memory.alloc(sizeof(MaterialBlock));
+  auto& material_block = *memory.ptr<MaterialBlock>(material_block_handle);
+
+  auto light_block_handle = memory.alloc(sizeof(LightBlock));
+  auto& light_block = *memory.ptr<LightBlock>(light_block_handle);
 
   auto matrix_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_matrix", gx::Buffer::Dynamic);
   auto& matrix_ubo = pool.getBuffer<gx::UniformBuffer>(matrix_ubo_id);
@@ -377,7 +387,7 @@ int main(int argc, char *argv[])
       .depthTest(gx::Pipeline::LessEqual)
       .cull(gx::Pipeline::Back)
       .seamlessCubemap()
-      .clear(vec4{ 0.1f, 0.1f, 0.1f, 1.0f }, 1.0f))
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
@@ -570,12 +580,16 @@ int main(int argc, char *argv[])
   auto floor = create_floor();
 
   auto command_buf = gx::CommandBuffer::begin()
+    .uploadUnifoms(matrix_ubo_id, matrix_block_handle, sizeof(MatrixBlock))
+    .uploadUnifoms(material_ubo_id, material_block_handle, sizeof(MaterialBlock))
+    .uploadUnifoms(light_ubo_id, light_block_handle, sizeof(LightBlock))
     .renderPass(scene_pass_id)
     .program(program_id)
     .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
     .end();
 
   command_buf.bindResourcePool(&pool);
+  command_buf.bindMemoryPool(&memory);
 
   while(window.processMessages()) {
     using hm::entities;
@@ -772,9 +786,8 @@ int main(int argc, char *argv[])
     material_block.material = PhongColored;
     material_block.color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
-    upload_ubos();
-
     command_buf.execute();
+    num_tris += bunny_inds.size() / 3;
 
     auto rot = xform::identity()
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
@@ -811,7 +824,7 @@ int main(int argc, char *argv[])
       matrix_block.normal = modelview.inverse().transpose();
 
       material_block.material = Unshaded;
-      material_block.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+      material_block.color = { 1.0f, 1.0f/force_factor, 1.0f/force_factor, 1.0f };
 
       upload_ubos();
 
@@ -883,7 +896,7 @@ int main(int argc, char *argv[])
 
     gx::Pipeline()
       .depthTest(gx::Pipeline::LessEqual)
-      .noCull()
+      .cull(gx::Pipeline::Front)
       .use();
 
     skybox_program.use()

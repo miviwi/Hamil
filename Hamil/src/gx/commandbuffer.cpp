@@ -46,6 +46,13 @@ CommandBuffer& CommandBuffer::drawIndexed(Primitive p, ResourceId indexed_vertex
   return appendCommand(make_draw_indexed(p, indexed_vertex_array, num_inds));
 }
 
+CommandBuffer& CommandBuffer::uploadUnifoms(ResourceId buf, MemoryPool::Handle h, size_t sz)
+{
+  checkResourceId(buf);
+
+  return appendCommand(make_upload_uniforms(buf, h, sz));
+}
+
 CommandBuffer& CommandBuffer::end()
 {
   return appendCommand(OpEnd);
@@ -54,6 +61,13 @@ CommandBuffer& CommandBuffer::end()
 CommandBuffer& CommandBuffer::bindResourcePool(ResourcePool *pool)
 {
   m_pool = pool;
+
+  return *this;
+}
+
+CommandBuffer& CommandBuffer::bindMemoryPool(MemoryPool *pool)
+{
+  m_memory = pool;
 
   return *this;
 }
@@ -135,9 +149,19 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
     drawCommand(fetch_extra());
     break;
 
+  case OpUploadUniforms:
+    uploadCommand(fetch_extra());
+    break;
+
+  case OpSetUniform:
+    STUB();
+    break;
+
   case OpEnd:
     endIndexedArray();
     return nullptr;
+
+  default: assert(0); // unreachable
   }
 
   return op + 1;
@@ -160,7 +184,18 @@ void CommandBuffer::drawCommand(CommandWithExtra op)
     m_program->draw(primitive, m_pool->get<IndexedVertexArray>(array), num);
     m_last_draw = array;
     break;
+
+  default: assert(0); // unreachable
   }
+}
+
+void CommandBuffer::uploadCommand(CommandWithExtra op)
+{
+  auto buffer = xfer_buffer(op);
+  auto handle = xfer_handle(op);
+  auto size   = xfer_size(op);
+
+  m_pool->getBuffer(buffer).get().upload(m_memory->ptr(handle), 0, sizeof(byte), size);
 }
 
 void CommandBuffer::endIndexedArray()
@@ -179,6 +214,16 @@ void CommandBuffer::checkResourceId(ResourceId id)
 void CommandBuffer::checkNumVerts(size_t num)
 {
   if(num & ~OpExtraNumVertsMask) throw NumVertsTooLargeError();
+}
+
+void CommandBuffer::checkHandleRange(MemoryPool::Handle h)
+{
+  if((h >> MemoryPool::AllocAlignShift) & ~OpExtraHandleMask) throw HandleOutOfRangeError();
+}
+
+void CommandBuffer::checkXferSize(size_t sz)
+{
+  if(sz & ~OpExtraXferSizeMask) throw XferSizeTooLargeError();
 }
 
 void CommandBuffer::assertProgram()
@@ -221,6 +266,21 @@ size_t CommandBuffer::draw_num(CommandWithExtra op)
   return (size_t)(op.extra & OpExtraNumVertsMask);
 }
 
+CommandBuffer::ResourceId CommandBuffer::xfer_buffer(CommandWithExtra op)
+{
+  return op_data(op.command);
+}
+
+MemoryPool::Handle CommandBuffer::xfer_handle(CommandWithExtra op)
+{
+  return (op_data(op.extra) & OpExtraHandleMask) << MemoryPool::AllocAlignShift;
+}
+
+size_t CommandBuffer::xfer_size(CommandWithExtra op)
+{
+  return (size_t)((op_data(op.extra) >> OpExtraXferSizeShift) & OpExtraXferSizeMask);
+}
+
 CommandBuffer::CommandWithExtra CommandBuffer::make_draw(Primitive p,
   ResourceId array, size_t num_verts)
 {
@@ -256,6 +316,19 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_draw_indexed(Primitive p,
 
   c.command &= ~(OpMask << OpShift);
   c.command |= OpDrawIndexed << OpShift;
+
+  return c;
+}
+
+CommandBuffer::CommandWithExtra CommandBuffer::make_upload_uniforms(ResourceId buf,
+  MemoryPool::Handle h, size_t sz)
+{
+  checkHandleRange(h);
+  checkXferSize(sz);
+
+  CommandWithExtra c;
+  c.command = (OpUploadUniforms << OpShift) | buf;
+  c.extra = (sz << OpExtraXferSizeShift) | (h >> MemoryPool::AllocAlignShift);
 
   return c;
 }

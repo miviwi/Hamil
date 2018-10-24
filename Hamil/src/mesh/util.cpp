@@ -59,7 +59,7 @@ std::tuple<std::vector<PVertex>, std::vector<u16>> box(float w, float h, float d
     0, 7, 4, 7, 0, 3, // Top
     3, 2, 6, 6, 7, 3, // Right
     4, 6, 5, 6, 4, 7, // Back
-    1, 6, 5, 6, 1, 2, // Bottom
+    1, 5, 6, 6, 2, 1, // Bottom
   };
 
   return std::make_tuple(std::move(verts), std::move(inds));
