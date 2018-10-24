@@ -2,7 +2,6 @@
 
 #include <gx/gx.h>
 #include <gx/pipeline.h>
-#include <gx/resourcepool.h>
 
 #include <util/ref.h>
 
@@ -16,9 +15,12 @@ namespace gx {
 class Framebuffer;
 class Texture;
 class Sampler;
+class ResourcePool;
 
 class RenderPass : public Ref {
 public:
+  using ResourceId = ::u32;
+
   enum ClearOp : unsigned {
     NoClear,
     ClearColor   = (1<<0),
@@ -30,7 +32,7 @@ public:
     ClearAll = ~0u,
   };
 
-  using TextureAndSampler = std::tuple<ResourcePool::Id /* texture */, ResourcePool::Id /* sampler */>;
+  using TextureAndSampler = std::tuple<ResourceId /* texture */, ResourceId /* sampler */>;
 
   template <typename T>
   using PairInitList = std::initializer_list<std::pair<unsigned, T>>;
@@ -38,20 +40,20 @@ public:
   RenderPass();
   ~RenderPass();
 
-  RenderPass& framebuffer(ResourcePool::Id fb);
-  RenderPass& texture(unsigned unit, ResourcePool::Id tex, ResourcePool::Id sampler);
+  RenderPass& framebuffer(ResourceId fb);
+  RenderPass& texture(unsigned unit, ResourceId tex, ResourceId sampler);
   RenderPass& textures(PairInitList<TextureAndSampler> tus);
-  RenderPass& uniformBuffer(unsigned index, ResourcePool::Id buf);
-  RenderPass& uniformBuffers(PairInitList<ResourcePool::Id /* buf */> bufs);
+  RenderPass& uniformBuffer(unsigned index, ResourceId buf);
+  RenderPass& uniformBuffers(PairInitList<ResourceId /* buf */> bufs);
   RenderPass& pipeline(const Pipeline& p);
   RenderPass& clearOp(unsigned op);
 
   const RenderPass& begin(ResourcePool& pool) const;
 
 private:
-  ResourcePool::Id m_framebuffer;
+  ResourceId m_framebuffer;
   std::array<TextureAndSampler, NumTexUnits> m_texunits;
-  std::array<ResourcePool::Id /* UniformBuffer */, NumUniformBindings> m_uniform_bufs;
+  std::array<ResourceId /* UniformBuffer */, NumUniformBindings> m_uniform_bufs;
   Pipeline m_pipeline;
 
   unsigned m_clear;

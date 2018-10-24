@@ -6,6 +6,7 @@
 #include <gx/framebuffer.h>
 #include <gx/texture.h>
 #include <gx/vertex.h>
+#include <gx/renderpass.h>
 
 #include <vector>
 #include <tuple>
@@ -101,6 +102,8 @@ public:
     return get<T>(id);
   }
 
+  // Destroys all resources which are referenced
+  //   by ONLY this ResourcePool
   void purge();
 
 private:
@@ -123,7 +126,8 @@ private:
     Framebuffer,
     TextureHandle,
     Sampler,
-    BufferHandle
+    BufferHandle,
+    RenderPass
   > m_resources;
 };
 

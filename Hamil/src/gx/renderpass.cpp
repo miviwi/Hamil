@@ -3,6 +3,7 @@
 #include <gx/texture.h>
 #include <gx/pipeline.h>
 #include <gx/program.h>
+#include <gx/resourcepool.h>
 
 namespace gx {
 
@@ -18,14 +19,14 @@ RenderPass::~RenderPass()
   if(deref()) return;
 }
 
-RenderPass& RenderPass::framebuffer(ResourcePool::Id fb)
+RenderPass& RenderPass::framebuffer(ResourceId fb)
 {
   m_framebuffer = fb;
 
   return *this;
 }
 
-RenderPass& RenderPass::texture(unsigned unit, ResourcePool::Id tex, ResourcePool::Id sampler)
+RenderPass& RenderPass::texture(unsigned unit, ResourceId tex, ResourceId sampler)
 {
   m_texunits[unit] = { tex, sampler };
 
@@ -44,14 +45,14 @@ RenderPass& RenderPass::textures(PairInitList<TextureAndSampler> tus)
   return *this;
 }
 
-RenderPass& RenderPass::uniformBuffer(unsigned index, ResourcePool::Id buf)
+RenderPass& RenderPass::uniformBuffer(unsigned index, ResourceId buf)
 {
   m_uniform_bufs[index] = buf;
 
   return *this;
 }
 
-RenderPass& RenderPass::uniformBuffers(PairInitList<ResourcePool::Id> bufs)
+RenderPass& RenderPass::uniformBuffers(PairInitList<ResourceId> bufs)
 {
   for(const auto& buf : bufs) {
     uniformBuffer(buf.first, buf.second);

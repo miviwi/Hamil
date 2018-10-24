@@ -137,6 +137,8 @@ int main(int argc, char *argv[])
     for(const auto& v : face) bunny_inds.push_back((u16)v.v);
   }
 
+  gx::ResourcePool pool(64);
+
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3)
@@ -150,8 +152,9 @@ int main(int argc, char *argv[])
   bunny_vbuf.init(bunny_verts.data(), bunny_verts.size());
   bunny_ibuf.init(bunny_inds.data(), bunny_inds.size());
 
-  gx::IndexedVertexArray bunny_arr(bunny_fmt, bunny_vbuf, bunny_ibuf);
-  bunny_arr.label("BUNNY");
+  auto bunny_arr_id = pool.create<gx::IndexedVertexArray>("BUNNY",
+    bunny_fmt, bunny_vbuf, bunny_ibuf);
+  auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -172,8 +175,6 @@ int main(int argc, char *argv[])
   vec3 sun { -120.0f, 160.0f, 140.0f };
 
   int animate = -1;
-
-  gx::ResourcePool pool(64);
 
   auto fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
@@ -359,7 +360,8 @@ int main(int argc, char *argv[])
   program.uniformBlockBinding("MaterialBlock", MaterialBinding);
   program.uniformBlockBinding("LightBlock", LightBinding);
 
-  auto scene_pass = gx::RenderPass()
+  auto scene_pass_id = pool.create<gx::RenderPass>();
+  auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
     .framebuffer(fb_id)
     .textures({
       { 0u, { tex_id, floor_sampler_id }},
@@ -379,7 +381,8 @@ int main(int argc, char *argv[])
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
-  auto ui_pass = gx::RenderPass()
+  auto ui_pass_id = pool.create<gx::RenderPass>();
+  auto& ui_pass = pool.get<gx::RenderPass>(ui_pass_id)
     .framebuffer(fb_ui_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
@@ -389,7 +392,8 @@ int main(int argc, char *argv[])
     .clearOp(gx::RenderPass::ClearColor)
     ;
 
-  auto composite_pass = gx::RenderPass()
+  auto composite_pass_id = pool.create<gx::RenderPass>();
+  auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
     .textures({
       { 4u, { fb_ui_tex_id, resolve_sampler_id }},
@@ -564,6 +568,14 @@ int main(int argc, char *argv[])
   };
 
   auto floor = create_floor();
+
+  auto command_buf = gx::CommandBuffer::begin()
+    .renderPass(scene_pass_id)
+    .program(program_id)
+    .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
+    .end();
+
+  command_buf.bindResourcePool(&pool);
 
   while(window.processMessages()) {
     using hm::entities;
@@ -752,8 +764,6 @@ int main(int argc, char *argv[])
       num_tris += sphere_inds.size() / 3;
     };
 
-    scene_pass.begin(pool);
-
     mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
 
     matrix_block.modelview = modelview;
@@ -764,9 +774,7 @@ int main(int argc, char *argv[])
 
     upload_ubos();
 
-    program.use()
-      .draw(gx::Triangles, bunny_arr, bunny_inds.size());
-    bunny_arr.end();
+    command_buf.execute();
 
     auto rot = xform::identity()
       *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))

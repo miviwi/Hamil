@@ -11,6 +11,8 @@
 
 namespace gx {
 
+class Framebuffer;
+
 class Sampler;
 
 class Texture : public Ref {
@@ -56,7 +58,6 @@ public:
 
   void use();
 
-  // Can only be called after init[Multisample]()
   void label(const char *lbl);
 
 protected:
@@ -83,7 +84,9 @@ public:
   void initMultisample(unsigned samples, ivec2 sz);
 
 private:
-  friend class Framebuffer;
+  friend Framebuffer;
+
+  void assertMultisample();
 
   unsigned m_samples;
 };
@@ -96,6 +99,10 @@ public:
   void initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers);
 
 private:
+  friend Framebuffer;
+
+  void assertMultisample();
+
   unsigned m_samples;
 };
 

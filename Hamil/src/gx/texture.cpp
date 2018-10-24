@@ -68,7 +68,8 @@ void Texture::init(unsigned w, unsigned h, unsigned d)
   setDefaultParameters(m_target);
 }
 
-void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d, Format format, Type type)
+void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d,
+  Format format, Type type)
 {
   use();
   glTexImage3D(m_target, 0, m_format, w, h, d, 0, format, type, data);
@@ -109,7 +110,8 @@ void Texture::init(const void *data, unsigned mip, Face face, unsigned l, Format
   setDefaultParameters(m_target);
 }
 
-void Texture::upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y, unsigned w, unsigned h, Format format, Type type)
+void Texture::upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y,
+  unsigned w, unsigned h, Format format, Type type)
 {
   use();
   glTexSubImage2D(face, mip, x, y, w, h, format, type, data);
@@ -148,8 +150,8 @@ Texture2D::~Texture2D()
 
 void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
 {
+  assertMultisample();
   m_samples = samples;
-  if(m_target == GL_TEXTURE_2D) m_target = GL_TEXTURE_2D_MULTISAMPLE;
 
   use();
   glTexImage2DMultisample(m_target, m_samples, m_format, w, h, GL_TRUE);
@@ -160,6 +162,12 @@ void Texture2D::initMultisample(unsigned samples, ivec2 sz)
   assert((sz.x >= 0 && sz.y >= 0) && "Attempted to initMultisample a Texture with negative size!");
 
   initMultisample(samples, (unsigned)sz.x, (unsigned)sz.y);
+}
+
+void Texture2D::assertMultisample()
+{
+  assert(m_target == GL_TEXTURE_2D_MULTISAMPLE &&
+    "Using a Texture2D with multisampling without the 'Multisample' flag!");
 }
 
 Texture2DArray::Texture2DArray(Format format, Flags flags) :
@@ -174,11 +182,17 @@ Texture2DArray::~Texture2DArray()
 
 void Texture2DArray::initMultisample(unsigned samples, unsigned w, unsigned h, unsigned layers)
 {
+  assertMultisample();
   m_samples = samples;
-  if(m_target == GL_TEXTURE_2D_ARRAY) m_target = GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
 
   use();
   glTexImage3DMultisample(m_target, m_samples, m_format, w, h, layers, GL_TRUE);
+}
+
+void Texture2DArray::assertMultisample()
+{
+  assert(m_target == GL_TEXTURE_2D_MULTISAMPLE &&
+    "Using a Texture2DArray with multisampling without the 'Multisample' flag!");
 }
 
 TextureCubeMap::TextureCubeMap(Format format) :

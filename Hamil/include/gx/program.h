@@ -56,7 +56,7 @@ private:
   GLuint m;
 };
 
-enum Primitive {
+enum Primitive : GLenum {
   Points        = GL_POINTS,
 
   Lines         = GL_LINES,
