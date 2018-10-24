@@ -24,6 +24,10 @@ public:
   //   - glGet(GL_MAX_UNIFORM_BLOCK_SIZE)
   size_t maxUniformBlockSize() const;
 
+  // Minimum required alignment for UniformBuffer bind offset and size
+  //  - glGet(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT)
+  size_t minUniformBindAlignment() const;
+
   // Maximum i+1 which can be used as 'index' in
   //   glBindBuffer<Base,Range>(GL_UNIFORM_BUFFER, index, ...) >= 36
   //   - glGet(GL_MAX_UNIFORM_BUFFER_BINDINGS)
@@ -52,6 +56,9 @@ private:
 
   // GL_MAX_UNIFORM_BLOCK_SIZE
   size_t m_max_uniform_block_sz;
+
+  // GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
+  size_t m_min_uniform_buf_alignment;
 
   // GL_MAX_UNIFORM_BUFFER_BINDINGS
   size_t m_max_uniform_bindings;

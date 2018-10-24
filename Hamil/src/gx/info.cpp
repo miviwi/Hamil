@@ -22,6 +22,11 @@ size_t GxInfo::maxUniformBlockSize() const
   return m_max_uniform_block_sz;
 }
 
+size_t GxInfo::minUniformBindAlignment() const
+{
+  return m_min_uniform_buf_alignment;
+}
+
 size_t GxInfo::maxUniformBufferBindings() const
 {
   return m_max_uniform_bindings;
@@ -45,6 +50,7 @@ GxInfo *GxInfo::create()
   p_glGet(GL_MAX_ARRAY_TEXTURE_LAYERS, &self->m_max_array_tex_layers);
   p_glGet(GL_MAX_TEXTURE_BUFFER_SIZE, &self->m_max_tex_buffer_sz);
   p_glGet(GL_MAX_UNIFORM_BLOCK_SIZE, &self->m_max_uniform_block_sz);
+  p_glGet(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &self->m_min_uniform_buf_alignment);
   p_glGet(GL_MAX_UNIFORM_BUFFER_BINDINGS, &self->m_max_uniform_bindings);
   p_glGet(GL_MAX_TEXTURE_IMAGE_UNITS, &self->m_max_tex_image_units);
 

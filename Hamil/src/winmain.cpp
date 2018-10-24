@@ -698,10 +698,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    mat4 model =
-      xform::translate(pitch, yaw, -50.0f)
-      *zoom_mtx
-      ;
+    mat4 model = xform::identity();
 
     auto persp = xform::perspective(fov_slider.value(),
       (float)FramebufferSize.x/(float)FramebufferSize.y, 50.0f, 10e20f);
@@ -788,10 +785,6 @@ int main(int argc, char *argv[])
 
     command_buf.execute();
     num_tris += bunny_inds.size() / 3;
-
-    auto rot = xform::identity()
-      *xform::roty(lerp(0.0, PI, anim_timer.elapsedf()))
-      ;
 
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();

@@ -1,6 +1,7 @@
 #include <gx/buffer.h>
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
+#include <gx/info.h>
 
 #include <cassert>
 #include <cstring>
@@ -191,6 +192,10 @@ void UniformBuffer::bindToIndex(unsigned idx)
 
 void UniformBuffer::bindToIndex(unsigned idx, size_t offset, size_t size)
 {
+  assert((offset % info().minUniformBindAlignment() == 0 &&
+    size % info().minUniformBindAlignment() == 0) &&
+    "The offset or size passed to bindToIndex() do not meet the alignment requirement!");
+
   if(p_last_uniform[idx] == m) return;
 
   p_last_uniform[idx] = m;
