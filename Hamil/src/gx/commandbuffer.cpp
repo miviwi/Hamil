@@ -127,6 +127,7 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
   };
 
   u32 command = *op;
+
   u32 opcode = op_opcode(command);
   u32 data   = op_data(command);
 
@@ -198,7 +199,9 @@ void CommandBuffer::uploadCommand(CommandWithExtra op)
   auto handle = xfer_handle(op);
   auto size   = xfer_size(op);
 
-  m_pool->getBuffer(buffer).get().upload(m_memory->ptr(handle), 0, sizeof(byte), size);
+  auto ptr = m_memory->ptr(handle);
+
+  m_pool->getBuffer(buffer).get().upload(ptr, 0, sizeof(byte), size);
 }
 
 void CommandBuffer::endIndexedArray()
@@ -334,9 +337,12 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_buffer_upload(ResourceId buf
   checkHandleRange(h);
   checkXferSize(sz);
 
+  auto handle = (u32)(h >> MemoryPool::AllocAlignShift);
+  auto size   = (u32)(sz & OpExtraXferSizeMask);
+
   CommandWithExtra c;
   c.command = (OpBufferUpload << OpShift) | buf;
-  c.extra = (sz << OpExtraXferSizeShift) | (h >> MemoryPool::AllocAlignShift);
+  c.extra = (size << OpExtraXferSizeShift) | handle;
 
   return c;
 }

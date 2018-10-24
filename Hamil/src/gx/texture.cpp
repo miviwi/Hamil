@@ -135,6 +135,8 @@ void Texture::generateMipmaps()
 void Texture::label(const char *lbl)
 {
 #if !defined(NDEBUG)
+  use();
+
   glObjectLabel(GL_TEXTURE, m, -1, lbl);
 #endif
 }

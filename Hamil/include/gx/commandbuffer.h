@@ -68,7 +68,7 @@ public:
     //   - OpData encodes the Buffer ResourceId
     //   - Bits [31;16] of OpExtra encode the upload size (in bytes)
     //   - Bits [15;0] of OpExtra encode the
-    //        MemoryPool::Handle >> MemoryPool::AllocAlignBits
+    //        MemoryPool::Handle >> MemoryPool::AllocAlignShift
     OpBufferUpload,
 
     OpSetUniform,
