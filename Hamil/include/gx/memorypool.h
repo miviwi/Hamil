@@ -41,6 +41,9 @@ private:
 
   std::shared_ptr<byte[]> m_pool;
 
+  // Start of the pool (m_pool aligned to AllocAlign bytes)
+  byte *m_ptr;
+
   byte *m_rover;
   byte *m_end;
 };

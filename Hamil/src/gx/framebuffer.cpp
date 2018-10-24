@@ -187,6 +187,7 @@ void Framebuffer::bind_window(BindTarget target)
 void Framebuffer::label(const char *label)
 {
 #if !defined(NDEBUG)
+  use();
   glObjectLabel(GL_FRAMEBUFFER, m, -1, label);
 #endif
 }
