@@ -3,6 +3,7 @@
 #include <math/geometry.h>
 #include <math/quaternion.h>
 
+#include <cassert>
 #include <string>
 
 static unsigned pow2_round(unsigned v)
@@ -16,6 +17,13 @@ static unsigned pow2_round(unsigned v)
   v++;
 
   return v;
+}
+
+static unsigned pow2_align(unsigned x, unsigned alignment)
+{
+  assert(pow2_round(alignment) == alignment && "pow2_align() alignment is not a power of 2!");
+
+  return (x + (alignment-1)) & ~(alignment-1);
 }
 
 template <typename T>

@@ -345,30 +345,38 @@ int main(int argc, char *argv[])
     int num_lights;
   };
 
-  auto matrix_block_handle = memory.alloc(sizeof(MatrixBlock));
-  auto& matrix_block = *memory.ptr<MatrixBlock>(matrix_block_handle);
+  const uint ubo_block_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
+  auto ubo_align = [&](uint sz) {
+    return pow2_align(sz, ubo_block_alignment);
+  };
 
-  auto material_block_handle = memory.alloc(sizeof(MaterialBlock));
-  auto& material_block = *memory.ptr<MaterialBlock>(material_block_handle);
+  uint material_block_offset = ubo_align(sizeof(MatrixBlock));
+  uint light_block_offset = material_block_offset + ubo_align(sizeof(MaterialBlock));
 
-  auto light_block_handle = memory.alloc(sizeof(LightBlock));
-  auto& light_block = *memory.ptr<LightBlock>(light_block_handle);
+  uint block_group_size = light_block_offset + ubo_align(sizeof(LightBlock));
 
-  auto matrix_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_matrix", gx::Buffer::Dynamic);
-  auto& matrix_ubo = pool.getBuffer<gx::UniformBuffer>(matrix_ubo_id);
-  matrix_ubo.init(sizeof(MatrixBlock), 1);
+  auto block_group_handle = memory.alloc(block_group_size);
 
-  auto material_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_material", gx::Buffer::Dynamic);
-  auto& material_ubo = pool.getBuffer<gx::UniformBuffer>(material_ubo_id);
-  material_ubo.init(sizeof(MaterialBlock), 1);
+  auto& matrix_block = *memory.ptr<MatrixBlock>(block_group_handle);
+  auto& material_block = *memory.ptr<MaterialBlock>(block_group_handle + material_block_offset);
+  auto& light_block = *memory.ptr<LightBlock>(block_group_handle + light_block_offset);
 
-  auto light_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_lights", gx::Buffer::Dynamic);
-  auto& light_ubo = pool.getBuffer<gx::UniformBuffer>(light_ubo_id);
-  light_ubo.init(sizeof(LightBlock), 1);
+  auto scene_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_scene", gx::Buffer::Stream);
+  pool.getBuffer<gx::UniformBuffer>(scene_ubo_id).init(block_group_size, 1);
 
   program.uniformBlockBinding("MatrixBlock", MatrixBinding);
   program.uniformBlockBinding("MaterialBlock", MaterialBinding);
   program.uniformBlockBinding("LightBlock", LightBinding);
+
+ gx::CommandBuffer::begin()
+   .program(skybox_program_id)
+   .uniformSampler(U.skybox.uEnvironmentMap, 1)
+   .program(composite_program_id)
+   .uniformSampler(U.composite.uUi, 4)
+   .uniformSampler(U.composite.uScene, 5)
+   .end()
+   .bindResourcePool(&pool)
+   .execute();
 
   auto scene_pass_id = pool.create<gx::RenderPass>();
   auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
@@ -377,10 +385,10 @@ int main(int argc, char *argv[])
       { 0u, { tex_id, floor_sampler_id }},
       { 1u, { cubemap_id, cubemap_sampler_id }}
     })
-    .uniformBuffers({
-      { MatrixBinding, matrix_ubo_id },
-      { MaterialBinding, material_ubo_id },
-      { LightBinding, light_ubo_id },
+   .uniformBuffersRange({
+      { MatrixBinding,   { scene_ubo_id, 0, ubo_align(sizeof(MatrixBlock)) } },
+      { MaterialBinding, { scene_ubo_id, material_block_offset, ubo_align(sizeof(MaterialBlock)) } },
+      { LightBinding,    { scene_ubo_id, light_block_offset, ubo_align(sizeof(LightBlock)) } },
     })
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
@@ -580,16 +588,21 @@ int main(int argc, char *argv[])
   auto floor = create_floor();
 
   auto command_buf = gx::CommandBuffer::begin()
-    .bufferUpload(matrix_ubo_id, matrix_block_handle, sizeof(MatrixBlock))
-    .bufferUpload(material_ubo_id, material_block_handle, sizeof(MaterialBlock))
-    .bufferUpload(light_ubo_id, light_block_handle, sizeof(LightBlock))
+    .bufferUpload(scene_ubo_id, block_group_handle, block_group_size)
     .renderPass(scene_pass_id)
     .program(program_id)
     .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
     .end();
 
+  auto cmd_upload_ubos = gx::CommandBuffer::begin()
+    .bufferUpload(scene_ubo_id, block_group_handle, block_group_size)
+    .end();
+
   command_buf.bindResourcePool(&pool);
   command_buf.bindMemoryPool(&memory);
+
+  cmd_upload_ubos.bindResourcePool(&pool);
+  cmd_upload_ubos.bindMemoryPool(&memory);
 
   while(window.processMessages()) {
     using hm::entities;
@@ -732,27 +745,14 @@ int main(int argc, char *argv[])
     matrix_block.projection = persp;
     matrix_block.tex = texmatrix;
 
-    auto upload_ubos = [&]()
-    {
+    auto& scene_ubo = pool.getBuffer(scene_ubo_id);
+    auto upload_ubos = [&]() {
 #if 0
-      auto matrix_ubo_view = matrix_ubo.map(gx::Buffer::Write,
-        0, sizeof(MatrixBlock), gx::Buffer::MapInvalidate);
-      auto material_ubo_view = material_ubo.map(gx::Buffer::Write,
-        0, sizeof(MaterialBlock), gx::Buffer::MapInvalidate);
-      auto light_ubo_view = light_ubo.map(gx::Buffer::Write,
-        0, sizeof(LightBlock), gx::Buffer::MapInvalidate);
+      auto ubo_view = scene_ubo().map(gx::Buffer::Write, 0, block_group_size, gx::Buffer::MapInvalidate);
 
-      memcpy(matrix_ubo_view.get(), &matrix_block, sizeof(MatrixBlock));
-      memcpy(material_ubo_view.get(), &material_block, sizeof(MaterialBlock));
-      memcpy(light_ubo_view.get(), &light_block, sizeof(LightBlock));
-
-      matrix_ubo_view.flush();
-      material_ubo_view.flush();
-      light_ubo_view.flush();
+      memcpy(ubo_view.get(), memory.ptr(block_group_handle), block_group_size);
 #else
-      matrix_ubo.upload(&matrix_block, 0, 1);
-      material_ubo.upload(&material_block, 0, 1);
-      light_ubo.upload(&light_block, 0, 1);
+      cmd_upload_ubos.execute();
 #endif
     };
 
@@ -895,7 +895,6 @@ int main(int argc, char *argv[])
     skybox_program.use()
       .uniformMatrix4x4(U.skybox.uProjection, persp)
       .uniformMatrix4x4(U.skybox.uView, view)
-      .uniformSampler(U.skybox.uEnvironmentMap, 1)
       .draw(gx::Triangles, skybox_arr, skybox_inds.size())
       ;
     skybox_arr.end();
@@ -955,8 +954,6 @@ int main(int argc, char *argv[])
     composite_pass.begin(pool);
 
     composite_program.use()
-      .uniformSampler(U.composite.uUi, 4)
-      .uniformSampler(U.composite.uScene, 5)
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
 
    /* fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },

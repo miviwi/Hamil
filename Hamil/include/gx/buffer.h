@@ -42,6 +42,7 @@ public:
 
     MapInvalidate      = GL_MAP_INVALIDATE_BUFFER_BIT,
     MapInvalidateRange = GL_MAP_INVALIDATE_RANGE_BIT,
+    MapFlushExplicit   = GL_MAP_FLUSH_EXPLICIT_BIT,
     MapUnsynchronized  = GL_MAP_UNSYNCHRONIZED_BIT,
   };
 

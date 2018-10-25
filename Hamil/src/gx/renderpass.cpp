@@ -11,7 +11,7 @@ RenderPass::RenderPass() :
   m_clear(NoClear)
 {
   for(auto& tu : m_texunits) tu = { ResourcePool::Invalid, ResourcePool::Invalid };
-  for(auto& buf : m_uniform_bufs) buf = ResourcePool::Invalid;
+  for(auto& buf : m_uniform_bufs) buf = { ResourcePool::Invalid, RangeNone, RangeNone };
 }
 
 RenderPass::~RenderPass()
@@ -47,7 +47,7 @@ RenderPass& RenderPass::textures(PairInitList<TextureAndSampler> tus)
 
 RenderPass& RenderPass::uniformBuffer(unsigned index, ResourceId buf)
 {
-  m_uniform_bufs[index] = buf;
+  m_uniform_bufs[index] = { buf, RangeNone, RangeNone };
 
   return *this;
 }
@@ -56,6 +56,22 @@ RenderPass& RenderPass::uniformBuffers(PairInitList<ResourceId> bufs)
 {
   for(const auto& buf : bufs) {
     uniformBuffer(buf.first, buf.second);
+  }
+
+  return *this;
+}
+
+RenderPass& RenderPass::uniformBufferRange(unsigned index, ResourceId buf, size_t offset, size_t size)
+{
+  m_uniform_bufs[index] = { buf, offset, size };
+
+  return *this;
+}
+
+RenderPass& RenderPass::uniformBuffersRange(PairInitList<RangedResource> bufs)
+{
+  for(const auto& buf : bufs) {
+    uniformBufferRange(buf.first, buf.second.buf, buf.second.offset, buf.second.size);
   }
 
   return *this;
@@ -99,11 +115,15 @@ const RenderPass& RenderPass::begin(ResourcePool& pool) const
   }
 
   for(unsigned bufi = 0; bufi < (unsigned)m_uniform_bufs.size(); bufi++) {
-    const auto& buf_id = m_uniform_bufs[bufi];
-    if(buf_id == ResourcePool::Invalid) continue;
+    const auto& buf_range = m_uniform_bufs[bufi];
+    if(buf_range.buf == ResourcePool::Invalid) continue;
 
-    auto& buf = pool.getBuffer<UniformBuffer>(buf_id);
-    buf.bindToIndex(bufi);
+    auto& buf = pool.getBuffer<UniformBuffer>(buf_range.buf);
+    if(buf_range.offset != RangeNone && buf_range.size != RangeNone) {
+      buf.bindToIndex(bufi, buf_range.offset, buf_range.size);
+    } else {
+      buf.bindToIndex(bufi);
+    }
   }
 
   if(m_clear) framebuffer.clear(m_clear);

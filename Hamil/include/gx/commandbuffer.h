@@ -49,6 +49,19 @@ public:
     OpExtraHandleMask = (1<<OpExtraHandleBits) - 1,
   };
 
+  enum : u32 {
+    OpDataUniformTypeBits  = 4,
+    OpDataUniformTypeShift = 24,
+    OpDataUniformTypeMask  = (1<<OpDataUniformTypeBits) - 1,
+
+    OpDataUniformLocationBits = 24,
+    OpDataUniformLocationMask = (1<<OpDataUniformLocationBits) - 1,
+
+    OpDataUniformInt     = 0,
+    OpDataUniformFloat   = 1,
+    OpDataUniformSampler = 2,
+  };
+
   enum : Command {
     Nop,
 
@@ -71,6 +84,10 @@ public:
     //        MemoryPool::Handle >> MemoryPool::AllocAlignShift
     OpBufferUpload,
 
+    // CommandWithExtra where:
+    //   - The upper 4 bits of OpData encode the Uniform's type
+    //   - The lowest 24 bits of OpData encode the Uniform's location
+    //   - OpExtra encodes the value
     OpSetUniform,
 
     OpEnd,
@@ -94,6 +111,12 @@ public:
   struct XferSizeTooLargeError : public Error {
   };
 
+  struct UniformLocationTooLargeError : public Error {
+  };
+
+  struct UniformTypeInvalidError : public Error {
+  };
+
   // Creates a new CommandBuffer with 'initial_alloc'
   //   preallocated commands
   static CommandBuffer begin(size_t initial_alloc = 64);
@@ -103,6 +126,10 @@ public:
   CommandBuffer& draw(Primitive p, ResourceId vertex_array, size_t num_verts);
   CommandBuffer& drawIndexed(Primitive p, ResourceId indexed_vertex_array, size_t num_inds);
   CommandBuffer& bufferUpload(ResourceId buf, MemoryPool::Handle h, size_t sz);
+
+  CommandBuffer& uniformInt(uint location, int value);
+  CommandBuffer& uniformFloat(uint location, float value);
+  CommandBuffer& uniformSampler(uint location, uint sampler);
 
   // Must be called after the last recorded command!
   CommandBuffer& end();
@@ -117,6 +144,12 @@ public:
 
   CommandBuffer& execute();
 
+  // Clears all the commands stored in the buffer
+  //   allowing it to be reused
+  // The call does NOT invalidate the ResourcePool
+  //   and MemoryPool bindings previously created
+  CommandBuffer& reset();
+
 protected:
   CommandBuffer(size_t initial_alloc);
 
@@ -125,15 +158,13 @@ private:
     NonIndexedDraw = ~0u,
   };
 
-  struct CommandWithExtra {
-    union {
-      struct {
-        u32 command;
-        u32 extra;
-      };
-
-      u64 raw;
+  union CommandWithExtra {
+    struct {
+      u32 command;
+      u32 extra;
     };
+
+    u64 raw;
   };
 
   CommandBuffer& appendCommand(Command opcode, u32 data = 0);
@@ -145,6 +176,7 @@ private:
   u32 *dispatch(u32 *op);
   void drawCommand(CommandWithExtra op);
   void uploadCommand(CommandWithExtra op);
+  void setUniformCommand(CommandWithExtra op);
 
   // Calls IndexedVertexArray::end() if
   //   the last draw command was drawIndexed()
@@ -154,6 +186,7 @@ private:
   static void checkNumVerts(size_t num);
   static void checkHandleRange(MemoryPool::Handle h);
   static void checkXferSize(size_t sz);
+  static void checkUniformLocation(uint location);
 
   void assertProgram();
   void assertMemoryPool();

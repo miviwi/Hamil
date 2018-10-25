@@ -54,6 +54,47 @@ CommandBuffer& CommandBuffer::bufferUpload(ResourceId buf, MemoryPool::Handle h,
   return appendCommand(make_buffer_upload(buf, h, sz));
 }
 
+CommandBuffer& CommandBuffer::uniformInt(uint location, int value)
+{
+  checkUniformLocation(location);
+
+  union {
+    int i;
+    u32 data;
+  } extra;
+
+  uint data = (OpDataUniformSampler << OpDataUniformTypeShift) | location;
+  extra.i = value;
+
+  return appendCommand(OpSetUniform, data)
+    .appendExtraData(extra.data);
+}
+
+CommandBuffer& CommandBuffer::uniformFloat(uint location, float value)
+{
+  checkUniformLocation(location);
+
+  union {
+    float f;
+    u32 data;
+  } extra;
+
+  uint data = (OpDataUniformSampler << OpDataUniformTypeShift) | location;
+  extra.f = value;
+
+  return appendCommand(OpSetUniform, data)
+    .appendExtraData(extra.data);
+}
+
+CommandBuffer& CommandBuffer::uniformSampler(uint location, uint sampler)
+{
+  checkUniformLocation(location);
+
+  uint data = (OpDataUniformSampler << OpDataUniformTypeShift) | location;
+  return appendCommand(OpSetUniform, data)
+    .appendExtraData((u32)sampler);
+}
+
 CommandBuffer& CommandBuffer::end()
 {
   return appendCommand(OpEnd);
@@ -85,6 +126,14 @@ CommandBuffer& CommandBuffer::execute()
   while(auto next_pc = dispatch(pc)) {
     pc =  next_pc;
   }
+
+  return *this;
+}
+
+CommandBuffer& CommandBuffer::reset()
+{
+  m_commands.clear();
+  m_program = nullptr;
 
   return *this;
 }
@@ -158,7 +207,9 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
     break;
 
   case OpSetUniform:
-    STUB();
+    assertProgram();
+
+    setUniformCommand(fetch_extra());
     break;
 
   case OpEnd:
@@ -204,6 +255,29 @@ void CommandBuffer::uploadCommand(CommandWithExtra op)
   m_pool->getBuffer(buffer).get().upload(ptr, 0, sizeof(byte), size);
 }
 
+void CommandBuffer::setUniformCommand(CommandWithExtra op)
+{
+  auto type     = (op.command >> OpDataUniformTypeShift) & OpDataUniformTypeMask;
+  auto location = op.command & OpDataUniformLocationMask;
+
+  union {
+    u32 data;
+
+    int i;
+    float f;
+  } extra;
+
+  extra.data = op.extra;
+
+  switch(type) {
+  case OpDataUniformInt: m_program->uniformInt(location, extra.i); break;
+  case OpDataUniformFloat: m_program->uniformFloat(location, extra.f); break;
+  case OpDataUniformSampler: m_program->uniformSampler(location, extra.data); break;
+
+  default: throw UniformTypeInvalidError();
+  }
+}
+
 void CommandBuffer::endIndexedArray()
 {
   if(m_last_draw == NonIndexedDraw) return;
@@ -230,6 +304,11 @@ void CommandBuffer::checkHandleRange(MemoryPool::Handle h)
 void CommandBuffer::checkXferSize(size_t sz)
 {
   if(sz & ~OpExtraXferSizeMask) throw XferSizeTooLargeError();
+}
+
+void CommandBuffer::checkUniformLocation(uint location)
+{
+  if(location & ~OpDataUniformLocationMask) throw UniformLocationTooLargeError();
 }
 
 void CommandBuffer::assertProgram()
@@ -295,6 +374,7 @@ size_t CommandBuffer::xfer_size(CommandWithExtra op)
 CommandBuffer::CommandWithExtra CommandBuffer::make_draw(Primitive p,
   ResourceId array, size_t num_verts)
 {
+  // See p_primitive_lut above
   u32 primitive = 0;
   switch(p) {
   case Points: primitive = 0; break;
@@ -306,6 +386,8 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_draw(Primitive p,
   case Triangles:     primitive = 4; break;
   case TriangleFan:   primitive = 5; break;
   case TriangleStrip: primitive = 6; break;
+
+  default: primitive = 7; break; // Assign to sentinel
   }
 
   checkNumVerts(num_verts);

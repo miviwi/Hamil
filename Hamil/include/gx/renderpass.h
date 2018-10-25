@@ -32,10 +32,19 @@ public:
     ClearAll = ~0u,
   };
 
+  enum : size_t {
+    RangeNone = ~0ull,
+  };
+
   using TextureAndSampler = std::tuple<ResourceId /* texture */, ResourceId /* sampler */>;
 
   template <typename T>
   using PairInitList = std::initializer_list<std::pair<unsigned, T>>;
+
+  struct RangedResource {
+    ResourceId buf;
+    size_t offset, size;
+  };
 
   RenderPass();
   ~RenderPass();
@@ -45,6 +54,8 @@ public:
   RenderPass& textures(PairInitList<TextureAndSampler> tus);
   RenderPass& uniformBuffer(unsigned index, ResourceId buf);
   RenderPass& uniformBuffers(PairInitList<ResourceId /* buf */> bufs);
+  RenderPass& uniformBufferRange(unsigned index, ResourceId buf, size_t offset, size_t size);
+  RenderPass& uniformBuffersRange(PairInitList<RangedResource> bufs);
   RenderPass& pipeline(const Pipeline& p);
   RenderPass& clearOp(unsigned op);
 
@@ -53,7 +64,7 @@ public:
 private:
   ResourceId m_framebuffer;
   std::array<TextureAndSampler, NumTexUnits> m_texunits;
-  std::array<ResourceId /* UniformBuffer */, NumUniformBindings> m_uniform_bufs;
+  std::array<RangedResource /* UniformBuffer */, NumUniformBindings> m_uniform_bufs;
   Pipeline m_pipeline;
 
   unsigned m_clear;
