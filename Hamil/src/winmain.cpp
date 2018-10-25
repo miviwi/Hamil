@@ -345,24 +345,42 @@ int main(int argc, char *argv[])
     int num_lights;
   };
 
+  struct BlockGroup {
+    gx::MemoryPool::Handle handle;
+
+    MatrixBlock *matrix;
+    MaterialBlock *material;
+  };
+
   const uint ubo_block_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
   auto ubo_align = [&](uint sz) {
     return pow2_align(sz, ubo_block_alignment);
   };
 
   uint material_block_offset = ubo_align(sizeof(MatrixBlock));
-  uint light_block_offset = material_block_offset + ubo_align(sizeof(MaterialBlock));
+  uint block_group_size = material_block_offset + ubo_align(sizeof(MaterialBlock));
 
-  uint block_group_size = light_block_offset + ubo_align(sizeof(LightBlock));
+  auto alloc_block_group = [&]() -> BlockGroup {
+    BlockGroup b;
 
-  auto block_group_handle = memory.alloc(block_group_size);
+    b.handle = memory.alloc(block_group_size);
 
-  auto& matrix_block = *memory.ptr<MatrixBlock>(block_group_handle);
-  auto& material_block = *memory.ptr<MaterialBlock>(block_group_handle + material_block_offset);
-  auto& light_block = *memory.ptr<LightBlock>(block_group_handle + light_block_offset);
+    b.matrix   = memory.ptr<MatrixBlock>(b.handle);
+    b.material = memory.ptr<MaterialBlock>(b.handle + material_block_offset);
+
+    return b;
+  };
+
+  auto block_group = alloc_block_group();
 
   auto scene_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_scene", gx::Buffer::Stream);
   pool.getBuffer<gx::UniformBuffer>(scene_ubo_id).init(block_group_size, 1);
+
+  auto light_block_handle = memory.alloc(sizeof(LightBlock));
+  auto& light_block = *memory.ptr<LightBlock>(light_block_handle);
+
+  auto light_ubo_id = pool.createBuffer<gx::UniformBuffer>("UBO_light", gx::Buffer::Stream);
+  pool.getBuffer<gx::UniformBuffer>(light_ubo_id).init(sizeof(LightBlock), 1);
 
   program.uniformBlockBinding("MatrixBlock", MatrixBinding);
   program.uniformBlockBinding("MaterialBlock", MaterialBinding);
@@ -388,8 +406,8 @@ int main(int argc, char *argv[])
    .uniformBuffersRange({
       { MatrixBinding,   { scene_ubo_id, 0, ubo_align(sizeof(MatrixBlock)) } },
       { MaterialBinding, { scene_ubo_id, material_block_offset, ubo_align(sizeof(MaterialBlock)) } },
-      { LightBinding,    { scene_ubo_id, light_block_offset, ubo_align(sizeof(LightBlock)) } },
     })
+    .uniformBuffer(LightBinding, light_ubo_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
       .depthTest(gx::Pipeline::LessEqual)
@@ -588,14 +606,14 @@ int main(int argc, char *argv[])
   auto floor = create_floor();
 
   auto command_buf = gx::CommandBuffer::begin()
-    .bufferUpload(scene_ubo_id, block_group_handle, block_group_size)
+    .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
     .renderPass(scene_pass_id)
     .program(program_id)
     .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
     .end();
 
   auto cmd_upload_ubos = gx::CommandBuffer::begin()
-    .bufferUpload(scene_ubo_id, block_group_handle, block_group_size)
+    .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
     .end();
 
   command_buf.bindResourcePool(&pool);
@@ -742,8 +760,10 @@ int main(int argc, char *argv[])
       vec3{ 0.0f, 1.0f, 1.0f }
     };
 
-    matrix_block.projection = persp;
-    matrix_block.tex = texmatrix;
+    pool.getBuffer(light_ubo_id).get().upload(&light_block, 0, 1);
+
+    block_group.matrix->projection = persp;
+    block_group.matrix->tex = texmatrix;
 
     auto& scene_ubo = pool.getBuffer(scene_ubo_id);
     auto upload_ubos = [&]() {
@@ -760,11 +780,11 @@ int main(int argc, char *argv[])
     {
       mat4 modelview = view*model;
 
-      matrix_block.modelview = modelview;
-      matrix_block.normal = modelview.inverse().transpose();
+      block_group.matrix->modelview = modelview;
+      block_group.matrix->normal = modelview.inverse().transpose();
 
-      material_block.material = shaded ? PhongProceduralColored : Unshaded;
-      material_block.color = color;
+      block_group.material->material = shaded ? PhongProceduralColored : Unshaded;
+      block_group.material->color = color;
 
       upload_ubos();
 
@@ -777,11 +797,11 @@ int main(int argc, char *argv[])
 
     mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
 
-    matrix_block.modelview = modelview;
-    matrix_block.normal = modelview.inverse().transpose();
+    block_group.matrix->modelview = modelview;
+    block_group.matrix->normal = modelview.inverse().transpose();
 
-    material_block.material = PhongColored;
-    material_block.color = { 0.53f, 0.8f, 0.94f, 1.0f };
+    block_group.material->material = PhongColored;
+    block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
     command_buf.execute();
     num_tris += bunny_inds.size() / 3;
@@ -813,11 +833,11 @@ int main(int argc, char *argv[])
 
       auto modelview = view*model;
 
-      matrix_block.modelview = modelview;
-      matrix_block.normal = modelview.inverse().transpose();
+      block_group.matrix->modelview = modelview;
+      block_group.matrix->normal = modelview.inverse().transpose();
 
-      material_block.material = Unshaded;
-      material_block.color = { 1.0f, 1.0f/force_factor, 1.0f/force_factor, 1.0f };
+      block_group.material->material = Unshaded;
+      block_group.material->color = { 1.0f, 1.0f/force_factor, 1.0f/force_factor, 1.0f };
 
       upload_ubos();
 
@@ -863,10 +883,10 @@ int main(int argc, char *argv[])
 
     modelview = view * floor.component<hm::Transform>().get().matrix();
 
-    matrix_block.modelview = modelview;
-    matrix_block.normal = modelview.inverse().transpose();
+    block_group.matrix->modelview = modelview;
+    block_group.matrix->normal = modelview.inverse().transpose();
 
-    material_block.material = PhongTextured;
+    block_group.material->material = PhongTextured;
 
     upload_ubos();
 
