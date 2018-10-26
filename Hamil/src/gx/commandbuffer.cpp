@@ -235,7 +235,6 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
     u32 base = *op;
     op++;
     u32 offset = *op;
-    op++;
 
     drawCommand(fetch_extra(), base, offset);
     break;
