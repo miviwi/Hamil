@@ -35,8 +35,8 @@ Vertex::Vertex(Position pos_, Color color_) :
 VertexPainter::VertexPainter() :
   m_overlay(false)
 {
-  m_buf.reserve(NumBufferElements);
-  m_ind.reserve(NumBufferElements);
+  m_buf.reserve(BufferSize);
+  m_ind.reserve(BufferSize);
   m_commands.reserve(32);
 }
 

@@ -11,6 +11,7 @@ CommandBuffer::CommandBuffer(size_t initial_alloc) :
   m_pool(nullptr),
   m_memory(nullptr),
   m_program(nullptr),
+  m_renderpass(nullptr),
   m_last_draw(NonIndexedDraw)
 {
   m_commands.reserve(initial_alloc);
@@ -26,6 +27,13 @@ CommandBuffer& CommandBuffer::renderPass(ResourceId pass)
   return appendCommand(OpBeginRenderPass, pass);
 }
 
+CommandBuffer& CommandBuffer::subpass(uint id)
+{
+  if(id & ~OpDataMask) throw SubpassIdTooLargeError();
+
+  return appendCommand(OpBeginSubpass, id);
+}
+
 CommandBuffer& CommandBuffer::program(ResourceId prog)
 {
   checkResourceId(prog);
@@ -35,16 +43,20 @@ CommandBuffer& CommandBuffer::program(ResourceId prog)
 
 CommandBuffer& CommandBuffer::draw(Primitive p, ResourceId vertex_array, size_t num_verts)
 {
-  checkResourceId(vertex_array);
-
   return appendCommand(make_draw(p, vertex_array, num_verts));
 }
 
 CommandBuffer& CommandBuffer::drawIndexed(Primitive p, ResourceId indexed_vertex_array, size_t num_inds)
 {
-  checkResourceId(indexed_vertex_array);
-
   return appendCommand(make_draw_indexed(p, indexed_vertex_array, num_inds));
+}
+
+CommandBuffer & CommandBuffer::drawBaseVertex(Primitive p,
+  ResourceId indexed_vertex_array, size_t num, u32 base, u32 offset)
+{
+  return appendCommand(make_draw_base_vertex(p, indexed_vertex_array, num))
+    .appendExtraData(base)
+    .appendExtraData(offset);
 }
 
 CommandBuffer& CommandBuffer::bufferUpload(ResourceId buf, MemoryPool::Handle h, size_t sz)
@@ -56,43 +68,46 @@ CommandBuffer& CommandBuffer::bufferUpload(ResourceId buf, MemoryPool::Handle h,
 
 CommandBuffer& CommandBuffer::uniformInt(uint location, int value)
 {
-  checkUniformLocation(location);
-
   union {
     int i;
     u32 data;
   } extra;
 
-  uint data = (OpDataUniformSampler << OpDataUniformTypeShift) | location;
   extra.i = value;
 
-  return appendCommand(OpSetUniform, data)
+  return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformInt, location))
     .appendExtraData(extra.data);
 }
 
 CommandBuffer& CommandBuffer::uniformFloat(uint location, float value)
 {
-  checkUniformLocation(location);
-
   union {
     float f;
     u32 data;
   } extra;
 
-  uint data = (OpDataUniformSampler << OpDataUniformTypeShift) | location;
   extra.f = value;
 
-  return appendCommand(OpSetUniform, data)
+  return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformFloat, location))
     .appendExtraData(extra.data);
 }
 
 CommandBuffer& CommandBuffer::uniformSampler(uint location, uint sampler)
 {
-  checkUniformLocation(location);
-
-  uint data = (OpDataUniformSampler << OpDataUniformTypeShift) | location;
-  return appendCommand(OpSetUniform, data)
+  return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformSampler, location))
     .appendExtraData((u32)sampler);
+}
+
+CommandBuffer& CommandBuffer::uniformVector4(uint location, MemoryPool::Handle h)
+{
+  return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformVector4, location))
+    .appendExtraData(h);
+}
+
+CommandBuffer& CommandBuffer::uniformMatrix4x4(uint location, MemoryPool::Handle h)
+{
+  return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformMatrix4x4, location))
+    .appendExtraData(h);
 }
 
 CommandBuffer& CommandBuffer::end()
@@ -114,13 +129,21 @@ CommandBuffer& CommandBuffer::bindMemoryPool(MemoryPool *pool)
   return *this;
 }
 
+CommandBuffer& CommandBuffer::activeRenderPass(ResourceId renderpass)
+{
+  assertResourcePool();
+
+  m_renderpass = &m_pool->get<RenderPass>(renderpass);
+
+  return *this;
+}
+
 CommandBuffer& CommandBuffer::execute()
 {
   assert(m_commands.back() >> OpShift == OpEnd
     && "Attempted to execute() a CommandBuffer without a previous call to end() on it!\n"
     "(Or commands were added after the end() call)");
-  assert(m_pool
-    && "Attemped to execute() a CommandBuffer without a bound ResourcePool!");
+  assertResourcePool();
 
   u32 *pc = m_commands.data();
   while(auto next_pc = dispatch(pc)) {
@@ -184,8 +207,14 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
   case Nop: break;
 
   case OpBeginRenderPass:
-    m_pool->get<RenderPass>(data)
+    m_renderpass = &m_pool->get<RenderPass>(data)
       .begin(*m_pool);
+    break;
+
+  case OpBeginSubpass:
+    assertRenderPass();
+
+    m_renderpass->beginSubpass(*m_pool, data);
     break;
 
   case OpUseProgram:
@@ -200,16 +229,28 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
     drawCommand(fetch_extra());
     break;
 
+  case OpDrawBaseVertex: {
+    assertProgram();
+
+    u32 base = *op;
+    op++;
+    u32 offset = *op;
+    op++;
+
+    drawCommand(fetch_extra(), base, offset);
+    break;
+  }
+
   case OpBufferUpload:
     assertMemoryPool();
 
     uploadCommand(fetch_extra());
     break;
 
-  case OpSetUniform:
+  case OpPushUniform:
     assertProgram();
 
-    setUniformCommand(fetch_extra());
+    pushUniformCommand(fetch_extra());
     break;
 
   case OpEnd:
@@ -222,7 +263,7 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
   return op + 1;
 }
 
-void CommandBuffer::drawCommand(CommandWithExtra op)
+void CommandBuffer::drawCommand(CommandWithExtra op, u32 base, u32 offset)
 {
   auto primitive = draw_primitive(op);
   auto array     = draw_array(op);
@@ -232,11 +273,16 @@ void CommandBuffer::drawCommand(CommandWithExtra op)
 
   switch(op_opcode(op.command)) {
   case OpDraw:
-    m_program->draw(primitive, m_pool->get<VertexArray>(array), num);
+    m_program->draw(primitive, m_pool->get<VertexArray>(array), offset, num);
     return;
 
   case OpDrawIndexed:
-    m_program->draw(primitive, m_pool->get<IndexedVertexArray>(array), num);
+    m_program->draw(primitive, m_pool->get<IndexedVertexArray>(array), offset, num);
+    m_last_draw = array;
+    break;
+
+  case OpDrawBaseVertex:
+    m_program->drawBaseVertex(primitive, m_pool->get<IndexedVertexArray>(array), base, offset, num);
     m_last_draw = array;
     break;
 
@@ -255,7 +301,7 @@ void CommandBuffer::uploadCommand(CommandWithExtra op)
   m_pool->getBuffer(buffer).get().upload(ptr, 0, sizeof(byte), size);
 }
 
-void CommandBuffer::setUniformCommand(CommandWithExtra op)
+void CommandBuffer::pushUniformCommand(CommandWithExtra op)
 {
   auto type     = (op.command >> OpDataUniformTypeShift) & OpDataUniformTypeMask;
   auto location = op.command & OpDataUniformLocationMask;
@@ -265,14 +311,17 @@ void CommandBuffer::setUniformCommand(CommandWithExtra op)
 
     int i;
     float f;
+    MemoryPool::Handle h;
   } extra;
 
   extra.data = op.extra;
 
   switch(type) {
-  case OpDataUniformInt: m_program->uniformInt(location, extra.i); break;
-  case OpDataUniformFloat: m_program->uniformFloat(location, extra.f); break;
+  case OpDataUniformInt:     m_program->uniformInt(location, extra.i); break;
+  case OpDataUniformFloat:   m_program->uniformFloat(location, extra.f); break;
   case OpDataUniformSampler: m_program->uniformSampler(location, extra.data); break;
+  case OpDataUniformVector4: m_program->uniformVector4(location, memoryPoolRef<vec4>(extra.h)); break;
+  case OpDataUniformMatrix4x4: m_program->uniformMatrix4x4(location, memoryPoolRef<mat4>(extra.h)); break;
 
   default: throw UniformTypeInvalidError();
   }
@@ -296,9 +345,10 @@ void CommandBuffer::checkNumVerts(size_t num)
   if(num & ~OpExtraNumVertsMask) throw NumVertsTooLargeError();
 }
 
-void CommandBuffer::checkHandleRange(MemoryPool::Handle h)
+void CommandBuffer::checkHandle(MemoryPool::Handle h)
 {
   if((h >> MemoryPool::AllocAlignShift) & ~OpExtraHandleMask) throw HandleOutOfRangeError();
+  if(h & MemoryPool::AllocAlignMask) throw HandleUnalignedError();
 }
 
 void CommandBuffer::checkXferSize(size_t sz)
@@ -311,6 +361,11 @@ void CommandBuffer::checkUniformLocation(uint location)
   if(location & ~OpDataUniformLocationMask) throw UniformLocationTooLargeError();
 }
 
+void CommandBuffer::assertResourcePool()
+{
+  assert(m_pool && "This method requires a bound ResourcePool!");
+}
+
 void CommandBuffer::assertProgram()
 {
   assert(m_program && "Command requires a bound Program!");
@@ -319,6 +374,11 @@ void CommandBuffer::assertProgram()
 void CommandBuffer::assertMemoryPool()
 {
   assert(m_memory && "Command requires a bound MemoryPool!");
+}
+
+void CommandBuffer::assertRenderPass()
+{
+  assert(m_renderpass && "Command requires an active RenderPass!");
 }
 
 CommandBuffer::Command CommandBuffer::op_opcode(u32 op)
@@ -374,6 +434,8 @@ size_t CommandBuffer::xfer_size(CommandWithExtra op)
 CommandBuffer::CommandWithExtra CommandBuffer::make_draw(Primitive p,
   ResourceId array, size_t num_verts)
 {
+  checkResourceId(array);
+
   // See p_primitive_lut above
   u32 primitive = 0;
   switch(p) {
@@ -413,10 +475,21 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_draw_indexed(Primitive p,
   return c;
 }
 
+CommandBuffer::CommandWithExtra CommandBuffer::make_draw_base_vertex(Primitive p,
+  ResourceId array, size_t num_inds)
+{
+  auto c = make_draw(p, array, num_inds);
+
+  c.command &= ~(OpMask << OpShift);
+  c.command |= OpDrawBaseVertex << OpShift;
+
+  return c;
+}
+
 CommandBuffer::CommandWithExtra CommandBuffer::make_buffer_upload(ResourceId buf,
   MemoryPool::Handle h, size_t sz)
 {
-  checkHandleRange(h);
+  checkHandle(h);
   checkXferSize(sz);
 
   auto handle = (u32)(h >> MemoryPool::AllocAlignShift);
@@ -427,6 +500,13 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_buffer_upload(ResourceId buf
   c.extra = (size << OpExtraXferSizeShift) | handle;
 
   return c;
+}
+
+CommandBuffer::u32 CommandBuffer::make_push_uniform(u32 type, uint location)
+{
+  checkUniformLocation(location);
+
+  return (type << OpDataUniformTypeShift) | location;
 }
 
 }

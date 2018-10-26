@@ -7,6 +7,7 @@
 #include <gx/texture.h>
 #include <gx/vertex.h>
 #include <gx/buffer.h>
+#include <gx/resourcepool.h>
 
 #include <vector>
 #include <string>
@@ -73,7 +74,7 @@ class Font {
 public:
   using Ptr = std::shared_ptr<Font>;
 
-  Font(const FontFamily& family, unsigned height);
+  Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool = nullptr);
   Font(const Font& other) = delete;
   ~Font();
 
@@ -122,7 +123,10 @@ public:
   // Defines sampleFontAtlas
   static const char *frag_shader;
 
+  // Can be used ONLY if 'pool' wasn't provided during Font creation!
   void bindFontAltas(int unit = TexImageUnit) const;
+
+  gx::ResourcePool::Id atlasResourceId() const;
 
   bool monospace() const;
   float monospaceWidth() const;
@@ -137,7 +141,7 @@ private:
     UV uvs[4];
   };
 
-  void populateRenderData(const std::vector<pGlyph>& glyphs);
+  void populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHandle atlas);
 
   int getGlyphIndex(int ch) const;
   const GlyphRenderData& getGlyphRenderData(int ch) const;
@@ -146,8 +150,9 @@ private:
 
   float m_bearing_y;
 
-  gx::Texture2D m_atlas;
-  gx::Sampler m_sampler;
+  gx::ResourcePool::Id m_atlas;
+  bool m_atlas_private;
+
   std::vector<GlyphRenderData> m_render_data;
   std::vector<int> m_glyph_index;
 };

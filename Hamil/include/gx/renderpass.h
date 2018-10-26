@@ -4,9 +4,12 @@
 #include <gx/pipeline.h>
 
 #include <util/ref.h>
+#include <util/smallvector.h>
 
 #include <array>
+#include <vector>
 #include <tuple>
+#include <optional>
 #include <initializer_list>
 #include <utility>
 
@@ -16,6 +19,8 @@ class Framebuffer;
 class Texture;
 class Sampler;
 class ResourcePool;
+
+
 
 class RenderPass : public Ref {
 public:
@@ -46,6 +51,28 @@ public:
     size_t offset, size;
   };
 
+  class Subpass {
+  public:
+    Subpass();
+
+    Subpass& pipeline(const Pipeline& pipeline);
+    Subpass& texture(unsigned unit, ResourceId texture, ResourceId sampler);
+    Subpass& uniformBuffer(unsigned index, ResourceId buf);
+    Subpass& uniformBufferRange(unsigned index, ResourceId buf, size_t offset, size_t size);
+
+    const Subpass& use(ResourcePool& pool) const;
+
+  private:
+    template <typename T>
+    using OptVector = std::optional<std::vector<T>>;
+
+    void createUniformBuffers();
+
+    std::optional<Pipeline> m_pipeline;
+    OptVector<std::pair<unsigned, TextureAndSampler>> m_texunits;
+    OptVector<std::pair<unsigned, RangedResource>> m_uniform_bufs;
+  };
+
   RenderPass();
   ~RenderPass();
 
@@ -59,13 +86,23 @@ public:
   RenderPass& pipeline(const Pipeline& p);
   RenderPass& clearOp(unsigned op);
 
+  // The 'id's for beginSubpass() are assigned sequentially
+  //   - nextSubpassId() can be used to query the next one
+  RenderPass& subpass(const Subpass& subpass);
+
+  // Returns the 'id' which will be assigned to the next added subpass()
+  uint nextSubpassId() const;
+
   const RenderPass& begin(ResourcePool& pool) const;
+  const RenderPass& beginSubpass(ResourcePool& pool, uint id) const;
 
 private:
   ResourceId m_framebuffer;
   std::array<TextureAndSampler, NumTexUnits> m_texunits;
   std::array<RangedResource /* UniformBuffer */, NumUniformBindings> m_uniform_bufs;
   Pipeline m_pipeline;
+
+  std::vector<Subpass> m_subpasses;
 
   unsigned m_clear;
 };

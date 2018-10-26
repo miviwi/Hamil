@@ -39,7 +39,7 @@ struct Vertex {
 //      when retrieving translate to appropriate place
 class VertexPainter {
 public:
-  enum { NumBufferElements = 256*1024 };
+  enum { BufferSize = 256*1024 };
 
   enum CommandType {
     Text, Image, Primitive, Pipeline,

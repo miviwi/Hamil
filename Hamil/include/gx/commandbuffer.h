@@ -12,6 +12,15 @@ namespace gx {
 class RenderPass;
 class Program;
 
+// A CommandBuffer abstraction
+//   - Aggregates draw calls, buffer uploads, state changes etc.
+//     for deffered/repeated execution
+//   - Can be recorded on one thread and executed on a
+//     different one (for OpenGL the executing thread
+//     must be the same one which spawned the context)
+//   - Needless for OpenGL (as it has no explicit concept
+//     of a command buffer), but having it should ease the
+//     transition to for example Vulkan
 class CommandBuffer {
 public:
   using u32 = ::u32;
@@ -60,13 +69,20 @@ public:
     OpDataUniformInt     = 0,
     OpDataUniformFloat   = 1,
     OpDataUniformSampler = 2,
+    OpDataUniformVector4 = 3,
+    OpDataUniformMatrix4x4 = 4,
+
+    OpDataNumUniformTypes,
   };
+  static_assert(OpDataNumUniformTypes < (1<<OpDataUniformTypeBits), "Too many Uniform types defined!");
 
   enum : Command {
     Nop,
 
     // The RenderPasses ResourcePool::Id is encoded in the OpData
     OpBeginRenderPass,
+    // The subpass id is encoded in the OpData
+    OpBeginSubpass,
 
     // The Programs ResourcePool::Id is encoded in the OpData
     OpUseProgram,
@@ -76,6 +92,11 @@ public:
     //   - Bits [31;29] of OpExtra encode the Primitive
     //   - Bits [28;0] of OpExtra encode the num
     OpDraw, OpDrawIndexed,
+
+    // Same as Draw<Indexed> except the CommandWithExtra is
+    //   followed by two ExtraData which encode
+    //   the base and offset respectively
+    OpDrawBaseVertex,
 
     // CommandWithExtra where:
     //   - OpData encodes the Buffer ResourceId
@@ -87,49 +108,51 @@ public:
     // CommandWithExtra where:
     //   - The upper 4 bits of OpData encode the Uniform's type
     //   - The lowest 24 bits of OpData encode the Uniform's location
-    //   - OpExtra encodes the value
-    OpSetUniform,
+    //   - OpExtra encodes:
+    //       * Literal for 32-bit values
+    //       * MemoryPool handle for larger values
+    OpPushUniform,
 
+    // OpData is ignored
     OpEnd,
 
     NumCommands
   };
   static_assert(NumCommands < (1<<OpBits), "Too many opcodes defined!");
 
-  struct Error {
-  };
+  struct Error { };
 
-  struct ResourceIdTooLargeError : public Error {
-  };
+  struct OutOfRangeError : public Error { };
+  struct ResourceIdTooLargeError : public OutOfRangeError { };
+  struct SubpassIdTooLargeError : public OutOfRangeError { };
+  struct NumVertsTooLargeError : public OutOfRangeError { };
+  struct XferSizeTooLargeError : public OutOfRangeError { };
+  struct UniformLocationTooLargeError : public OutOfRangeError { };
 
-  struct NumVertsTooLargeError : public Error {
-  };
+  struct HandleError : public Error { };
+  struct HandleOutOfRangeError : public HandleError { };
+  struct HandleUnalignedError : public HandleError { };
 
-  struct HandleOutOfRangeError : public Error {
-  };
-
-  struct XferSizeTooLargeError : public Error {
-  };
-
-  struct UniformLocationTooLargeError : public Error {
-  };
-
-  struct UniformTypeInvalidError : public Error {
-  };
+  struct UniformTypeInvalidError : public Error { };
 
   // Creates a new CommandBuffer with 'initial_alloc'
-  //   preallocated commands
+  //   preallocated commands (i.e. the number of recorded
+  //   commands can be bigger than this number)
   static CommandBuffer begin(size_t initial_alloc = 64);
 
   CommandBuffer& renderPass(ResourceId pass);
+  CommandBuffer& subpass(uint id);
   CommandBuffer& program(ResourceId prog);
   CommandBuffer& draw(Primitive p, ResourceId vertex_array, size_t num_verts);
   CommandBuffer& drawIndexed(Primitive p, ResourceId indexed_vertex_array, size_t num_inds);
+  CommandBuffer& drawBaseVertex(Primitive p, ResourceId iarray, size_t num, u32 base, u32 offset = 0);
   CommandBuffer& bufferUpload(ResourceId buf, MemoryPool::Handle h, size_t sz);
 
   CommandBuffer& uniformInt(uint location, int value);
   CommandBuffer& uniformFloat(uint location, float value);
   CommandBuffer& uniformSampler(uint location, uint sampler);
+  CommandBuffer& uniformVector4(uint location, MemoryPool::Handle h);
+  CommandBuffer& uniformMatrix4x4(uint location, MemoryPool::Handle h);
 
   // Must be called after the last recorded command!
   CommandBuffer& end();
@@ -141,6 +164,13 @@ public:
   // The CommandBuffer must have a MemoryPool bound
   //   if upload commands will be used
   CommandBuffer& bindMemoryPool(MemoryPool *pool);
+
+  // Sets an internal pointer to the currently active RenderPass
+  //   - Useful when transitioning between CommandBuffers
+  //     which are executed during the same RenderPass
+  //   - Must be called AFTER binding a ResourcePool
+  //     as this is NOT a command
+  CommandBuffer& activeRenderPass(ResourceId renderpass);
 
   CommandBuffer& execute();
 
@@ -174,9 +204,10 @@ private:
   // Returns a pointer to the next Command or
   //   nullptr when the OpEnd Command is reached
   u32 *dispatch(u32 *op);
-  void drawCommand(CommandWithExtra op);
+
+  void drawCommand(CommandWithExtra op, u32 base = ~0u, u32 offset = 0);
   void uploadCommand(CommandWithExtra op);
-  void setUniformCommand(CommandWithExtra op);
+  void pushUniformCommand(CommandWithExtra op);
 
   // Calls IndexedVertexArray::end() if
   //   the last draw command was drawIndexed()
@@ -184,12 +215,14 @@ private:
 
   static void checkResourceId(ResourceId id);
   static void checkNumVerts(size_t num);
-  static void checkHandleRange(MemoryPool::Handle h);
+  static void checkHandle(MemoryPool::Handle h);
   static void checkXferSize(size_t sz);
   static void checkUniformLocation(uint location);
 
+  void assertResourcePool();
   void assertProgram();
   void assertMemoryPool();
+  void assertRenderPass();
 
   static Command op_opcode(u32 op);
   static u32 op_data(u32 op);
@@ -204,13 +237,24 @@ private:
 
   static CommandWithExtra make_draw(Primitive p, ResourceId array, size_t num_verts);
   static CommandWithExtra make_draw_indexed(Primitive p, ResourceId array, size_t num_inds);
+  static CommandWithExtra make_draw_base_vertex(Primitive p, ResourceId array, size_t num_inds);
 
   static CommandWithExtra make_buffer_upload(ResourceId buf, MemoryPool::Handle h, size_t sz);
+
+  // Doesn't check if 'type' is valid!
+  static u32 make_push_uniform(u32 type, uint location);
+
+  template <typename T>
+  const T& memoryPoolRef(MemoryPool::Handle h)
+  {
+    return *m_memory->ptr<T>(h);
+  }
 
   std::vector<u32> m_commands;
   ResourcePool *m_pool;
   MemoryPool *m_memory;
   Program *m_program;
+  const RenderPass *m_renderpass;
 
   // Stores the last-used IndexedVertexArray or
   //   NonIndexedDraw otherwise

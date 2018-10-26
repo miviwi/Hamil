@@ -216,9 +216,6 @@ public:
   // Needed for ResourcePool::create(const char *label, ...)
   void label(const char *lbl);
 
-  // Needed for ResourcePool::create(const char *, ...)
-  void use();
-
 protected:
   BufferHandle(Buffer *buf);
 

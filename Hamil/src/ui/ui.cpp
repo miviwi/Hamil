@@ -151,8 +151,8 @@ Ui::Ui(Geometry geom, const Style& style) :
 
   m_vtx.label("UI_vertex_array");
 
-  m_buf.init(sizeof(Vertex), VertexPainter::NumBufferElements);
-  m_ind.init(sizeof(u16), VertexPainter::NumBufferElements);
+  m_buf.init(sizeof(Vertex), VertexPainter::BufferSize);
+  m_ind.init(sizeof(u16), VertexPainter::BufferSize);
 }
 
 Ui::~Ui()

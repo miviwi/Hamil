@@ -229,8 +229,9 @@ int main(int argc, char *argv[])
   skybox_vbuf.init(skybox_verts.data(), skybox_verts.size());
   skybox_ibuf.init(skybox_inds.data(), skybox_inds.size());
 
-  gx::IndexedVertexArray skybox_arr(skybox_fmt, skybox_vbuf, skybox_ibuf);
-  skybox_arr.label("SKYBOX");
+  auto skybox_arr_id = pool.create<gx::IndexedVertexArray>("SKYBOX",
+    skybox_fmt, skybox_vbuf, skybox_ibuf);
+  auto& skybox_arr = pool.get<gx::IndexedVertexArray>(skybox_arr_id);
 
   std::vector<vec2> fullscreen_quad = {
     { -1.0f,  1.0f },
@@ -307,6 +308,15 @@ int main(int argc, char *argv[])
   }
 
   auto resolve_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d());
+
+  struct SkyboxUniforms {
+    mat4 view;
+    mat4 persp;
+  };
+
+  auto skybox_uniforms_handle = memory.alloc(sizeof(SkyboxUniforms));
+  auto& skybox_uniforms = *memory.ptr<SkyboxUniforms>(skybox_uniforms_handle);
+
   static constexpr uint MatrixBinding = 0;
   struct MatrixBlock {
     mat4 modelview;
@@ -386,15 +396,12 @@ int main(int argc, char *argv[])
   program.uniformBlockBinding("MaterialBlock", MaterialBinding);
   program.uniformBlockBinding("LightBlock", LightBinding);
 
- gx::CommandBuffer::begin()
-   .program(skybox_program_id)
-   .uniformSampler(U.skybox.uEnvironmentMap, 1)
-   .program(composite_program_id)
-   .uniformSampler(U.composite.uUi, 4)
-   .uniformSampler(U.composite.uScene, 5)
-   .end()
-   .bindResourcePool(&pool)
-   .execute();
+  skybox_program.use()
+    .uniformSampler(U.skybox.uEnvironmentMap, 1);
+
+  composite_program.use()
+    .uniformSampler(U.composite.uUi, 4)
+    .uniformSampler(U.composite.uScene, 5);
 
   auto scene_pass_id = pool.create<gx::RenderPass>();
   auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
@@ -414,6 +421,10 @@ int main(int argc, char *argv[])
       .cull(gx::Pipeline::Back)
       .seamlessCubemap()
       .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
+    .subpass(gx::RenderPass::Subpass()
+      .pipeline(gx::Pipeline()
+        .depthTest(gx::Pipeline::LessEqual)
+        .cull(gx::Pipeline::Front)))
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
@@ -616,11 +627,22 @@ int main(int argc, char *argv[])
     .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
     .end();
 
+  auto cmd_skybox = gx::CommandBuffer::begin()
+    .subpass(0)
+    .program(skybox_program_id)
+    .uniformMatrix4x4(U.skybox.uView, skybox_uniforms_handle)
+    .uniformMatrix4x4(U.skybox.uProjection, skybox_uniforms_handle+sizeof(mat4))
+    .drawIndexed(gx::Triangles, skybox_arr_id, skybox_inds.size())
+    .end();
+
   command_buf.bindResourcePool(&pool);
   command_buf.bindMemoryPool(&memory);
 
   cmd_upload_ubos.bindResourcePool(&pool);
   cmd_upload_ubos.bindMemoryPool(&memory);
+
+  cmd_skybox.bindResourcePool(&pool);
+  cmd_skybox.bindMemoryPool(&memory);
 
   while(window.processMessages()) {
     using hm::entities;
@@ -904,20 +926,13 @@ int main(int argc, char *argv[])
         .matrix()
         ;
 
-      drawsphere(false);
+      drawsphere(/* shaded = */ false);
     }
 
-    gx::Pipeline()
-      .depthTest(gx::Pipeline::LessEqual)
-      .cull(gx::Pipeline::Front)
-      .use();
-
-    skybox_program.use()
-      .uniformMatrix4x4(U.skybox.uProjection, persp)
-      .uniformMatrix4x4(U.skybox.uView, view)
-      .draw(gx::Triangles, skybox_arr, skybox_inds.size())
-      ;
-    skybox_arr.end();
+    skybox_uniforms = { view, persp };
+    cmd_skybox
+      .activeRenderPass(scene_pass_id)
+      .execute();
 
     ui_pass.begin(pool);
 

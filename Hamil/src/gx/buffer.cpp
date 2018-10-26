@@ -320,12 +320,12 @@ GLenum PixelBuffer::target_for_xfer_direction(TransferDirection xfer_dir)
 
 void PixelBuffer::assertUpload()
 {
-  assert(m_target == GL_PIXEL_UNPACK_BUFFER && "Attempted an Upload operation with a Download PixelBufer!");
+  assert(m_target == GL_PIXEL_UNPACK_BUFFER && "Attempted an Upload operation on a Download PixelBufer!");
 }
 
 void PixelBuffer::assertDownload()
 {
-  assert(m_target == GL_PIXEL_PACK_BUFFER && "Attempted a Download operation with an Upload PixelBufer!");
+  assert(m_target == GL_PIXEL_PACK_BUFFER && "Attempted a Download operation on an Upload PixelBufer!");
 }
 
 void PixelBuffer::unbind()
@@ -359,11 +359,6 @@ Buffer& BufferHandle::operator()()
 void BufferHandle::label(const char *lbl)
 {
   get().label(lbl);
-}
-
-void BufferHandle::use()
-{
-  get().use();
 }
 
 }

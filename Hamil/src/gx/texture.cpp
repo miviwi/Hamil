@@ -250,11 +250,6 @@ void TextureHandle::label(const char *lbl)
   get().label(lbl);
 }
 
-void TextureHandle::use()
-{
-  get().use();
-}
-
 Sampler::Sampler()
 {
   glGenSamplers(1, &m);

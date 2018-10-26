@@ -33,19 +33,28 @@ public:
   };
 
   pFt() :
+    pool(64),
     allocator(NumBufferChars),
     buf(gx::Buffer::Dynamic), 
     ind(gx::Buffer::Dynamic, gx::u16),
     vtx(fmt, buf, ind)
-  { }
+  {
+    sampler_id = pool.create<gx::Sampler>("FT_sampler",
+      gx::Sampler::edgeclamp2d_linear());
+  }
 
+  // Private resource pool
+  gx::ResourcePool pool;
+
+  // gx::Sampler::edgeclamp2d_linear()
+  gx::ResourcePool::Id sampler_id;
+
+  // Manages space for vertices and indices in 'vtx'
   FreeListAllocator allocator;
 
   static const gx::VertexFormat fmt;
-
   gx::VertexBuffer buf;
   gx::IndexBuffer ind;
-
   gx::IndexedVertexArray vtx;
 };
 
@@ -220,8 +229,9 @@ void finalize()
   font_program.reset();
 }
 
-Font::Font(const FontFamily& family, unsigned height) :
-  m_atlas(gx::r8)
+Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
+  m_atlas(gx::ResourcePool::Invalid),
+  m_atlas_private(pool == nullptr)
 {
   FT_Face face;
   auto err = FT_New_Face(ft, family.getPath(), 0, &face);
@@ -261,7 +271,14 @@ Font::Font(const FontFamily& family, unsigned height) :
   }
   FT_Stroker_Done(stroker);
 
-  populateRenderData(glyphs);
+  // Setup atlas texture and sampler
+  const std::string atlas_label = "FT_atlas" + std::to_string(atlas_id++);
+
+  // Use the private pool if one wasn't provided
+  if(!pool) pool = &p->pool;
+
+  m_atlas = pool->createTexture<gx::Texture2D>(atlas_label.data(), gx::r8);
+  populateRenderData(glyphs, pool->getTexture(m_atlas));
 }
 
 Font::~Font()
@@ -550,7 +567,19 @@ float Font::charAdvance(int ch) const
 
 void Font::bindFontAltas(int unit) const
 {
-  gx::tex_unit(unit, m_atlas, m_sampler);
+  assert(m_atlas_private && "Attempted to bind atlas from an external ResourcePool via bindFontAtlas()!");
+
+  auto& pool = p->pool;
+
+  auto& atlas   = pool.getTexture(m_atlas);
+  auto& sampler = pool.get<gx::Sampler>(p->sampler_id);
+
+  gx::tex_unit(unit, atlas(), sampler);
+}
+
+gx::ResourcePool::Id Font::atlasResourceId() const
+{
+  return m_atlas;
 }
 
 bool Font::monospace() const
@@ -564,7 +593,7 @@ float Font::monospaceWidth() const
   return charAdvance('M'); // 'M' is just a random character
 }
 
-void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
+void Font::populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHandle atlas)
 {
   int total_area = 0;
   for(auto& glyph : glyphs) {
@@ -621,13 +650,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs)
     }
   }
 
-  // Setup atlas texture and sampler
-  std::string atlas_label = "FT_altas";
-
-  m_atlas.init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::u8);
-  m_atlas.label((atlas_label + std::to_string(atlas_id++)).data());
-
-  m_sampler = gx::Sampler::edgeclamp2d_linear();
+  atlas().init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::u8);
 
   // Populate render data
   for(unsigned i = 0; i < glyphs.size(); i++) {
