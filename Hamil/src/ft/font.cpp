@@ -274,7 +274,7 @@ Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
   }
   FT_Stroker_Done(stroker);
 
-  // Setup atlas texture and sampler
+  // Setup atlas texture
   const std::string atlas_label = "FT_atlas" + std::to_string(atlas_id++);
 
   // Use the private pool if one wasn't provided

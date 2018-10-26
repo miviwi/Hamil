@@ -20,8 +20,6 @@ class Texture;
 class Sampler;
 class ResourcePool;
 
-
-
 class RenderPass : public Ref {
 public:
   using ResourceId = ::u32;
@@ -63,14 +61,9 @@ public:
     const Subpass& use(ResourcePool& pool) const;
 
   private:
-    template <typename T>
-    using OptVector = std::optional<std::vector<T>>;
-
-    void createUniformBuffers();
-
     std::optional<Pipeline> m_pipeline;
-    OptVector<std::pair<unsigned, TextureAndSampler>> m_texunits;
-    OptVector<std::pair<unsigned, RangedResource>> m_uniform_bufs;
+    util::SmallVector<std::pair<unsigned, TextureAndSampler>> m_texunits;
+    util::SmallVector<std::pair<unsigned, RangedResource>, 64> m_uniform_bufs;
   };
 
   RenderPass();

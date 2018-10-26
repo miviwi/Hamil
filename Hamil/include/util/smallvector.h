@@ -17,6 +17,8 @@ class SmallVector {
 public:
   static_assert(N - sizeof(u32) >= sizeof(T), "N must be big enugh to hold at least one T!");
 
+  using value_type = T;
+
   enum {
     InlineSize  = N - sizeof(u32),
     InlineElems = InlineSize / sizeof(T),
@@ -66,8 +68,16 @@ public:
   //   returns it's index
   u32 append(const T& elem)
   {
+    return emplace(elem);
+  }
+
+  // Constructs an element in-place at the end of the
+  //   container and returns it's index
+  template <typename... Args>
+  u32 emplace(Args... args)
+  {
     if(m_sz < InlineElems) {
-      new(m_inline.data + m_sz) T(elem);
+      new(m_inline.data + m_sz) T(std::forward<Args>(args)...);
     } else {
       // Do a heap allocation when there isn't enough capacity or
       //   we're switching from inline storage
@@ -77,7 +87,7 @@ public:
         alloc((m_sz * 3)/2 /* m_sz * 1.5 */);
       }
 
-      new(m_heap.ptr + m_sz) T(elem);
+      new(m_heap.ptr + m_sz) T(std::forward<Args>(args)...);
     }
 
     return m_sz++;

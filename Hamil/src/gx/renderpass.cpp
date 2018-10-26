@@ -153,9 +153,7 @@ const RenderPass& RenderPass::beginSubpass(ResourcePool& pool, uint id) const
 }
 
 RenderPass::Subpass::Subpass() :
-  m_pipeline(std::nullopt),
-  m_texunits(std::nullopt),
-  m_uniform_bufs(std::nullopt)
+  m_pipeline(std::nullopt)
 {
 }
 
@@ -168,29 +166,14 @@ RenderPass::Subpass& RenderPass::Subpass::pipeline(const Pipeline & pipeline)
 
 RenderPass::Subpass& RenderPass::Subpass::texture(unsigned unit, ResourceId tex, ResourceId sampler)
 {
-  if(m_texunits) {
-    m_texunits->emplace_back(unit, std::make_tuple(tex, sampler));
-  } else {
-    using Texunits = decltype(m_texunits)::value_type;
-    m_texunits = Texunits();
-
-    // m_texunits == true now
-    return texture(unit, tex, sampler);
-  }
+  m_texunits.emplace(unit, std::make_tuple(tex, sampler));
 
   return *this;
 }
 
 RenderPass::Subpass& RenderPass::Subpass::uniformBuffer(unsigned index, ResourceId buf)
 {
-  if(m_uniform_bufs) {
-    m_uniform_bufs->emplace_back(index, RangedResource{ buf, RangeNone, RangeNone });
-  } else {
-    createUniformBuffers();
-
-    // m_uniform_bufs == true now
-    return uniformBuffer(index, buf);
-  }
+  m_uniform_bufs.emplace(index, RangedResource{ buf, RangeNone, RangeNone });
 
   return *this;
 }
@@ -198,14 +181,7 @@ RenderPass::Subpass& RenderPass::Subpass::uniformBuffer(unsigned index, Resource
 RenderPass::Subpass& RenderPass::Subpass::uniformBufferRange(unsigned index,
   ResourceId buf, size_t offset, size_t size)
 {
-  if(m_uniform_bufs) {
-    m_uniform_bufs->emplace_back(index, RangedResource{ buf, offset, size });
-  } else {
-    createUniformBuffers();
-
-    // m_uniform_bufs == true now
-    return uniformBufferRange(index, buf, offset, size);
-  }
+  m_uniform_bufs.emplace(index, RangedResource{ buf, offset, size });
 
   return *this;
 }
@@ -216,35 +192,27 @@ const RenderPass::Subpass& RenderPass::Subpass::use(ResourcePool& pool) const
     m_pipeline->use();
   }
 
-  if(m_texunits) {
-    for(const auto& tu : *m_texunits) {
-      auto tex     = pool.getTexture(std::get<0>(tu.second));
-      auto sampler = pool.get<Sampler>(std::get<1>(tu.second));
-      gx::tex_unit(tu.first, tex(), sampler);
-    }
+  for(auto it = m_texunits.cbegin(); it != m_texunits.cend(); it++) {
+    const auto& tu = *it;
+
+    auto tex     = pool.getTexture(std::get<0>(tu.second));
+    auto sampler = pool.get<Sampler>(std::get<1>(tu.second));
+    gx::tex_unit(tu.first, tex(), sampler);
   }
 
-  if(m_uniform_bufs) {
-    for(const auto& buf : *m_uniform_bufs) {
-      auto buf_range = buf.second;
+  for(auto it = m_uniform_bufs.cbegin(); it != m_uniform_bufs.cend(); it++) {
+    const auto& buf = *it;
+    auto buf_range = buf.second;
 
-      auto buffer = pool.getBuffer<UniformBuffer>(buf_range.buf);
-      if(buf_range.offset != RangeNone && buf_range.size != RangeNone) {
-        buffer.bindToIndex(buf.first, buf_range.offset, buf_range.size);
-      } else {
-        buffer.bindToIndex(buf.first);
-      }
+    auto buffer = pool.getBuffer<UniformBuffer>(buf_range.buf);
+    if(buf_range.offset != RangeNone && buf_range.size != RangeNone) {
+      buffer.bindToIndex(buf.first, buf_range.offset, buf_range.size);
+    } else {
+      buffer.bindToIndex(buf.first);
     }
   }
 
   return *this;
-}
-
-void RenderPass::Subpass::createUniformBuffers()
-{
-  using UniformBufs = decltype(m_uniform_bufs)::value_type;
-
-  m_uniform_bufs = UniformBufs();
 }
 
 }
