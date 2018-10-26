@@ -151,7 +151,9 @@ private:
   float m_bearing_y;
 
   gx::ResourcePool::Id m_atlas;
+#if !defined(NDEBUG)
   bool m_atlas_private;
+#endif
 
   std::vector<GlyphRenderData> m_render_data;
   std::vector<int> m_glyph_index;

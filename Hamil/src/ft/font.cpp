@@ -230,9 +230,12 @@ void finalize()
 }
 
 Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
-  m_atlas(gx::ResourcePool::Invalid),
-  m_atlas_private(pool == nullptr)
+  m_atlas(gx::ResourcePool::Invalid)
 {
+#if !defined(NDEBUG)
+  m_atlas_private = pool == nullptr;
+#endif
+
   FT_Face face;
   auto err = FT_New_Face(ft, family.getPath(), 0, &face);
   if(err) {
