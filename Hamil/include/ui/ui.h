@@ -7,11 +7,14 @@
 #include <ui/event.h>
 #include <ui/style.h>
 #include <ui/drawable.h>
+
 #include <math/geometry.h>
 #include <win32/input.h>
 #include <win32/window.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
+#include <gx/resourcepool.h>
+#include <gx/memorypool.h>
 
 #include <string>
 #include <vector>
@@ -32,7 +35,7 @@ using InputPtr = win32::Input::Ptr;
 
 class Ui {
 public:
-  Ui(Geometry geom, const Style& style);
+  Ui(gx::ResourcePool& pool, Geometry geom, const Style& style);
   Ui(const Ui& other) = delete;
   ~Ui();
 
@@ -65,6 +68,8 @@ public:
 
   DrawableManager& drawable();
 
+  gx::ResourcePool::Id framebufferTextureId();
+
   bool input(CursorDriver& cursor, const InputPtr& input);
   void paint();
 
@@ -82,6 +87,14 @@ private:
   Frame *m_capture;
   Frame *m_keyboard;
 
+  gx::ResourcePool& m_pool;
+  gx::MemoryPool m_mempool;
+
+  gx::ResourcePool::Id m_framebuffer_tex_id;
+  gx::ResourcePool::Id m_framebuffer_id;
+  gx::ResourcePool::Id m_program_id;
+  gx::ResourcePool::Id m_renderpass_id;
+
   DrawableManager m_drawable;
 
   VertexPainter m_painter;
@@ -90,7 +103,7 @@ private:
   gx::VertexBuffer m_buf;
   gx::IndexBuffer m_ind;
 
-  gx::IndexedVertexArray m_vtx;
+  gx::ResourcePool::Id m_vtx_id;
 };
 
 }

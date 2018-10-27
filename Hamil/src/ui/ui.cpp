@@ -3,13 +3,15 @@
 #include <ui/painter.h>
 #include <ui/drawable.h>
 
+#include <math/xform.h>
+#include <math/util.h>
 #include <uniforms.h>
 #include <gx/pipeline.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
-#include <math/xform.h>
-#include <math/util.h>
+#include <gx/renderpass.h>
+#include <gx/commandbuffer.h>
 
 #include <algorithm>
 #include <memory>
@@ -120,39 +122,66 @@ void main() {
 
 )FRAG";
 
-std::unique_ptr<gx::Program> ui_program;
-
 void init()
 {
   CursorDriver::init();
-
-  ui_program = std::make_unique<gx::Program>(gx::make_program(
-    { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U.ui
-  ));
-  ui_program->label("UI_program");
 }
 
 void finalize()
 {
-  ui_program.reset();
 }
 
-Ui::Ui(Geometry geom, const Style& style) :
+Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_real_size(geom.size()),
   m_geom(geom), m_style(style), m_repaint(true),
   m_capture(nullptr),
   m_keyboard(nullptr),
+  m_pool(pool),
+  m_mempool(4096),
+  m_framebuffer_tex_id(gx::ResourcePool::Invalid),
+  m_framebuffer_id(gx::ResourcePool::Invalid),
+  m_program_id(gx::ResourcePool::Invalid),
+  m_renderpass_id(gx::ResourcePool::Invalid),
+  m_drawable(m_pool),
   m_buf(gx::Buffer::Dynamic),
   m_ind(gx::Buffer::Dynamic, gx::u16),
-  m_vtx(VertexPainter::Fmt, m_buf, m_ind)
+  m_vtx_id(gx::ResourcePool::Invalid)
 {
+  m_framebuffer_tex_id = m_pool.createTexture<gx::Texture2D>("UI_framebuffer_tex",
+    gx::rgba8, gx::Texture::Multisample);
+  m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id)
+    .initMultisample(4, FramebufferSize.cast<int>());
+
+  m_framebuffer_id = m_pool.create<gx::Framebuffer>("UI_framebuffer");
+  m_pool.get<gx::Framebuffer>(m_framebuffer_id)
+    .use()
+    .tex(m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id), 0, gx::Framebuffer::Color(0));
+
+  m_program_id = m_pool.create<gx::Program>("UI_program", gx::make_program(
+    { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U.ui
+  ));
+
+  m_renderpass_id = m_pool.create<gx::RenderPass>();
+  m_pool.get<gx::RenderPass>(m_renderpass_id)
+    .framebuffer(m_framebuffer_id)
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.s, FramebufferSize.t)
+      .noDepthTest()
+      .alphaBlend()
+      .clearColor(transparent().normalize()))
+    .textures({
+      { DrawableManager::TexImageUnit, { m_drawable.atlasId(), m_drawable.samplerId() } }
+     })
+    .clearOp(gx::RenderPass::ClearColor);
+
   m_buf.label("UI_vertex");
   m_ind.label("UI_index");
 
-  m_vtx.label("UI_vertex_array");
-
   m_buf.init(sizeof(Vertex), VertexPainter::BufferSize);
   m_ind.init(sizeof(u16), VertexPainter::BufferSize);
+
+  m_vtx_id = m_pool.create<gx::IndexedVertexArray>("UI_vertex_array",
+    VertexPainter::Fmt, m_buf, m_ind);
 }
 
 Ui::~Ui()
@@ -229,6 +258,11 @@ DrawableManager& Ui::drawable()
   return m_drawable;
 }
 
+gx::ResourcePool::Id Ui::framebufferTextureId()
+{
+  return m_framebuffer_tex_id;
+}
+
 bool Ui::input(CursorDriver& cursor, const InputPtr& input)
 {
   if(auto mouse = input->get<win32::Mouse>()) {
@@ -256,7 +290,7 @@ void Ui::paint()
 {
   if(m_frames.empty()) return;
 
-  auto pipeline = gx::Pipeline::current();
+  auto& renderpass = m_pool.get<gx::RenderPass>(m_renderpass_id);
 
   if(m_repaint) {
     m_painter.end();
@@ -268,49 +302,74 @@ void Ui::paint()
 
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
-  ui_program->use()
+  auto command_buf = gx::CommandBuffer::begin()
+    .bindResourcePool(&m_pool)
+    .bindMemoryPool(&m_mempool)
+    .renderPass(m_renderpass_id)
+    .program(m_program_id)
     .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit)
     .uniformSampler(U.ui.uImageAtlas, DrawableManager::TexImageUnit);
 
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
+    auto mvp_handle = m_mempool.alloc(sizeof(mat4));
+    auto& mvp = *m_mempool.ptr<mat4>(mvp_handle);
+
+    mvp = projection;
+
     switch(cmd.type) {
     case VertexPainter::Primitive:
-      ui_program->use()
-        .uniformMatrix4x4(U.ui.uModelViewProjection, projection)
+      command_buf
+        .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeShape)
-        .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
+        .drawBaseVertex(cmd.p, m_vtx_id, cmd.num, cmd.base, cmd.offset);
       break;
 
-    case VertexPainter::Text:
-      cmd.font->bindFontAltas();
-      ui_program->use()
-        .uniformMatrix4x4(U.ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
+    case VertexPainter::Text: {
+      cmd.font->bindFontAltas(); // TODO!
+
+      auto color_handle = m_mempool.alloc(sizeof(vec4));
+      auto& color = *m_mempool.ptr<vec4>(color_handle);
+
+      color = cmd.color.normalize();
+      mvp = mvp * xform::translate(cmd.pos.x, cmd.pos.y, 0);
+
+      command_buf
+        .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeText)
-        .uniformVector4(U.ui.uTextColor, cmd.color.normalize())
-        .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
+        .uniformVector4(U.ui.uTextColor, color_handle)
+        .drawBaseVertex(cmd.p, m_vtx_id, cmd.num, cmd.base, cmd.offset);
       break;
+    }
 
     case VertexPainter::Image:
-      m_drawable.bindImageAtlas();
-      ui_program->use()
-        .uniformMatrix4x4(U.ui.uModelViewProjection, projection*xform::translate(cmd.pos.x, cmd.pos.y, 0))
+      mvp = mvp * xform::translate(cmd.pos.x, cmd.pos.y, 0);
+
+      command_buf
+        .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeImage)
         .uniformFloat(U.ui.uImagePage, (float)cmd.page)
-        .drawBaseVertex(cmd.p, m_vtx, cmd.base, cmd.offset, cmd.num);
+        .drawBaseVertex(cmd.p, m_vtx_id, cmd.num, cmd.base, cmd.offset);
       break;
 
-    case VertexPainter::Pipeline:
-      cmd.pipeline.use();
+    case VertexPainter::Pipeline: {
+      auto subpass_id = renderpass.nextSubpassId();
+      renderpass.subpass(gx::RenderPass::Subpass()
+        .pipeline(cmd.pipeline));
 
+      command_buf.subpass(subpass_id);
       break;
+    }
 
     default: break;
     }
   });
-  m_vtx.end();
 
-  pipeline.use();
+  command_buf.end();
+
+  command_buf.execute();
+
+  m_mempool.purge();
 }
 
 void Ui::capture(Frame *frame)

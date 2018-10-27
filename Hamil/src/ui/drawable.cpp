@@ -194,14 +194,18 @@ pDrawableImage *Drawable::getImage() const
   return (pDrawableImage *)get();
 }
 
-DrawableManager::DrawableManager() :
+DrawableManager::DrawableManager(gx::ResourcePool& pool) :
   m_local_atlas(AtlasSize.x*AtlasSize.y * InitialPages),
-  m_atlas(gx::rgba8)
+  m_pool(pool),
+  m_sampler_id(gx::ResourcePool::Invalid),
+  m_atlas_id(gx::ResourcePool::Invalid)
 {
-  m_sampler = gx::Sampler::edgeclamp2d();
+  m_sampler_id = m_pool.create<gx::Sampler>("UI_drawable_sampler",
+    gx::Sampler::edgeclamp2d());
 
-  m_atlas.init(AtlasSize.x, AtlasSize.y, InitialPages);
-  m_atlas.label("UI_drawable_atlas");
+  m_atlas_id = m_pool.createTexture<gx::Texture2D>("UI_drawable_atlas", gx::rgba8);
+  m_pool.getTexture<gx::Texture2D>(m_atlas_id)
+    .init(AtlasSize.x, AtlasSize.y, InitialPages);
 
   std::fill(localAtlasData({ 0, 0, 0, 0 }, 0), localAtlasData({ 0, 0, 0, 0 }, 1), green());
   reuploadAtlas();
@@ -226,9 +230,14 @@ void DrawableManager::finalize(Drawable *d)
   delete d->get();
 }
 
-void DrawableManager::bindImageAtlas(int unit) const
+gx::ResourcePool::Id DrawableManager::samplerId() const
 {
-  gx::tex_unit(unit, m_atlas, m_sampler);
+  return m_sampler_id;
+}
+
+gx::ResourcePool::Id DrawableManager::atlasId() const
+{
+  return m_atlas_id;
 }
 
 uvec4 DrawableManager::atlasCoords(uvec4 coords) const
@@ -252,14 +261,16 @@ Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)
 
 void DrawableManager::reuploadAtlas()
 {
-  m_atlas.init(m_local_atlas.data(), /* level */0,
-    AtlasSize.x, AtlasSize.y, numAtlasPages(), gx::rgba, gx::u8);
+  m_pool.getTexture<gx::Texture2D>(m_atlas_id)
+    .init(m_local_atlas.data(), /* level */0,
+      AtlasSize.x, AtlasSize.y, numAtlasPages(), gx::rgba, gx::u8);
 }
 
 void DrawableManager::uploadAtlas(uvec4 coords, unsigned page)
 {
-  m_atlas.upload(localAtlasData(coords, page), /* level */0,
-    coords.x, coords.y, page, coords.z, coords.w, 1, gx::rgba, gx::u8);
+  m_pool.getTexture<gx::Texture2D>(m_atlas_id)
+    .upload(localAtlasData(coords, page), /* level */0,
+      coords.x, coords.y, page, coords.z, coords.w, 1, gx::rgba, gx::u8);
 }
 
 }

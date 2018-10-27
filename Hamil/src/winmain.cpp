@@ -428,22 +428,10 @@ int main(int argc, char *argv[])
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
-  auto ui_pass_id = pool.create<gx::RenderPass>();
-  auto& ui_pass = pool.get<gx::RenderPass>(ui_pass_id)
-    .framebuffer(fb_ui_id)
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-      .noDepthTest()
-      .alphaBlend()
-      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f))
-    .clearOp(gx::RenderPass::ClearColor)
-    ;
-
   auto composite_pass_id = pool.create<gx::RenderPass>();
   auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
     .textures({
-      { 4u, { fb_ui_tex_id, resolve_sampler_id }},
       { 5u, { fb_tex_id, resolve_sampler_id }}
     })
     .pipeline(gx::Pipeline()
@@ -535,7 +523,9 @@ int main(int argc, char *argv[])
   line_ibuf.init(line_inds.data(), line_inds.size());
 
   gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
-  ui::Ui iface(ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
+  ui::Ui iface(pool, ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
+
+  composite_pass.texture(4u, iface.framebufferTextureId(), resolve_sampler_id);
 
   iface.realSize(FramebufferSize.cast<float>());
 
@@ -933,8 +923,6 @@ int main(int argc, char *argv[])
     cmd_skybox
       .activeRenderPass(scene_pass_id)
       .execute();
-
-    ui_pass.begin(pool);
 
     for(int i = 0; i < light_block.num_lights; i++) {
       model = xform::Transform()

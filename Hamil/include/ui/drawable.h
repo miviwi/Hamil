@@ -5,6 +5,7 @@
 
 #include <util/ref.h>
 #include <gx/texture.h>
+#include <gx/resourcepool.h>
 
 #include <vector>
 
@@ -71,14 +72,15 @@ public:
   static constexpr uvec2 AtlasSize{ 1024, 1024 };
   static constexpr unsigned PageSize = AtlasSize.x * AtlasSize.y;
 
-  DrawableManager();
+  DrawableManager(gx::ResourcePool& pool);
 
   Drawable fromText(const ft::Font::Ptr& font, const std::string& str, Color color);
   Drawable fromImage();
 
   void finalize(Drawable *d);
 
-  void bindImageAtlas(int unit = TexImageUnit) const;
+  gx::ResourcePool::Id samplerId() const;
+  gx::ResourcePool::Id atlasId() const;
 
 private:
   // Convert to OpenGL uv space (bottom-left corner origin)
@@ -92,8 +94,11 @@ private:
   void uploadAtlas(uvec4 coords, unsigned page);
 
   std::vector<Color> m_local_atlas;
-  gx::Sampler m_sampler;
-  gx::Texture2DArray m_atlas;
+
+  gx::ResourcePool& m_pool;
+
+  gx::ResourcePool::Id m_sampler_id;
+  gx::ResourcePool::Id m_atlas_id;
 
 };
 

@@ -232,11 +232,14 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
   case OpDrawBaseVertex: {
     assertProgram();
 
+    auto extra = fetch_extra();
+
+    op++;
     u32 base = *op;
     op++;
     u32 offset = *op;
 
-    drawCommand(fetch_extra(), base, offset);
+    drawCommand(extra, base, offset);
     break;
   }
 
