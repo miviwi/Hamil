@@ -147,6 +147,8 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_ind(gx::Buffer::Dynamic, gx::u16),
   m_vtx_id(gx::ResourcePool::Invalid)
 {
+  m_style.init(m_pool);
+
   m_framebuffer_tex_id = m_pool.createTexture<gx::Texture2D>("UI_framebuffer_tex",
     gx::rgba8, gx::Texture::Multisample);
   m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id)
@@ -170,7 +172,8 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
       .alphaBlend()
       .clearColor(transparent().normalize()))
     .textures({
-      { DrawableManager::TexImageUnit, { m_drawable.atlasId(), m_drawable.samplerId() } }
+      { DrawableManager::TexImageUnit, { m_drawable.atlasId(), m_drawable.samplerId() } },
+      { ft::TexImageUnit,              { m_style.font->atlasId(), m_drawable.samplerId() } },
      })
     .clearOp(gx::RenderPass::ClearColor);
 
@@ -310,6 +313,9 @@ void Ui::paint()
     .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit)
     .uniformSampler(U.ui.uImageAtlas, DrawableManager::TexImageUnit);
 
+  // 'm_renderpass_id' binds style().font by default
+  gx::ResourcePool::Id last_font_id = style().font->atlasId();
+
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
     auto mvp_handle = m_mempool.alloc(sizeof(mat4));
@@ -326,7 +332,16 @@ void Ui::paint()
       break;
 
     case VertexPainter::Text: {
-      cmd.font->bindFontAltas(); // TODO!
+      if(last_font_id != cmd.font->atlasId()) {
+        auto font_id = cmd.font->atlasId();
+        auto subpass_id = renderpass.nextSubpassId();
+        renderpass.subpass(gx::RenderPass::Subpass()
+          .texture(ft::TexImageUnit, font_id, m_drawable.samplerId()));
+
+        command_buf.subpass(subpass_id);
+
+        last_font_id = font_id;
+      }
 
       auto color_handle = m_mempool.alloc(sizeof(vec4));
       auto& color = *m_mempool.ptr<vec4>(color_handle);

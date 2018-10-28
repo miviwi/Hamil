@@ -7,8 +7,8 @@ namespace ui {
 Style Style::basic_style()
 {
   Style s;
-  s.font = ft::Font::Ptr(new ft::Font(ft::FontFamily("segoeui"), 12));
-  s.monospace = ft::Font::Ptr(new ft::Font(ft::FontFamily("consola"), 12));
+  s.font_style.font = { ft::FontFamily("segoeui"), 12 };
+  s.font_style.monospace = { ft::FontFamily("consola"), 12 };
 
   auto alpha = (byte)(255*0.95);
 
@@ -43,6 +43,12 @@ Style Style::basic_style()
   s.textbox.cursor = white();
 
   return s;
+}
+
+void Style::init(gx::ResourcePool& pool)
+{
+  font.reset(new ft::Font(font_style.font.family, font_style.font.height, &pool));
+  monospace.reset(new ft::Font(font_style.monospace.family, font_style.monospace.height, &pool));
 }
 
 }

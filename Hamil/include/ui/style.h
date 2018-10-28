@@ -6,10 +6,28 @@
 
 #include <cstring>
 
+namespace gx {
+class ResourcePool;
+}
+
 namespace ui {
+
+class Ui;
 
 struct Style {
   using Corner = VertexPainter::Corner;
+
+  struct {
+    struct {
+      ft::FontFamily family = "";
+      unsigned height;
+    } font;
+
+    struct {
+      ft::FontFamily family = "";
+      unsigned height;
+    } monospace;
+  } font_style;
 
   ft::Font::Ptr font, monospace;
 
@@ -55,6 +73,12 @@ struct Style {
   Style() { memset(this, 0, sizeof(*this)); }
 
   static Style basic_style();
+
+protected:
+  void init(gx::ResourcePool& pool);
+
+private:
+  friend Ui;
 };
 
 

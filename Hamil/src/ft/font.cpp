@@ -580,7 +580,7 @@ void Font::bindFontAltas(int unit) const
   gx::tex_unit(unit, atlas(), sampler);
 }
 
-gx::ResourcePool::Id Font::atlasResourceId() const
+gx::ResourcePool::Id Font::atlasId() const
 {
   return m_atlas;
 }

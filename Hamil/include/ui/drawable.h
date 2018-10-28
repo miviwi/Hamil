@@ -83,12 +83,12 @@ public:
   gx::ResourcePool::Id atlasId() const;
 
 private:
+  gx::TextureHandle atlas();
+  Color *localAtlasData(uvec4 coords, unsigned page);
+
   // Convert to OpenGL uv space (bottom-left corner origin)
   uvec4 atlasCoords(uvec4 coords) const;
-
   unsigned numAtlasPages();
-
-  Color *localAtlasData(uvec4 coords, unsigned page);
 
   void reuploadAtlas();
   void uploadAtlas(uvec4 coords, unsigned page);

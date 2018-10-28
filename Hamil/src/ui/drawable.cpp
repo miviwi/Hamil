@@ -203,8 +203,8 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
   m_sampler_id = m_pool.create<gx::Sampler>("UI_drawable_sampler",
     gx::Sampler::edgeclamp2d());
 
-  m_atlas_id = m_pool.createTexture<gx::Texture2D>("UI_drawable_atlas", gx::rgba8);
-  m_pool.getTexture<gx::Texture2D>(m_atlas_id)
+  m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("UI_drawable_atlas", gx::rgba8);
+  atlas().get()
     .init(AtlasSize.x, AtlasSize.y, InitialPages);
 
   std::fill(localAtlasData({ 0, 0, 0, 0 }, 0), localAtlasData({ 0, 0, 0, 0 }, 1), green());
@@ -259,16 +259,21 @@ Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)
   return m_local_atlas.data() + off;
 }
 
+gx::TextureHandle DrawableManager::atlas()
+{
+  return m_pool.getTexture(m_atlas_id);
+}
+
 void DrawableManager::reuploadAtlas()
 {
-  m_pool.getTexture<gx::Texture2D>(m_atlas_id)
+  atlas().get()
     .init(m_local_atlas.data(), /* level */0,
       AtlasSize.x, AtlasSize.y, numAtlasPages(), gx::rgba, gx::u8);
 }
 
 void DrawableManager::uploadAtlas(uvec4 coords, unsigned page)
 {
-  m_pool.getTexture<gx::Texture2D>(m_atlas_id)
+  atlas().get()
     .upload(localAtlasData(coords, page), /* level */0,
       coords.x, coords.y, page, coords.z, coords.w, 1, gx::rgba, gx::u8);
 }

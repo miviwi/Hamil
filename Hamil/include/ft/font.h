@@ -126,7 +126,7 @@ public:
   // Can be used ONLY if 'pool' wasn't provided during Font creation!
   void bindFontAltas(int unit = TexImageUnit) const;
 
-  gx::ResourcePool::Id atlasResourceId() const;
+  gx::ResourcePool::Id atlasId() const;
 
   bool monospace() const;
   float monospaceWidth() const;
