@@ -1,6 +1,9 @@
 #pragma once
 
 #include <win32/input.h>
+#include <win32/thread.h>
+#include <win32/glcontext.h>
+
 #include <util/ref.h>
 #include <math/geometry.h>
 
@@ -40,6 +43,9 @@ public:
   // Posts a QUIT message (causes processMessages() to return false)
   void quit();
 
+  // Must be called on the thread which created the Window!
+  OGLContext acquireOGLContext();
+
 private:
   static HGLRC ogl_create_context(HWND hWnd);
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam);
@@ -49,6 +55,8 @@ private:
 
   HWND m_hwnd;
   int m_width, m_height;
+
+  Thread::Id m_thread;
 
   InputDeviceManager m_input_man;
 };

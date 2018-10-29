@@ -17,6 +17,8 @@
 #include <win32/mman.h>
 #include <win32/thread.h>
 #include <win32/mutex.h>
+#include <win32/event.h>
+#include <win32/conditionvar.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -110,34 +112,6 @@ int main(int argc, char *argv[])
   res::init();
   hm::init();
 
-  win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
-  auto bunny = bunny_f.map(win32::File::ProtectRead);
-
-  auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
-  const auto& bunny_mesh = obj_loader.mesh();
-
-  bunny.unmap();
-
-  std::vector<vec3> bunny_verts;
-  std::vector<u16> bunny_inds;
-
-  {
-    bunny_verts.reserve(bunny_mesh.vertices().size());
-    const auto& bunny_v = bunny_mesh.vertices();
-    const auto& bunny_vn = bunny_mesh.normals();
-    for(size_t i = 0; i < bunny_v.size(); i++) {
-      bunny_verts.push_back(bunny_v[i]);
-      bunny_verts.push_back(bunny_vn[i]);
-    }
-  }
-
-  mesh::HalfEdgeStructure halfedge;
-
-  bunny_inds.reserve(bunny_mesh.faces().size());
-  for(const auto& face : bunny_mesh.faces()) {
-    for(const auto& v : face) bunny_inds.push_back((u16)v.v);
-  }
-
   gx::ResourcePool pool(64);
   gx::MemoryPool memory(1024);
 
@@ -151,12 +125,56 @@ int main(int argc, char *argv[])
   bunny_vbuf.label("bvBunny");
   bunny_ibuf.label("biBunny");
 
-  bunny_vbuf.init(bunny_verts.data(), bunny_verts.size());
-  bunny_ibuf.init(bunny_inds.data(), bunny_inds.size());
-
   auto bunny_arr_id = pool.create<gx::IndexedVertexArray>("iaBunny",
     bunny_fmt, bunny_vbuf, bunny_ibuf);
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
+
+  std::vector<vec3> bunny_verts;
+  std::vector<u16> bunny_inds;
+
+  static volatile bool bunny_loaded = false;
+
+  auto bunny_load_context = window.acquireOGLContext();
+  auto thread = win32::Thread([&]() -> ulong {
+    bunny_load_context.makeCurrent();
+
+    win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
+    auto bunny = bunny_f.map(win32::File::ProtectRead);
+
+    auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
+    const auto& bunny_mesh = obj_loader.mesh();
+
+    bunny.unmap();
+
+    printf("bunny vertices: %zu\nbunny faces: %zu\n", bunny_mesh.vertices().size(),
+      bunny_mesh.faces().size());
+
+    bunny_verts.reserve(bunny_mesh.vertices().size());
+    const auto& bunny_v = bunny_mesh.vertices();
+    const auto& bunny_vn = bunny_mesh.normals();
+    for(size_t i = 0; i < bunny_v.size(); i++) {
+      bunny_verts.push_back(bunny_v[i]);
+      bunny_verts.push_back(bunny_vn[i]);
+    }
+
+    bunny_inds.reserve(bunny_mesh.faces().size());
+    for(const auto& face : bunny_mesh.faces()) {
+      for(const auto& v : face) bunny_inds.push_back((u16)v.v);
+    }
+
+    bunny_vbuf.init(bunny_verts.data(), bunny_verts.size());
+    bunny_ibuf.init(bunny_inds.data(), bunny_inds.size());
+
+    printf("bunny loaded! (%zu indices)\n", bunny_inds.size());
+
+    bunny_loaded = true;
+
+    while(1) {
+      Sleep(10000);
+    }
+
+    return 0;
+  });
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -597,13 +615,6 @@ int main(int argc, char *argv[])
 
   auto floor = create_floor();
 
-  auto command_buf = gx::CommandBuffer::begin()
-    .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
-    .renderPass(scene_pass_id)
-    .program(program_id)
-    .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
-    .end();
-
   auto cmd_upload_ubos = gx::CommandBuffer::begin()
     .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
     .end();
@@ -615,9 +626,6 @@ int main(int argc, char *argv[])
     .uniformMatrix4x4(U.skybox.uProjection, skybox_uniforms_handle+sizeof(mat4))
     .drawIndexed(gx::Triangles, skybox_arr_id, skybox_inds.size())
     .end();
-
-  command_buf.bindResourcePool(&pool);
-  command_buf.bindMemoryPool(&memory);
 
   cmd_upload_ubos.bindResourcePool(&pool);
   cmd_upload_ubos.bindMemoryPool(&memory);
@@ -798,6 +806,8 @@ int main(int argc, char *argv[])
       num_tris += sphere_inds.size() / 3;
     };
 
+    scene_pass.begin(pool);
+
     mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
 
     block_group.matrix->modelview = modelview;
@@ -806,8 +816,18 @@ int main(int argc, char *argv[])
     block_group.material->material = PhongColored;
     block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
-    command_buf.execute();
-    num_tris += bunny_inds.size() / 3;
+    if(bunny_loaded) {
+      auto command_buf = gx::CommandBuffer::begin()
+        .bindResourcePool(&pool)
+        .bindMemoryPool(&memory)
+        .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
+        .program(program_id)
+        .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
+        .end();
+
+      command_buf.execute();
+      num_tris += bunny_inds.size() / 3;
+    }
 
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();

@@ -6,6 +6,8 @@
 
 namespace win32 {
 
+class ConditionVariable;
+
 template <typename T>
 class LockGuard;
 
@@ -23,6 +25,8 @@ public:
   Mutex& release();
 
 private:
+  friend ConditionVariable;
+
   CRITICAL_SECTION m;
 };
 

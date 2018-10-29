@@ -20,6 +20,17 @@ PFNWGLCREATECONTEXTATTRIBSARBPROC CreateContextAttribsARB;
 static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
                                         GLenum severity, GLsizei length, GLchar *msg, const void *user);
 
+constexpr int ContextFlags = WGL_CONTEXT_DEBUG_BIT_ARB;
+constexpr int ContextProfile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+
+static const int ContextAttribs[] = {
+  WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+  WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+  WGL_CONTEXT_PROFILE_MASK_ARB, ContextProfile,
+  WGL_CONTEXT_FLAGS_ARB, ContextFlags,
+  0
+};
+
 static void get_wgl_extension_addresses()
 {
   SwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
@@ -27,7 +38,8 @@ static void get_wgl_extension_addresses()
 }
 
 Window::Window(int width, int height) :
-  m_width(width), m_height(height)
+  m_width(width), m_height(height),
+  m_thread(Thread::current_thread_id())
 {
   HINSTANCE hInstance = GetModuleHandle(nullptr);
 
@@ -175,18 +187,7 @@ HGLRC Window::ogl_create_context(HWND hWnd)
 
   get_wgl_extension_addresses();
 
-  int flags = WGL_CONTEXT_DEBUG_BIT_ARB,
-    profile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
-
-  int attribs[] = {
-    WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-    WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-    WGL_CONTEXT_PROFILE_MASK_ARB, profile,
-    WGL_CONTEXT_FLAGS_ARB, flags,
-    0
-  };
-
-  HGLRC context = CreateContextAttribsARB(hdc, nullptr, attribs);
+  auto context = CreateContextAttribsARB(hdc, nullptr, ContextAttribs);
 
   wglMakeCurrent(nullptr, nullptr);
   wglDeleteContext(temp_context);
@@ -204,6 +205,17 @@ HGLRC Window::ogl_create_context(HWND hWnd)
   glGetError(); // clear the error indicator
 
   return context;
+}
+
+OGLContext Window::acquireOGLContext()
+{
+  assert(Thread::current_thread_id() == m_thread &&
+    "Window::acquireOGLContext() called on the wrong thread!");
+
+  HDC hdc = GetDC(m_hwnd);
+  HGLRC hglrc = CreateContextAttribsARB(hdc, wglGetCurrentContext(), ContextAttribs);
+
+  return OGLContext(hdc, hglrc);
 }
 
 LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)

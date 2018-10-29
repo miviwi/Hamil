@@ -303,7 +303,7 @@ gx::CommandBuffer Ui::paint()
 {
   if(m_frames.empty()) return gx::CommandBuffer::begin().end();
 
-  // Make sure the MemoryPool is clean (previous paint
+  // Make sure the MemoryPool is clean (previous paint()
   //   leaves behind data)
   m_mempool.purge();
 
@@ -313,20 +313,25 @@ gx::CommandBuffer Ui::paint()
     .bindMemoryPool(&m_mempool);
 
   if(m_repaint) {
-    // Same as above - clean up after previous paint
+    // Same as above - clean up after previous paint()
     m_painter.end();
 
     auto verts_size = sizeof(Vertex)*VertexPainter::BufferSize;
     auto inds_size = sizeof(u16)*VertexPainter::BufferSize;
 
-    auto verts = m_buf.map(gx::Buffer::Write, 0, verts_size, gx::Buffer::MapInvalidate);
-    auto inds = m_ind.map(gx::Buffer::Write, 0, inds_size, gx::Buffer::MapInvalidate);
+    // The Ui is only drawn once per frame and paint() is called only
+    //   when the previous frame was presented, which means these buffers
+    //   should NEVER be in use before we map them
+    auto map_flags = gx::Buffer::MapUnsynchronized | gx::Buffer::MapInvalidate;
+
+    auto verts = m_buf.map(gx::Buffer::Write, 0, verts_size, map_flags);
+    auto inds = m_ind.map(gx::Buffer::Write, 0, inds_size, map_flags);
 
     m_painter.begin(
       verts.get<Vertex>(), VertexPainter::BufferSize,
       inds.get<u16>(), VertexPainter::BufferSize);
 
-    // Actually paint the frames
+    // Fill the vertex and index buffers
     for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
   }
 
