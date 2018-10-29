@@ -67,11 +67,38 @@ enum {
 
 bool is_color_format(Format fmt);
 
-// must be called AFTER creating a win32::Window!
+// Must be called AFTER creating a win32::Window!
 void init();
 void finalize();
 
 GxInfo& info();
+
+// Notes on ResourcePool::create<Texture,Buffer>(const char *label, ...) / .label():
+//   - Labels should be in a hungarian-notation type format, where:
+//       * p  - gx::Program
+//       * b  - gx::Buffer
+//       * s  - gx::Sampler
+//       * t  - gx::Texture
+//       * a  - gx::VertexArray, ia - gx::IndexedVertexArray
+//       * fb - gx::Framebuffer
+//   - Suffixes must be appended to the above depending on the particular
+//     type of object:
+//       * Textures:
+//           2d  - gx::Texture2D
+//           2da - gx::Texture2DArray
+//           c   - gx::TextureCubeMap
+//           b   - gx::TextureBuffer
+//       * Buffers:
+//           v - gx::VertexBuffer
+//           i - gx::IndexBuffer
+//           u - gx::UniformBuffer
+//           t - gx::TexelBuffer
+//           p - gx::PixelBuffer
+// Examples:
+//   gx::Texture2D texture           -> "t2dTexture"
+//   gx::IndexBuffer some_index_buf  -> "biSomeIndexBuf"
+//   gx::Framebuffer ui              -> "fbUi"
+//   gx::IndexedVertexArray teapot   -> "iaTeapot"
 
 void p_bind_VertexArray(unsigned array);
 unsigned p_unbind_VertexArray();

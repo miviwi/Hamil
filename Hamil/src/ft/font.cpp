@@ -39,7 +39,7 @@ public:
     ind(gx::Buffer::Dynamic, gx::u16),
     vtx(fmt, buf, ind)
   {
-    sampler_id = pool.create<gx::Sampler>("FT_sampler",
+    sampler_id = pool.create<gx::Sampler>("sFt",
       gx::Sampler::edgeclamp2d_linear());
   }
 
@@ -201,10 +201,10 @@ void init()
 
   p = std::make_unique<pFt>();
 
-  p->buf.label("FT_vertex");
-  p->ind.label("FT_index");
+  p->buf.label("bvFt");
+  p->ind.label("biFt");
 
-  p->vtx.label("FT_vertex_array");
+  p->vtx.label("iaFt");
 
   p->buf.init(sizeof(Vertex)*4, pFt::NumBufferChars);
   p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
@@ -212,7 +212,7 @@ void init()
   font_program = std::make_unique<gx::Program>(gx::make_program(
     { vs_src }, { Font::frag_shader, fs_src }, U.font
   ));
-  font_program->label("FT_program");
+  font_program->label("pFt");
 
   font_program->use()
     .uniformSampler(U.font.uAtlas, TexImageUnit);
@@ -275,7 +275,7 @@ Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
   FT_Stroker_Done(stroker);
 
   // Setup atlas texture
-  const std::string atlas_label = "FT_atlas" + std::to_string(atlas_id++);
+  const std::string atlas_label = "t2dFtAtlas" + std::to_string(atlas_id++);
 
   // Use the private pool if one wasn't provided
   if(!pool) pool = &p->pool;

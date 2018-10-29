@@ -5,13 +5,13 @@
 #include <math/xform.h>
 #include <math/util.h>
 
+#include <uniforms.h>
 #include <gx/gx.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/texture.h>
 #include <gx/pipeline.h>
 #include <gx/program.h>
-#include <uniforms.h>
 
 #include <array>
 #include <memory>
@@ -198,8 +198,8 @@ void CursorDriver::init()
 {
   p = std::make_unique<pCursorDriver>();
 
-  p->buf.label("CURSOR_vertex");
-  p->vtx.label("CURSOR_vertex_array");
+  p->buf.label("bvCursor");
+  p->vtx.label("aCursor");
 
   auto vtx = generate_verts(p_cursors);
   p->buf.init(vtx.data(), vtx.size());
@@ -210,12 +210,12 @@ void CursorDriver::init()
   p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::u8);
   p->tex.swizzle(gx::Red, gx::Red, gx::Red, gx::Green);
 
-  p->tex.label("CURSOR_tex");
+  p->tex.label("t2dcursor");
 
   cursor_program = std::make_unique<gx::Program>(gx::make_program(
     { vs_src }, { fs_src }, U.cursor
   ));
-  cursor_program->label("CURSOR_program");
+  cursor_program->label("pCursor");
 
   cursor_program->use()
     .uniformSampler(U.cursor.uTex, pCursorDriver::TexImageUnit);

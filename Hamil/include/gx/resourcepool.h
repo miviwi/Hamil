@@ -44,6 +44,7 @@ public:
     return id;
   }
 
+  // See gx.h for notes on 'label' strings
   template <typename T, typename... Args>
   Id create(const char *label, Args... args)
   {
@@ -62,6 +63,7 @@ public:
     return create<TextureHandle>(TextureHandle::create<T>(std::forward<Args>(args)...));
   }
 
+  // See gx.h for notes on 'label' strings
   template <typename T, typename... Args>
   Id createTexture(const char *label, Args... args)
   {
@@ -74,6 +76,7 @@ public:
     return create<BufferHandle>(BufferHandle::create<T>(std::forward<Args>(args)...));
   }
 
+  // See gx.h for notes on 'label' strings
   template <typename T, typename... Args>
   Id createBuffer(const char *label, Args... args)
   {

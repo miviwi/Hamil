@@ -150,6 +150,38 @@ const Drawable& Drawable::appendIndices(std::vector<u16>& buf) const
   return *this;
 }
 
+const Drawable& Drawable::appendVertices(Vertex **buf, size_t sz) const
+{
+  if(!get()) return *this;
+
+  auto verts = get()->vertices();
+  auto num   = get()->numVertices();
+
+  // Clamp 'num' to the buffer's size
+  num = std::min(num, sz);
+
+  memcpy(*buf, verts, num * sizeof(*buf));
+  *buf += num;
+
+  return *this;
+}
+
+const Drawable& Drawable::appendIndices(u16 **buf, size_t sz) const
+{
+  if(!get()) return *this;
+
+  auto inds = get()->indices();
+  auto num  = get()->numIndices();
+
+  // Clamp 'num' to the buffer's size
+  num = std::min(num, sz);
+
+  memcpy(*buf, inds, num * sizeof(*buf));
+  *buf += num;
+
+  return *this;
+}
+
 size_t Drawable::num() const
 {
   return get() ? get()->numIndices() : 0;
@@ -200,10 +232,11 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
   m_sampler_id(gx::ResourcePool::Invalid),
   m_atlas_id(gx::ResourcePool::Invalid)
 {
-  m_sampler_id = m_pool.create<gx::Sampler>("UI_drawable_sampler",
+  m_sampler_id = m_pool.create<gx::Sampler>("sUiDrawable",
     gx::Sampler::edgeclamp2d());
 
-  m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("UI_drawable_atlas", gx::rgba8);
+  m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("t2dUiDrawableAtlas",
+    gx::rgba8);
   atlas().get()
     .init(AtlasSize.x, AtlasSize.y, InitialPages);
 

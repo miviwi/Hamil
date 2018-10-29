@@ -36,6 +36,14 @@ public:
   const Drawable& appendVertices(std::vector<Vertex>& buf) const;
   const Drawable& appendIndices(std::vector<u16>& buf) const;
 
+  // Increments *buf by the number of appended vertices
+  //   - Appends up to 'sz' Vertices
+  const Drawable& appendVertices(Vertex **buf, size_t sz) const;
+
+  // Increments *buf by the number of appended vertices
+  //   - Appends up to 'sz' indices
+  const Drawable& appendIndices(u16 **buf, size_t sz) const;
+
   // Returns the number of indices for the draw call
   size_t num() const;
 

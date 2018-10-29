@@ -5,6 +5,8 @@
 
 #include <math/xform.h>
 #include <math/util.h>
+#include <win32/panic.h>
+
 #include <uniforms.h>
 #include <gx/pipeline.h>
 #include <gx/buffer.h>
@@ -149,17 +151,22 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
 {
   m_style.init(m_pool);
 
-  m_framebuffer_tex_id = m_pool.createTexture<gx::Texture2D>("UI_framebuffer_tex",
+  m_framebuffer_tex_id = m_pool.createTexture<gx::Texture2D>("t2dUiFramebuffer",
     gx::rgba8, gx::Texture::Multisample);
   m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id)
     .initMultisample(4, FramebufferSize.cast<int>());
 
-  m_framebuffer_id = m_pool.create<gx::Framebuffer>("UI_framebuffer");
-  m_pool.get<gx::Framebuffer>(m_framebuffer_id)
-    .use()
+  m_framebuffer_id = m_pool.create<gx::Framebuffer>("fbUi");
+  auto& fb = m_pool.get<gx::Framebuffer>(m_framebuffer_id);
+  fb.use()
     .tex(m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id), 0, gx::Framebuffer::Color(0));
 
-  m_program_id = m_pool.create<gx::Program>("UI_program", gx::make_program(
+  // TODO: Just panic for now...
+  if(!fb.complete()) {
+    win32::panic("Couldn't create UI Framebuffer!", win32::FramebufferError);
+  }
+
+  m_program_id = m_pool.create<gx::Program>("pUi", gx::make_program(
     { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U.ui
   ));
 
@@ -173,17 +180,20 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
       .clearColor(transparent().normalize()))
     .textures({
       { DrawableManager::TexImageUnit, { m_drawable.atlasId(), m_drawable.samplerId() } },
+
+      // The default font is most likely to be used first
+      //   TODO: pack them into a Texture2DArray maybe?
       { ft::TexImageUnit,              { m_style.font->atlasId(), m_drawable.samplerId() } },
      })
     .clearOp(gx::RenderPass::ClearColor);
 
-  m_buf.label("UI_vertex");
-  m_ind.label("UI_index");
+  m_buf.label("bvUi");
+  m_ind.label("biUi");
 
   m_buf.init(sizeof(Vertex), VertexPainter::BufferSize);
   m_ind.init(sizeof(u16), VertexPainter::BufferSize);
 
-  m_vtx_id = m_pool.create<gx::IndexedVertexArray>("UI_vertex_array",
+  m_vtx_id = m_pool.create<gx::IndexedVertexArray>("iaUi",
     VertexPainter::Fmt, m_buf, m_ind);
 }
 
@@ -289,25 +299,40 @@ bool Ui::input(CursorDriver& cursor, const InputPtr& input)
   return false;
 }
 
-void Ui::paint()
+gx::CommandBuffer Ui::paint()
 {
-  if(m_frames.empty()) return;
+  if(m_frames.empty()) return gx::CommandBuffer::begin().end();
+
+  // Make sure the MemoryPool is clean (previous paint
+  //   leaves behind data)
+  m_mempool.purge();
 
   auto& renderpass = m_pool.get<gx::RenderPass>(m_renderpass_id);
+  auto command_buf = gx::CommandBuffer::begin()
+    .bindResourcePool(&m_pool)
+    .bindMemoryPool(&m_mempool);
 
   if(m_repaint) {
+    // Same as above - clean up after previous paint
     m_painter.end();
-    for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
 
-    m_buf.upload(m_painter.vertices(), 0, m_painter.numVertices());
-    m_ind.upload(m_painter.indices(), 0, m_painter.numIndices());
+    auto verts_size = sizeof(Vertex)*VertexPainter::BufferSize;
+    auto inds_size = sizeof(u16)*VertexPainter::BufferSize;
+
+    auto verts = m_buf.map(gx::Buffer::Write, 0, verts_size, gx::Buffer::MapInvalidate);
+    auto inds = m_ind.map(gx::Buffer::Write, 0, inds_size, gx::Buffer::MapInvalidate);
+
+    m_painter.begin(
+      verts.get<Vertex>(), VertexPainter::BufferSize,
+      inds.get<u16>(), VertexPainter::BufferSize);
+
+    // Actually paint the frames
+    for(const auto& frame : m_frames) frame->paint(m_painter, m_geom);
   }
 
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
-  auto command_buf = gx::CommandBuffer::begin()
-    .bindResourcePool(&m_pool)
-    .bindMemoryPool(&m_mempool)
+  command_buf
     .renderPass(m_renderpass_id)
     .program(m_program_id)
     .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit)
@@ -323,12 +348,16 @@ void Ui::paint()
 
     mvp = projection;
 
+    auto num = (u32)cmd.num;
+    auto base = (u32)cmd.base;
+    auto offset = (u32)cmd.offset;
+
     switch(cmd.type) {
     case VertexPainter::Primitive:
       command_buf
         .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeShape)
-        .drawBaseVertex(cmd.p, m_vtx_id, cmd.num, cmd.base, cmd.offset);
+        .drawBaseVertex(cmd.p, m_vtx_id, num, base, offset);
       break;
 
     case VertexPainter::Text: {
@@ -353,7 +382,7 @@ void Ui::paint()
         .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeText)
         .uniformVector4(U.ui.uTextColor, color_handle)
-        .drawBaseVertex(cmd.p, m_vtx_id, cmd.num, cmd.base, cmd.offset);
+        .drawBaseVertex(cmd.p, m_vtx_id, num, base, offset);
       break;
     }
 
@@ -364,7 +393,7 @@ void Ui::paint()
         .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeImage)
         .uniformFloat(U.ui.uImagePage, (float)cmd.page)
-        .drawBaseVertex(cmd.p, m_vtx_id, cmd.num, cmd.base, cmd.offset);
+        .drawBaseVertex(cmd.p, m_vtx_id, num, base, offset);
       break;
 
     case VertexPainter::Pipeline: {
@@ -382,9 +411,7 @@ void Ui::paint()
 
   command_buf.end();
 
-  command_buf.execute();
-
-  m_mempool.purge();
+  return command_buf;
 }
 
 void Ui::capture(Frame *frame)

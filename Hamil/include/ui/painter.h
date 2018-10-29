@@ -131,9 +131,15 @@ public:
     JoinRound, JoinBevel,
   };
 
+  struct Error { };
+
+  struct NotEnoughSpaceError { };
+
   static const gx::VertexFormat Fmt;
 
   VertexPainter();
+
+  VertexPainter& begin(Vertex *verts, size_t num_verts, u16 *inds, size_t num_inds);
 
   VertexPainter& line(vec2 a, vec2 b, float width, LineCap cap, float cap_r, Color ca, Color cb);
   VertexPainter& line(vec2 a, vec2 b, float width, LineCap cap, Color ca, Color cb);
@@ -176,12 +182,6 @@ public:
   VertexPainter& beginOverlay();
   VertexPainter& endOverlay();
 
-  Vertex *vertices();
-  size_t numVertices();
-
-  u16 *indices();
-  size_t numIndices();
-
   template <typename Fn>
   void doCommands(Fn fn)
   {
@@ -192,6 +192,9 @@ public:
   void end();
 
 private:
+  size_t currentBase() const;
+  size_t currentOffset() const;
+
   void appendVertices(std::initializer_list<Vertex> verts);
   void appendCommand(const Command& c);
   void doAppendCommand(const Command& c, std::vector<Command>& commands);
@@ -202,10 +205,19 @@ private:
   vec2 textAlignCenter(ft::Font& font, Geometry g, vec2 text_size) const;
   vec2 textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) const;
 
+  void assertBegin();
+
+  void checkEnoughSpace(size_t sz);
+
   bool m_overlay;
 
-  std::vector<Vertex> m_buf;
-  std::vector<u16> m_ind;
+  Vertex *m_buf;
+  Vertex *m_buf_rover;
+  Vertex *m_buf_end;
+
+  u16 *m_ind;
+  u16 *m_ind_rover;
+  u16 *m_ind_end;
 
   std::vector<Command> m_commands;
   std::vector<Command> m_overlay_commands;

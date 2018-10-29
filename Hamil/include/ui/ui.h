@@ -22,6 +22,10 @@
 #include <memory>
 #include <utility>
 
+namespace gx {
+class CommandBuffer;
+}
+
 namespace ui {
 
 // must be called AFTER gx::init()!
@@ -71,7 +75,7 @@ public:
   gx::ResourcePool::Id framebufferTextureId();
 
   bool input(CursorDriver& cursor, const InputPtr& input);
-  void paint();
+  gx::CommandBuffer paint();
 
   void capture(Frame *frame);
   void keyboard(Frame *frame);

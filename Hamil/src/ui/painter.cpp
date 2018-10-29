@@ -33,11 +33,22 @@ Vertex::Vertex(Position pos_, Color color_) :
 }
 
 VertexPainter::VertexPainter() :
-  m_overlay(false)
+  m_overlay(false),
+  m_buf(nullptr), m_buf_rover(nullptr), m_buf_end(nullptr),
+  m_ind(nullptr), m_ind_rover(nullptr), m_ind_end(nullptr)
 {
-  m_buf.reserve(BufferSize);
-  m_ind.reserve(BufferSize);
   m_commands.reserve(32);
+}
+
+VertexPainter& VertexPainter::begin(Vertex *verts, size_t num_verts, u16 *inds, size_t num_inds)
+{
+  m_buf = m_buf_rover = verts;
+  m_ind = m_ind_rover = inds;
+
+  m_buf_end = m_buf + num_verts;
+  m_ind_end = m_ind + num_inds;
+
+  return *this;
 }
 
 VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, float cap_r, Color ca, Color cb)
@@ -54,7 +65,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
 
   auto quad = [&,this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    auto offset = m_ind.size();
+    auto offset = currentOffset();
 
     appendVertices({
      { a, color },
@@ -82,7 +93,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   case CapButt:   break;
   }
 
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   appendVertices({
     { a+d, ca },
@@ -125,7 +136,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
 
   auto square_cap = [&, this](vec2 a, vec2 b, vec2 c, vec2 d, Color color)
   {
-    auto offset = m_ind.size();
+    auto offset = currentOffset();
 
     appendVertices({
       { a, color },
@@ -155,7 +166,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
   case CapButt:   break;
   }
 
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   appendVertices({
     { a+d, ca },
@@ -191,7 +202,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width, LineCap ca
 
 VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color d)
 {
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   appendVertices({
     { { g.x, g.y, }, a },
@@ -221,7 +232,7 @@ VertexPainter& VertexPainter::rect(Geometry g, Color c)
 
 VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, Color c, Color d)
 {
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   if(width <= 1.0f) {        // Fast path
     appendVertices({
@@ -259,7 +270,7 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color c)
 VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
                                             float start_angle, float end_angle, Color a, Color b)
 {
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   auto point = [=](float angle) -> vec2
   {
@@ -304,7 +315,7 @@ VertexPainter& VertexPainter::circle(vec2 pos, float radius, Color c)
 
 VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, float end_angle, Color c)
 {
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   auto point = [=](float angle) -> vec2
   {
@@ -342,11 +353,9 @@ VertexPainter& VertexPainter::arcFull(vec2 pos, float radius, Color c)
 
 VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned corners, Color a, Color b)
 {
-  auto base = m_ind.size();
-
   auto quad = [this](float x, float y, float w, float h, Color a, Color b, Color c, Color d)
   {
-    auto offset = m_ind.size();
+    auto offset = currentOffset();
 
     appendVertices({
       { { x, y }, a },
@@ -403,7 +412,7 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
 
 VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned corners, Color c)
 {
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
   unsigned num_verts = 0;
 
   auto segment = [&,this](vec2 pos, float start_angle, float end_angle) {
@@ -485,7 +494,7 @@ const float sqrt3 = sqrtf(3.0f);
 
 VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color color)
 {
-  auto offset = m_ind.size();
+  auto offset = currentOffset();
 
   pos.x += 0.5f; pos.y += 0.5f;
 
@@ -528,26 +537,21 @@ VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color col
 
 ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& str)
 {
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
-  // resize the vectors to AT LEAST the required size
-  m_buf.resize(m_buf.size() + (str.length()*ft::NumCharVerts));
-  m_ind.resize(m_ind.size() + (str.length()*ft::NumCharIndices));
-
-  Vertex *ptr = m_buf.data() + base;
+  Vertex *ptr = m_buf + base;
 
   StridePtr<ft::Position> pos_ptr(&ptr->pos, sizeof(Vertex));
   StridePtr<ft::UV> uv_ptr(&ptr->uv, sizeof(Vertex));
 
-  auto s = font.writeVertsAndIndices(str.data(), pos_ptr, uv_ptr, m_ind.data()+offset);
+  auto s = font.writeVertsAndIndices(str.data(), pos_ptr, uv_ptr, m_ind+offset);
 
   unsigned num = s.num();
 
-  // resize them again - this time to the proper size
-  //   (need to do this so garbage doesn't get drawn)
-  m_buf.resize(base + (num / ft::NumCharIndices * ft::NumCharVerts));
-  m_ind.resize(offset + (num));
+  // Move the rovers forwards by the number of written vertices/indices
+  m_buf_rover += (num / ft::NumCharIndices * ft::NumCharVerts);
+  m_ind_rover += num;
 
   return s;
 }
@@ -574,10 +578,22 @@ vec2 VertexPainter::textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) co
   return { floor(pos.x), floor(pos.y) };
 }
 
+void VertexPainter::assertBegin()
+{
+  assert(m_buf && m_ind && "Attempted to paint without first calling begin()!");
+}
+
+void VertexPainter::checkEnoughSpace(size_t sz)
+{
+  if(m_buf_rover+sz < m_buf_end && m_ind_rover+sz < m_ind_end) return;
+
+  throw NotEnoughSpaceError();
+}
+
 VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 pos, Color c)
 {
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   auto s = appendTextVertices(font, str);
 
@@ -593,8 +609,8 @@ VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 
 
 VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& str, Geometry g, Color c)
 {
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   auto s = appendTextVertices(font, str);
 
@@ -610,8 +626,8 @@ VertexPainter& VertexPainter::textCentered(ft::Font& font, const std::string& st
 
 VertexPainter& VertexPainter::textLeft(ft::Font& font, const std::string& str, Geometry g, Color c)
 {
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   auto s = appendTextVertices(font, str);
 
@@ -671,12 +687,12 @@ VertexPainter& VertexPainter::text(const Drawable& text, vec2 pos)
 {
   assert_text(text);
 
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   text
-    .appendVertices(m_buf)
-    .appendIndices(m_ind)
+    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
     ;
 
   appendCommand(Command::text(
@@ -693,12 +709,12 @@ VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
 {
   assert_text(text);
 
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   text
-    .appendVertices(m_buf)
-    .appendIndices(m_ind)
+    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
     ;
 
   vec2 center = g.center();
@@ -721,12 +737,12 @@ VertexPainter& VertexPainter::textLeft(const Drawable& text, Geometry g)
 {
   assert_text(text);
 
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   text
-    .appendVertices(m_buf)
-    .appendIndices(m_ind)
+    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
     ;
 
   appendCommand(Command::text(
@@ -748,12 +764,12 @@ VertexPainter& VertexPainter::image(const Drawable& image, vec2 pos)
 {
   assert_image(image);
 
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   image
-    .appendVertices(m_buf)
-    .appendIndices(m_ind)
+    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
     ;
 
   appendCommand(Command::image(
@@ -768,12 +784,12 @@ VertexPainter& VertexPainter::imageCentered(const Drawable& image, Geometry g)
 {
   assert_image(image);
 
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   image
-    .appendVertices(m_buf)
-    .appendIndices(m_ind)
+    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
     ;
 
   vec2 center = g.center();
@@ -791,12 +807,12 @@ VertexPainter& VertexPainter::imageLeft(const Drawable& image, Geometry g)
 {
   assert_image(image);
 
-  auto base = m_buf.size();
-  auto offset = m_ind.size();
+  auto base = currentBase();
+  auto offset = currentOffset();
 
   image
-    .appendVertices(m_buf)
-    .appendIndices(m_ind)
+    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
     ;
 
   vec2 center = g.center();
@@ -834,50 +850,44 @@ VertexPainter& VertexPainter::endOverlay()
   return *this;
 }
 
-Vertex *VertexPainter::vertices()
-{
-  return m_buf.data();
-}
-
-size_t VertexPainter::numVertices()
-{
-  return m_buf.size();
-}
-
-u16 *VertexPainter::indices()
-{
-  return m_ind.data();
-}
-
-size_t VertexPainter::numIndices()
-{
-  return m_ind.size();
-}
-
 void VertexPainter::end()
 {
   endOverlay();
 
-  m_buf.clear();
-  m_ind.clear();
+  m_buf = m_buf_rover = m_buf_end = nullptr;
+  m_ind = m_ind_rover = m_ind_end = nullptr;
 
   m_commands.clear();
   m_overlay_commands.clear();
 }
 
+size_t VertexPainter::currentBase() const
+{
+  return m_buf_rover - m_buf;
+}
+
+size_t VertexPainter::currentOffset() const
+{
+  return m_ind_rover - m_ind;
+}
+
 void VertexPainter::appendVertices(std::initializer_list<Vertex> verts)
 {
-  auto ind = m_buf.size();
+  assertBegin();
+
+  checkEnoughSpace(verts.size());
+
+  auto ind = (u16)currentBase();
 
   for(const auto& v : verts) {
-    m_buf.push_back(v);
-    m_ind.push_back((u16)ind++);
+    *m_buf_rover++ = v;
+    *m_ind_rover++ = ind++;
   }
 }
 
 void VertexPainter::restartPrimitive()
 {
-  m_ind.push_back(0xFFFF);
+  *m_ind_rover++ = Vertex::RestartIndex;
 }
 
 void VertexPainter::appendCommand(const Command& c)
