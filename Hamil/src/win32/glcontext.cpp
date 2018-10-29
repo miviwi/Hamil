@@ -5,10 +5,22 @@
 #include <GL/gl3w.h>
 #include <GL/wgl.h>
 
+#include <cassert>
+
 namespace win32 {
 
 void OGLContext::makeCurrent()
 {
+#if !defined(NDEBUG)
+  auto thread = Thread::current_thread_id();
+  if(m_owner != Thread::InvalidId) {
+    assert(thread == m_owner &&
+      "makeCurrent() must always be called on the same Thread for a given OGLContext!");
+  } else {
+    m_owner = thread;
+  }
+#endif
+
   wglMakeCurrent((HDC)m_hdc, (HGLRC)m_hglrc);
 }
 
