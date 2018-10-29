@@ -43,7 +43,6 @@ public:
   }
 
 protected:
-  LockGuard(const LockGuard& other) = default;
 
 private:
   friend Mutex;

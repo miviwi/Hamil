@@ -633,6 +633,29 @@ int main(int argc, char *argv[])
   cmd_skybox.bindResourcePool(&pool);
   cmd_skybox.bindMemoryPool(&memory);
 
+  auto ui_paint_thread_context = window.acquireOGLContext();
+
+  auto ui_painted = true;
+
+  win32::Mutex mutex_repaint_ui;
+  win32::ConditionVariable cv_repaint_ui;
+
+  auto ui_cmd_buffer = gx::CommandBuffer::begin(1);
+  win32::Thread ui_paint_thread([&]() -> ulong {
+    ui_paint_thread_context.makeCurrent();
+
+    while(1) {
+      auto ui_mutex_guard = mutex_repaint_ui.acquireScoped();
+
+      while(ui_painted) cv_repaint_ui.sleep(mutex_repaint_ui);
+
+      ui_cmd_buffer = iface.paint();
+      ui_painted = true;
+    }
+
+    return 0;
+  });
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -739,6 +762,9 @@ int main(int argc, char *argv[])
         }
       }
     }
+
+    ui_painted = false;
+    cv_repaint_ui.wake();
 
     mat4 model = xform::identity();
 
@@ -973,6 +999,8 @@ int main(int argc, char *argv[])
     scene.gameObject().foreachChild([&](hm::Entity entity) {
       if(!entity.component<hm::RigidBody>()) return;
 
+      if(y > 1000.0f) return; // Cull invisible text
+
       bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
 
       small_face.draw(util::fmt("%s(0x%.8x) at: %s",
@@ -981,9 +1009,9 @@ int main(int argc, char *argv[])
       y += small_face.height();
     });
 
-    auto ui_command_buf = iface.paint();
+    auto ui_cmd_buf_guard = mutex_repaint_ui.acquireScoped();
 
-    ui_command_buf.execute();
+    ui_cmd_buffer.execute();
     cursor.paint();
 
     // Resolve the main Framebuffer and composite the Ui on top of it
