@@ -644,9 +644,22 @@ int main(int argc, char *argv[])
   win32::Thread ui_paint_thread([&]() -> ulong {
     ui_paint_thread_context.makeCurrent();
 
+    // Proof-of-concept for generating gx::CommandBuffers
+    //   asynchronously - the idea is that although OpenGL
+    //   is single-threaded in nature, we can still upload
+    //   all the buffers (which is one of the few things the 
+    //   driver doesn't serialize accross threads) and record
+    //   all the draw commands on a separate thread (which 
+    //   MUST be MORE expensive or AT LEAST as expensive as
+    //   the GL calls themselves otherwise the overhead of
+    //   marshalling them into the gx::CommandBuffer makes
+    //   this slower than doing it all on a single thread)
+    //   and delegate their execution to the main thread,
+    //   which (in theory) results in increased performace
     while(1) {
       auto ui_mutex_guard = mutex_repaint_ui.acquireScoped();
 
+      // Wait until the main thread has processed all the input
       while(ui_painted) cv_repaint_ui.sleep(mutex_repaint_ui);
 
       ui_cmd_buffer = iface.paint();
@@ -763,6 +776,7 @@ int main(int argc, char *argv[])
       }
     }
 
+    // All the input has been processed - wake up the Ui paint thread
     ui_painted = false;
     cv_repaint_ui.wake();
 
@@ -1009,6 +1023,7 @@ int main(int argc, char *argv[])
       y += small_face.height();
     });
 
+    // Wait for Ui painting to finish
     auto ui_cmd_buf_guard = mutex_repaint_ui.acquireScoped();
 
     ui_cmd_buffer.execute();
@@ -1019,10 +1034,6 @@ int main(int argc, char *argv[])
 
     composite_program.use()
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
-
-   /* fb.copy(fb_resolve, ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-      gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
-*/
 
     fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
