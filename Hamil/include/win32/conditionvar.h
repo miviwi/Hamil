@@ -15,6 +15,15 @@ public:
   ~ConditionVariable();
 
   bool sleep(Mutex& mutex, ulong timeout = WaitInfinite);
+  
+  template <typename Pred>
+  bool sleep(Mutex& mutex, Pred pred, ulong timeout = WaitInfinite)
+  {
+    bool result;
+    while(!pred()) result = sleep(mutex, timeout);
+
+    return result;
+  }
 
   void wake();
   void wakeAll();

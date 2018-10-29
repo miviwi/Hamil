@@ -660,7 +660,7 @@ int main(int argc, char *argv[])
       auto ui_mutex_guard = mutex_repaint_ui.acquireScoped();
 
       // Wait until the main thread has processed all the input
-      while(ui_painted) cv_repaint_ui.sleep(mutex_repaint_ui);
+      cv_repaint_ui.sleep(mutex_repaint_ui, [&]() { return !ui_painted; });
 
       ui_cmd_buffer = iface.paint();
       ui_painted = true;

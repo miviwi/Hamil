@@ -139,7 +139,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_capture(nullptr),
   m_keyboard(nullptr),
   m_pool(pool),
-  m_mempool(4096),
+  m_mempool(512*1024),
   m_framebuffer_tex_id(gx::ResourcePool::Invalid),
   m_framebuffer_id(gx::ResourcePool::Invalid),
   m_program_id(gx::ResourcePool::Invalid),
