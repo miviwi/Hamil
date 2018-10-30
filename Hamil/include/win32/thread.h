@@ -57,6 +57,8 @@ public:
   // Returns an Id unique to this Thread
   Id id() const;
 
+  Thread& dbg_SetName(const char *name);
+
   // Returns the Id of the caller's (currently running) Thread
   static Id current_thread_id();
 

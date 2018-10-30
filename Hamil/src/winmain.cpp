@@ -672,6 +672,8 @@ int main(int argc, char *argv[])
     return 0;
   });
 
+  ui_paint_thread.dbg_SetName("UiPaint");
+
   win32::Mutex mutex_physics_step;
   win32::ConditionVariable cv_physics_step;
   win32::Mutex mutex_physics_step_done;
@@ -693,6 +695,8 @@ int main(int argc, char *argv[])
 
     return 0;
   });
+
+  physics_step_thread.dbg_SetName("Physics");
 
   while(window.processMessages()) {
     using hm::entities;
