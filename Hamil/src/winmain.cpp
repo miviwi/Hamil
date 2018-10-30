@@ -168,10 +168,8 @@ int main(int argc, char *argv[])
     printf("bunny loaded! (%zu indices)\n", bunny_inds.size());
 
     bunny_loaded = true;
-
-    while(1) {
-      Sleep(10000);
-    }
+    
+    bunny_load_context.release();
 
     return 0;
   });
@@ -635,7 +633,7 @@ int main(int argc, char *argv[])
 
   auto ui_paint_thread_context = window.acquireOGLContext();
 
-  auto ui_painted = true;
+  volatile bool ui_painted = true;
 
   win32::Mutex mutex_repaint_ui;
   win32::ConditionVariable cv_repaint_ui;
@@ -645,7 +643,7 @@ int main(int argc, char *argv[])
     ui_paint_thread_context.makeCurrent();
 
     // Proof-of-concept for generating gx::CommandBuffers
-    //   asynchronously - the idea is that although OpenGL
+    //   concurrently - the idea is that although OpenGL
     //   is single-threaded in nature, we can still upload
     //   all the buffers (which is one of the few things the 
     //   driver doesn't serialize accross threads) and record
@@ -1041,6 +1039,7 @@ int main(int argc, char *argv[])
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
+    glFinish();
 
     step_timer.reset();
   }

@@ -47,13 +47,13 @@ public:
   OGLContext acquireOGLContext();
 
 private:
-  static HGLRC ogl_create_context(HWND hWnd);
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam);
 
-  ATOM register_class(HINSTANCE hInstance);
-  HWND create_window(HINSTANCE hInstance, int width, int height);
+  ATOM registerClass(HINSTANCE hInstance);
+  HWND createWindow(HINSTANCE hInstance, int width, int height);
 
   HWND m_hwnd;
+  HGLRC m_hglrc;
   int m_width, m_height;
 
   Thread::Id m_thread;

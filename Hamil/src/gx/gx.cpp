@@ -5,7 +5,7 @@
 
 namespace gx {
 
-GLuint p_last_array = ~0u;
+thread_local GLuint p_last_array = ~0u;
 GLuint p_dummy_vao;
 
 std::unique_ptr<GxInfo> p_info;

@@ -7,9 +7,18 @@ namespace win32 {
 
 class Window;
 
+// Acquired through Window::acquireOGLContext()
 class OGLContext {
 public:
+  OGLContext(const OGLContext& other) = delete;
+
+  // Once called for the first time on a given Thread
+  //   all future calls to this method must be made on
+  //   that Thread
   void makeCurrent();
+
+  // Frees the OGLContext
+  void release();
 
 private:
   friend Window;

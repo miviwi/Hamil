@@ -17,10 +17,17 @@ namespace win32 {
 PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
 PFNWGLCREATECONTEXTATTRIBSARBPROC CreateContextAttribsARB;
 
+static HGLRC ogl_create_context(HWND hWnd);
+
 static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
                                         GLenum severity, GLsizei length, GLchar *msg, const void *user);
 
+#if !defined(NDEBUG)
 constexpr int ContextFlags = WGL_CONTEXT_DEBUG_BIT_ARB;
+#else
+constexpr int ContextFlags = 0;
+#endif
+
 constexpr int ContextProfile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
 static const int ContextAttribs[] = {
@@ -38,18 +45,23 @@ static void get_wgl_extension_addresses()
 }
 
 Window::Window(int width, int height) :
+  m_hwnd(nullptr),
+  m_hglrc(nullptr),
   m_width(width), m_height(height),
   m_thread(Thread::current_thread_id())
 {
   HINSTANCE hInstance = GetModuleHandle(nullptr);
 
-  register_class(hInstance);
-  m_hwnd = create_window(hInstance, width, height);
+  registerClass(hInstance);
+  m_hwnd = createWindow(hInstance, width, height);
 }
 
 Window::~Window()
 {
   if(deref()) return;
+
+  wglMakeCurrent(nullptr, nullptr);
+  wglDeleteContext(m_hglrc);
 
   DestroyWindow(m_hwnd);
 }
@@ -115,35 +127,39 @@ void Window::quit()
   PostMessage(m_hwnd, WM_CLOSE, 0, 0);
 }
 
-ATOM Window::register_class(HINSTANCE hInstance)
+static ATOM p_atom = INVALID_ATOM;
+ATOM Window::registerClass(HINSTANCE hInstance)
 {
-  WNDCLASSEX wndClass;
-  auto ptr = (unsigned char *)&wndClass;
+  // The class has already been registered
+  if(p_atom != INVALID_ATOM) return p_atom;
 
-  std::fill(ptr, ptr+sizeof(WNDCLASSEX), 0);
+  WNDCLASSEX wndClass;
+
+  ZeroMemory(&wndClass, sizeof(wndClass));
 
   wndClass.cbSize = sizeof(WNDCLASSEX);
   wndClass.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
   wndClass.lpfnWndProc = &Window::WindowProc;
   wndClass.cbWndExtra = sizeof(this);
   wndClass.hInstance = hInstance;
-  wndClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+  wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
   wndClass.lpszClassName = wnd_class_name();
 
   ATOM atom = RegisterClassEx(&wndClass);
   assert(atom && "failed to register window class!");
 
-  return atom;
+  // Store the class ATOM
+  return p_atom = atom;
 }
 
-HWND Window::create_window(HINSTANCE hInstance, int width, int height)
+HWND Window::createWindow(HINSTANCE hInstance, int width, int height)
 {
   RECT rc = { 0, 0, width, height };
   AdjustWindowRect(&rc, WS_CAPTION|WS_SYSMENU, false);
 
   HWND hwnd = CreateWindow(wnd_class_name(), wnd_name(), WS_CAPTION|WS_SYSMENU,
                       CW_USEDEFAULT, CW_USEDEFAULT, rc.right-rc.left, rc.bottom-rc.top,
-                      nullptr, nullptr, hInstance, 0);
+                      nullptr, nullptr, hInstance, this);
   assert(hwnd && "failed to create window!");
 
   ShowWindow(hwnd, SW_SHOW);
@@ -152,7 +168,7 @@ HWND Window::create_window(HINSTANCE hInstance, int width, int height)
   return hwnd;
 }
 
-HGLRC Window::ogl_create_context(HWND hWnd)
+HGLRC ogl_create_context(HWND hWnd)
 {
   PIXELFORMATDESCRIPTOR pfd = {
     sizeof(PIXELFORMATDESCRIPTOR),
@@ -213,7 +229,7 @@ OGLContext Window::acquireOGLContext()
     "Window::acquireOGLContext() called on the wrong thread!");
 
   HDC hdc = GetDC(m_hwnd);
-  HGLRC hglrc = CreateContextAttribsARB(hdc, wglGetCurrentContext(), ContextAttribs);
+  HGLRC hglrc = CreateContextAttribsARB(hdc, m_hglrc, ContextAttribs);
 
   return OGLContext(hdc, hglrc);
 }
@@ -223,9 +239,14 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
   auto self = (Window *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
   switch(uMsg) {
-  case WM_CREATE:
-    ogl_create_context(hWnd);
+  case WM_CREATE: {
+    // 'this' is specified as the 'lpParam' to CreateWindow()
+    auto create_struct = (LPCREATESTRUCT)lparam;
+    auto window = (Window *)create_struct->lpCreateParams;
+
+    window->m_hglrc = ogl_create_context(hWnd);
     return 0;
+  }
 
   case WM_PAINT: {
     PAINTSTRUCT ps;

@@ -21,7 +21,18 @@ void OGLContext::makeCurrent()
   }
 #endif
 
+  assert(m_hdc && m_hglrc && "Attempted to use a deleted OGLContext!");
+
   wglMakeCurrent((HDC)m_hdc, (HGLRC)m_hglrc);
+}
+
+void OGLContext::release()
+{
+  wglMakeCurrent(nullptr, nullptr);
+  wglDeleteContext((HGLRC)m_hglrc);
+
+  m_hdc = nullptr;
+  m_hglrc = nullptr;
 }
 
 OGLContext::OGLContext(void *hdc, void *hglrc) :

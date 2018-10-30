@@ -368,7 +368,7 @@ GLenum Sampler::param(Param p)
   return table[p];
 }
 
-unsigned p_active_texture = ~0u;
+thread_local unsigned p_active_texture = ~0u;
 
 void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler)
 {

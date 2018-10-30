@@ -12,7 +12,7 @@
 
 namespace gx {
 
-GLuint p_last_program = ~0u;
+thread_local GLuint p_last_program = ~0u;
 
 Program::Program(const Shader& vertex, const Shader& fragment)
 {
@@ -262,7 +262,7 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
   }
 }
 
-static char p_uniform_name[256];
+thread_local static char p_uniform_name[256];
 
 void Program::getUniformBlockOffsets()
 {
@@ -299,7 +299,7 @@ void Program::getUniformBlockOffsets()
   }
 }
 
-static const char *p_shader_source[256] = {
+thread_local static const char *p_shader_source[256] = {
   "#version 330 core\n\n"         // Concatenate the strings
   "layout(row_major) uniform;\n"
   "layout(std140) uniform;\n\n",
