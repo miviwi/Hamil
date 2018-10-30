@@ -9,7 +9,8 @@
 namespace gx {
 
 Buffer::Buffer(Usage usage, GLenum target) :
-  m_usage(usage), m_target(target)
+  m_usage(usage), m_target(target),
+  m_sz(-1)
 {
   glGenBuffers(1, &m);
 }
@@ -21,10 +22,18 @@ Buffer::~Buffer()
   glDeleteBuffers(1, &m);
 }
 
-BufferView Buffer::map(Access access)
+BufferView Buffer::map(Access access, uint flags)
 {
   use();
-  auto ptr = glMapBuffer(m_target, access);
+  void *ptr = nullptr;
+
+  if(flags == MapDefault && m_sz < 0) {
+    // 'flags' are ignored if the Buffer's size is unknown
+    ptr = glMapBuffer(m_target, access);
+  } else {
+    // Delegate to glMapBufferRange() to honor 'flags'
+    return map(access, 0, (GLint)m_sz, flags);
+  }
 
   return BufferView(*this, m_target, ptr);
 }
@@ -74,6 +83,8 @@ void Buffer::init(size_t elem_sz, size_t elem_count)
 
   use();
   glBufferData(m_target, sz, nullptr, m_usage);
+
+  m_sz = (ssize_t)sz;
 }
 
 void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
@@ -82,6 +93,8 @@ void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
 
   use();
   glBufferData(m_target, sz, data, m_usage);
+
+  m_sz = (ssize_t)sz;
 }
 
 void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count)
@@ -101,7 +114,8 @@ BufferView::~BufferView()
 {
   if(deref()) return;
 
-  unmap();
+  // Check if unmap() hasn't been called explicilty
+  if(m_ptr) unmap();
 }
 
 void *BufferView::get() const

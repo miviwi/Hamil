@@ -129,10 +129,8 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf, bunny_ibuf);
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  std::vector<vec3> bunny_verts;
-  std::vector<u16> bunny_inds;
-
   static volatile bool bunny_loaded = false;
+  size_t bunny_inds_count = 0;
 
   auto bunny_load_context = window.acquireOGLContext();
   auto thread = win32::Thread([&]() -> ulong {
@@ -149,26 +147,33 @@ int main(int argc, char *argv[])
     printf("bunny vertices: %zu\nbunny faces: %zu\n", bunny_mesh.vertices().size(),
       bunny_mesh.faces().size());
 
-    bunny_verts.reserve(bunny_mesh.vertices().size());
+    bunny_inds_count = bunny_mesh.faces().size() * 3;
+
+    bunny_vbuf.init(sizeof(vec3)*2, bunny_mesh.vertices().size());
+    bunny_ibuf.init(sizeof(u16)*3, bunny_mesh.faces().size());
+
+    auto bunny_vbuf_view = bunny_vbuf.map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+    auto bunny_ibuf_view = bunny_ibuf.map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+
+    auto bunny_verts = bunny_vbuf_view.get<vec3>();
     const auto& bunny_v = bunny_mesh.vertices();
     const auto& bunny_vn = bunny_mesh.normals();
     for(size_t i = 0; i < bunny_v.size(); i++) {
-      bunny_verts.push_back(bunny_v[i]);
-      bunny_verts.push_back(bunny_vn[i]);
+      *bunny_verts++ = bunny_v[i];
+      *bunny_verts++ = bunny_vn[i];
     }
 
-    bunny_inds.reserve(bunny_mesh.faces().size());
+    auto bunny_inds = bunny_ibuf_view.get<u16>();
     for(const auto& face : bunny_mesh.faces()) {
-      for(const auto& v : face) bunny_inds.push_back((u16)v.v);
+      for(const auto& v : face) *bunny_inds++ = (u16)v.v;
     }
 
-    bunny_vbuf.init(bunny_verts.data(), bunny_verts.size());
-    bunny_ibuf.init(bunny_inds.data(), bunny_inds.size());
+    bunny_vbuf_view.unmap();
+    bunny_ibuf_view.unmap();
 
-    printf("bunny loaded! (%zu indices)\n", bunny_inds.size());
+    printf("bunny loaded! (%zu indices)\n", bunny_inds_count);
 
     bunny_loaded = true;
-    
     bunny_load_context.release();
 
     return 0;
@@ -860,11 +865,11 @@ int main(int argc, char *argv[])
         .bindMemoryPool(&memory)
         .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
         .program(program_id)
-        .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds.size())
+        .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds_count)
         .end();
 
       command_buf.execute();
-      num_tris += bunny_inds.size() / 3;
+      num_tris += bunny_inds_count / 3;
     }
 
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
@@ -1039,7 +1044,6 @@ int main(int argc, char *argv[])
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
-    glFinish();
 
     step_timer.reset();
   }

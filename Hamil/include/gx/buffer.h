@@ -68,7 +68,7 @@ public:
   void init(const void *data, size_t elem_sz, size_t elem_count);
   void upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count);
 
-  BufferView map(Access access);
+  BufferView map(Access access, uint flags = MapDefault);
   BufferView map(Access access, GLintptr off, GLint sz, uint flags = MapDefault);
 
   void label(const char *lbl);
@@ -79,6 +79,7 @@ protected:
   Usage m_usage;
   GLuint m;
   GLenum m_target;
+  ssize_t m_sz;
 };
 
 class BufferView : public Ref {

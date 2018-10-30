@@ -190,9 +190,6 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_buf.label("bvUi");
   m_ind.label("biUi");
 
-  m_buf.init(sizeof(Vertex), VertexPainter::BufferSize);
-  m_ind.init(sizeof(u16), VertexPainter::BufferSize);
-
   m_vtx_id = m_pool.create<gx::IndexedVertexArray>("iaUi",
     VertexPainter::Fmt, m_buf, m_ind);
 }
@@ -316,16 +313,19 @@ gx::CommandBuffer Ui::paint()
     // Same as above - clean up after previous paint()
     m_painter.end();
 
-    auto verts_size = sizeof(Vertex)*VertexPainter::BufferSize;
-    auto inds_size = sizeof(u16)*VertexPainter::BufferSize;
+    m_buf.init(sizeof(Vertex), VertexPainter::BufferSize);
+    m_ind.init(sizeof(u16), VertexPainter::BufferSize);
 
-    // The Ui is only drawn once per frame and paint() is called only
-    //   when the previous frame was presented, which means these buffers
-    //   should NEVER be in use before we map them
+    // We've just orphaned the old storage which means,
+    //   even if there are in-flight commands which operate
+    //   on the buffers we can disregard that as the driver
+    //   will take care of synchronization/storage lifetime
+    // (Turns out - waiting for vsync with swapBuffers() does
+    //   not guarantee the previous commands have executed)
     auto map_flags = gx::Buffer::MapUnsynchronized | gx::Buffer::MapInvalidate;
 
-    auto verts = m_buf.map(gx::Buffer::Write, 0, verts_size, map_flags);
-    auto inds = m_ind.map(gx::Buffer::Write, 0, inds_size, map_flags);
+    auto verts = m_buf.map(gx::Buffer::Write, map_flags);
+    auto inds = m_ind.map(gx::Buffer::Write, map_flags);
 
     m_painter.begin(
       verts.get<Vertex>(), VertexPainter::BufferSize,
