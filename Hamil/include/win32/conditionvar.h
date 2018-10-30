@@ -19,7 +19,7 @@ public:
   template <typename Pred>
   bool sleep(Mutex& mutex, Pred pred, ulong timeout = WaitInfinite)
   {
-    bool result;
+    bool result = false;
     while(!pred()) result = sleep(mutex, timeout);
 
     return result;

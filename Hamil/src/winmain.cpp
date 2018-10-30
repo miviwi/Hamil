@@ -672,6 +672,28 @@ int main(int argc, char *argv[])
     return 0;
   });
 
+  win32::Mutex mutex_physics_step;
+  win32::ConditionVariable cv_physics_step;
+  win32::Mutex mutex_physics_step_done;
+  win32::ConditionVariable cv_physics_step_done;
+
+  volatile bool step_done = true;
+  volatile float step_dt = 0.0f;
+
+  win32::Thread physics_step_thread([&]() -> ulong {
+    while(1) {
+      auto physics_step_guard = mutex_physics_step.acquireScoped();
+      cv_physics_step.sleep(mutex_physics_step, [&]() { return !step_done; });
+
+      world.step(step_dt);
+
+      step_done = true;
+      cv_physics_step_done.wake();
+    }
+
+    return 0;
+  });
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -795,6 +817,41 @@ int main(int argc, char *argv[])
       .matrix()
       ;
 
+    vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
+    vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
+
+    bt::RigidBody picked_body;
+    hm::Entity picked_entity = hm::Entity::Invalid;
+    bool draw_nudge_line = false;
+    vec3 hit_normal;
+    if(mouse_ray.w != 0.0f) {
+      auto hit = world.rayTestClosest(bt::Ray::from_direction(eye.xyz(), mouse_ray_direction));
+      if(hit) {
+        picked_body = hit.rigidBody();
+        picked_entity = hit.rigidBody().user<hm::Entity>();
+        hit_normal  = hit.normal();
+
+        if(picked_body.hasMotionState()) draw_nudge_line = true;
+      }
+    }
+
+    if(nudge_force > 0.0f && picked_body) {
+      auto center_of_mass = picked_body.centerOfMass();
+      float force_factor = 1.0f + pow(nudge_force, 3.0f)*10.0f;
+
+      picked_body
+        .activate()
+        .applyImpulse(-hit_normal*force_factor, center_of_mass);
+    }
+
+    // Kick off the physics simulation - DO NOT touch any physics-related
+    //   structures before cv_physics_step_done.sleep()
+    step_done = false;
+    step_dt = step_timer.elapsedSecondsf();
+    cv_physics_step.wake();
+
+    step_timer.reset();
+
     vec4 color;
 
     size_t num_tris = 0;
@@ -872,20 +929,7 @@ int main(int argc, char *argv[])
       num_tris += bunny_inds_count / 3;
     }
 
-    vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
-    vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
-
-    bt::RigidBody picked_body;
-    vec3 hit_normal;
-    if(mouse_ray.w != 0.0f) {
-      auto hit = world.rayTestClosest(bt::Ray::from_direction(eye.xyz(), mouse_ray_direction));
-      if(hit) {
-        picked_body = hit.rigidBody();
-        hit_normal  = hit.normal();
-      }
-    }
-
-    if(picked_body && picked_body.hasMotionState()) {
+    if(draw_nudge_line) {
       float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3.0f);
 
       auto q = quat::rotation_between(vec3::up(), hit_normal);
@@ -912,37 +956,22 @@ int main(int argc, char *argv[])
       line_arr.end();
     }
 
-    if(nudge_force > 0.0f && picked_body) {
-      auto center_of_mass = picked_body.centerOfMass();
-      float force_factor = 1.0f + pow(nudge_force, 3.0f)*10.0f;
-
-      picked_body
-        .activate()
-        .applyImpulse(-hit_normal*force_factor, center_of_mass);
-    }
-
-    world.step(step_timer.elapsedSecondsf());
-
-    // Update Transforms
-    components().foreach([&](hmRef<hm::RigidBody> rb) {
-      auto entity = rb().entity();
-      auto transform = entity.component<hm::Transform>();
-
-      transform() = rb().rb.worldTransform();
-    });
+    std::vector<hm::Entity> dead_entities;
 
     // Draw the Entities
-    components().foreach([&](hmRef<hm::RigidBody> component) {
-      bt::RigidBody rb = component().rb;
+    components().foreach([&](hmRef<hm::Transform> component) {
+      auto entity = component().entity();
+      if(!entity.hasComponent<hm::RigidBody>()) return;
 
-      if(rb.origin().distance2(vec3::zero()) > 10e3*10e3) {
-        world.removeRigidBody(rb);
-        component().entity().destroy();
+      auto origin = component().t.translation();
+
+      if(origin.distance2(vec3::zero()) > 10e3*10e3) {
+        dead_entities.push_back(entity);
         return;
       }
 
-      color = { rb == picked_body ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
-      model = component().entity().component<hm::Transform>().get().matrix();
+      color = { entity == picked_entity ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
+      model = component().t.matrix();
 
       drawsphere();
     });
@@ -991,7 +1020,7 @@ int main(int argc, char *argv[])
       small_face.draw(util::fmt("Light %d", i+1), screen, { 1.0f, 1.0f, 1.0f });
     }
 
-    float fps = 1.0f / step_timer.elapsedSecondsf();
+    float fps = 1.0f / step_dt;
 
     constexpr float smoothing = 0.9f;
     old_fps = fps;
@@ -1003,28 +1032,46 @@ int main(int argc, char *argv[])
     small_face.draw(util::fmt("Triangles: %zu", num_tris),
       { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
-    if(picked_body) {
-      auto entity = picked_body.user<hm::Entity>();
-      if(entity && entity.alive() && entity.gameObject().parent() == scene) {
+    if(picked_entity && picked_entity.alive()) {
+      if(picked_entity.gameObject().parent() == scene) {
+        auto transform = picked_entity.component<hm::Transform>();
+
         small_face.draw(util::fmt("picked(0x%.8x) at: %s",
-          entity.id(), math::to_str(picked_body.origin())),
+          picked_entity.id(), math::to_str(transform.get().t.translation())),
           { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
       }
     }
 
     float y = 150.0f;
     scene.gameObject().foreachChild([&](hm::Entity entity) {
-      if(!entity.component<hm::RigidBody>()) return;
+      if(!entity.hasComponent<hm::RigidBody>()) return;
 
       if(y > 1000.0f) return; // Cull invisible text
 
-      bt::RigidBody rb = entity.component<hm::RigidBody>().get().rb;
+      auto transform = entity.component<hm::Transform>();
 
       small_face.draw(util::fmt("%s(0x%.8x) at: %s",
-        entity.gameObject().name(), entity.id(), math::to_str(rb.origin())),
+        entity.gameObject().name(), entity.id(), math::to_str(transform().t.translation())),
         { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
       y += small_face.height();
     });
+
+    auto physics_step_done_guard = mutex_physics_step_done.acquireScoped();
+    cv_physics_step_done.sleep(mutex_physics_step_done, [&]() { return step_done; });
+
+    // Update Transforms
+    components().foreach([&](hmRef<hm::RigidBody> rb) {
+      auto entity = rb().entity();
+      auto transform = entity.component<hm::Transform>();
+
+      transform() = rb().rb.worldTransform();
+    });
+
+    // Kill off dead_entites
+    for(auto& e : dead_entities) {
+      world.removeRigidBody(e.component<hm::RigidBody>().get().rb);
+      e.destroy();
+    }
 
     // Wait for Ui painting to finish
     auto ui_cmd_buf_guard = mutex_repaint_ui.acquireScoped();
@@ -1044,8 +1091,6 @@ int main(int argc, char *argv[])
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
-
-    step_timer.reset();
   }
 
   pool.purge();

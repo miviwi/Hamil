@@ -24,6 +24,9 @@ public:
   // Returns 'true' when id != Invalid
   operator bool() const;
 
+  bool operator==(const Entity& other) const;
+  bool operator!=(const Entity& other) const;
+
   // Returns 'false' when the entity was destroyed
   bool alive() const;
 

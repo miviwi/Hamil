@@ -19,6 +19,16 @@ Entity::operator bool() const
   return id() != Invalid;
 }
 
+bool Entity::operator==(const Entity& other) const
+{
+  return m_id == other.m_id;
+}
+
+bool Entity::operator!=(const Entity& other) const
+{
+  return !(*this == other);
+}
+
 bool Entity::alive() const
 {
   return entities().alive(id());
