@@ -32,6 +32,8 @@ public:
   //   remove it from it's queue
   void waitJob(JobId id);
 
+  void killWorkers();
+
 private:
   // Used as the Fn for worker win32::Thread()
   ulong doWork();

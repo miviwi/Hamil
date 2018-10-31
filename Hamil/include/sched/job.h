@@ -14,6 +14,9 @@ namespace sched {
 
 class IJob {
 public:
+  IJob() = default;
+  IJob(const IJob& other) = delete;
+
   virtual void perform() = 0;
 
   win32::ConditionVariable& condition();

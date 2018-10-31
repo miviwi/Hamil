@@ -35,6 +35,8 @@ protected:
   {
     jobs.reserve(JobsPoolSize);
     job_queue.reserve(JobsQueueSize);
+
+    done.store(false);
   }
 
 private:
@@ -95,6 +97,15 @@ void WorkerPool::waitJob(JobId id)
   m_data->jobs_alloc.dealloc(id, 1);
 }
 
+void WorkerPool::killWorkers()
+{
+  m_data->done.store(true);
+  m_data->cv.wakeAll();
+
+  // Wait for all workers to be done
+  m_data->mutex.acquireScoped();
+}
+
 ulong WorkerPool::doWork()
 {
   auto& mutex = m_data->mutex;
@@ -106,6 +117,12 @@ ulong WorkerPool::doWork()
   while(!done.load()) {
     mutex.acquire();
     cv.sleep(mutex, [&]() { return !queue.empty(); });
+
+    if(done.load()) {
+      // Don't perform() any more Jobs if killWorkers() was called
+      mutex.release();
+      return 0;
+    }
 
     // Grab a Job
     auto job_id = queue.back();
