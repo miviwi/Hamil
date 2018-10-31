@@ -23,12 +23,13 @@ enum : int {
   CpuIdAVXBit   = 28,
   CpuIdFMABit   = 12,
 
-  CpuIdF16CBit  = 29,
+  CpuIdPOPCNTBit = 23,
+  CpuIdF16CBit   = 29,
 };
 
-CpuInfo cpuid()
+CpuId cpuid()
 {
-  CpuInfo cpu;
+  CpuId cpu;
 
   union {
     int cpuid[4];
@@ -59,13 +60,14 @@ CpuInfo cpuid()
   cpu.avx   = (ecx >> CpuIdAVXBit)   & 1;
   cpu.fma   = (ecx >> CpuIdFMABit)   & 1;
 
-  cpu.f16c  = (ecx >> CpuIdF16CBit) & 1;
+  cpu.popcnt = (ecx >> CpuIdPOPCNTBit) & 1;
+  cpu.f16c   = (ecx >> CpuIdF16CBit)   & 1;
 
   return cpu;
 }
 
 static char p_buf[256];
-int cpuid_to_str(const CpuInfo& cpu, char *buf, size_t buf_sz)
+int cpuid_to_str(const CpuId& cpu, char *buf, size_t buf_sz)
 {
   auto yesno = [](int b) {
     return b ? "yes" : "no";

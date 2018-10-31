@@ -10,6 +10,7 @@
 #include <win32/win32.h>
 #include <win32/panic.h>
 #include <win32/cpuid.h>
+#include <win32/cpuinfo.h>
 #include <win32/window.h>
 #include <win32/time.h>
 #include <win32/file.h>
@@ -19,6 +20,10 @@
 #include <win32/mutex.h>
 #include <win32/event.h>
 #include <win32/conditionvar.h>
+
+#include <sched/scheduler.h>
+#include <sched/pool.h>
+#include <sched/job.h>
 
 #include <uniforms.h>
 #include <gx/gx.h>
@@ -88,6 +93,7 @@
 #include <vector>
 #include <array>
 #include <utility>
+#include <atomic>
 
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
@@ -112,8 +118,13 @@ int main(int argc, char *argv[])
   res::init();
   hm::init();
 
+  printf("numPhysicalProcessors(): %2u\n", win32::cpuinfo().numPhysicalProcessors());
+  printf("numLogicalProcessors():  %2u\n", win32::cpuinfo().numLogicalProcessors());
+
   gx::ResourcePool pool(64);
   gx::MemoryPool memory(1024);
+
+  sched::WorkerPool worker_pool;
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
@@ -129,11 +140,11 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf, bunny_ibuf);
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  static volatile bool bunny_loaded = false;
+  std::atomic<bool> bunny_loaded = false;
   size_t bunny_inds_count = 0;
 
   auto bunny_load_context = window.acquireOGLContext();
-  auto thread = win32::Thread([&]() -> ulong {
+  auto bunny_load_job = sched::create_job<sched::Unit>([&]() -> sched::Unit {
     bunny_load_context.makeCurrent();
 
     win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
@@ -173,11 +184,12 @@ int main(int argc, char *argv[])
 
     printf("bunny loaded! (%zu indices)\n", bunny_inds_count);
 
-    bunny_loaded = true;
+    bunny_loaded.store(true);
     bunny_load_context.release();
 
-    return 0;
+    return {};
   });
+  auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.params());
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -638,7 +650,7 @@ int main(int argc, char *argv[])
 
   auto ui_paint_thread_context = window.acquireOGLContext();
 
-  volatile bool ui_painted = true;
+  std::atomic<bool> ui_painted = true;
 
   win32::Mutex mutex_repaint_ui;
   win32::ConditionVariable cv_repaint_ui;
@@ -663,10 +675,10 @@ int main(int argc, char *argv[])
       auto ui_mutex_guard = mutex_repaint_ui.acquireScoped();
 
       // Wait until the main thread has processed all the input
-      cv_repaint_ui.sleep(mutex_repaint_ui, [&]() { return !ui_painted; });
+      cv_repaint_ui.sleep(mutex_repaint_ui, [&]() { return !ui_painted.load(); });
 
       ui_cmd_buffer = iface.paint();
-      ui_painted = true;
+      ui_painted.store(true);
     }
 
     return 0;
@@ -674,29 +686,13 @@ int main(int argc, char *argv[])
 
   ui_paint_thread.dbg_SetName("UiPaint");
 
-  win32::Mutex mutex_physics_step;
-  win32::ConditionVariable cv_physics_step;
-  win32::Mutex mutex_physics_step_done;
-  win32::ConditionVariable cv_physics_step_done;
+  auto physics_step_job = sched::create_job<sched::Unit>([&](float step_dt) -> sched::Unit {
+    world.step(step_dt);
 
-  volatile bool step_done = true;
-  volatile float step_dt = 0.0f;
+    return {};
+  }, 0.0f);
 
-  win32::Thread physics_step_thread([&]() -> ulong {
-    while(1) {
-      auto physics_step_guard = mutex_physics_step.acquireScoped();
-      cv_physics_step.sleep(mutex_physics_step, [&]() { return !step_done; });
-
-      world.step(step_dt);
-
-      step_done = true;
-      cv_physics_step_done.wake();
-    }
-
-    return 0;
-  });
-
-  physics_step_thread.dbg_SetName("Physics");
+  //physics_step_thread.dbg_SetName("Physics");
 
   while(window.processMessages()) {
     using hm::entities;
@@ -806,7 +802,7 @@ int main(int argc, char *argv[])
     }
 
     // All the input has been processed - wake up the Ui paint thread
-    ui_painted = false;
+    ui_painted.store(false);
     cv_repaint_ui.wake();
 
     mat4 model = xform::identity();
@@ -849,10 +845,11 @@ int main(int argc, char *argv[])
     }
 
     // Kick off the physics simulation - DO NOT touch any physics-related
-    //   structures before cv_physics_step_done.sleep()
-    step_done = false;
-    step_dt = step_timer.elapsedSecondsf();
-    cv_physics_step.wake();
+    //   structures before waiting for completion
+    float step_dt = step_timer.elapsedSecondsf();
+    auto physics_step_job_id = worker_pool.scheduleJob(
+      physics_step_job.params(step_dt)
+    );
 
     step_timer.reset();
 
@@ -921,6 +918,8 @@ int main(int argc, char *argv[])
     block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
     if(bunny_loaded) {
+      worker_pool.waitJob(bunny_load_job_id);
+
       auto command_buf = gx::CommandBuffer::begin()
         .bindResourcePool(&pool)
         .bindMemoryPool(&memory)
@@ -1024,18 +1023,6 @@ int main(int argc, char *argv[])
       small_face.draw(util::fmt("Light %d", i+1), screen, { 1.0f, 1.0f, 1.0f });
     }
 
-    float fps = 1.0f / step_dt;
-
-    constexpr float smoothing = 0.9f;
-    old_fps = fps;
-    fps = old_fps*smoothing + fps*(1.0f-smoothing);
-
-    face.draw(util::fmt("FPS: %.2f", fps),
-      vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
-
-    small_face.draw(util::fmt("Triangles: %zu", num_tris),
-      { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
-
     if(picked_entity && picked_entity.alive()) {
       if(picked_entity.gameObject().parent() == scene) {
         auto transform = picked_entity.component<hm::Transform>();
@@ -1060,8 +1047,21 @@ int main(int argc, char *argv[])
       y += small_face.height();
     });
 
-    auto physics_step_done_guard = mutex_physics_step_done.acquireScoped();
-    cv_physics_step_done.sleep(mutex_physics_step_done, [&]() { return step_done; });
+    worker_pool.waitJob(physics_step_job_id);
+
+    float fps = 1.0f / step_dt;
+
+    constexpr float smoothing = 0.9f;
+    old_fps = fps;
+    fps = old_fps*smoothing + fps*(1.0f-smoothing);
+
+    face.draw(util::fmt("FPS: %.2f", fps),
+      vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
+
+    small_face.draw(util::fmt("Triangles: %zu\n"
+      "Physics update: %.3lfms",
+      num_tris, physics_step_job.dbg_ElapsedTime()*1000.0f),
+      { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
     // Update Transforms
     components().foreach([&](hmRef<hm::RigidBody> rb) {
@@ -1095,6 +1095,7 @@ int main(int argc, char *argv[])
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
+    glFinish();
   }
 
   pool.purge();
