@@ -109,6 +109,14 @@ public:
     m_sz = end_ptr - data();
   }
 
+  void clear()
+  {
+    // Call destructors
+    for(auto it = begin(); it != end(); it++) it->~T();
+
+    m_sz = 0;
+  }
+
   // Shrinks the heap-storage to 'm_sz', when inline
   //   storage is used - does nothing
   void compact()

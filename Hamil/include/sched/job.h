@@ -14,8 +14,8 @@ namespace sched {
 
 class IJob {
 public:
-  IJob() = default;
-  IJob(const IJob& other) = delete;
+  IJob();
+  IJob(IJob&& other);
 
   virtual void perform() = 0;
 
@@ -58,7 +58,7 @@ public:
     finished();
   }
 
-  IJob *params(Args... args)
+  IJob *withParams(Args... args)
   {
     m_params = std::make_tuple(std::forward<Args>(args)...);
 

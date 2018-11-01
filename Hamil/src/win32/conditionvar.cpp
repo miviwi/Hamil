@@ -7,8 +7,22 @@ ConditionVariable::ConditionVariable()
   InitializeConditionVariable(&m_cv);
 }
 
+ConditionVariable::ConditionVariable(ConditionVariable&& other) :
+  m_cv(other.m_cv)
+{
+  other.m_cv = CONDITION_VARIABLE_INIT;
+}
+
 ConditionVariable::~ConditionVariable()
 {
+}
+
+ConditionVariable& ConditionVariable::operator=(ConditionVariable&& other)
+{
+  m_cv = other.m_cv;
+  other.m_cv = CONDITION_VARIABLE_INIT;
+
+  return *this;
 }
 
 bool ConditionVariable::sleep(Mutex& mutex, ulong timeout)

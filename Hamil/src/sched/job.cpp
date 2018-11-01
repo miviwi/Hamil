@@ -1,6 +1,19 @@
 #include <sched/job.h>
 
+#include <utility>
+
 namespace sched {
+
+IJob::IJob() :
+  m_done(true)
+{
+}
+
+IJob::IJob(IJob&& other) :
+  m_done(other.m_done.load()), m_cv(std::move(other.m_cv))
+{
+  other.m_done.store(true);
+}
 
 win32::ConditionVariable& IJob::condition()
 {
@@ -29,6 +42,8 @@ void IJob::started()
   m_timer.reset();
   m_dt = 0.0;
 #endif
+
+  m_done.store(false);
 }
 
 void IJob::finished()

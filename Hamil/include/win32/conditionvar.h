@@ -12,7 +12,10 @@ class ConditionVariable {
 public:
   ConditionVariable();
   ConditionVariable(const ConditionVariable& other) = delete;
+  ConditionVariable(ConditionVariable&& other);
   ~ConditionVariable();
+
+  ConditionVariable& operator=(ConditionVariable&& other);
 
   bool sleep(Mutex& mutex, ulong timeout = WaitInfinite);
   

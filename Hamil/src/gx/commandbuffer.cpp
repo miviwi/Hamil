@@ -140,6 +140,8 @@ CommandBuffer& CommandBuffer::activeRenderPass(ResourceId renderpass)
 
 CommandBuffer& CommandBuffer::execute()
 {
+  if(m_commands.empty()) return *this;
+
   assert(m_commands.back() >> OpShift == OpEnd
     && "Attempted to execute() a CommandBuffer without a previous call to end() on it!\n"
     "(Or commands were added after the end() call)");

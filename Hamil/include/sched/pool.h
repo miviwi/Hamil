@@ -3,6 +3,8 @@
 #include <sched/scheduler.h>
 #include <sched/job.h>
 
+#include <util/smallvector.h>
+
 #include <vector>
 #include <memory>
 
@@ -12,13 +14,21 @@ class Thread;
 
 namespace sched {
 
+// PIMPL class
 class WorkerPoolData;
 
 class WorkerPool {
 public:
   using JobId = u32;
 
-  WorkerPool();
+  enum : JobId {
+    InvalidJob = ~0u,
+  };
+
+  // When not specified the number of workers defaults
+  //   to the number of available hardware threads
+  WorkerPool(int num_workers = -1);
+
   WorkerPool(const WorkerPool& other) = delete;
   ~WorkerPool();
 
@@ -32,7 +42,11 @@ public:
   //   remove it from it's queue
   void waitJob(JobId id);
 
-  void killWorkers();
+  // Start the worker Threads
+  WorkerPool& kickWorkers();
+
+  // Stop the worker Threads
+  WorkerPool& killWorkers();
 
 private:
   // Used as the Fn for worker win32::Thread()
@@ -41,7 +55,7 @@ private:
   WorkerPoolData *m_data;
 
   uint m_num_workers;
-  std::vector<win32::Thread *> m_workers;
+  util::SmallVector<win32::Thread *, 16*sizeof(win32::Thread *)> m_workers;
 };
 
 }

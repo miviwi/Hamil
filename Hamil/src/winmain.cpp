@@ -125,6 +125,7 @@ int main(int argc, char *argv[])
   gx::MemoryPool memory(1024);
 
   sched::WorkerPool worker_pool;
+  worker_pool.kickWorkers();
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
@@ -189,7 +190,7 @@ int main(int argc, char *argv[])
 
     return {};
   });
-  auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.params());
+  auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.withParams());
 
   auto world = bt::DynamicsWorld();
   world.initDbgSimulation();
@@ -848,7 +849,7 @@ int main(int argc, char *argv[])
     //   structures before waiting for completion
     float step_dt = step_timer.elapsedSecondsf();
     auto physics_step_job_id = worker_pool.scheduleJob(
-      physics_step_job.params(step_dt)
+      physics_step_job.withParams(step_dt)
     );
 
     step_timer.reset();
@@ -918,7 +919,10 @@ int main(int argc, char *argv[])
     block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
     if(bunny_loaded) {
-      worker_pool.waitJob(bunny_load_job_id);
+      if(bunny_load_job_id != sched::WorkerPool::InvalidJob) {
+        worker_pool.waitJob(bunny_load_job_id);
+        bunny_load_job_id = sched::WorkerPool::InvalidJob;
+      }
 
       auto command_buf = gx::CommandBuffer::begin()
         .bindResourcePool(&pool)

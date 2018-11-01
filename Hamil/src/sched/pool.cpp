@@ -19,14 +19,22 @@ public:
     JobsQueueSize = 64,
   };
 
+  // This mutex is shared by the workers waiting on the queue
+  //   and thread(s) waiting for jobs to complete in waitJob()
   win32::Mutex mutex;
+
+  // Workers sleep() on this while the 'job_queue' is empty
   win32::ConditionVariable cv;
 
   FreeListAllocator jobs_alloc;
-  std::vector<IJob *> jobs;
+  std::vector<IJob *> jobs;  // Job pool
 
+  // - Scheduler does push_back()
+  // - Workers do pop_back()
+  // TODO: Replace std::vector with a lock-free queue
   std::vector<WorkerPool::JobId> job_queue;
 
+  // Set to true when workers should terminate
   std::atomic<bool> done;
 
 protected:
@@ -43,25 +51,16 @@ private:
   friend WorkerPool;
 };
 
-WorkerPool::WorkerPool() :
+WorkerPool::WorkerPool(int num_workers) :
   m_data(new WorkerPoolData())
 {
-  m_num_workers = win32::cpuinfo().numLogicalProcessors();
-  for(size_t i = 0; i < m_num_workers; i++) {
-    auto fn = std::bind(&WorkerPool::doWork, this);
-    auto worker = new win32::Thread(fn);
-
-    m_workers.push_back(worker);
-
-    worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
-  }
+  // Default number of workers == number of hardware threads
+  m_num_workers = num_workers > 0 ? (uint)num_workers : win32::cpuinfo().numLogicalProcessors();
 }
 
 WorkerPool::~WorkerPool()
 {
-  for(auto& worker : m_workers) {
-    delete worker;
-  }
+  killWorkers();
 }
 
 WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
@@ -92,18 +91,48 @@ void WorkerPool::waitJob(JobId id)
   auto lock_guard = mutex.acquireScoped();
 
   auto job = m_data->jobs.at(id);
+  assert(job && "Attempted to waitJob() on an invalid Job!");
+
   job->condition().sleep(mutex, [&]() { return job->done(); });
 
+  // Remove the Job from the pool
   m_data->jobs_alloc.dealloc(id, 1);
+  m_data->jobs.at(id) = nullptr;
 }
 
-void WorkerPool::killWorkers()
+WorkerPool& WorkerPool::kickWorkers()
+{
+  // Make sure the workers don't terminate immediately
+  m_data->done.store(false);
+
+  for(size_t i = 0; i < m_num_workers; i++) {
+    auto fn = std::bind(&WorkerPool::doWork, this);
+    auto worker = new win32::Thread(fn);
+
+    m_workers.append(worker);
+
+    worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
+  }
+
+  return *this;
+}
+
+WorkerPool& WorkerPool::killWorkers()
 {
   m_data->done.store(true);
   m_data->cv.wakeAll();
 
-  // Wait for all workers to be done
-  m_data->mutex.acquireScoped();
+  for(auto& worker : m_workers) {
+    // Wait for each worker before we delete it
+    if(worker->exitCode() == win32::Thread::StillActive) {
+      worker->wait();
+    }
+
+    delete worker;
+  }
+  m_workers.clear();
+
+  return *this;
 }
 
 ulong WorkerPool::doWork()
@@ -114,12 +143,13 @@ ulong WorkerPool::doWork()
 
   auto& queue = m_data->job_queue;
 
-  while(!done.load()) {
+  while(!done.load()) { // done.load() == true indicates we should terminate
     mutex.acquire();
-    cv.sleep(mutex, [&]() { return !queue.empty(); });
 
-    if(done.load()) {
-      // Don't perform() any more Jobs if killWorkers() was called
+    // Sleep until there's something in the queue or killWorkers() was called
+    cv.sleep(mutex, [&]() { return !queue.empty() || done.load(); });
+
+    if(done.load()) { // Bail right away if killWorkers() was called
       mutex.release();
       return 0;
     }
@@ -127,11 +157,13 @@ ulong WorkerPool::doWork()
     // Grab a Job
     auto job_id = queue.back();
 
-    // And remove it from the queue
+    // ...and remove it from the queue
     queue.pop_back();
 
     auto job = m_data->jobs.at(job_id);
     mutex.release();
+
+    assert(job && "Attempted to perform() invalid Job!");
 
     job->perform();
   }
