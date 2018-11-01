@@ -49,13 +49,16 @@ public:
   WorkerPool& killWorkers();
 
 private:
+  // 16 inline threads ought to be enough to avoid heap allocation for most cases
+  using WorkerVector = util::SmallVector<win32::Thread *, 16*sizeof(win32::Thread *)>;
+
   // Used as the Fn for worker win32::Thread()
   ulong doWork();
 
   WorkerPoolData *m_data;
 
   uint m_num_workers;
-  util::SmallVector<win32::Thread *, 16*sizeof(win32::Thread *)> m_workers;
+  WorkerVector m_workers;
 };
 
 }

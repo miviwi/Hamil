@@ -7,6 +7,7 @@
 #include <win32/mutex.h>
 #include <win32/conditionvar.h>
 
+#include <cassert>
 #include <functional>
 #include <atomic>
 
@@ -65,28 +66,35 @@ WorkerPool::~WorkerPool()
 
 WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
 {
+  // Need to acquire the lock before modyfying the job pool
   auto lock_guard = m_data->mutex.acquireScoped();
 
   // Add the Job to the pool
   auto& jobs = m_data->jobs;
-  auto job_id = (JobId)m_data->jobs_alloc.alloc(1);
-  if(job_id == jobs.size()) {
+  auto id = (JobId)m_data->jobs_alloc.alloc(1);
+  if(id == jobs.size()) {
     jobs.push_back(job);
   } else {
-    jobs[job_id] = job;
+    assert(jobs.at(id) == nullptr && "Issued a JobId already in use!");
+
+    jobs[id] = job;
   }
 
   // Schedule the Job
-  m_data->job_queue.push_back(job_id);
+  m_data->job_queue.push_back(id);
 
   // Wake up a worker to perform it
   m_data->cv.wake();
 
-  return job_id;
+  return id;
 }
 
 void WorkerPool::waitJob(JobId id)
 {
+  assert(id != InvalidJob && "InvalidJob passed to waitJob()!");
+
+  // Need to acquire the lock because we'll be
+  //   removing the job from the pool
   auto& mutex = m_data->mutex;
   auto lock_guard = mutex.acquireScoped();
 
@@ -95,7 +103,8 @@ void WorkerPool::waitJob(JobId id)
 
   job->condition().sleep(mutex, [&]() { return job->done(); });
 
-  // Remove the Job from the pool
+  // Remove the Job from the pool and make sure it's 
+  //   never waited on again until it's rescheduled
   m_data->jobs_alloc.dealloc(id, 1);
   m_data->jobs.at(id) = nullptr;
 }
@@ -106,11 +115,13 @@ WorkerPool& WorkerPool::kickWorkers()
   m_data->done.store(false);
 
   for(size_t i = 0; i < m_num_workers; i++) {
+    // ulong (WorkerPool::*fn)() -> ulong (*fn)()
     auto fn = std::bind(&WorkerPool::doWork, this);
     auto worker = new win32::Thread(fn);
 
     m_workers.append(worker);
 
+    // Give each worker a nice name
     worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
   }
 
@@ -154,16 +165,13 @@ ulong WorkerPool::doWork()
       return 0;
     }
 
-    // Grab a Job
-    auto job_id = queue.back();
-
-    // ...and remove it from the queue
-    queue.pop_back();
+    auto job_id = queue.back(); // Grab a Job
+    queue.pop_back();           // ...and remove it from the queue
 
     auto job = m_data->jobs.at(job_id);
     mutex.release();
 
-    assert(job && "Attempted to perform() invalid Job!");
+    assert(job && "Attempted to perform() an invalid Job!");
 
     job->perform();
   }

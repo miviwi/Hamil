@@ -12,6 +12,8 @@ IJob::IJob() :
 IJob::IJob(IJob&& other) :
   m_done(other.m_done.load()), m_cv(std::move(other.m_cv))
 {
+  // Make sure no deadlocks or other strange things occur
+  //   when 'other' is used after this somehow
   other.m_done.store(true);
 }
 

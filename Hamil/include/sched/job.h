@@ -15,6 +15,7 @@ namespace sched {
 class IJob {
 public:
   IJob();
+  IJob(const IJob& other) = delete;
   IJob(IJob&& other);
 
   virtual void perform() = 0;
