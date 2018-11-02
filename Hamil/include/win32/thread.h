@@ -65,6 +65,7 @@ public:
   Thread& resume();
   Thread& suspend();
 
+  // See note for StillActive above
   ulong exitCode() const;
 
   // The code runs on the created Thread just BEFORE cleanup

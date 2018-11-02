@@ -10,9 +10,10 @@
 #include <win32/glcontext.h>
 
 #include <cassert>
+#include <algorithm>
+#include <atomic>
 #include <map>
 #include <functional>
-#include <atomic>
 
 namespace sched {
 
@@ -127,6 +128,22 @@ void WorkerPool::waitJob(JobId id)
   //   never waited on again until it's rescheduled
   m_data->jobs_alloc.dealloc(id, 1);
   m_data->jobs.at(id) = nullptr;
+}
+
+WorkerPool::JobId WorkerPool::jobId(IJob *job) const
+{
+  // Need to acquire the lock because we'll be
+  //   querying the Job pool
+  auto& mutex = m_data->mutex;
+  auto lock_guard = mutex.acquireScoped();
+
+  auto& jobs = m_data->jobs;
+  auto it = std::find(jobs.cbegin(), jobs.cend(), job);
+
+  if(it == jobs.cend()) return InvalidJob;
+
+  // The index of the Job in the pool == Id
+  return std::distance(jobs.cbegin(), it);
 }
 
 WorkerPool& WorkerPool::kickWorkers()

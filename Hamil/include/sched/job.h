@@ -6,6 +6,7 @@
 #include <win32/conditionvar.h>
 #include <win32/time.h>
 
+#include <cassert>
 #include <atomic>
 #include <memory>
 #include <tuple>
@@ -23,15 +24,24 @@ public:
   IJob(const IJob& other) = delete;
   IJob(IJob&& other);
 
-  win32::ConditionVariable& condition();
+  // Can be called at any time to check if the Job has
+  //   completed (after a call to WorkerPool::waitJob()
+  //   the return value is guaranteed to be == true)
   bool done();
 
+  // Returns the amount of time (in seconds) the Job took
+  //   - Always returns 'INFINITY' in non-Debug builds
   double dbg_ElapsedTime() const;
 
 protected:
+  // Signaled after a job completes (finished() is called)
+  win32::ConditionVariable& condition();
+
   void started();
   void finished();
 
+  // Called by WorkerPool::scheduleJob() after
+  //   a given job is added to the queue
   void scheduled();
 
   virtual void perform() = 0;
@@ -68,8 +78,11 @@ public:
     return this;
   }
 
+  // done() == true MUST be checked before calling this method
   Ret& result()
   {
+    assert(done() && "Attempted to get result() of an in-flight Job!");
+
     return *m_result;
   }
 
