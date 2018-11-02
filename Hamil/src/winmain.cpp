@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
 
   sched::WorkerPool worker_pool;
   worker_pool
-    .acquireWorkerOGLContexts(window)
+    .acquireWorkerGlContexts(window)
     .kickWorkers();
 
   auto bunny_fmt = gx::VertexFormat()
@@ -1037,6 +1037,7 @@ int main(int argc, char *argv[])
       "Physics update: %.3lfms",
       num_tris, physics_step_job.dbg_ElapsedTime()*1000.0f),
       { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+
 
     // Update Transforms
     components().foreach([&](hmRef<hm::RigidBody> rb) {

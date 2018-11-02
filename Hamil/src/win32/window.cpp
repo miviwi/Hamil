@@ -223,15 +223,15 @@ HGLRC ogl_create_context(HWND hWnd)
   return context;
 }
 
-OGLContext Window::acquireOGLContext()
+GlContext Window::acquireGlContext()
 {
   assert(Thread::current_thread_id() == m_thread &&
-    "Window::acquireOGLContext() called on the wrong thread!");
+    "Window::acquireGlContext() called on the wrong thread!");
 
   HDC hdc = GetDC(m_hwnd);
   HGLRC hglrc = CreateContextAttribsARB(hdc, m_hglrc, ContextAttribs);
 
-  return OGLContext(hdc, hglrc);
+  return GlContext(hdc, hglrc);
 }
 
 LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)

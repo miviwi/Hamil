@@ -44,7 +44,7 @@ public:
   void quit();
 
   // Must be called on the thread which created the Window!
-  OGLContext acquireOGLContext();
+  GlContext acquireGlContext();
 
 private:
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam);

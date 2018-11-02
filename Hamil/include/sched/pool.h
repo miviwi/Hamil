@@ -58,7 +58,7 @@ public:
   ~WorkerPool();
 
   // Must be called BEFORE kickWorkers()
-  WorkerPool& acquireWorkerOGLContexts(win32::Window& window);
+  WorkerPool& acquireWorkerGlContexts(win32::Window& window);
 
   // The caller is responsible for freeing the Job
   //   - Thanks to this Jobs can be stack-allocated
@@ -79,7 +79,7 @@ public:
   // O(n) complexity with respect to number of in-flight jobs
   JobId jobId(IJob *job) const;
 
-  // Start the worker Threads
+  // Create and start the worker Threads
   WorkerPool& kickWorkers();
 
   // Stop the worker Threads

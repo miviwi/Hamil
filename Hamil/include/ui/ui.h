@@ -29,7 +29,7 @@ class CommandBuffer;
 
 namespace ui {
 
-// must be called AFTER gx::init()!
+// Must be called AFTER gx::init()!
 void init();
 void finalize();
 
@@ -46,6 +46,7 @@ public:
 
   Ui& operator=(const Ui& other) = delete;
 
+  // Intended for internal use
   ivec4 scissorRect(Geometry g);
 
   // When not provided a 1:1 mapping from

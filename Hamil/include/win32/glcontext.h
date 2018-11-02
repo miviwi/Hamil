@@ -7,21 +7,21 @@ namespace win32 {
 
 class Window;
 
-// Acquired through Window::acquireOGLContext()
-class OGLContext {
+// Acquired through Window::acquireGlContext()
+class GlContext {
 public:
-  OGLContext();
-  OGLContext(const OGLContext& other) = delete;
-  OGLContext(OGLContext&& other);
+  GlContext();
+  GlContext(const GlContext& other) = delete;
+  GlContext(GlContext&& other);
 
-  OGLContext& operator=(OGLContext&& other);
+  GlContext& operator=(GlContext&& other);
 
   // Once called for the first time on a given Thread
   //   all future calls to this method must be made on
   //   that Thread
   void makeCurrent();
 
-  // Frees the OGLContext
+  // Frees the GlContext
   void release();
 
   // Returns 'true' if context was previously initialized
@@ -30,7 +30,7 @@ public:
 private:
   friend Window;
 
-  OGLContext(void *hdc, void *hglrc);
+  GlContext(void *hdc, void *hglrc);
 
   void * /* HDC */ m_hdc;
   void * /* HGLRC */ m_hglrc;

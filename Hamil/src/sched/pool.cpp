@@ -24,11 +24,11 @@ public:
     JobsQueueSize = 64,
   };
 
-  // The Window from which the OGLContexts will be acquired,
-  //   must be stored here because OGLContext::acquireContext()
+  // The Window from which the GlContexts will be acquired,
+  //   must be stored here because GlContext::acquireContext()
   //   is called after creating the workers (in kickWorkers())
   win32::Window *window;
-  std::map<win32::Thread::Id, win32::OGLContext> contexts;
+  std::map<win32::Thread::Id, win32::GlContext> contexts;
 
   // This mutex is shared by the workers waiting on the queue
   //   and thread(s) waiting for jobs to complete in waitJob()
@@ -74,7 +74,7 @@ WorkerPool::~WorkerPool()
   killWorkers();
 }
 
-WorkerPool& WorkerPool::acquireWorkerOGLContexts(win32::Window& window)
+WorkerPool& WorkerPool::acquireWorkerGlContexts(win32::Window& window)
 {
   m_data->window = &window;
 
@@ -162,12 +162,12 @@ WorkerPool& WorkerPool::kickWorkers()
     worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
   }
 
-  // Optionally acquire OGLContexts for all the workers
+  // Optionally acquire GlContexts for all the workers
   auto window = m_data->window;
   auto& contexts = m_data->contexts;
   if(window) {
     for(auto& worker : m_workers) {
-      contexts.emplace(worker->id(), window->acquireOGLContext());
+      contexts.emplace(worker->id(), window->acquireGlContext());
     }
   }
 
@@ -203,11 +203,11 @@ ulong WorkerPool::doWork()
 
   auto& queue = m_data->job_queue;
 
-  // If OGLContexts were acquired for the workers - grab one
+  // If GlContexts were acquired for the workers - grab one
   auto& contexts = m_data->contexts;
   auto context_it = contexts.find(win32::Thread::current_thread_id());
 
-  win32::OGLContext *context = nullptr;
+  win32::GlContext *context = nullptr;
   if(context_it != contexts.end()) {
     context = &context_it->second;
     context->makeCurrent();
