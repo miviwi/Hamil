@@ -64,14 +64,14 @@ public:
   using Params = std::tuple<Args...>;
   using Fn     = std::function<Ret(Args...)>;
 
-  Job(Fn fn, Params params) :
-    m_fn(fn), m_params(params),
+  Job(Fn&& fn, Params&& params) :
+    m_fn(std::move(fn)), m_params(std::move(params)),
     m_result(std::nullopt)
   { }
 
   // Intended to be used with ex. WorkerPool::scheduleJob()
   //    pool.scheduleJob(job.withParams("some parameter", true, 3.14f))
-  IJob *withParams(Args... args)
+  IJob *withParams(Args... args) &
   {
     m_params = std::make_tuple(std::forward<Args>(args)...);
 

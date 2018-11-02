@@ -92,9 +92,10 @@ WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
   if(id == jobs.size()) {
     jobs.push_back(job);
   } else {
+    assert(id != FreeListAllocator::Error && "Too many jobs in pool!");
     assert(jobs.at(id) == nullptr && "Issued a JobId already in use!");
 
-    jobs[id] = job;
+    jobs.at(id) = job;
   }
 
   // Schedule the Job
@@ -116,18 +117,19 @@ void WorkerPool::waitJob(JobId id)
   auto& mutex = m_data->mutex;
   auto lock_guard = mutex.acquireScoped();
 
-  auto job = m_data->jobs.at(id);
+  auto& jobs = m_data->jobs;
+  auto job = jobs.at(id);
   assert(job && "Attempted to waitJob() on an invalid Job!");
 
   // The Job was already waited on
-  if(job->done()) return;
+  if(jobs.at(id) == nullptr) return;
 
   job->condition().sleep(mutex, [&]() { return job->done(); });
 
   // Remove the Job from the pool and make sure it's 
   //   never waited on again until it's rescheduled
   m_data->jobs_alloc.dealloc(id, 1);
-  m_data->jobs.at(id) = nullptr;
+  jobs.at(id) = nullptr;
 }
 
 WorkerPool::JobId WorkerPool::jobId(IJob *job) const

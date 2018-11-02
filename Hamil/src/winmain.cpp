@@ -1039,7 +1039,6 @@ int main(int argc, char *argv[])
       num_tris, physics_step_job.dbg_ElapsedTime()*1000.0f),
       { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
-
     // Update Transforms
     components().foreach([&](hmRef<hm::RigidBody> rb) {
       auto entity = rb().entity();
