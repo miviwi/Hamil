@@ -110,9 +110,14 @@ template <typename Ret, typename... Args>
 struct CreateJobHelperImpl<Ret, std::tuple<Args...>> {
   using JobType = Job<Ret, Args...>;
 
+  static_assert(!std::is_same_v<Ret, void>, "Cannot use 'void' as Job return type (use 'Unit' instead)");
+
   template <typename Fn>
   static JobType create(Fn fn)
   {
+    static_assert((std::is_default_constructible_v<Args> && ...),
+      "create_job(Fn, ...Args) must be used when not all Job parameters are default constructible");
+
     return JobType(fn, std::make_tuple(Args()...));
   }
 
@@ -145,6 +150,7 @@ auto create_job(Fn fn, Args... args) ->
 }
 
 // Same as create_job(Fn, ...Args), except the Job's parameters are default-initialized
+//   - All the parameters must be default-constructible to use this overload
 template <typename Fn>
 auto create_job(Fn fn) ->
   typename detail::CreateJobHelper<Fn>::JobType
