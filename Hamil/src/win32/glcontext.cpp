@@ -25,7 +25,7 @@ GlContext::GlContext(GlContext&& other) :
   other.m_owner = win32::Thread::InvalidId;
 
   assert((m_owner == win32::Thread::InvalidId || Thread::current_thread_id() == m_owner) &&
-    "Attempted to move an GlContext onto a different thread!");
+    "Attempted to move a GlContext onto a different thread!");
 #endif
 
   other.m_hdc = other.m_hglrc = nullptr;

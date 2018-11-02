@@ -153,8 +153,9 @@ int main(int argc, char *argv[])
 
     bunny.unmap();
 
-    printf("bunny vertices: %zu\nbunny faces: %zu\n", bunny_mesh.vertices().size(),
-      bunny_mesh.faces().size());
+    printf("bunny vertices: %zu\n"
+      "bunny faces: %zu\n",
+      bunny_mesh.vertices().size(), bunny_mesh.faces().size());
 
     bunny_vbuf.init(sizeof(vec3)*2, bunny_mesh.vertices().size());
     bunny_ibuf.init(sizeof(u16)*3, bunny_mesh.faces().size());
@@ -663,7 +664,7 @@ int main(int argc, char *argv[])
     world.step(step_dt);
 
     return {};
-  }, 0.0f);
+  });
 
   while(window.processMessages()) {
     using hm::entities;

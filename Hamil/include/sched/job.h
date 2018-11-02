@@ -101,14 +101,57 @@ private:
   std::optional<Ret> m_result;
 };
 
+namespace detail {
+
+template <typename Ret, typename Arguments>
+struct CreateJobHelperImpl;
+
+template <typename Ret, typename... Args>
+struct CreateJobHelperImpl<Ret, std::tuple<Args...>> {
+  using JobType = Job<Ret, Args...>;
+
+  template <typename Fn>
+  static JobType create(Fn fn)
+  {
+    return JobType(fn, std::make_tuple(Args()...));
+  }
+
+  template <typename Fn>
+  static JobType create_with_args(Fn fn, Args... args)
+  {
+    return JobType(fn, std::make_tuple(std::forward<Args>(args)...));
+  }
+};
+
+template <typename Fn>
+struct CreateJobHelper : public CreateJobHelperImpl<
+  typename util::LambdaTraits<Fn>::RetType,
+  typename util::LambdaTraits<Fn>::Arguments> {
+
+};
+
+}
+
 // Infers the Jobs Result type from the passed Callable's return type
 //   - Return 'Unit' <util/unit.h> when a void return type is desired
+//   - ...args become the parameters for the Job
 template <typename Fn, typename... Args>
-Job<typename util::LambdaTraits<Fn>::RetType, Args...> create_job(Fn fn, Args... args)
+auto create_job(Fn fn, Args... args) ->
+  typename detail::CreateJobHelper<Fn>::JobType
 {
-  using FnTraits = util::LambdaTraits<Fn>;
+  using Helper = detail::CreateJobHelper<Fn>;
 
-  return Job<FnTraits::RetType, Args...>(fn, std::make_tuple(std::forward<Args>(args)...));
+  return Helper::create_with_args(fn, std::forward<Args>(args)...);
+}
+
+// Same as create_job(Fn, ...Args), except the Job's parameters are default-initialized
+template <typename Fn>
+auto create_job(Fn fn) ->
+  typename detail::CreateJobHelper<Fn>::JobType
+{
+  using Helper = detail::CreateJobHelper<Fn>;
+
+  return Helper::create(fn);
 }
 
 }
