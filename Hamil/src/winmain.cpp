@@ -1,5 +1,6 @@
 #include <util/format.h>
 #include <util/opts.h>
+#include <util/unit.h>
 
 #include <math/geometry.h>
 #include <math/xform.h>
@@ -125,7 +126,9 @@ int main(int argc, char *argv[])
   gx::MemoryPool memory(1024);
 
   sched::WorkerPool worker_pool;
-  worker_pool.kickWorkers();
+  worker_pool
+    .acquireWorkerOGLContexts(window)
+    .kickWorkers();
 
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
@@ -141,13 +144,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf, bunny_ibuf);
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  std::atomic<bool> bunny_loaded = false;
-  size_t bunny_inds_count = 0;
-
-  auto bunny_load_context = window.acquireOGLContext();
-  auto bunny_load_job = sched::create_job<sched::Unit>([&]() -> sched::Unit {
-    bunny_load_context.makeCurrent();
-
+  auto bunny_load_job = sched::create_job([&]() -> size_t {
     win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
     auto bunny = bunny_f.map(win32::File::ProtectRead);
 
@@ -158,8 +155,6 @@ int main(int argc, char *argv[])
 
     printf("bunny vertices: %zu\nbunny faces: %zu\n", bunny_mesh.vertices().size(),
       bunny_mesh.faces().size());
-
-    bunny_inds_count = bunny_mesh.faces().size() * 3;
 
     bunny_vbuf.init(sizeof(vec3)*2, bunny_mesh.vertices().size());
     bunny_ibuf.init(sizeof(u16)*3, bunny_mesh.faces().size());
@@ -176,6 +171,7 @@ int main(int argc, char *argv[])
     }
 
     auto bunny_inds = bunny_ibuf_view.get<u16>();
+    auto bunny_inds_count = bunny_mesh.faces().size() * 3;
     for(const auto& face : bunny_mesh.faces()) {
       for(const auto& v : face) *bunny_inds++ = (u16)v.v;
     }
@@ -185,10 +181,7 @@ int main(int argc, char *argv[])
 
     printf("bunny loaded! (%zu indices)\n", bunny_inds_count);
 
-    bunny_loaded.store(true);
-    bunny_load_context.release();
-
-    return {};
+    return bunny_inds_count;
   });
   auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.withParams());
 
@@ -649,16 +642,7 @@ int main(int argc, char *argv[])
   cmd_skybox.bindResourcePool(&pool);
   cmd_skybox.bindMemoryPool(&memory);
 
-  auto ui_paint_thread_context = window.acquireOGLContext();
-
-  std::atomic<bool> ui_painted = true;
-
-  win32::Mutex mutex_repaint_ui;
-  win32::ConditionVariable cv_repaint_ui;
-
-  auto ui_cmd_buffer = gx::CommandBuffer::begin(1);
-  win32::Thread ui_paint_thread([&]() -> ulong {
-    ui_paint_thread_context.makeCurrent();
+  auto ui_paint_job = sched::create_job([&]() -> gx::CommandBuffer {
 
     // Proof-of-concept for generating gx::CommandBuffers
     //   concurrently - the idea is that although OpenGL
@@ -672,28 +656,14 @@ int main(int argc, char *argv[])
     //   this slower than doing it all on a single thread)
     //   and delegate their execution to the main thread,
     //   which (in theory) results in increased performace
-    while(1) {
-      auto ui_mutex_guard = mutex_repaint_ui.acquireScoped();
-
-      // Wait until the main thread has processed all the input
-      cv_repaint_ui.sleep(mutex_repaint_ui, [&]() { return !ui_painted.load(); });
-
-      ui_cmd_buffer = iface.paint();
-      ui_painted.store(true);
-    }
-
-    return 0;
+    return iface.paint();
   });
 
-  ui_paint_thread.dbg_SetName("UiPaint");
-
-  auto physics_step_job = sched::create_job<sched::Unit>([&](float step_dt) -> sched::Unit {
+  auto physics_step_job = sched::create_job([&](float step_dt) -> Unit {
     world.step(step_dt);
 
     return {};
   }, 0.0f);
-
-  //physics_step_thread.dbg_SetName("Physics");
 
   while(window.processMessages()) {
     using hm::entities;
@@ -802,9 +772,8 @@ int main(int argc, char *argv[])
       }
     }
 
-    // All the input has been processed - wake up the Ui paint thread
-    ui_painted.store(false);
-    cv_repaint_ui.wake();
+    // All the input has been processed - schedule a Ui paint
+    auto ui_paint_job_id = worker_pool.scheduleJob(ui_paint_job.withParams());
 
     mat4 model = xform::identity();
 
@@ -918,22 +887,24 @@ int main(int argc, char *argv[])
     block_group.material->material = PhongColored;
     block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
-    if(bunny_loaded) {
+    if(bunny_load_job.done()) {
       if(bunny_load_job_id != sched::WorkerPool::InvalidJob) {
         worker_pool.waitJob(bunny_load_job_id);
         bunny_load_job_id = sched::WorkerPool::InvalidJob;
       }
+
+      auto num_inds = bunny_load_job.result();
 
       auto command_buf = gx::CommandBuffer::begin()
         .bindResourcePool(&pool)
         .bindMemoryPool(&memory)
         .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
         .program(program_id)
-        .drawIndexed(gx::Triangles, bunny_arr_id, bunny_inds_count)
+        .drawIndexed(gx::Triangles, bunny_arr_id, num_inds)
         .end();
 
       command_buf.execute();
-      num_tris += bunny_inds_count / 3;
+      num_tris += num_inds / 3;
     }
 
     if(draw_nudge_line) {
@@ -1082,9 +1053,9 @@ int main(int argc, char *argv[])
     }
 
     // Wait for Ui painting to finish
-    auto ui_cmd_buf_guard = mutex_repaint_ui.acquireScoped();
+    worker_pool.waitJob(ui_paint_job_id);
 
-    ui_cmd_buffer.execute();
+    ui_paint_job.result().execute();
     cursor.paint();
 
     // Resolve the main Framebuffer and composite the Ui on top of it

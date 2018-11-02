@@ -62,6 +62,9 @@ public:
   // Returns the Id of the caller's (currently running) Thread
   static Id current_thread_id();
 
+  Thread& resume();
+  Thread& suspend();
+
   ulong exitCode() const;
 
   // The code runs on the created Thread just BEFORE cleanup

@@ -36,6 +36,11 @@ double IJob::dbg_ElapsedTime() const
 #endif
 }
 
+void IJob::scheduled()
+{
+  m_done.store(false);
+}
+
 void IJob::started()
 {
 #if !defined(NDEBUG)
@@ -44,8 +49,6 @@ void IJob::started()
   m_timer.reset();
   m_dt = 0.0;
 #endif
-
-  m_done.store(false);
 }
 
 void IJob::finished()

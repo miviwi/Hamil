@@ -10,7 +10,11 @@ class Window;
 // Acquired through Window::acquireOGLContext()
 class OGLContext {
 public:
+  OGLContext();
   OGLContext(const OGLContext& other) = delete;
+  OGLContext(OGLContext&& other);
+
+  OGLContext& operator=(OGLContext&& other);
 
   // Once called for the first time on a given Thread
   //   all future calls to this method must be made on
@@ -19,6 +23,9 @@ public:
 
   // Frees the OGLContext
   void release();
+
+  // Returns 'true' if context was previously initialized
+  operator bool();
 
 private:
   friend Window;

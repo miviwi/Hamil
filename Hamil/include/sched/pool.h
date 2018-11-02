@@ -10,6 +10,8 @@
 
 namespace win32 {
 class Thread;
+
+class Window;
 }
 
 namespace sched {
@@ -32,12 +34,20 @@ public:
   WorkerPool(const WorkerPool& other) = delete;
   ~WorkerPool();
 
+  // Must be called BEFORE kickWorkers()
+  WorkerPool& acquireWorkerOGLContexts(win32::Window& window);
+
   // The caller is responsible for freeing the Job
   //   - Thanks to this Jobs can be stack-allocated
+  // A single Job instance can be scheduled multiple
+  //   times, then the calling code must make sure
+  //   one instance of a Job is NEVER scheduled 
+  //   concurrently (i.e. only one pointer to a given
+  //   Job can exist in the queue at any given time)
   JobId scheduleJob(IJob *job);
 
-  // After this call the result can be obtained from
-  //   the scheduled Job
+  // After this call the Job::result() can be obtained
+  //   from the scheduled Job
   // Each job MUST be waited on so the WorkerPool can
   //   remove it from it's queue
   void waitJob(JobId id);

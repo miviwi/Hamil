@@ -108,6 +108,20 @@ Thread::Id Thread::current_thread_id()
   return GetCurrentThreadId();
 }
 
+Thread& Thread::resume()
+{
+  ResumeThread(m);
+
+  return *this;
+}
+
+Thread& Thread::suspend()
+{
+  SuspendThread(m);
+
+  return *this;
+}
+
 ulong Thread::exitCode() const
 {
   DWORD exit_code = 0;

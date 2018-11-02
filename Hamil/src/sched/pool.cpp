@@ -6,8 +6,11 @@
 #include <win32/thread.h>
 #include <win32/mutex.h>
 #include <win32/conditionvar.h>
+#include <win32/window.h>
+#include <win32/glcontext.h>
 
 #include <cassert>
+#include <map>
 #include <functional>
 #include <atomic>
 
@@ -19,6 +22,12 @@ public:
     JobsPoolSize = 1024,
     JobsQueueSize = 64,
   };
+
+  // The Window from which the OGLContexts will be acquired,
+  //   must be stored here because OGLContext::acquireContext()
+  //   is called after creating the workers (in kickWorkers())
+  win32::Window *window;
+  std::map<win32::Thread::Id, win32::OGLContext> contexts;
 
   // This mutex is shared by the workers waiting on the queue
   //   and thread(s) waiting for jobs to complete in waitJob()
@@ -32,7 +41,7 @@ public:
 
   // - Scheduler does push_back()
   // - Workers do pop_back()
-  // TODO: Replace std::vector with a lock-free queue
+  // TODO: Replace std::vector with a lock-free queue (?)
   std::vector<WorkerPool::JobId> job_queue;
 
   // Set to true when workers should terminate
@@ -64,6 +73,13 @@ WorkerPool::~WorkerPool()
   killWorkers();
 }
 
+WorkerPool& WorkerPool::acquireWorkerOGLContexts(win32::Window& window)
+{
+  m_data->window = &window;
+
+  return *this;
+}
+
 WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
 {
   // Need to acquire the lock before modyfying the job pool
@@ -82,6 +98,7 @@ WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
 
   // Schedule the Job
   m_data->job_queue.push_back(id);
+  job->scheduled();
 
   // Wake up a worker to perform it
   m_data->cv.wake();
@@ -101,6 +118,9 @@ void WorkerPool::waitJob(JobId id)
   auto job = m_data->jobs.at(id);
   assert(job && "Attempted to waitJob() on an invalid Job!");
 
+  // The Job was already waited on
+  if(job->done()) return;
+
   job->condition().sleep(mutex, [&]() { return job->done(); });
 
   // Remove the Job from the pool and make sure it's 
@@ -117,13 +137,25 @@ WorkerPool& WorkerPool::kickWorkers()
   for(size_t i = 0; i < m_num_workers; i++) {
     // ulong (WorkerPool::*fn)() -> ulong (*fn)()
     auto fn = std::bind(&WorkerPool::doWork, this);
-    auto worker = new win32::Thread(fn);
+    auto worker = new win32::Thread(fn, /* suspended = */ true);
 
     m_workers.append(worker);
 
     // Give each worker a nice name
     worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
   }
+
+  // Optionally acquire OGLContexts for all the workers
+  auto window = m_data->window;
+  auto& contexts = m_data->contexts;
+  if(window) {
+    for(auto& worker : m_workers) {
+      contexts.emplace(worker->id(), window->acquireOGLContext());
+    }
+  }
+
+  // Kick off the workers
+  for(auto& worker : m_workers) worker->resume();
 
   return *this;
 }
@@ -154,27 +186,40 @@ ulong WorkerPool::doWork()
 
   auto& queue = m_data->job_queue;
 
+  // If OGLContexts were acquired for the workers - grab one
+  auto& contexts = m_data->contexts;
+  auto context_it = contexts.find(win32::Thread::current_thread_id());
+
+  win32::OGLContext *context = nullptr;
+  if(context_it != contexts.end()) {
+    context = &context_it->second;
+    context->makeCurrent();
+  }
+
   while(!done.load()) { // done.load() == true indicates we should terminate
-    mutex.acquire();
+    mutex.acquire();  // We need to lock to sleep and to access the Job pool/queue
 
     // Sleep until there's something in the queue or killWorkers() was called
     cv.sleep(mutex, [&]() { return !queue.empty() || done.load(); });
 
-    if(done.load()) { // Bail right away if killWorkers() was called
+    if(done.load()) {
       mutex.release();
-      return 0;
+      break; // Bail right away if killWorkers() was called
     }
 
     auto job_id = queue.back(); // Grab a Job
     queue.pop_back();           // ...and remove it from the queue
 
     auto job = m_data->jobs.at(job_id);
-    mutex.release();
+    mutex.release(); // We're done accessing the Job pool/queue
+                     //   so the lock can be safely released here
 
     assert(job && "Attempted to perform() an invalid Job!");
 
     job->perform();
   }
+
+  if(context) context->release();
 
   return 0;
 }
