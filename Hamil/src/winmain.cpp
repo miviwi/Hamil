@@ -570,11 +570,24 @@ int main(int argc, char *argv[])
   });
   fov_slider.value(70.0f);
 
+  auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
+    .frame(ui::create<ui::LabelFrame>(iface, "stats")
+            .caption("asdf\nxyz\nasdf")
+            .padding({ 100.0f, small_face.height() })
+            .gravity(ui::Frame::Center))
+    ;
+
+  auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
+
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Window")
       .content(layout)
       .position({ 30.0f, 500.0f }))
+    .frame(ui::create<ui::WindowFrame>(iface)
+      .title("Statistics")
+      .content(stats_layout)
+      .position({ 1000.0f, 100.0f }))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;
 
@@ -1005,11 +1018,11 @@ int main(int argc, char *argv[])
 
         small_face.draw(util::fmt("picked(0x%.8x) at: %s",
           picked_entity.id(), math::to_str(transform.get().t.translation())),
-          { 30.0f, 100.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
+          { 30.0f, 100.0f+small_face.height()*2.8f }, { 1.0f, 0.0f, 0.0f });
       }
     }
 
-    float y = 150.0f;
+    float y = 170.0f;
     scene.gameObject().foreachChild([&](hm::Entity entity) {
       if(!entity.hasComponent<hm::RigidBody>()) return;
 
@@ -1024,20 +1037,6 @@ int main(int argc, char *argv[])
     });
 
     worker_pool.waitJob(physics_step_job_id);
-
-    float fps = 1.0f / step_dt;
-
-    constexpr float smoothing = 0.9f;
-    old_fps = fps;
-    fps = old_fps*smoothing + fps*(1.0f-smoothing);
-
-    face.draw(util::fmt("FPS: %.2f", fps),
-      vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
-
-    small_face.draw(util::fmt("Triangles: %zu\n"
-      "Physics update: %.3lfms",
-      num_tris, physics_step_job.dbg_ElapsedTime()*1000.0f),
-      { 30.0f, 70.0f+small_face.height() }, { 1.0f, 1.0f, 1.0f });
 
     // Update Transforms
     components().foreach([&](hmRef<hm::RigidBody> rb) {
@@ -1055,6 +1054,23 @@ int main(int argc, char *argv[])
 
     // Wait for Ui painting to finish
     worker_pool.waitJob(ui_paint_job_id);
+
+    float fps = 1.0f / step_dt;
+
+    constexpr float smoothing = 0.9f;
+    old_fps = fps;
+    fps = old_fps*smoothing + fps*(1.0f-smoothing);
+
+    face.draw(util::fmt("FPS: %.2f", fps),
+      vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
+
+    stats.caption(util::fmt(
+      "Traingles: %zu\n"
+      "Physics update: %.3lfms\n"
+      "Ui painting: %.3lfms",
+      num_tris,
+      physics_step_job.dbg_ElapsedTime()*1000.0f,
+      ui_paint_job.dbg_ElapsedTime()*1000.0f));
 
     ui_paint_job.result().execute();
     cursor.paint();

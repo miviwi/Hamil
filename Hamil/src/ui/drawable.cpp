@@ -160,7 +160,7 @@ const Drawable& Drawable::appendVertices(Vertex **buf, size_t sz) const
   // Clamp 'num' to the buffer's size
   num = std::min(num, sz);
 
-  memcpy(*buf, verts, num * sizeof(*buf));
+  memcpy(*buf, verts, num * sizeof(Vertex));
   *buf += num;
 
   return *this;
@@ -176,7 +176,7 @@ const Drawable& Drawable::appendIndices(u16 **buf, size_t sz) const
   // Clamp 'num' to the buffer's size
   num = std::min(num, sz);
 
-  memcpy(*buf, inds, num * sizeof(*buf));
+  memcpy(*buf, inds, num * sizeof(u16));
   *buf += num;
 
   return *this;

@@ -41,6 +41,8 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
   Geometry g = geometry(),
     decor = decorationsGeometry();
 
+  uint decor_corners = VertexPainter::TopLeft|VertexPainter::TopRight;
+
   auto pipeline = gx::Pipeline()
     .alphaBlend()
     .scissor(ui().scissorRect(parent.clip(g)))
@@ -49,7 +51,7 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .roundedRect(decor, style.window.radius, VertexPainter::TopLeft|VertexPainter::TopRight, style.bg.color[2])
+    .roundedRect(decor, style.window.radius, decor_corners, style.bg.color[2])
     .roundedRect(g, style.window.radius, VertexPainter::All, black().opacity(0.4))
     .drawableCentered(m_title, decor);
 
@@ -64,7 +66,9 @@ Frame& WindowFrame::position(vec2 pos)
   const auto& window = style.window;
 
   Frame::position(pos);
-  if(m_content) m_content->position(pos + DecorationsSize + window.margin);
+  if(m_content) {
+    m_content->position(pos + DecorationsSize + window.margin);
+  }
 
   return *this;
 }

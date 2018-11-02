@@ -21,7 +21,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
   Geometry g = geometry();
   vec2 center = g.center();
 
-  center.y -= style.font->descender();
+  center *= 0.5f;
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
