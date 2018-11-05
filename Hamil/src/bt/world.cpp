@@ -58,6 +58,8 @@ DynamicsWorld::DynamicsWorld()
 {
   m_config = DynamicsWorldConfig::create_default();
   m_world  = m_config->discreteWorldFromConfig();
+
+  m_world->setGravity({ 0.0f, -10.0f, 0.0f });
 }
 
 DynamicsWorld::~DynamicsWorld()
@@ -118,37 +120,6 @@ RayClosestHit DynamicsWorld::rayTestClosest(Ray ray)
 void DynamicsWorld::step(float dt)
 {
   m_world->stepSimulation(dt, SimulationMaxSubsteps);
-}
-
-static CollisionShape p_sphere;
-
-void DynamicsWorld::initDbgSimulation()
-{
-  m_world->setGravity({ 0.0f, -10.0f, 0.0f });
-  {
-    auto ground_shape = shapes().box({ 50.0f, 0.5f, 50.0f, });
-    vec3 origin = { 0.0f, -1.5f, -6.0f };
-
-    auto body = RigidBody::create(ground_shape, origin, 0.0f, false);
-    body.rollingFriction(0.2f);
-
-    addRigidBody(body);
-  }
-
-  p_sphere = shapes().sphere(1.0f);
-}
-
-void DynamicsWorld::startDbgSimulation()
-{
-  foreachRigidBody([this](btRigidBody *rb) {
-    rb->activate();
-    rb->forceActivationState(ACTIVE_TAG);
-  });
-}
-
-RigidBody DynamicsWorld::createDbgSimulationRigidBody(vec3 sphere, bool active)
-{
-  return RigidBody::create(p_sphere, sphere, 1.0f, active);
 }
 
 void DynamicsWorld::foreachObject(BtCollisionObjectIter fn)

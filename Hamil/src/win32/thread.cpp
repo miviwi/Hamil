@@ -122,6 +122,13 @@ Thread& Thread::suspend()
   return *this;
 }
 
+Thread& Thread::affinity(uintptr_t mask)
+{
+  SetThreadAffinityMask(m, mask);
+
+  return *this;
+}
+
 ulong Thread::exitCode() const
 {
   DWORD exit_code = 0;

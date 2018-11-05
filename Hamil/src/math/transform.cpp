@@ -14,6 +14,19 @@ Transform::Transform(const mat4& m_) :
 {
 }
 
+Transform::Transform(vec3 position_) :
+  Transform(position_, quat(), vec3(1.0f))
+{
+}
+
+Transform::Transform(vec3 position_, Quaternion orientation_, vec3 scale_) :
+  Transform()
+{
+  rotate(orientation_);
+  scale(scale_);
+  translate(position_);
+}
+
 Transform& Transform::translate(float x, float y, float z)
 {
   m = xform::translate(x, y, z)*m;
@@ -88,6 +101,12 @@ Transform& Transform::transform(const mat4& t)
 {
   m = t*m;
 
+  return *this;
+}
+
+Transform& Transform::transform(const Transform& t)
+{
+  m = t.m * m;
   return *this;
 }
 

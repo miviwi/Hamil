@@ -124,6 +124,12 @@ vec3 RigidBody::centerOfMass() const
   return from_btVector3(m->getCenterOfMassPosition());
 }
 
+float RigidBody::mass() const
+{
+  auto inv_mass = m->getInvMass();
+  return inv_mass != 0.0f ? 1.0f/inv_mass : inv_mass;
+}
+
 float RigidBody::rollingFriction() const
 {
   return m->getRollingFriction();
@@ -140,9 +146,26 @@ void RigidBody::applyImpulse(const vec3& force, const vec3& rel_pos)
   m->applyImpulse(to_btVector3(force), to_btVector3(rel_pos));
 }
 
+RigidBody& RigidBody::createMotionState(const xform::Transform& t)
+{
+  if(hasMotionState()) return *this;
+
+  btTransform start_transform;
+  start_transform.setFromOpenGLMatrix(t.matrix().transpose());
+
+  m->setMotionState(new btDefaultMotionState(start_transform));
+
+  return *this;
+}
+
 bool RigidBody::hasMotionState() const
 {
   return getMotionState();
+}
+
+bool RigidBody::isStatic() const
+{
+  return m->getInvMass() == 0.0f;
 }
 
 CollisionShape RigidBody::collisionShape() const

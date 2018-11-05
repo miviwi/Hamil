@@ -16,6 +16,11 @@ uint CpuInfo::numLogicalProcessors() const
   return m_num_logical_processors;
 }
 
+bool CpuInfo::hyperthreading() const
+{
+  return m_num_logical_processors > m_num_physical_processors;
+}
+
 template <typename T>
 static uint p_count_bits(T x)
 {

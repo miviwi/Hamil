@@ -9,20 +9,15 @@ Transform::Transform(u32 entity, const xform::Transform& transform) :
 }
 
 Transform::Transform(u32 entity, vec3 position, quat orientation) :
-  Component(entity)
+  Component(entity),
+  t(position, orientation)
 {
-  t
-    .rotate(orientation)
-    .translate(position);
 }
 
 Transform::Transform(u32 entity, vec3 position, quat orientation, vec3 scale) :
-  Component(entity)
+  Component(entity),
+  t(position, orientation, scale)
 {
-  t
-    .rotate(orientation)
-    .scale(scale)
-    .translate(position);
 }
 
 Transform::Transform(u32 entity, const mat4& transform) :

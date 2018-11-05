@@ -45,13 +45,18 @@ public:
   vec3 origin() const;
   vec3 localInertia() const;
   vec3 centerOfMass() const;
+  float mass() const;
 
   float rollingFriction() const;
   RigidBody& rollingFriction(float friction);
 
   void applyImpulse(const vec3& force, const vec3& rel_pos);
 
+  RigidBody& createMotionState(const xform::Transform& t = xform::Transform());
   bool hasMotionState() const;
+
+  // Returns 'true' for objects with non-zero mass
+  bool isStatic() const;
 
   CollisionShape collisionShape() const;
 

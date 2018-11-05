@@ -187,7 +187,6 @@ int main(int argc, char *argv[])
   auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.withParams());
 
   auto world = bt::DynamicsWorld();
-  world.initDbgSimulation();
 
   py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
 
@@ -570,12 +569,12 @@ int main(int argc, char *argv[])
   });
   fov_slider.value(70.0f);
 
-  auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
-    .frame(ui::create<ui::LabelFrame>(iface, "stats")
-            .caption("asdf\nxyz\nasdf")
+  auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface).frame(
+    ui::create<ui::LabelFrame>(iface, "stats")
+            .caption("asdf\nxyz\nasdf\nxyz\n")
             .padding({ 100.0f, small_face.height() })
-            .gravity(ui::Frame::Center))
-    ;
+            .gravity(ui::Frame::Center)
+    );
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
 
@@ -611,8 +610,6 @@ int main(int argc, char *argv[])
   auto step_timer = win32::DeltaTimer();
   auto nudge_timer = win32::DeltaTimer();
 
-  unsigned num_spheres = 0;
-
   step_timer.reset();
   nudge_timer.stop();
 
@@ -625,15 +622,48 @@ int main(int argc, char *argv[])
   auto& pbo = pool.getBuffer<gx::PixelBuffer>(pbo_id);
   pbo.init(1, PboSize);
 
+  auto floor_shape = bt::shapes().box({ 50.0f, 0.5f, 50.0f });
   auto create_floor = [&]()
   {
+    vec3 origin = { 0.0f, -1.5f, -6.0f };
+    auto body = bt::RigidBody::create(floor_shape, origin)
+      .rollingFriction(0.2f);
+#if 0
+      .createMotionState(
+#endif
+
     auto floor = hm::entities().createGameObject("floor", scene);
+
     floor.addComponent<hm::Transform>(
-      vec3(0.0f, -1.01f, -6.0f),
+      origin + vec3{ 0.0f, 0.5f, 0.0f },
       quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
-      vec3(50.0f));
+      vec3(50.0f)
+    );
+    floor.addComponent<hm::RigidBody>(body);
+
+    world.addRigidBody(body);
 
     return floor;
+  };
+
+  auto sphere_shape = bt::shapes().sphere(1.0f);
+  unsigned num_spheres = 0;
+  auto create_sphere = [&]()
+  {
+    vec3 origin = { 0.0f, 10.0f, 0.0f };
+    auto body = bt::RigidBody::create(sphere_shape, origin, 1.0f);
+
+    auto name = util::fmt("sphere%u", num_spheres);
+    auto entity = hm::entities().createGameObject(name, scene);
+
+    entity.addComponent<hm::Transform>(body.worldTransform());
+    entity.addComponent<hm::RigidBody>(body);
+
+    world.addRigidBody(body);
+
+    num_spheres++;
+
+    return entity;
   };
 
   auto floor = create_floor();
@@ -679,6 +709,22 @@ int main(int argc, char *argv[])
     return {};
   });
 
+  auto transforms_extract_job = sched::create_job([&]() -> Unit {
+    // Update Transforms
+    hm::components().foreach([&](hmRef<hm::RigidBody> rb) {
+      if(rb().rb.isStatic()) return;
+
+      auto entity = rb().entity();
+      auto transform = entity.component<hm::Transform>();
+
+      transform() = rb().rb.worldTransform();
+    });
+
+    return {};
+  });
+
+  double transforms_extract_dt = 0.0;
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -723,16 +769,7 @@ int main(int argc, char *argv[])
         } else if(kb->keyDown('O')) {
           ortho_projection = !ortho_projection;
         } else if(kb->keyDown('D')) {
-          auto name = util::fmt("sphere%u", num_spheres);
-          auto entity = entities().createGameObject(name, scene);
-          auto body = world.createDbgSimulationRigidBody({ 0.0f, 10.0f, 0.0f });
-
-          entity.addComponent<hm::Transform>(body.worldTransform());
-          entity.addComponent<hm::RigidBody>(body);
-
-          world.addRigidBody(body);
-
-          num_spheres++;
+          create_sphere();
         } else if(kb->keyDown('W')) {
           //pipeline.isEnabled(gx::Pipeline::Wireframe) ? pipeline.filledPolys() : pipeline.wireframe();
         } else if(kb->keyDown('`')) {
@@ -815,7 +852,7 @@ int main(int argc, char *argv[])
         picked_entity = hit.rigidBody().user<hm::Entity>();
         hit_normal  = hit.normal();
 
-        if(picked_body.hasMotionState()) draw_nudge_line = true;
+        if(!picked_body.isStatic()) draw_nudge_line = true;
       }
     }
 
@@ -953,7 +990,7 @@ int main(int argc, char *argv[])
     // Draw the Entities
     components().foreach([&](hmRef<hm::Transform> component) {
       auto entity = component().entity();
-      if(!entity.hasComponent<hm::RigidBody>()) return;
+      if(!entity.hasComponent<hm::RigidBody>() || entity == floor) return;
 
       auto origin = component().t.translation();
 
@@ -1038,19 +1075,7 @@ int main(int argc, char *argv[])
 
     worker_pool.waitJob(physics_step_job_id);
 
-    // Update Transforms
-    components().foreach([&](hmRef<hm::RigidBody> rb) {
-      auto entity = rb().entity();
-      auto transform = entity.component<hm::Transform>();
-
-      transform() = rb().rb.worldTransform();
-    });
-
-    // Kill off dead_entites
-    for(auto& e : dead_entities) {
-      world.removeRigidBody(e.component<hm::RigidBody>().get().rb);
-      e.destroy();
-    }
+    auto transforms_extract_job_id = worker_pool.scheduleJob(transforms_extract_job.withParams());
 
     // Wait for Ui painting to finish
     worker_pool.waitJob(ui_paint_job_id);
@@ -1065,12 +1090,17 @@ int main(int argc, char *argv[])
       vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
 
     stats.caption(util::fmt(
+      "Frametime: %.3lfms\n"
       "Traingles: %zu\n"
       "Physics update: %.3lfms\n"
-      "Ui painting: %.3lfms",
+      "Ui painting: %.3lfms\n"
+      "Transform extraction: %.3lfms",
+      step_dt*1000.0f,
       num_tris,
-      physics_step_job.dbg_ElapsedTime()*1000.0f,
-      ui_paint_job.dbg_ElapsedTime()*1000.0f));
+      physics_step_job.dbg_ElapsedTime()*1000.0,
+      ui_paint_job.dbg_ElapsedTime()*1000.0,
+      transforms_extract_dt*1000.0)
+    );
 
     ui_paint_job.result().execute();
     cursor.paint();
@@ -1085,6 +1115,15 @@ int main(int argc, char *argv[])
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
       ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
+
+    worker_pool.waitJob(transforms_extract_job_id);
+    transforms_extract_dt = transforms_extract_job.dbg_ElapsedTime();
+
+    // Kill off dead_entites
+    for(auto& e : dead_entities) {
+      world.removeRigidBody(e.component<hm::RigidBody>().get().rb);
+      e.destroy();
+    }
 
     window.swapBuffers();
     glFinish();

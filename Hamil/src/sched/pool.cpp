@@ -15,6 +15,9 @@
 #include <map>
 #include <functional>
 
+// Uncomment the line below so workers AREN'T locked to specific cores
+//#define NO_SET_AFFINITY
+
 namespace sched {
 
 class WorkerPoolData {
@@ -153,6 +156,9 @@ WorkerPool& WorkerPool::kickWorkers()
   // Make sure the workers don't terminate immediately
   m_data->done.store(false);
 
+  uint num_cores = win32::cpuinfo().numPhysicalProcessors();
+  bool hyperthreading = win32::cpuinfo().hyperthreading();
+
   for(size_t i = 0; i < m_num_workers; i++) {
     // ulong (WorkerPool::*fn)() -> ulong (*fn)()
     auto fn = std::bind(&WorkerPool::doWork, this);
@@ -162,6 +168,28 @@ WorkerPool& WorkerPool::kickWorkers()
 
     // Give each worker a nice name
     worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
+
+    // Lock each worker to a given thread
+    //   - When the system has hyperthreading (SMT)
+    //     sequential processor numbers signify
+    //     hyperthreads, in that case group the
+    //     workers into 2 sets
+    uintptr_t thread = i;
+    if(hyperthreading) {
+      // The hyperthreads will be the 2nd group
+      uintptr_t thread_group = i >= num_cores;
+
+      // This works out to (for 2-cores/4-threads):
+      //   i==0  =>  0     (group 1)
+      //   i==1  =>  2     (group 1)
+      //   i==2  =>  1     (group 2)
+      //   i==3  =>  3     (group 2)
+      thread = (i % num_cores)*2ull | thread_group;
+    }
+
+#if !defined(NO_SET_AFFINITY)
+    worker->affinity(1ull << thread);
+#endif
   }
 
   // Optionally acquire GlContexts for all the workers

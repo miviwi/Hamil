@@ -65,6 +65,10 @@ public:
   Thread& resume();
   Thread& suspend();
 
+  // Setting the i-th bit allows the Thread to
+  //   run on the i-th thread (LSB first)
+  Thread& affinity(uintptr_t mask);
+
   // See note for StillActive above
   ulong exitCode() const;
 

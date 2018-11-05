@@ -10,6 +10,8 @@ class Transform {
 public:
   Transform();
   Transform(const mat4& m_);
+  Transform(vec3 position_);
+  Transform(vec3 position_, Quaternion orientation_, vec3 scale_ = vec3(1.0f));
 
   Transform& translate(float x, float y, float z);
   Transform& translate(const vec3& pos);
@@ -25,6 +27,8 @@ public:
   // Applies the transformation encoded by 't'
   //   (pre-multiplies the underlying matrix by it)
   Transform& transform(const mat4& t);
+
+  Transform& transform(const Transform& t);
 
   // Returns the underlying matrix
   const mat4& matrix() const;
