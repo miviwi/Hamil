@@ -61,10 +61,10 @@ Geometry Frame::geometry() const
 {
   Geometry g = m_geom;
   if(!g.w && !g.h) {
-    vec2 size = sizeHint() + m_pad*2.0f;
+    vec2 size = sizeHint() + padding();
     return {
       g.x, g.y,
-      size.x, size.y
+      std::max(g.w, size.x), std::max(g.h, size.y)
     };
   }
 

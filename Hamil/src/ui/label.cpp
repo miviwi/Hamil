@@ -19,8 +19,9 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
   auto& font = *style.font;
 
   Geometry g = geometry();
-  vec2 center = g.center();
+  auto caption_sz = m_caption.size();
 
+  vec2 center = g.center();
   center *= 0.5f;
 
   auto pipeline = gx::Pipeline()
@@ -39,7 +40,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
   } else {
     switch(gravity()) {
     case Left:   painter.drawable(m_caption, { g.x, center.y }); break;
-    case Right:  painter.drawable(m_caption, { g.x + (g.w-m_caption.size().x), center.y }); break;
+    case Right:  painter.drawable(m_caption, { g.x + (g.w-caption_sz.x), center.y }); break;
     }
   }
 }

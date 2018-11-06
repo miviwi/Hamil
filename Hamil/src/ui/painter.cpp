@@ -558,13 +558,19 @@ ft::String VertexPainter::appendTextVertices(ft::Font& font, const std::string& 
 
 vec2 VertexPainter::textAlignCenter(ft::Font& font, Geometry g, vec2 text_size) const
 {
+  // The height is calculated so that we offset the text by only
+  //   font.descender() if it's one line tall, otherwise we
+  //   need to offset it by half of it's height as well.
+  // Seems to work ok (?)
+  float height = text_size.y - font.height();
+
   vec2 center = g.center();
   vec2 pos = {
     floor(center.x - text_size.x/2.0f),
-    floor(center.y - font.descender())
+    floor(center.y - (font.descender() + height/2.0f))
   };
 
-  return { floor(pos.x), floor(pos.y) };
+  return pos;
 }
 
 vec2 VertexPainter::textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) const
@@ -718,7 +724,7 @@ VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
     ;
 
   vec2 center = g.center();
-  vec2 pos ={
+  vec2 pos = {
     floor(center.x - text.size().x/2.0f),
     floor(center.y - text.textFont().descender())
   };

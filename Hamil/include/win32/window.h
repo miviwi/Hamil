@@ -20,8 +20,8 @@ public:
   Window(int width, int height);
   ~Window();
 
-  static LPWSTR wnd_class_name() { return L"Appliaction"; }
-  static LPWSTR wnd_name() { return L"Application"; }
+  static LPWSTR wnd_class_name() { return L"Hamil OpenGL"; }
+  static LPWSTR wnd_name() { return L"Hamil"; }
 
   HWND hwnd() const { return m_hwnd; }
 

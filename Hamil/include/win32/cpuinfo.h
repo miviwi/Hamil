@@ -16,7 +16,7 @@ public:
   uint numLogicalProcessors() const;
 
   // Returns 'true' when each core is capable of running
-  //   more than 1 thrad simultaneously
+  //   more than 1 thread simultaneously
   bool hyperthreading() const;
 
 protected:

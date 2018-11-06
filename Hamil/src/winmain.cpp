@@ -298,18 +298,25 @@ int main(int argc, char *argv[])
     gx::rgb10, gx::Texture::Multisample);
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
 
-  gx::Texture2D fb_pos(gx::rgb32f, gx::Texture::Multisample);
+  auto fb_pos_id = pool.createTexture<gx::Texture2D>("t2dFramebufferPos",
+    gx::rgb32f, gx::Texture::Multisample);
+  auto& fb_pos = pool.getTexture<gx::Texture2D>(fb_pos_id);
+
+  auto fb_normal_id = pool.createTexture<gx::Texture2D>("t2dFramebufferNormal",
+    gx::rgb32f, gx::Texture::Multisample);
+  auto& fb_normal = pool.getTexture<gx::Texture2D>(fb_normal_id);
 
   auto fb_id = pool.create<gx::Framebuffer>("fbFramebuffer");
   auto& fb = pool.get<gx::Framebuffer>(fb_id);
 
   fb_tex.initMultisample(1, FramebufferSize);
   fb_pos.initMultisample(1, FramebufferSize);
-  //fb_tex.init(FramebufferSize.x, FramebufferSize.y);
+  fb_normal.initMultisample(1, FramebufferSize);
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
     .tex(fb_pos, 0, gx::Framebuffer::Color(1))
+    .tex(fb_normal, 0, gx::Framebuffer::Color(2))
     .renderbuffer(gx::depth16, gx::Framebuffer::Depth);
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
@@ -571,8 +578,7 @@ int main(int argc, char *argv[])
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface).frame(
     ui::create<ui::LabelFrame>(iface, "stats")
-            .caption("asdf\nxyz\nasdf\nxyz\n")
-            .padding({ 100.0f, small_face.height() })
+            .padding({ 200.0f, small_face.height()*5.0f })
             .gravity(ui::Frame::Center)
     );
 
