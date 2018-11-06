@@ -61,6 +61,8 @@ struct Color : public Vector4<byte> {
 
   Color darken(unsigned factor) const;
   Color lighten(unsigned factor) const;
+  Color darkenf(double factor) const;
+  Color lightenf(double factor) const;
   Color luminance() const;
 
   Color opacity(double factor) const;

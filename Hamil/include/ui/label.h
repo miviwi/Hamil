@@ -18,13 +18,25 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   LabelFrame& caption(const std::string& caption);
+
+  // Must be set BEFORE changing the caption or changes won't be seen
+  LabelFrame& font(const ft::Font::Ptr& font);
+  // Must be set BEFORE changing the caption or changes won't be seen
+  LabelFrame& color(Color c);
+
   LabelFrame& background(Color bg);
 
   virtual vec2 sizeHint() const;
 
 private:
+  ft::Font::Ptr ownFont();
+
+  ft::Font::Ptr m_font = nullptr;
+
   Drawable m_caption;
-  Color m_bg = transparent();
+
+  Color m_color = white();
+  Color m_bg    = transparent();
 };
 
 }

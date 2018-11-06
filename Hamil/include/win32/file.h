@@ -120,10 +120,12 @@ public:
   template <typename T> T *get() const { return (T *)get(); }
   u8& operator[](size_t offset);
 
+  // Returns the size of the mapped view
   size_t size() const;
 
   void flush(File::Size sz = 0);
 
+  // Invalidates ALL other Refs to this FileView
   void unmap();
 
 private:

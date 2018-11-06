@@ -577,11 +577,11 @@ vec2 VertexPainter::textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) co
 {
   vec2 center = g.center();
   vec2 pos = {
-    g.x,
+    floor(g.x),
     floor(center.y - font.descender())
   };
 
-  return { floor(pos.x), floor(pos.y) };
+  return pos;
 }
 
 void VertexPainter::assertBegin()

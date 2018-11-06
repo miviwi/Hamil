@@ -195,6 +195,7 @@ int main(int argc, char *argv[])
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
+  auto monospace_face_ptr = std::make_shared<ft::Font>(ft::FontFamily("consola"), 12, &pool);
 
   ui::CursorDriver cursor(1280/2, 720/2);
   vec3 pos{ 0, 0, 0 };
@@ -578,11 +579,21 @@ int main(int argc, char *argv[])
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface).frame(
     ui::create<ui::LabelFrame>(iface, "stats")
-            .padding({ 200.0f, small_face.height()*5.0f })
-            .gravity(ui::Frame::Center)
+            .gravity(ui::Frame::Left)
     );
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
+
+  win32::File asdfpy("asdf.py", win32::File::Read, win32::File::OpenExisting);
+  auto asdfpy_view = asdfpy.map(win32::File::ProtectRead);
+
+  auto& asdfpy_layout = ui::create<ui::LabelFrame>(iface)
+    .font(monospace_face_ptr)
+    .color(ui::black())
+    .caption(asdfpy_view.get<const char>())
+    ;
+
+  asdfpy_view.unmap();
 
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
@@ -593,6 +604,11 @@ int main(int argc, char *argv[])
       .title("Statistics")
       .content(stats_layout)
       .position({ 1000.0f, 100.0f }))
+    .frame(ui::create<ui::WindowFrame>(iface)
+      .title("Python - asdf.py")
+      .content(asdfpy_layout)
+      .background(ui::white())
+      .position({ 800.0f, 400.0f }))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
     ;
 
@@ -1084,7 +1100,7 @@ int main(int argc, char *argv[])
     auto transforms_extract_job_id = worker_pool.scheduleJob(transforms_extract_job.withParams());
 
     // Wait for Ui painting to finish
-    worker_pool.waitJob(ui_paint_job_id);
+    if(!ui_paint_job.done()) worker_pool.waitJob(ui_paint_job_id);
 
     float fps = 1.0f / step_dt;
 
@@ -1097,7 +1113,7 @@ int main(int argc, char *argv[])
 
     stats.caption(util::fmt(
       "Frametime: %.3lfms\n"
-      "Traingles: %zu\n"
+      "Triangles: %zu\n"
       "Physics update: %.3lfms\n"
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",

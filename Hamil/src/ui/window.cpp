@@ -9,7 +9,8 @@ WindowFrame::~WindowFrame()
 
 bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  bool handled = m_content->input(cursor, input);
+  // If moving don't pass input to the content Frame
+  bool handled = m_state == Moving ? false : m_content->input(cursor, input);
   if(!handled) {
     auto mouse = input->get<win32::Mouse>();
     if(!mouse) return false;
@@ -38,10 +39,13 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 {
   const Style& style = ownStyle();
 
-  Geometry g = geometry(),
-    decor = decorationsGeometry();
+  Geometry g = geometry();
 
+  Geometry decor_g = decorationsGeometry();
   uint decor_corners = VertexPainter::TopLeft|VertexPainter::TopRight;
+  Color decor_color = style.bg.color[2].darkenf(0.1);
+
+  Color bg = m_bg ? *m_bg : decor_color.darkenf(0.2).opacity(0.4);
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
@@ -51,9 +55,10 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(pipeline)
-    .roundedRect(decor, style.window.radius, decor_corners, style.bg.color[2])
-    .roundedRect(g, style.window.radius, VertexPainter::All, black().opacity(0.4))
-    .drawableCentered(m_title, decor);
+    .roundedRect(g, style.window.radius, VertexPainter::All, bg)
+    .roundedRect(decor_g, style.window.radius, decor_corners, decor_color)
+    .roundedBorder(g, style.window.radius, VertexPainter::All, decor_color.darkenf(0.2))
+    .drawableCentered(m_title, decor_g);
 
   if(!m_content) return;
 
@@ -76,6 +81,13 @@ Frame& WindowFrame::position(vec2 pos)
 WindowFrame& WindowFrame::title(const std::string& title)
 {
   m_title = ui().drawable().fromText(ownStyle().font, title, white());
+
+  return *this;
+}
+
+WindowFrame& WindowFrame::background(Color c)
+{
+  m_bg = c;
 
   return *this;
 }

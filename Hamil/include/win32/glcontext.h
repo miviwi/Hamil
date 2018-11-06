@@ -32,8 +32,8 @@ private:
 
   GlContext(void *hdc, void *hglrc);
 
-  void * /* HDC */ m_hdc;
-  void * /* HGLRC */ m_hglrc;
+  void /* HDC */ *m_hdc;
+  void /* HGLRC */ *m_hglrc;
 
 #if !defined(NDEBUG)
   Thread::Id m_owner = Thread::InvalidId;

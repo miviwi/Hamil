@@ -99,6 +99,16 @@ Color Color::lighten(unsigned factor) const
   );
 }
 
+Color Color::darkenf(double factor) const
+{
+  return darken((unsigned)(factor*255.0));
+}
+
+Color Color::lightenf(double factor) const
+{
+  return lighten((unsigned)(factor*255.0));
+}
+
 Color Color::luminance() const
 {
   byte y = (byte)(r*0.2126 + g*0.7152 + b*0.0722);

@@ -5,6 +5,8 @@
 #include <ui/frame.h>
 #include <ui/drawable.h>
 
+#include <optional>
+
 namespace ui {
 
 class WindowFrame : public Frame {
@@ -21,6 +23,8 @@ public:
 
   WindowFrame& title(const std::string& title);
 
+  WindowFrame& background(Color c);
+
   WindowFrame& content(Frame *content);
   WindowFrame& content(Frame& content);
 
@@ -36,6 +40,7 @@ private:
   State m_state = Default;
 
   Drawable m_title;
+  std::optional<Color> m_bg = std::nullopt;
   Frame *m_content = nullptr;
 };
 

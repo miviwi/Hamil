@@ -171,8 +171,7 @@ FileView::~FileView()
 {
   if(deref()) return;
 
-  UnmapViewOfFile(m_ptr);
-  CloseHandle(m);
+  unmap();
 }
 
 void *FileView::get() const
@@ -198,8 +197,6 @@ size_t FileView::size() const
 
 void FileView::unmap()
 {
-  if(deref()) return;
-
   UnmapViewOfFile(m_ptr);
   CloseHandle(m);
 

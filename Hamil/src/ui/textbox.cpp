@@ -115,7 +115,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   painter
     .pipeline(text_pipeline)
-    .rect(g.contract(1), textbox.bg)
+    .rect(textbox.border ? g.contract(1) : g, textbox.bg)
     .rect(cursor_g, cursor_color)
     .border(g.contract(1), 2.0f, textbox.border ? border_color : textbox.bg)
     ;

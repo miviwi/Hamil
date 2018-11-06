@@ -15,7 +15,10 @@
 #include <map>
 #include <functional>
 
-// Uncomment the line below so workers AREN'T locked to specific cores
+// Uncomment this line so workers DON'T get locked to specific cores
+//   - Setting the affinity is supposed to remove latency caused by the
+//     OS shuffling workers between cores, but I'm not sure if it actually
+//     does (may even do more harm than good). Testing needed (!)
 //#define NO_SET_AFFINITY
 
 namespace sched {

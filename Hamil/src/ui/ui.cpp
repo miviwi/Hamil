@@ -288,9 +288,21 @@ bool Ui::input(CursorDriver& cursor, const InputPtr& input)
     return m_capture->input(cursor, input);
   }
 
-  for(auto iter = m_frames.crbegin(); iter != m_frames.crend(); iter++) {
-    const auto& frame = *iter;
-    if(frame->input(cursor, input)) return true;
+  for(auto it = m_frames.begin(); it != m_frames.end(); it++) {
+    auto& frame = *it;
+
+    // The input was outside this Frame - try the next one
+    if(!frame->input(cursor, input)) continue;
+
+    // After the user interacts with a top-level Frame
+    //   bring it to the front (i.e. draw it on top of
+    //   everything else and pass input to it first)
+    //
+    // TODO: Using std::swap() here is fast and simple
+    //       but causes minor visual bugs when multiple
+    //       Frames overlap
+    std::swap(m_frames.back(), frame);
+    return true;
   }
 
   return false;

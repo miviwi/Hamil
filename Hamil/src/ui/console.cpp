@@ -73,6 +73,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     .frame(m_buffer)
     .frame(create<ColumnLayoutFrame>(ui)
       .frame(create<LabelFrame>(ui, Geometry{ prompt_width, 0.0f })
+        .font(monospace)
         .caption(prompt)
         .background(black()))
       .frame(m_prompt))
