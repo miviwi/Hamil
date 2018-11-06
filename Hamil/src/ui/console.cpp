@@ -123,13 +123,15 @@ bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void ConsoleFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  if(!m_dropped && m_dropdown.done()) return;
+  if(!isTransitioning() && !isDropped()) return;
 
-  auto y = m_dropdown.done() ? 0.0f : m_dropdown.channel<float>(0);
+  auto y = !isTransitioning() ? 0.0f : m_dropdown.channel<float>(0);
   m_console->position({
     make_geometry().x,
-    m_dropped ? y : (-ConsoleSize.y - y)
+    isDropped() ? y : (-ConsoleSize.y - y)
   });
+
+  if(m_dropdown.done()) m_dropped &= ~Transitioning;
 
   m_console->paint(painter, geometry());
 }
@@ -145,14 +147,14 @@ void ConsoleFrame::attached()
 
 ConsoleFrame& ConsoleFrame::toggle()
 {
-  return dropped(!m_dropped);
+  return dropped(!isDropped());
 }
 
 ConsoleFrame& ConsoleFrame::dropped(bool val)
 {
-  if(m_dropped == val) return *this;
+  if(isDropped() == val) return *this;
 
-  m_dropped = val;
+  m_dropped = (val ? Dropped : Hidden) | Transitioning;
   m_dropdown.start();
 
   return *this;
@@ -227,6 +229,16 @@ bool ConsoleFrame::specialKey(win32::Keyboard *kb)
   m_prompt->text(s);
   m_prompt->selection(0, s.size());
   return true;
+}
+
+bool ConsoleFrame::isDropped() const
+{
+  return (m_dropped & 1) == Dropped;
+}
+
+bool ConsoleFrame::isTransitioning() const
+{
+  return m_dropped & Transitioning;
 }
 
 bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)

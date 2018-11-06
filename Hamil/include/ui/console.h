@@ -22,7 +22,6 @@ class ConsoleBufferFrame;
 //       * only keyboard input for simplicity
 //       * command autocomplete
 //   - Text coloring
-//   - That animation is impossible to get right...
 class ConsoleFrame : public Frame {
 public:
   using OnCommand = Signal<ConsoleFrame *, const char *>;
@@ -51,6 +50,13 @@ public:
   virtual vec2 sizeHint() const;
 
 private:
+  enum DropState : uint {
+    Hidden  = 0u,
+    Dropped = 1u,
+
+    Transitioning = (1u<<1u),
+  };
+
   Animation m_dropdown = {
     make_animation_channel({
       keyframe(-ConsoleSize.y, 1.0f),
@@ -64,11 +70,14 @@ private:
 
   bool specialKey(win32::Keyboard *kb);
 
+  bool isDropped() const;
+  bool isTransitioning() const;
+
   TextBoxFrame *m_prompt;
   ConsoleBufferFrame *m_buffer;
   LayoutFrame *m_console;
 
-  bool m_dropped = false;
+  uint m_dropped = Hidden;
 
   OnCommand m_on_command;
 };

@@ -342,6 +342,14 @@ int main(int argc, char *argv[])
   auto skybox_uniforms_handle = memory.alloc(sizeof(SkyboxUniforms));
   auto& skybox_uniforms = *memory.ptr<SkyboxUniforms>(skybox_uniforms_handle);
 
+  enum : uint {
+    FloorTexImageUnit  = 0u,
+    SkyboxTexImageUnit = 1u,
+
+    UiTexImageUnit    = 4u,
+    SceneTexImageUnit = 5u,
+  };
+
   static constexpr uint MatrixBinding = 0;
   struct MatrixBlock {
     mat4 modelview;
@@ -432,8 +440,8 @@ int main(int argc, char *argv[])
   auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
     .framebuffer(fb_id)
     .textures({
-      { 0u, { tex_id, floor_sampler_id }},
-      { 1u, { cubemap_id, cubemap_sampler_id }}
+      { FloorTexImageUnit,  { tex_id, floor_sampler_id }},
+      { SkyboxTexImageUnit, { cubemap_id, cubemap_sampler_id }}
     })
    .uniformBuffersRange({
       { MatrixBinding,   { scene_ubo_id, 0, ubo_align(sizeof(MatrixBlock)) } },
@@ -457,7 +465,7 @@ int main(int argc, char *argv[])
   auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
     .textures({
-      { 5u, { fb_tex_id, resolve_sampler_id }}
+      { SceneTexImageUnit, { fb_tex_id, resolve_sampler_id }}
     })
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
@@ -550,7 +558,7 @@ int main(int argc, char *argv[])
   gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
   ui::Ui iface(pool, ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
 
-  composite_pass.texture(4u, iface.framebufferTextureId(), resolve_sampler_id);
+  composite_pass.texture(UiTexImageUnit, iface.framebufferTextureId(), resolve_sampler_id);
 
   iface.realSize(FramebufferSize.cast<float>());
 
@@ -577,10 +585,10 @@ int main(int argc, char *argv[])
   });
   fov_slider.value(70.0f);
 
-  auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface).frame(
-    ui::create<ui::LabelFrame>(iface, "stats")
-            .gravity(ui::Frame::Left)
-    );
+  auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
+    .frame(ui::create<ui::LabelFrame>(iface, "stats")
+            .gravity(ui::Frame::Left))
+    ;
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
 
@@ -609,7 +617,7 @@ int main(int argc, char *argv[])
       .content(asdfpy_layout)
       .background(ui::white())
       .position({ 800.0f, 400.0f }))
-    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console").dropped(true))
+    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
 
   auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
@@ -1100,7 +1108,7 @@ int main(int argc, char *argv[])
     auto transforms_extract_job_id = worker_pool.scheduleJob(transforms_extract_job.withParams());
 
     // Wait for Ui painting to finish
-    if(!ui_paint_job.done()) worker_pool.waitJob(ui_paint_job_id);
+    worker_pool.waitJob(ui_paint_job_id);
 
     float fps = 1.0f / step_dt;
 
