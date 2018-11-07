@@ -75,6 +75,8 @@ public:
   BufferView map(Access access, uint flags = MapDefault);
   BufferView map(Access access, GLintptr off, GLint sz, uint flags = MapDefault);
 
+  void destroy();
+
   void label(const char *lbl);
 
 protected:

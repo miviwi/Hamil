@@ -17,7 +17,7 @@ Buffer::Buffer(Usage usage, GLenum target) :
 
 Buffer::~Buffer()
 {
-  if(deref()) return;
+  if(deref() || /* destroy() was called */ !m) return;
 
   glDeleteBuffers(1, &m);
 }
@@ -61,6 +61,15 @@ BufferView Buffer::map(Access access, GLintptr off, GLint sz, uint flags)
   }
 
   return BufferView(*this, m_target, ptr, sz);
+}
+
+void Buffer::destroy()
+{
+  glDeleteBuffers(1, &m);
+
+  m_usage = Invalid;
+  m = 0;
+  m_sz = -1;
 }
 
 void Buffer::label(const char *lbl)
@@ -124,9 +133,6 @@ void Buffer::copy(Buffer& dst, size_t src_offset, size_t dst_offset, size_t sz)
 
   glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
     (GLintptr)src_offset, (GLintptr)dst_offset, (GLsizeiptr)sz);
-
-  glBindBuffer(GL_COPY_READ_BUFFER, 0);
-  glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 }
 
 void Buffer::copy(Buffer& dst, size_t sz)

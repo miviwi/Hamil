@@ -253,6 +253,8 @@ void DrawableManager::prepareDraw()
 
   // Reupload the atlas if data was changed
   if(m_staging_tainted) uploadAtlas();
+
+  glFinish(); // TODO: Hack to avoid flickering, replace with a fence
 }
 
 Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string& str, Color color)
@@ -301,8 +303,13 @@ void DrawableManager::resizeAtlas(unsigned sz)
 
   unmapStaging();
 
+  auto staging_ref = staging().get();
+
   // Copy over the old data
-  staging().get().copy(new_staging(), AtlasSize.area()*numAtlasPages() * sizeof(Color));
+  staging_ref.copy(new_staging(), AtlasSize.area()*numAtlasPages() * sizeof(Color));
+
+  // The old buffer is no longer needed
+  staging_ref.destroy();
 
   m_staging_id = new_staging_id;
   m_num_pages = sz;
@@ -349,7 +356,7 @@ std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned 
 
     if(m_current_page >= numAtlasPages()) {
       // We've exhausted all the pages
-      resizeAtlas(m_current_page+1); // Grab 2 more pages
+      resizeAtlas(numAtlasPages()+2); // Grab 2 more pages
     }
 
     // Retry
@@ -367,7 +374,7 @@ std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned 
 void DrawableManager::blitAtlas(const Color *data, uvec4 coords, unsigned page)
 {
   unsigned width = coords.z, height = coords.w;
-  auto staging_data = stagingData(coords, 0);
+  auto staging_data = stagingData(coords, page);
   for(unsigned y = 0; y < height; y++) {
     auto src = (Color *)data + y*width;
     auto dst = staging_data + y*AtlasSize.s;
@@ -405,8 +412,9 @@ gx::ResourcePool::Id DrawableManager::createStaging(unsigned num_pages)
 {
   auto id = m_pool.createBuffer<gx::PixelBuffer>("bpUiDrawableStaging",
     gx::Buffer::Dynamic, gx::PixelBuffer::Upload);
+
   m_pool.getBuffer(id).get()
-    .init(sizeof(Color), AtlasSize.area()*numAtlasPages());
+    .init(sizeof(Color), AtlasSize.area()*num_pages);
 
   return id;
 }
@@ -425,9 +433,9 @@ void DrawableManager::uploadAtlas()
 {
   unmapStaging();
 
-  m_pool.getBuffer<gx::PixelBuffer>(m_staging_id)
-    .uploadTexture(atlas().get(), /* level */ 0,
-      /* x */ 0, /* y */ 0, /* z */ 0, AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
+  staging().get<gx::PixelBuffer>().uploadTexture(
+    atlas().get(), /* level */ 0,
+    AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
 }
 
 }
