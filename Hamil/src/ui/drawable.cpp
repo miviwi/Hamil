@@ -1,9 +1,9 @@
 #include <ui/drawable.h>
 #include <ft/font.h>
 
-#include <array>
-
 #include <cstring>
+#include <array>
+#include <algorithm>
 
 namespace ui {
 
@@ -104,9 +104,9 @@ pDrawableImage::pDrawableImage(uvec4 coords_, unsigned page_) :
 
   verts = {
     make_vert(0, 0,               coords.x, coords.y),
-    make_vert(0, coords.w,        coords.x, coords.y+coords.w),
-    make_vert(coords.z, coords.w, coords.x+coords.z, coords.y+coords.w),
-    make_vert(coords.z, 0,        coords.x+coords.z, coords.y)
+    make_vert(0, coords.w,        coords.x, coords.y+coords.w-1),
+    make_vert(coords.z, coords.w, coords.x+coords.z-1, coords.y+coords.w-1),
+    make_vert(coords.z, 0,        coords.x+coords.z-1, coords.y)
   };
 }
 
@@ -227,7 +227,8 @@ pDrawableImage *Drawable::getImage() const
 }
 
 DrawableManager::DrawableManager(gx::ResourcePool& pool) :
-  m_local_atlas(AtlasSize.x*AtlasSize.y * InitialPages),
+  m_local_atlas(AtlasSize.area() * InitialPages),
+  m_current_page(0), m_rovers(AtlasSize.s, 0),
   m_pool(pool),
   m_sampler_id(gx::ResourcePool::Invalid),
   m_atlas_id(gx::ResourcePool::Invalid)
@@ -236,12 +237,9 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
     gx::Sampler::edgeclamp2d());
 
   m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("t2dUiDrawableAtlas",
-    gx::rgba8);
+    gx::srgb_alpha);
   atlas().get()
-    .init(AtlasSize.x, AtlasSize.y, InitialPages);
-
-  std::fill(localAtlasData({ 0, 0, 0, 0 }, 0), localAtlasData({ 0, 0, 0, 0 }, 1), green());
-  reuploadAtlas();
+    .init(AtlasSize.s, AtlasSize.t, InitialPages);
 }
 
 Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string& str, Color color)
@@ -251,9 +249,19 @@ Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string&
   return Drawable(text, this);
 }
 
-Drawable DrawableManager::fromImage()
+Drawable DrawableManager::fromImage(const void *color, unsigned width, unsigned height)
 {
-  auto image = new pDrawableImage({ 0, 0, 128, 128 }, 0);
+  if(width > AtlasSize.s || height > AtlasSize.t) throw ImageTooLargeError();
+
+  auto block = atlasAlloc(width, height);
+
+  uvec4 coords  = block.first;
+  unsigned page = block.second;
+
+  auto image = new pDrawableImage(coords, page);
+
+  blitAtlas((Color *)color, coords, page);
+  uploadAtlas(page);
 
   return Drawable(image, this);
 }
@@ -273,21 +281,77 @@ gx::ResourcePool::Id DrawableManager::atlasId() const
   return m_atlas_id;
 }
 
-uvec4 DrawableManager::atlasCoords(uvec4 coords) const
-{
-  coords.y = AtlasSize.y - coords.y;
-
-  return coords;
-}
-
 unsigned DrawableManager::numAtlasPages()
 {
   return (unsigned)m_local_atlas.size() / PageSize;
 }
 
+// Taken from the Quake 2 source code - LM_AllocBlock():
+//   https://github.com/id-Software/Quake-2/blob/master/ref_gl/gl_rsurf.c
+std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned height)
+{
+  uvec4 coords = { 0, 0, width, height };
+
+  unsigned best_y = AtlasSize.t;
+  unsigned tentative_y = 0;
+
+  for(unsigned i = 0; i < AtlasSize.s - width; i++) {
+    tentative_y = 0;
+
+    unsigned j;
+    for(j = 0; j < width; j++) {
+      auto rover = m_rovers[i+j];
+      if(rover >= best_y) break;
+
+      if(rover > tentative_y) tentative_y = rover;
+    }
+
+    if(j == width) {
+      coords.x = i;
+      coords.y = best_y = tentative_y;
+    }
+  }
+
+  if(best_y+height > AtlasSize.t) {
+    // Not enough space in the current page
+    std::fill(m_rovers.begin(), m_rovers.end(), 0);
+    m_current_page++;  // Go to the next page
+
+    if(m_current_page >= numAtlasPages()) {
+      // We've exhausted all the pages
+      m_local_atlas.resize(AtlasSize.area() * (m_current_page+1));
+
+      // Resize the texture
+      reuploadAtlas();
+    }
+
+    // Retry
+    return atlasAlloc(width, height);
+  }
+
+  // Move the rovers forward
+  for(unsigned i = 0; i < width; i++) {
+    m_rovers[coords.x + i] = best_y + height;
+  }
+
+  return std::make_pair(coords, m_current_page);
+}
+
+void DrawableManager::blitAtlas(const Color *data, uvec4 coords, unsigned page)
+{
+  unsigned width = coords.z, height = coords.w;
+  auto local_atlas = localAtlasData(coords, 0);
+  for(unsigned y = 0; y < height; y++) {
+    auto src = (Color *)data + y*width;
+    auto dst = local_atlas + y*AtlasSize.s;
+
+    memcpy(dst, src, width * sizeof(Color));
+  }
+}
+
 Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)
 {
-  size_t off = page*PageSize + (coords.x + coords.y*AtlasSize.x);
+  size_t off = page*PageSize + (coords.x + coords.y*AtlasSize.s);
 
   return m_local_atlas.data() + off;
 }
@@ -301,14 +365,14 @@ void DrawableManager::reuploadAtlas()
 {
   atlas().get()
     .init(m_local_atlas.data(), /* level */0,
-      AtlasSize.x, AtlasSize.y, numAtlasPages(), gx::rgba, gx::u8);
+      AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
 }
 
-void DrawableManager::uploadAtlas(uvec4 coords, unsigned page)
+void DrawableManager::uploadAtlas(unsigned page)
 {
   atlas().get()
-    .upload(localAtlasData(coords, page), /* level */0,
-      coords.x, coords.y, page, coords.z, coords.w, 1, gx::rgba, gx::u8);
+    .upload(localAtlasData({ 0, 0, 0, 0 }, page), /* level */0,
+      0, 0, page, AtlasSize.s, AtlasSize.t, 1, gx::rgba, gx::u8);
 }
 
 }

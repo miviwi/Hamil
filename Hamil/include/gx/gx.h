@@ -17,7 +17,8 @@ enum Component {
 
 enum Format {
   r = GL_RED, rg = GL_RG, rgb = GL_RGB, rgba = GL_RGBA,
-  srgb = GL_SRGB,
+  bgra = GL_BGRA, bgr = GL_BGR,
+  srgb = GL_SRGB, srgb_alpha = GL_SRGB_ALPHA,
   depth = GL_DEPTH_COMPONENT, depth_stencil = GL_DEPTH_STENCIL,
 
   r8 = GL_R8, r16 = GL_R16,

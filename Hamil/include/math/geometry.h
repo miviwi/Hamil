@@ -56,7 +56,7 @@ struct Vector2 {
     return sqrt(distance2(v));
   }
 
-  T area() const
+  constexpr T area() const
   {
     return x*y;
   }

@@ -300,11 +300,11 @@ int main(int argc, char *argv[])
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
 
   auto fb_pos_id = pool.createTexture<gx::Texture2D>("t2dFramebufferPos",
-    gx::rgb32f, gx::Texture::Multisample);
+    gx::rgb16f, gx::Texture::Multisample);
   auto& fb_pos = pool.getTexture<gx::Texture2D>(fb_pos_id);
 
   auto fb_normal_id = pool.createTexture<gx::Texture2D>("t2dFramebufferNormal",
-    gx::rgb32f, gx::Texture::Multisample);
+    gx::rgb16f, gx::Texture::Multisample);
   auto& fb_normal = pool.getTexture<gx::Texture2D>(fb_normal_id);
 
   auto fb_id = pool.create<gx::Framebuffer>("fbFramebuffer");
@@ -453,6 +453,7 @@ int main(int argc, char *argv[])
       .depthTest(gx::Pipeline::LessEqual)
       .cull(gx::Pipeline::Back)
       .seamlessCubemap()
+      .noBlend()
       .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
     .subpass(gx::RenderPass::Subpass()
       .pipeline(gx::Pipeline()
@@ -592,16 +593,25 @@ int main(int argc, char *argv[])
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
 
-  win32::File asdfpy("asdf.py", win32::File::Read, win32::File::OpenExisting);
-  auto asdfpy_view = asdfpy.map(win32::File::ProtectRead);
+  res::Handle<res::Image> r_hahabenis = R.image.hahabenis,
+    r_logo = R.image.logo,
+    r_benis = R.image.benis;
 
-  auto& asdfpy_layout = ui::create<ui::LabelFrame>(iface)
-    .font(monospace_face_ptr)
-    .color(ui::black())
-    .caption(asdfpy_view.get<const char>())
+  auto hahabenis = iface.drawable().fromImage(r_hahabenis->data(),
+    r_hahabenis->width(), r_hahabenis->height());
+  auto logo = iface.drawable().fromImage(r_logo->data(),
+    r_logo->width(), r_logo->height());
+  auto benis = iface.drawable().fromImage(r_benis->data(),
+    r_benis->width(), r_benis->height());
+
+  auto& asdfpy_layout = ui::create<ui::RowLayoutFrame>(iface)
+    .frame(ui::create<ui::LabelFrame>(iface)
+      .image(hahabenis))
+    .frame(ui::create<ui::LabelFrame>(iface)
+      .image(logo))
+    .frame(ui::create<ui::LabelFrame>(iface)
+      .image(benis))
     ;
-
-  asdfpy_view.unmap();
 
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
@@ -613,7 +623,7 @@ int main(int argc, char *argv[])
       .content(stats_layout)
       .position({ 1000.0f, 100.0f }))
     .frame(ui::create<ui::WindowFrame>(iface)
-      .title("Python - asdf.py")
+      .title("Hamil")
       .content(asdfpy_layout)
       .background(ui::white())
       .position({ 800.0f, 400.0f }))

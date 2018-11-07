@@ -8,6 +8,7 @@
 #include <gx/resourcepool.h>
 
 #include <vector>
+#include <utility>
 
 namespace ui {
 
@@ -77,13 +78,24 @@ public:
     TexImageUnit = gx::NumTexUnits-2,
   };
 
-  static constexpr uvec2 AtlasSize{ 1024, 1024 };
-  static constexpr unsigned PageSize = AtlasSize.x * AtlasSize.y;
+  static constexpr uvec2 AtlasSize   = { 2048, 1024 };
+  static constexpr unsigned PageSize = AtlasSize.area();
+
+  struct Error { };
+
+  struct ImageTooLargeError : public Error { };
 
   DrawableManager(gx::ResourcePool& pool);
 
+  // 'font' MUST have it's atlas texture allocated from the Ui's ResourcePool!
   Drawable fromText(const ft::Font::Ptr& font, const std::string& str, Color color);
-  Drawable fromImage();
+
+  // 'color' must be an array of u8 RGBA values (in that order!)
+  //   - Can throw ImageTooLargeError when the width or height exceede
+  //     the size of the internal atlas (width or height > AtlasSize)
+  //   - Once allocated, the images stay in the atlas for the lifetime of
+  //     the DrawableManager so take care when dynamically creating images!
+  Drawable fromImage(const void *color, unsigned width, unsigned height);
 
   void finalize(Drawable *d);
 
@@ -94,14 +106,23 @@ private:
   gx::TextureHandle atlas();
   Color *localAtlasData(uvec4 coords, unsigned page);
 
-  // Convert to OpenGL uv space (bottom-left corner origin)
-  uvec4 atlasCoords(uvec4 coords) const;
   unsigned numAtlasPages();
 
+  // Allocates a width x height block from the atlas, reuploads it if
+  //   necessary (more pages are needed)
+  std::pair<uvec4, unsigned> atlasAlloc(unsigned width, unsigned height);
+  // Copy 'data' into 'm_local_atlas'
+  //   - uploadAtlas(page) must be called after this to see the changes
+  void blitAtlas(const Color *data, uvec4 coords, unsigned page);
+
   void reuploadAtlas();
-  void uploadAtlas(uvec4 coords, unsigned page);
+  void uploadAtlas(unsigned page);
 
   std::vector<Color> m_local_atlas;
+
+  // Atlas allocation data
+  unsigned m_current_page = 0;
+  std::vector<unsigned> m_rovers;
 
   gx::ResourcePool& m_pool;
 

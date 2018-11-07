@@ -37,7 +37,12 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
   if(gravity() == Center) {
     painter.drawableCentered(m_caption, g);
   } else {
-    float y = center.y - (caption_sz.y - font.height())/2.0f - font.descender();
+    float y = 0.0f;
+    if(m_caption.type() == Drawable::Text) {
+      y = center.y - (caption_sz.y - font.height())/2.0f - font.descender();
+    } else {
+      y = center.y - caption_sz.y/2.0f;
+    }
 
     switch(gravity()) {
     case Left:   painter.drawable(m_caption, { g.x, y }); break;
@@ -49,6 +54,13 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 LabelFrame& LabelFrame::caption(const std::string& caption)
 {
   m_caption = ui().drawable().fromText(ownFont(), caption, m_color);
+
+  return *this;
+}
+
+LabelFrame& LabelFrame::image(const Drawable& img)
+{
+  m_caption = img;
 
   return *this;
 }
