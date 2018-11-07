@@ -605,9 +605,9 @@ int main(int argc, char *argv[])
     r_benis->width(), r_benis->height());
 
   auto& hamil_layout = ui::create<ui::RowLayoutFrame>(iface)
-    .frame(ui::create<ui::LabelFrame>(iface)
-      .drawable(hahabenis)
-      .padding({ 256.0f, 256.0f }))
+    //.frame(ui::create<ui::LabelFrame>(iface)
+    //  .drawable(hahabenis)
+    //  .padding({ 256.0f, 256.0f }))
     .frame(ui::create<ui::LabelFrame>(iface)
       .drawable(logo))
     //.frame(ui::create<ui::LabelFrame>(iface)

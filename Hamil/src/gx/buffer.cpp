@@ -15,6 +15,11 @@ Buffer::Buffer(Usage usage, GLenum target) :
   glGenBuffers(1, &m);
 }
 
+void Buffer::assertValid() const
+{
+  assert(m_usage != Invalid && "Attempted to use invalid Buffer!");
+}
+
 Buffer::~Buffer()
 {
   if(deref() || /* destroy() was called */ !m) return;
@@ -84,6 +89,8 @@ void Buffer::label(const char *lbl)
 
 void Buffer::use() const
 {
+  assertValid();
+
   glBindBuffer(m_target, m);
 }
 

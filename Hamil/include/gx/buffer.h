@@ -46,14 +46,10 @@ public:
     MapUnsynchronized  = GL_MAP_UNSYNCHRONIZED_BIT,
   };
 
-  struct Error {
-  };
+  struct Error { };
 
-  struct InvalidMapFlagsError : public Error {
-  };
-
-  struct MapError : public Error {
-  };
+  struct InvalidMapFlagsError : public Error { };
+  struct MapError : public Error { };
 
   ~Buffer();
 
@@ -75,12 +71,17 @@ public:
   BufferView map(Access access, uint flags = MapDefault);
   BufferView map(Access access, GLintptr off, GLint sz, uint flags = MapDefault);
 
+  // Destroys the internal storage and allows GL
+  //   to reuse the Buffer's name.
+  // ALL references to this Buffer become invalidated.
   void destroy();
 
   void label(const char *lbl);
 
 protected:
   Buffer(Usage usage, GLenum target);
+
+  void assertValid() const;
 
   Usage m_usage;
   GLuint m;

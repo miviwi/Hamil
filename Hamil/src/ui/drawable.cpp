@@ -249,10 +249,10 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
 
 void DrawableManager::prepareDraw()
 {
-  unmapStaging();
+  if(!m_staging_tainted) return;  // No new images were created
 
-  // Reupload the atlas if data was changed
-  if(m_staging_tainted) uploadAtlas();
+  // Need to reupload the atlas
+  uploadAtlas();
 
   glFinish(); // TODO: Hack to avoid flickering, replace with a fence
 }
@@ -276,7 +276,7 @@ Drawable DrawableManager::fromImage(const void *color, unsigned width, unsigned 
   auto image = new pDrawableImage(coords, page);
 
   blitAtlas((Color *)color, coords, page);
-  m_staging_tainted = true;
+  m_staging_tainted = true;  // Atlas need reupload before drawing
 
   return Drawable(image, this);
 }
@@ -314,6 +314,7 @@ void DrawableManager::resizeAtlas(unsigned sz)
   m_staging_id = new_staging_id;
   m_num_pages = sz;
 
+  // Resize the atlas and repopulate it
   uploadAtlas();
 }
 
@@ -431,10 +432,11 @@ gx::BufferHandle DrawableManager::staging()
 
 void DrawableManager::uploadAtlas()
 {
-  unmapStaging();
+  unmapStaging();  // Make sure the buffer isn't mapped
 
-  staging().get<gx::PixelBuffer>().uploadTexture(
-    atlas().get(), /* level */ 0,
+  auto& buf = staging().get<gx::PixelBuffer>();
+
+  buf.uploadTexture(atlas().get(), /* level */ 0,
     AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
 }
 
