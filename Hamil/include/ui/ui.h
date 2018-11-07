@@ -77,6 +77,8 @@ public:
 
   // Can be used to change/specify the name of a Frame
   //   after it's construction
+  // Sets the Frame's 'm_name' pointer to an internalized
+  //   version of the string
   void registerFrame(Frame *frame);
 
   // Returns a pointer to a Frame named 'name' or

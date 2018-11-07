@@ -18,7 +18,7 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   LabelFrame& caption(const std::string& caption);
-  LabelFrame& image(const Drawable& img);
+  LabelFrame& drawable(const Drawable& img);
 
   // Must be set BEFORE changing the caption or changes won't be seen
   LabelFrame& font(const ft::Font::Ptr& font);

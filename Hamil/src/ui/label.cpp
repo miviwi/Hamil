@@ -58,7 +58,7 @@ LabelFrame& LabelFrame::caption(const std::string& caption)
   return *this;
 }
 
-LabelFrame& LabelFrame::image(const Drawable& img)
+LabelFrame& LabelFrame::drawable(const Drawable& img)
 {
   m_caption = img;
 

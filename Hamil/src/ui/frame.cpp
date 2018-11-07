@@ -61,10 +61,11 @@ Geometry Frame::geometry() const
 {
   Geometry g = m_geom;
   if(!g.w && !g.h) {
-    vec2 size = sizeHint() + padding();
+    vec2 sz  = sizeHint();
+    vec2 pad = padding();
     return {
       g.x, g.y,
-      std::max(g.w, size.x), std::max(g.h, size.y)
+      std::max(sz.x, pad.x), std::max(sz.y, pad.y)
     };
   }
 
@@ -145,6 +146,14 @@ Frame& Frame::position(vec2 pos)
 {
   m_geom.x = pos.x;
   m_geom.y = pos.y;
+
+  return *this;
+}
+
+Frame& Frame::size(vec2 sz)
+{
+  m_geom.w = sz.x;
+  m_geom.h = sz.y;
 
   return *this;
 }

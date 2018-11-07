@@ -12,6 +12,8 @@
 
 namespace ui {
 
+class Ui;
+
 struct pDrawable;
 struct pDrawableText;
 struct pDrawableImage;
@@ -82,15 +84,13 @@ public:
   static constexpr unsigned PageSize = AtlasSize.area();
 
   struct Error { };
-
   struct ImageTooLargeError : public Error { };
-
-  DrawableManager(gx::ResourcePool& pool);
 
   // 'font' MUST have it's atlas texture allocated from the Ui's ResourcePool!
   Drawable fromText(const ft::Font::Ptr& font, const std::string& str, Color color);
 
   // 'color' must be an array of u8 RGBA values (in that order!)
+  //   - The image is assumed to be in sRGB color space
   //   - Can throw ImageTooLargeError when the width or height exceede
   //     the size of the internal atlas (width or height > AtlasSize)
   //   - Once allocated, the images stay in the atlas for the lifetime of
@@ -102,7 +102,12 @@ public:
   gx::ResourcePool::Id samplerId() const;
   gx::ResourcePool::Id atlasId() const;
 
+protected:
+  DrawableManager(gx::ResourcePool& pool);
+
 private:
+  friend Ui;
+
   gx::TextureHandle atlas();
   Color *localAtlasData(uvec4 coords, unsigned page);
 
@@ -118,7 +123,7 @@ private:
   void reuploadAtlas();
   void uploadAtlas(unsigned page);
 
-  std::vector<Color> m_local_atlas;
+  std::vector</* Color */byte> m_local_atlas;
 
   // Atlas allocation data
   unsigned m_current_page = 0;

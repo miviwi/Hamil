@@ -227,7 +227,7 @@ pDrawableImage *Drawable::getImage() const
 }
 
 DrawableManager::DrawableManager(gx::ResourcePool& pool) :
-  m_local_atlas(AtlasSize.area() * InitialPages),
+  m_local_atlas(AtlasSize.area() * InitialPages * sizeof(Color)),
   m_current_page(0), m_rovers(AtlasSize.s, 0),
   m_pool(pool),
   m_sampler_id(gx::ResourcePool::Invalid),
@@ -307,6 +307,7 @@ std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned 
     }
 
     if(j == width) {
+      // We've found space
       coords.x = i;
       coords.y = best_y = tentative_y;
     }
@@ -319,7 +320,7 @@ std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned 
 
     if(m_current_page >= numAtlasPages()) {
       // We've exhausted all the pages
-      m_local_atlas.resize(AtlasSize.area() * (m_current_page+1));
+      m_local_atlas.resize(AtlasSize.area() * (m_current_page+1) * sizeof(Color));
 
       // Resize the texture
       reuploadAtlas();
@@ -353,7 +354,7 @@ Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)
 {
   size_t off = page*PageSize + (coords.x + coords.y*AtlasSize.s);
 
-  return m_local_atlas.data() + off;
+  return (Color *)m_local_atlas.data() + off;
 }
 
 gx::TextureHandle DrawableManager::atlas()

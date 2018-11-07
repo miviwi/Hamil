@@ -249,7 +249,16 @@ Ui& Ui::frame(Frame &f)
 
 void Ui::registerFrame(Frame *frame)
 {
-  if(frame->m_name) m_names.insert({ frame->m_name, frame });
+  if(!frame->m_name) return;
+
+  auto result = m_names.insert({ frame->m_name, frame });
+  auto it = result.first;
+
+  // Frame name collision
+  if(!result.second) return;
+
+  // Store the internalized string
+  frame->m_name = it->first.data();
 }
 
 Frame *Ui::getFrameByName(const std::string& name)

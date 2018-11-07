@@ -604,13 +604,14 @@ int main(int argc, char *argv[])
   auto benis = iface.drawable().fromImage(r_benis->data(),
     r_benis->width(), r_benis->height());
 
-  auto& asdfpy_layout = ui::create<ui::RowLayoutFrame>(iface)
+  auto& hamil_layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::LabelFrame>(iface)
-      .image(hahabenis))
-    .frame(ui::create<ui::LabelFrame>(iface)
-      .image(logo))
-    .frame(ui::create<ui::LabelFrame>(iface)
-      .image(benis))
+      .drawable(hahabenis)
+      .padding({ 256.0f, 256.0f }))
+    //.frame(ui::create<ui::LabelFrame>(iface)
+    //  .drawable(logo))
+    //.frame(ui::create<ui::LabelFrame>(iface)
+    //  .drawable(benis))
     ;
 
   iface
@@ -624,7 +625,7 @@ int main(int argc, char *argv[])
       .position({ 1000.0f, 100.0f }))
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Hamil")
-      .content(asdfpy_layout)
+      .content(hamil_layout)
       .background(ui::white())
       .position({ 800.0f, 400.0f }))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
@@ -1099,26 +1100,32 @@ int main(int argc, char *argv[])
       }
     }
 
-    float y = 170.0f;
+    // Draw entity names, ids and origins in columns
+    float entity_str_width = 300.0f;
+    float entity_str_origin_y = 170.0f;
+    float y = entity_str_origin_y;
+    float x = 30.0f;
     scene.gameObject().foreachChild([&](hm::Entity entity) {
       if(!entity.hasComponent<hm::RigidBody>()) return;
 
-      if(y > 1000.0f) return; // Cull invisible text
+      if(y > FramebufferSize.y-small_face.height()) {
+        x += entity_str_width;
+        y = entity_str_origin_y;
+      }
+
+      if(x+entity_str_width > FramebufferSize.x) return; // Cull invisible text
 
       auto transform = entity.component<hm::Transform>();
 
       small_face.draw(util::fmt("%s(0x%.8x) at: %s",
         entity.gameObject().name(), entity.id(), math::to_str(transform().t.translation())),
-        { 30.0f, y }, { 1.0f, 1.0f, 1.0f });
+        { x, y }, { 1.0f, 1.0f, 1.0f });
       y += small_face.height();
     });
 
     worker_pool.waitJob(physics_step_job_id);
 
     auto transforms_extract_job_id = worker_pool.scheduleJob(transforms_extract_job.withParams());
-
-    // Wait for Ui painting to finish
-    worker_pool.waitJob(ui_paint_job_id);
 
     float fps = 1.0f / step_dt;
 
@@ -1129,13 +1136,17 @@ int main(int argc, char *argv[])
     face.draw(util::fmt("FPS: %.2f", fps),
       vec2{ 30.0f, 70.0f }, { 0.8f, 0.0f, 0.0f });
 
+    // Wait for Ui painting to finish
+    worker_pool.waitJob(ui_paint_job_id);
+
+    // Display the statistics
     stats.caption(util::fmt(
       "Frametime: %.3lfms\n"
-      "Triangles: %zu\n"
+      "Scene triangles: %zu\n"
       "Physics update: %.3lfms\n"
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",
-      step_dt*1000.0f,
+      step_dt*1000.0,
       num_tris,
       physics_step_job.dbg_ElapsedTime()*1000.0,
       ui_paint_job.dbg_ElapsedTime()*1000.0,
