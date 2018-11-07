@@ -69,12 +69,18 @@ void Buffer::label(const char *lbl)
   use();
 
   glObjectLabel(GL_BUFFER, m, -1, lbl);
+  unbind();
 #endif
 }
 
 void Buffer::use() const
 {
   glBindBuffer(m_target, m);
+}
+
+void Buffer::unbind() const
+{
+  // No-op for everything except PixelBuffer
 }
 
 void Buffer::init(size_t elem_sz, size_t elem_count)
@@ -85,6 +91,8 @@ void Buffer::init(size_t elem_sz, size_t elem_count)
   glBufferData(m_target, sz, nullptr, m_usage);
 
   m_sz = (ssize_t)sz;
+
+  unbind();
 }
 
 void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
@@ -95,6 +103,8 @@ void Buffer::init(const void *data, size_t elem_sz, size_t elem_count)
   glBufferData(m_target, sz, data, m_usage);
 
   m_sz = (ssize_t)sz;
+
+  unbind();
 }
 
 void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count)
@@ -103,11 +113,31 @@ void Buffer::upload(const void *data, size_t offset, size_t elem_sz, size_t elem
 
   use();
   glBufferSubData(m_target, offset*elem_sz, sz, data);
+
+  unbind();
+}
+
+void Buffer::copy(Buffer& dst, size_t src_offset, size_t dst_offset, size_t sz)
+{
+  glBindBuffer(GL_COPY_READ_BUFFER, m);
+  glBindBuffer(GL_COPY_WRITE_BUFFER, dst.m);
+
+  glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
+    (GLintptr)src_offset, (GLintptr)dst_offset, (GLsizeiptr)sz);
+
+  glBindBuffer(GL_COPY_READ_BUFFER, 0);
+  glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+}
+
+void Buffer::copy(Buffer& dst, size_t sz)
+{
+  copy(dst, 0, 0, sz);
 }
 
 BufferView::BufferView(const Buffer& buf, GLenum target, void *ptr, ssize_t sz) :
   m(buf), m_target(target), m_sz(sz), m_ptr(ptr)
 {
+  buf.unbind();
 }
 
 BufferView::~BufferView()
@@ -139,6 +169,8 @@ void BufferView::flush(ssize_t off, ssize_t sz)
 
   assert(sz > 0 && "Attempting to flush a mapping with unknown size without specifying one!");
   glFlushMappedBufferRange(m_target, off, sz);
+
+  m.unbind();
 }
 
 void BufferView::unmap()
@@ -152,6 +184,8 @@ void BufferView::unmap()
 
   m_ptr = nullptr;
   m_sz = -1;
+
+  m.unbind();
 }
 
 VertexBuffer::VertexBuffer(Usage usage) :
@@ -342,7 +376,7 @@ void PixelBuffer::assertDownload()
   assert(m_target == GL_PIXEL_PACK_BUFFER && "Attempted a Download operation on an Upload PixelBufer!");
 }
 
-void PixelBuffer::unbind()
+void PixelBuffer::unbind() const
 {
   // Unbind the PBO so further texture operations proceed normally
   glBindBuffer(m_target, 0);

@@ -5,10 +5,12 @@
 
 #include <util/ref.h>
 #include <gx/texture.h>
+#include <gx/buffer.h>
 #include <gx/resourcepool.h>
 
 #include <vector>
 #include <utility>
+#include <optional>
 
 namespace ui {
 
@@ -105,12 +107,21 @@ public:
 protected:
   DrawableManager(gx::ResourcePool& pool);
 
+  void prepareDraw();
+
 private:
   friend Ui;
 
-  gx::TextureHandle atlas();
-  Color *localAtlasData(uvec4 coords, unsigned page);
+  gx::ResourcePool::Id createStaging(unsigned num_pages);
 
+  gx::TextureHandle atlas();
+  gx::BufferHandle staging();
+  Color *stagingData(uvec4 coords, unsigned page);
+
+  Color *mapStaging(unsigned page);
+  void unmapStaging();
+
+  void resizeAtlas(unsigned sz);
   unsigned numAtlasPages();
 
   // Allocates a width x height block from the atlas, reuploads it if
@@ -120,13 +131,15 @@ private:
   //   - uploadAtlas(page) must be called after this to see the changes
   void blitAtlas(const Color *data, uvec4 coords, unsigned page);
 
-  void reuploadAtlas();
-  void uploadAtlas(unsigned page);
+  void uploadAtlas();
 
-  std::vector</* Color */byte> m_local_atlas;
+  bool m_staging_tainted;
+  gx::ResourcePool::Id m_staging_id;
+  std::optional<gx::BufferView> m_staging_view;
 
   // Atlas allocation data
-  unsigned m_current_page = 0;
+  unsigned m_num_pages;
+  unsigned m_current_page;
   std::vector<unsigned> m_rovers;
 
   gx::ResourcePool& m_pool;

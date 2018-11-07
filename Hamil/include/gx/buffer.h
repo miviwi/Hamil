@@ -58,6 +58,7 @@ public:
   ~Buffer();
 
   virtual void use() const;
+  virtual void unbind() const;
 
   template <typename T>
   void init(const T data[], size_t count) { init(data, sizeof(T), count); }
@@ -67,6 +68,9 @@ public:
   void init(size_t elem_sz, size_t elem_count);
   void init(const void *data, size_t elem_sz, size_t elem_count);
   void upload(const void *data, size_t offset, size_t elem_sz, size_t elem_count);
+
+  void copy(Buffer& dst, size_t src_offset, size_t dst_offset, size_t sz);
+  void copy(Buffer& dst, size_t sz);
 
   BufferView map(Access access, uint flags = MapDefault);
   BufferView map(Access access, GLintptr off, GLint sz, uint flags = MapDefault);
@@ -153,6 +157,8 @@ public:
 
   PixelBuffer(Usage usage, TransferDirection xfer_dir);
 
+  virtual void unbind() const;
+
   // Invalidates current Texture binding!
   void uploadTexture(Texture& tex, unsigned mip, unsigned w, unsigned h,
     Format fmt, Type type, size_t off = 0);
@@ -189,8 +195,6 @@ private:
 
   void assertUpload();
   void assertDownload();
-
-  void unbind();
 };
 
 class BufferHandle : public Ref {

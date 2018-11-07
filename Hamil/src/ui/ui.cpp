@@ -325,6 +325,8 @@ gx::CommandBuffer Ui::paint()
   //   leaves behind data)
   m_mempool.purge();
 
+  m_drawable.prepareDraw();
+
   auto& renderpass = m_pool.get<gx::RenderPass>(m_renderpass_id);
   auto command_buf = gx::CommandBuffer::begin()
     .bindResourcePool(&m_pool)

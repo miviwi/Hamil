@@ -227,19 +227,32 @@ pDrawableImage *Drawable::getImage() const
 }
 
 DrawableManager::DrawableManager(gx::ResourcePool& pool) :
-  m_local_atlas(AtlasSize.area() * InitialPages * sizeof(Color)),
+  m_staging_tainted(false),
+  m_staging_id(gx::ResourcePool::Invalid),
+  m_staging_view(std::nullopt),
+  m_num_pages(InitialPages),
   m_current_page(0), m_rovers(AtlasSize.s, 0),
   m_pool(pool),
   m_sampler_id(gx::ResourcePool::Invalid),
   m_atlas_id(gx::ResourcePool::Invalid)
 {
+  m_staging_id = createStaging(numAtlasPages());
+
   m_sampler_id = m_pool.create<gx::Sampler>("sUiDrawable",
     gx::Sampler::edgeclamp2d());
 
   m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("t2dUiDrawableAtlas",
     gx::srgb_alpha);
   atlas().get()
-    .init(AtlasSize.s, AtlasSize.t, InitialPages);
+    .init(AtlasSize.s, AtlasSize.t, numAtlasPages());
+}
+
+void DrawableManager::prepareDraw()
+{
+  unmapStaging();
+
+  // Reupload the atlas if data was changed
+  if(m_staging_tainted) uploadAtlas();
 }
 
 Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string& str, Color color)
@@ -261,7 +274,7 @@ Drawable DrawableManager::fromImage(const void *color, unsigned width, unsigned 
   auto image = new pDrawableImage(coords, page);
 
   blitAtlas((Color *)color, coords, page);
-  uploadAtlas(page);
+  m_staging_tainted = true;
 
   return Drawable(image, this);
 }
@@ -281,9 +294,25 @@ gx::ResourcePool::Id DrawableManager::atlasId() const
   return m_atlas_id;
 }
 
+void DrawableManager::resizeAtlas(unsigned sz)
+{
+  auto new_staging_id = createStaging(sz);
+  auto new_staging = m_pool.getBuffer(new_staging_id);
+
+  unmapStaging();
+
+  // Copy over the old data
+  staging().get().copy(new_staging(), AtlasSize.area()*numAtlasPages() * sizeof(Color));
+
+  m_staging_id = new_staging_id;
+  m_num_pages = sz;
+
+  uploadAtlas();
+}
+
 unsigned DrawableManager::numAtlasPages()
 {
-  return (unsigned)m_local_atlas.size() / PageSize;
+  return m_num_pages;
 }
 
 // Taken from the Quake 2 source code - LM_AllocBlock():
@@ -320,10 +349,7 @@ std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned 
 
     if(m_current_page >= numAtlasPages()) {
       // We've exhausted all the pages
-      m_local_atlas.resize(AtlasSize.area() * (m_current_page+1) * sizeof(Color));
-
-      // Resize the texture
-      reuploadAtlas();
+      resizeAtlas(m_current_page+1); // Grab 2 more pages
     }
 
     // Retry
@@ -341,20 +367,48 @@ std::pair<uvec4, unsigned> DrawableManager::atlasAlloc(unsigned width, unsigned 
 void DrawableManager::blitAtlas(const Color *data, uvec4 coords, unsigned page)
 {
   unsigned width = coords.z, height = coords.w;
-  auto local_atlas = localAtlasData(coords, 0);
+  auto staging_data = stagingData(coords, 0);
   for(unsigned y = 0; y < height; y++) {
     auto src = (Color *)data + y*width;
-    auto dst = local_atlas + y*AtlasSize.s;
+    auto dst = staging_data + y*AtlasSize.s;
 
     memcpy(dst, src, width * sizeof(Color));
   }
 }
 
-Color *DrawableManager::localAtlasData(uvec4 coords, unsigned page)
+Color *DrawableManager::stagingData(uvec4 coords, unsigned page)
 {
-  size_t off = page*PageSize + (coords.x + coords.y*AtlasSize.s);
+  size_t off = coords.x + coords.y*AtlasSize.s;
 
-  return (Color *)m_local_atlas.data() + off;
+  return (Color *)mapStaging(page) + off;
+}
+
+Color *DrawableManager::mapStaging(unsigned page)
+{
+  if(!m_staging_view) {
+    // Not mapped yet
+    m_staging_view = staging().get().map(gx::Buffer::Write);
+  }
+
+  return m_staging_view->get<Color>() + AtlasSize.area()*page;
+}
+
+void DrawableManager::unmapStaging()
+{
+  if(!m_staging_view) return;
+
+  m_staging_view->unmap();
+  m_staging_view = std::nullopt;
+}
+
+gx::ResourcePool::Id DrawableManager::createStaging(unsigned num_pages)
+{
+  auto id = m_pool.createBuffer<gx::PixelBuffer>("bpUiDrawableStaging",
+    gx::Buffer::Dynamic, gx::PixelBuffer::Upload);
+  m_pool.getBuffer(id).get()
+    .init(sizeof(Color), AtlasSize.area()*numAtlasPages());
+
+  return id;
 }
 
 gx::TextureHandle DrawableManager::atlas()
@@ -362,18 +416,18 @@ gx::TextureHandle DrawableManager::atlas()
   return m_pool.getTexture(m_atlas_id);
 }
 
-void DrawableManager::reuploadAtlas()
+gx::BufferHandle DrawableManager::staging()
 {
-  atlas().get()
-    .init(m_local_atlas.data(), /* level */0,
-      AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
+  return m_pool.getBuffer(m_staging_id);
 }
 
-void DrawableManager::uploadAtlas(unsigned page)
+void DrawableManager::uploadAtlas()
 {
-  atlas().get()
-    .upload(localAtlasData({ 0, 0, 0, 0 }, page), /* level */0,
-      0, 0, page, AtlasSize.s, AtlasSize.t, 1, gx::rgba, gx::u8);
+  unmapStaging();
+
+  m_pool.getBuffer<gx::PixelBuffer>(m_staging_id)
+    .uploadTexture(atlas().get(), /* level */ 0,
+      /* x */ 0, /* y */ 0, /* z */ 0, AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
 }
 
 }
