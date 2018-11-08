@@ -39,6 +39,7 @@
 #include <gx/resourcepool.h>
 #include <gx/memorypool.h>
 #include <gx/commandbuffer.h>
+#include <gx/fence.h>
 
 #include <ft/font.h>
 
@@ -608,13 +609,14 @@ int main(int argc, char *argv[])
     //.frame(ui::create<ui::LabelFrame>(iface)
     //  .drawable(hahabenis)
     //  .padding({ 256.0f, 256.0f }))
-    .frame(ui::create<ui::LabelFrame>(iface)
-      .drawable(logo))
     //.frame(ui::create<ui::LabelFrame>(iface)
-    //  .drawable(benis))
+    //  .drawable(logo))
+    .frame(ui::create<ui::LabelFrame>(iface)
+      .drawable(benis))
     ;
 
   iface
+    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Window")
       .content(layout)
@@ -628,7 +630,6 @@ int main(int argc, char *argv[])
       .content(hamil_layout)
       .background(ui::white())
       .position({ 800.0f, 400.0f }))
-    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
 
   auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
@@ -766,6 +767,8 @@ int main(int argc, char *argv[])
 
   double transforms_extract_dt = 0.0;
 
+  gx::Fence fence;
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -863,6 +866,8 @@ int main(int argc, char *argv[])
         }
       }
     }
+
+    fence.block();
 
     // All the input has been processed - schedule a Ui paint
     auto ui_paint_job_id = worker_pool.scheduleJob(ui_paint_job.withParams());
@@ -1177,7 +1182,7 @@ int main(int argc, char *argv[])
     }
 
     window.swapBuffers();
-    glFinish();
+    fence.sync();
   }
 
   pool.purge();

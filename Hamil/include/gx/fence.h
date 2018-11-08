@@ -1,0 +1,53 @@
+#pragma once
+
+#include <gx/gx.h>
+
+#include <util/ref.h>
+
+namespace gx {
+
+class Fence : public Ref {
+public:
+  enum Status {
+    Invalid,
+
+    Signaled,
+    Timeout,
+  };
+
+  enum : u64 {
+    TimeoutInfinite = ~0ull,
+  };
+
+  struct Error { };
+
+  struct WaitFailedError : public Error { };
+
+  Fence();
+  ~Fence();
+
+  // Inserts the Fence into the command stream
+  //   - Can be called multiple times
+  //   - When called more than once the old
+  //     fence is discarded and a new one is
+  //     created
+  Fence& sync();
+
+  // Returns 'true' if the fence had already
+  //   been signaled
+  bool signaled();
+
+  // Blocks execution until either the Fence is
+  //   signaled or 'timeout' expires
+  Status block(u64 timeout = TimeoutInfinite);
+
+  // Causes the DRIVER to wait for the Fence's
+  //   completion before submitting commands
+  //   that follow the call
+  void wait();
+
+private:
+  void /* GLsync */ *m;
+};
+
+}

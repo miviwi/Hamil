@@ -255,6 +255,7 @@ void DrawableManager::prepareDraw()
   uploadAtlas();
 
   glFinish(); // TODO: Hack to avoid flickering, replace with a fence
+  m_staging_tainted = false;
 }
 
 Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string& str, Color color)
@@ -276,7 +277,7 @@ Drawable DrawableManager::fromImage(const void *color, unsigned width, unsigned 
   auto image = new pDrawableImage(coords, page);
 
   blitAtlas((Color *)color, coords, page);
-  m_staging_tainted = true;  // Atlas need reupload before drawing
+  m_staging_tainted = true;  // Atlas needs reupload before drawing
 
   return Drawable(image, this);
 }
@@ -395,7 +396,7 @@ Color *DrawableManager::mapStaging(unsigned page)
 {
   if(!m_staging_view) {
     // Not mapped yet
-    m_staging_view = staging().get().map(gx::Buffer::Write);
+    m_staging_view = staging().get().map(gx::Buffer::Write, gx::Buffer::MapFlushExplicit);
   }
 
   return m_staging_view->get<Color>() + AtlasSize.area()*page;

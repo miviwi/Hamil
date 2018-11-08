@@ -125,14 +125,15 @@ private:
   unsigned numAtlasPages();
 
   // Allocates a width x height block from the atlas, reuploads it if
-  //   necessary (more pages are needed)
+  //   necessary (when more pages are needed)
   std::pair<uvec4, unsigned> atlasAlloc(unsigned width, unsigned height);
   // Copy 'data' into 'm_local_atlas'
-  //   - uploadAtlas(page) must be called after this to see the changes
+  //   - uploadAtlas() must be called after this to see the changes
   void blitAtlas(const Color *data, uvec4 coords, unsigned page);
 
   void uploadAtlas();
 
+  // Staging PixelBuffer data
   bool m_staging_tainted;
   gx::ResourcePool::Id m_staging_id;
   std::optional<gx::BufferView> m_staging_view;
@@ -140,7 +141,7 @@ private:
   // Atlas allocation data
   unsigned m_num_pages;
   unsigned m_current_page;
-  std::vector<unsigned> m_rovers;
+  std::vector<u16> m_rovers;
 
   gx::ResourcePool& m_pool;
 

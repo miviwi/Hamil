@@ -7,6 +7,7 @@
 #include <gx/texture.h>
 #include <gx/vertex.h>
 #include <gx/renderpass.h>
+#include <gx/fence.h>
 
 #include <vector>
 #include <tuple>
@@ -129,7 +130,8 @@ private:
     TextureHandle,
     Sampler,
     BufferHandle,
-    RenderPass
+    RenderPass,
+    Fence
   > m_resources;
 };
 

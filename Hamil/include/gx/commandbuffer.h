@@ -113,6 +113,8 @@ public:
     //       * MemoryPool handle for larger values
     OpPushUniform,
 
+    OpFence,
+
     // OpData is ignored
     OpEnd,
 
