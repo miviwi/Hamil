@@ -58,4 +58,8 @@ void Fence::wait()
   glWaitSync((GLsync)m, 0, GL_TIMEOUT_IGNORED);
 }
 
+void Fence::label(const char *lbl)
+{
+}
+
 }

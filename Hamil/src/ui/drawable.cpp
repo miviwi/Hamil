@@ -1,4 +1,7 @@
 #include <ui/drawable.h>
+
+#include <gx/fence.h>
+#include <gx/commandbuffer.h>
 #include <ft/font.h>
 
 #include <cstring>
@@ -238,6 +241,8 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
 {
   m_staging_id = createStaging(numAtlasPages());
 
+  m_fence_id = m_pool.create<gx::Fence>();
+
   m_sampler_id = m_pool.create<gx::Sampler>("sUiDrawable",
     gx::Sampler::edgeclamp2d());
 
@@ -247,15 +252,20 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
     .init(AtlasSize.s, AtlasSize.t, numAtlasPages());
 }
 
-void DrawableManager::prepareDraw()
+bool DrawableManager::prepareDraw()
 {
-  if(!m_staging_tainted) return;  // No new images were created
+  if(!m_staging_tainted) return false;  // No new images were created
+                                        //   no need to wait on the fence
 
   // Need to reupload the atlas
   uploadAtlas();
 
-  glFinish(); // TODO: Hack to avoid flickering, replace with a fence
+  auto& fence = m_pool.get<gx::Fence>(m_fence_id);
+  fence.sync();
+
   m_staging_tainted = false;
+
+  return true; // Need to wait on the fence
 }
 
 Drawable DrawableManager::fromText(const ft::Font::Ptr& font, const std::string& str, Color color)
@@ -285,6 +295,11 @@ Drawable DrawableManager::fromImage(const void *color, unsigned width, unsigned 
 void DrawableManager::finalize(Drawable *d)
 {
   delete d->get();
+}
+
+gx::ResourcePool::Id DrawableManager::fenceId() const
+{
+  return m_fence_id;
 }
 
 gx::ResourcePool::Id DrawableManager::samplerId() const

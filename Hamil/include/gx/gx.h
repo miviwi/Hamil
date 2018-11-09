@@ -80,6 +80,7 @@ GxInfo& info();
 //       * b  - gx::Buffer
 //       * s  - gx::Sampler
 //       * t  - gx::Texture
+//       * f  - gx::Fence
 //       * a  - gx::VertexArray, ia - gx::IndexedVertexArray
 //       * fb - gx::Framebuffer
 //   - Suffixes must be appended to the above depending on the particular

@@ -12,6 +12,7 @@
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/program.h>
+#include <gx/fence.h>
 #include <gx/renderpass.h>
 #include <gx/commandbuffer.h>
 
@@ -325,12 +326,15 @@ gx::CommandBuffer Ui::paint()
   //   leaves behind data)
   m_mempool.purge();
 
-  m_drawable.prepareDraw();
-
   auto& renderpass = m_pool.get<gx::RenderPass>(m_renderpass_id);
   auto command_buf = gx::CommandBuffer::begin()
     .bindResourcePool(&m_pool)
     .bindMemoryPool(&m_mempool);
+
+  if(m_drawable.prepareDraw()) {
+    m_pool.get<gx::Fence>(m_drawable.fenceId())
+      .block();
+  }
 
   if(m_repaint) {
     // Same as above - clean up after previous paint()

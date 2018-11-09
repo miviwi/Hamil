@@ -110,6 +110,22 @@ CommandBuffer& CommandBuffer::uniformMatrix4x4(uint location, MemoryPool::Handle
     .appendExtraData(h);
 }
 
+CommandBuffer& CommandBuffer::fenceSync(ResourceId fence)
+{
+  if(fence & ~OpDataFenceOpDataMask) throw ResourceIdTooLargeError();
+
+  u32 data = (OpDataFenceSync<<OpDataFenceOpShift) | fence;
+  return appendCommand(OpFence, data);
+}
+
+CommandBuffer& CommandBuffer::fenceWait(ResourceId fence)
+{
+  if(fence & ~OpDataFenceOpDataMask) throw ResourceIdTooLargeError();
+
+  u32 data = (OpDataFenceWait<<OpDataFenceOpShift) | fence;
+  return appendCommand(OpFence, data);
+}
+
 CommandBuffer& CommandBuffer::end()
 {
   return appendCommand(OpEnd);
@@ -257,6 +273,10 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
     pushUniformCommand(fetch_extra());
     break;
 
+  case OpFence:
+    fenceCommand(data);
+    break;
+
   case OpEnd:
     endIndexedArray();
     return nullptr;
@@ -328,6 +348,21 @@ void CommandBuffer::pushUniformCommand(CommandWithExtra op)
   case OpDataUniformMatrix4x4: m_program->uniformMatrix4x4(location, memoryPoolRef<mat4>(extra.h)); break;
 
   default: throw UniformTypeInvalidError();
+  }
+}
+
+void CommandBuffer::fenceCommand(u32 data)
+{
+  u32 op = (data>>OpDataFenceOpShift) & OpDataFenceOpMask;
+
+  u32 fence_id = data & OpDataFenceOpDataMask;
+  auto& fence = m_pool->get<gx::Fence>(fence_id);
+
+  switch(op) {
+  case OpDataFenceSync: fence.sync(); break;
+  case OpDataFenceWait: fence.wait(); break;
+
+  default: throw FenceOpInvalidError();
   }
 }
 

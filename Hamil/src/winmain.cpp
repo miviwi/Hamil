@@ -605,6 +605,10 @@ int main(int argc, char *argv[])
   auto benis = iface.drawable().fromImage(r_benis->data(),
     r_benis->width(), r_benis->height());
 
+  for(int i = 0; i < 4; i++) {
+    iface.drawable().fromImage(r_texture->data(), r_texture->width(), r_texture->height());
+  }
+
   auto& hamil_layout = ui::create<ui::RowLayoutFrame>(iface)
     //.frame(ui::create<ui::LabelFrame>(iface)
     //  .drawable(hahabenis)
@@ -616,7 +620,6 @@ int main(int argc, char *argv[])
     ;
 
   iface
-    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Window")
       .content(layout)
@@ -630,6 +633,7 @@ int main(int argc, char *argv[])
       .content(hamil_layout)
       .background(ui::white())
       .position({ 800.0f, 400.0f }))
+    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
 
   auto& console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
@@ -1181,8 +1185,8 @@ int main(int argc, char *argv[])
       e.destroy();
     }
 
-    window.swapBuffers();
     fence.sync();
+    window.swapBuffers();
   }
 
   pool.purge();

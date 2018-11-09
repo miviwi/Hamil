@@ -73,6 +73,16 @@ public:
     OpDataUniformMatrix4x4 = 4,
 
     OpDataNumUniformTypes,
+
+    OpDataFenceOpBits  = 1,
+    OpDataFenceOpShift = 27,
+    OpDataFenceOpMask  = (1<<OpDataFenceOpBits) - 1,
+
+    // Mask for 'fence' ResourceId in FenceOps
+    OpDataFenceOpDataMask = OpDataMask & ~(1<<OpDataFenceOpShift),
+
+    OpDataFenceSync = 0,
+    OpDataFenceWait = 1,
   };
   static_assert(OpDataNumUniformTypes < (1<<OpDataUniformTypeBits), "Too many Uniform types defined!");
 
@@ -113,6 +123,7 @@ public:
     //       * MemoryPool handle for larger values
     OpPushUniform,
 
+    // The MSB of OpData encodes the FenceOp - sync()/wait()
     OpFence,
 
     // OpData is ignored
@@ -137,6 +148,8 @@ public:
 
   struct UniformTypeInvalidError : public Error { };
 
+  struct FenceOpInvalidError : public Error { };
+
   // Creates a new CommandBuffer with 'initial_alloc'
   //   preallocated commands (i.e. the number of recorded
   //   commands can be bigger than this number)
@@ -155,6 +168,9 @@ public:
   CommandBuffer& uniformSampler(uint location, uint sampler);
   CommandBuffer& uniformVector4(uint location, MemoryPool::Handle h);
   CommandBuffer& uniformMatrix4x4(uint location, MemoryPool::Handle h);
+
+  CommandBuffer& fenceSync(ResourceId fence);
+  CommandBuffer& fenceWait(ResourceId fence);
 
   // Must be called after the last recorded command!
   CommandBuffer& end();
@@ -210,6 +226,7 @@ private:
   void drawCommand(CommandWithExtra op, u32 base = ~0u, u32 offset = 0);
   void uploadCommand(CommandWithExtra op);
   void pushUniformCommand(CommandWithExtra op);
+  void fenceCommand(u32 data);
 
   // Calls IndexedVertexArray::end() if
   //   the last draw command was drawIndexed()

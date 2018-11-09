@@ -12,6 +12,10 @@
 #include <utility>
 #include <optional>
 
+namespace gx {
+class CommandBuffer;
+}
+
 namespace ui {
 
 class Ui;
@@ -101,13 +105,17 @@ public:
 
   void finalize(Drawable *d);
 
+  gx::ResourcePool::Id fenceId() const;
+
   gx::ResourcePool::Id samplerId() const;
   gx::ResourcePool::Id atlasId() const;
 
 protected:
   DrawableManager(gx::ResourcePool& pool);
 
-  void prepareDraw();
+  // Returns 'true' when the DrawableManager's fence (fenceId())
+  //   must be waited on
+  bool prepareDraw();
 
 private:
   friend Ui;
@@ -137,6 +145,7 @@ private:
   bool m_staging_tainted;
   gx::ResourcePool::Id m_staging_id;
   std::optional<gx::BufferView> m_staging_view;
+  gx::ResourcePool::Id m_fence_id;
 
   // Atlas allocation data
   unsigned m_num_pages;

@@ -243,6 +243,9 @@ bool ConsoleFrame::isTransitioning() const
 
 bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
+  bool mouse_over = geometry().intersect(cursor.pos());
+  if(!mouse_over) return false;
+
   if(auto mouse = input->get<win32::Mouse>()) {
     using win32::Mouse;
     if(mouse->event != Mouse::Wheel) return false;

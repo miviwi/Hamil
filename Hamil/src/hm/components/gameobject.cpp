@@ -115,6 +115,8 @@ GameObjectIterator& GameObjectIterator::operator++()
   do {
     Entity e = *m_it;
     if(e && e.alive()) break;
+
+    m_it++;
   } while(m_it != m->end());
 
   return *this;

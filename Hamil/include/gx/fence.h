@@ -46,6 +46,9 @@ public:
   //   that follow the call
   void wait();
 
+  // Dummy method for ResourcePool
+  void label(const char *lbl);
+
 private:
   void /* GLsync */ *m;
 };
