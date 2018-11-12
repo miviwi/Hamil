@@ -16,7 +16,7 @@ public:
   };
 
   enum : u64 {
-    TimeoutInfinite = ~0ull,
+    TimeoutInfinite = GL_TIMEOUT_IGNORED,
   };
 
   struct Error { };

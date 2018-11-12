@@ -332,8 +332,7 @@ gx::CommandBuffer Ui::paint()
     .bindMemoryPool(&m_mempool);
 
   if(m_drawable.prepareDraw()) {
-    m_pool.get<gx::Fence>(m_drawable.fenceId())
-      .block();
+    command_buf.fenceWait(m_drawable.fenceId());
   }
 
   if(m_repaint) {

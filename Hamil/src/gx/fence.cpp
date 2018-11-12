@@ -21,6 +21,8 @@ Fence& Fence::sync()
   }
 
   m = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+  glFlush();  // Have to flush here to ensure consistency across
+              //   threads (and their associated contexts)
 
   return *this;
 }

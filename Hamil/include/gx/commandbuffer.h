@@ -79,7 +79,7 @@ public:
     OpDataFenceOpMask  = (1<<OpDataFenceOpBits) - 1,
 
     // Mask for 'fence' ResourceId in FenceOps
-    OpDataFenceOpDataMask = OpDataMask & ~(1<<OpDataFenceOpShift),
+    OpDataFenceOpDataMask = OpDataMask & ~(OpDataFenceOpMask<<OpDataFenceOpShift),
 
     OpDataFenceSync = 0,
     OpDataFenceWait = 1,
