@@ -90,8 +90,8 @@ public:
   GLint getUniformLocation(const char *name);
 
   unsigned getUniformBlockIndex(const char *name);
-  void uniformBlockBinding(unsigned block, unsigned index);
-  void uniformBlockBinding(const char *name, unsigned index);
+  Program& uniformBlockBinding(unsigned block, unsigned index);
+  Program& uniformBlockBinding(const char *name, unsigned index);
   const OffsetMap& uniformBlockOffsets(unsigned block);
 
   int getOutputLocation(const char *name);

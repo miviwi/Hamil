@@ -59,7 +59,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
   const auto& monospace = ownStyle().monospace;
   auto char_width = monospace->monospaceWidth();
 
-  std::string prompt = " >>> ";
+  std::string prompt = " >>>";
 
   auto prompt_width = char_width * (float)prompt.size();
 
@@ -244,11 +244,17 @@ bool ConsoleFrame::isTransitioning() const
 bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
   bool mouse_over = geometry().intersect(cursor.pos());
-  if(!mouse_over) return false;
+  if(!mouse_over) {
+    ui().capture(nullptr);
+    return false;
+  }
 
   if(auto mouse = input->get<win32::Mouse>()) {
     using win32::Mouse;
-    if(mouse->event != Mouse::Wheel) return false;
+    if(mouse->event != Mouse::Wheel) {
+      ui().capture(this);
+      return true;
+    }
 
     if(m_buffer.size() < rows()) return true; // don't scroll if the screen
                                               // hasn't been filled yet
@@ -260,11 +266,9 @@ bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
     } else {
       if(m_scroll > 0) m_scroll += direction;
     }
-
-    return true;
   }
 
-  return false;
+  return true;
 }
 
 void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)

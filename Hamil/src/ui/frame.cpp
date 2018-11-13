@@ -60,16 +60,20 @@ Frame& Frame::geometry(Geometry g)
 Geometry Frame::geometry() const
 {
   Geometry g = m_geom;
+  vec2 pad = padding();
+
   if(!g.w && !g.h) {
     vec2 sz  = sizeHint();
-    vec2 pad = padding();
     return {
       g.x, g.y,
       std::max(sz.x, pad.x), std::max(sz.y, pad.y)
     };
   }
 
-  return g;
+  return {
+    g.x, g.y,
+    std::max(g.w, pad.x), std::max(g.h, pad.y)
+  };
 }
 
 Frame& Frame::gravity(Gravity gravity)

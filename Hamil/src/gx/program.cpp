@@ -81,14 +81,16 @@ unsigned Program::getUniformBlockIndex(const char *name)
   return glGetUniformBlockIndex(m, name);
 }
 
-void Program::uniformBlockBinding(unsigned block, unsigned index)
+Program& Program::uniformBlockBinding(unsigned block, unsigned index)
 {
   glUniformBlockBinding(m, block, index);
+
+  return *this;
 }
 
-void Program::uniformBlockBinding(const char *name, unsigned index)
+Program& Program::uniformBlockBinding(const char *name, unsigned index)
 {
-  uniformBlockBinding(getUniformBlockIndex(name), index);
+  return uniformBlockBinding(getUniformBlockIndex(name), index);
 }
 
 const Program::OffsetMap Program::m_null_offsets;

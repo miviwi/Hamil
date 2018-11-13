@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
     mat4 persp;
   };
 
-  auto skybox_uniforms_handle = memory.alloc(sizeof(SkyboxUniforms));
+  auto skybox_uniforms_handle = memory.alloc<SkyboxUniforms>();
   auto& skybox_uniforms = *memory.ptr<SkyboxUniforms>(skybox_uniforms_handle);
 
   enum : uint {
@@ -420,15 +420,16 @@ int main(int argc, char *argv[])
   auto scene_ubo_id = pool.createBuffer<gx::UniformBuffer>("buScene", gx::Buffer::Stream);
   pool.getBuffer<gx::UniformBuffer>(scene_ubo_id).init(block_group_size, 1);
 
-  auto light_block_handle = memory.alloc(sizeof(LightBlock));
+  auto light_block_handle = memory.alloc<LightBlock>();
   auto& light_block = *memory.ptr<LightBlock>(light_block_handle);
 
   auto light_ubo_id = pool.createBuffer<gx::UniformBuffer>("buLight", gx::Buffer::Stream);
   pool.getBuffer<gx::UniformBuffer>(light_ubo_id).init(sizeof(LightBlock), 1);
 
-  program.uniformBlockBinding("MatrixBlock", MatrixBinding);
-  program.uniformBlockBinding("MaterialBlock", MaterialBinding);
-  program.uniformBlockBinding("LightBlock", LightBinding);
+  program
+    .uniformBlockBinding("MatrixBlock", MatrixBinding)
+    .uniformBlockBinding("MaterialBlock", MaterialBinding)
+    .uniformBlockBinding("LightBlock", LightBinding);
 
   skybox_program.use()
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
@@ -567,11 +568,12 @@ int main(int argc, char *argv[])
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame<ui::PushButtonFrame>(iface, "b")
     .frame(ui::create<ui::HSliderFrame>(iface, "fov")
-            .range(60.0f, 120.0f))
+      .range(60.0f, 120.0f)
+      .step(1.0))
     .frame(ui::create<ui::LabelFrame>(iface, "fov_val")
-            .caption(util::fmt("Fov: %.2f  ", 0.0f))
-            .padding({ 20.0f, 0.0f })
-            .gravity(ui::Frame::Center))
+      .caption(util::fmt("Fov: %.0f  ", 0.0f))
+      .padding({ 120.0f, 0.0f })
+      .gravity(ui::Frame::Center))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");
@@ -583,7 +585,7 @@ int main(int argc, char *argv[])
   auto& fov_val = *iface.getFrameByName<ui::LabelFrame>("fov_val");
 
   fov_slider.onChange([&](ui::SliderFrame *target) {
-    fov_val.caption(util::fmt("Fov: %.2lf", target->value()));
+    fov_val.caption(util::fmt("Fov: %.0lf", target->value()));
   });
   fov_slider.value(70.0f);
 
@@ -1138,7 +1140,7 @@ int main(int argc, char *argv[])
 
     float fps = 1.0f / step_dt;
 
-    constexpr float smoothing = 0.9f;
+    constexpr float smoothing = 0.95f;
     old_fps = fps;
     fps = old_fps*smoothing + fps*(1.0f-smoothing);
 

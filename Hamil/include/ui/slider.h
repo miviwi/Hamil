@@ -20,9 +20,14 @@ public:
   virtual void losingCapture();
 
   SliderFrame& range(double min, double max);
+  SliderFrame& step(double step);
   SliderFrame& onChange(OnChange::Slot on_change);
 
   SliderFrame& value(double value);
+
+  // Sets the value in the normalized range [min, max] -> [0, 1]
+  SliderFrame& valuef(double fract);
+
   double value() const;
   int ivalue() const;
 
@@ -37,15 +42,22 @@ protected:
   constexpr static float InnerMargin = 0.06f;
 
   virtual double step() const = 0;
+
   virtual vec2 headPos() const = 0;
 
+  double valueDelta() const;
+  double valueFactor() const;
+  double stepQuantize(double fine_value) const;
   double clampedValue(double value) const;
+
   virtual double clickedValue(vec2 pos) const = 0;
 
   State m_state = Default;
 
-  double m_min = 0;
-  double m_max = 100;
+  double m_min  = 0;
+  double m_max  = 100;
+  double m_step = FLT_EPSILON;
+
   double m_value = 0;
   
   OnChange m_on_change;

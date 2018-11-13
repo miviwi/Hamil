@@ -58,6 +58,13 @@ SliderFrame& SliderFrame::range(double min, double max)
   return *this;
 }
 
+SliderFrame& SliderFrame::step(double step)
+{
+  m_step = step;
+
+  return *this;
+}
+
 SliderFrame& SliderFrame::value(double value)
 {
   m_value = clampedValue(value);
@@ -71,6 +78,11 @@ SliderFrame& SliderFrame::onChange(OnChange::Slot on_change)
   m_on_change.connect(on_change);
 
   return *this;
+}
+
+SliderFrame& SliderFrame::valuef(double fract)
+{
+  return value(lerp(m_min, m_max, fract));
 }
 
 double SliderFrame::value() const
@@ -88,6 +100,21 @@ SliderFrame::OnChange& SliderFrame::change()
   return m_on_change;
 }
 
+double SliderFrame::valueDelta() const
+{
+  return m_max - m_min;
+}
+
+double SliderFrame::valueFactor() const
+{
+  return (m_value-m_min)/valueDelta();
+}
+
+double SliderFrame::stepQuantize(double fine_value) const
+{
+  return fine_value - fmod(fine_value, m_step);
+}
+
 double SliderFrame::clampedValue(double value) const
 {
   return clamp(value, m_min, m_max);
@@ -103,7 +130,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   float w = width();
   vec2 center = g.center();
 
-  float value_factor = (float)(m_value-m_min)/(float)(m_max-m_min);
+  float value_factor = (float)valueFactor();
 
   vec2 pos[2] = {
     { g.x + g.w*Margin, center.y },
@@ -116,17 +143,15 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
     head_pos
   };
 
-  auto luminance = slider.color[1].luminance().r;
-  byte factor = 0;
+  double factor = 0.0;
   switch(m_state) {
-  case Default: factor = 0; break;
-  case Hover:   factor = luminance/2; break;
-  case Pressed: factor = luminance*2; break;
+  case Hover:   factor = 0.1; break;
+  case Pressed: factor = 0.4; break;
   }
 
   Color head_color[2] = {
-    slider.color[0].lighten(factor),
-    slider.color[1].lighten(factor),
+    slider.color[0].lightenf(factor),
+    slider.color[1].lightenf(factor),
   };
 
   const float highlight_r = slider.width/1.5f;
@@ -135,7 +160,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
     head_pos.y - highlight_r/2.3f
   };
 
-  Color value_color = slider.color[1].lighten(luminance);
+  Color value_color = slider.color[1].lightenf(0.1);
 
   auto pipeline = gx::Pipeline()
     .alphaBlend()
@@ -173,7 +198,7 @@ float HSliderFrame::innerWidth() const
 
 double HSliderFrame::step() const
 {
-  return (m_max-m_min)/(width() * (1 - 2.0f*InnerMargin));
+  return stepQuantize(valueDelta()/innerWidth());
 }
 
 vec2 HSliderFrame::headPos() const
@@ -182,7 +207,7 @@ vec2 HSliderFrame::headPos() const
   vec2 center = g.center();
 
   float w = width();
-  float value_factor = (float)(m_value-m_min)/(float)(m_max-m_min);
+  float value_factor = (float)valueFactor();
 
   return vec2{
     (g.x + g.w*Margin) + w*InnerMargin + value_factor*innerWidth(),
@@ -195,9 +220,9 @@ double HSliderFrame::clickedValue(vec2 pos) const
   Geometry g = geometry();
   float x = pos.x - (g.x + g.w*(Margin+InnerMargin));
 
-  double value = lerp(m_min, m_max, x/innerWidth());
+  double fine_value = lerp(m_min, m_max, x/innerWidth());
 
-  return clampedValue(value);
+  return clampedValue(stepQuantize(fine_value));
 }
 
 }

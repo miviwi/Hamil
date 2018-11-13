@@ -18,6 +18,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 #include <unordered_map>
 #include <memory>
 #include <utility>
@@ -136,7 +137,7 @@ private:
   Style m_style;
 
   // List of all Frames which are direct children of this Ui
-  std::vector<Frame *> m_frames;
+  std::list<Frame *> m_frames;
   // Lookup cache for getFrameByName()
   std::unordered_map<std::string, Frame *> m_names;
 

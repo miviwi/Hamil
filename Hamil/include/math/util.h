@@ -32,6 +32,11 @@ T lerp(T a, T b, float u)
   return a + (b-a)*u;
 }
 
+static double lerp(double a, double b, double u)
+{
+  return a + (b-a)*u;
+}
+
 static vec4 lerp(vec4 a, vec4 b, float u)
 {
   alignas(16) vec4 c;

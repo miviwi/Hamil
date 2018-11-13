@@ -40,6 +40,7 @@ public:
   //   - All Handles obtained from alloc() are guaranteed
   //     to be aligned on an AllocAlign-byte boundary
   Handle alloc(size_t sz);
+  template <typename T> Handle alloc() { return alloc(sizeof(T)); }
 
   // Grows the MemoryPool by 'sz' bytes
   //   - Handles remain valid

@@ -299,7 +299,7 @@ bool Ui::input(CursorDriver& cursor, const InputPtr& input)
   }
 
   for(auto it = m_frames.begin(); it != m_frames.end(); it++) {
-    auto& frame = *it;
+    auto frame = *it;
 
     // The input was outside this Frame - try the next one
     if(!frame->input(cursor, input)) continue;
@@ -307,11 +307,8 @@ bool Ui::input(CursorDriver& cursor, const InputPtr& input)
     // After the user interacts with a top-level Frame
     //   bring it to the front (i.e. draw it on top of
     //   everything else and pass input to it first)
-    //
-    // TODO: Using std::swap() here is fast and simple
-    //       but causes minor visual bugs when multiple
-    //       Frames overlap
-    std::swap(m_frames.back(), frame);
+    m_frames.erase(it);
+    m_frames.push_back(frame);
     return true;
   }
 
@@ -374,7 +371,7 @@ gx::CommandBuffer Ui::paint()
 
   m_painter.doCommands([&,this](VertexPainter::Command cmd)
   {
-    auto mvp_handle = m_mempool.alloc(sizeof(mat4));
+    auto mvp_handle = m_mempool.alloc<mat4>();
     auto& mvp = *m_mempool.ptr<mat4>(mvp_handle);
 
     mvp = projection;
@@ -403,7 +400,7 @@ gx::CommandBuffer Ui::paint()
         last_font_id = font_id;
       }
 
-      auto color_handle = m_mempool.alloc(sizeof(vec4));
+      auto color_handle = m_mempool.alloc<vec4>();
       auto& color = *m_mempool.ptr<vec4>(color_handle);
 
       color = cmd.color.normalize();
