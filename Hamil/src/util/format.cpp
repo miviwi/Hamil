@@ -6,7 +6,7 @@
 
 namespace util {
 
-static char p_format_string_buf[4096];
+thread_local char p_format_string_buf[4096*8];
 
 std::string p_fmt(const char *fmt, ...)
 {
