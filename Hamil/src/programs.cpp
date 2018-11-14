@@ -6,6 +6,7 @@ struct ProgramUniforms : gx::Uniforms {
   Name program;
 
   Sampler uTex;
+  float uExposure;
 };
 
 struct SkyboxUniforms : gx::Uniforms {

@@ -279,8 +279,7 @@ int main(int argc, char *argv[])
     fullscreen_quad_fmt, fullscreen_quad_vbuf);
   auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
-  res::Handle<res::Shader> r_phong = R.shader.shaders.phong,
-    r_program = R.shader.shaders.program,
+  res::Handle<res::Shader> r_program = R.shader.shaders.program,
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
@@ -567,11 +566,11 @@ int main(int argc, char *argv[])
 
   auto& layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame<ui::PushButtonFrame>(iface, "b")
-    .frame(ui::create<ui::HSliderFrame>(iface, "fov")
-      .range(60.0f, 120.0f)
-      .step(1.0))
-    .frame(ui::create<ui::LabelFrame>(iface, "fov_val")
-      .caption(util::fmt("Fov: %.0f  ", 0.0f))
+    .frame(ui::create<ui::HSliderFrame>(iface, "exp")
+      .range(0.1f, 10.0f)
+      .step(0.1))
+    .frame(ui::create<ui::LabelFrame>(iface, "exp_val")
+      .caption(util::fmt("Exposure: %.1f  ", 0.0f))
       .padding({ 120.0f, 0.0f })
       .gravity(ui::Frame::Center))
     ;
@@ -581,13 +580,13 @@ int main(int argc, char *argv[])
     window.quit();
   });
 
-  auto& fov_slider = *iface.getFrameByName<ui::HSliderFrame>("fov");
-  auto& fov_val = *iface.getFrameByName<ui::LabelFrame>("fov_val");
+  auto& exp_slider = *iface.getFrameByName<ui::HSliderFrame>("exp");
+  auto& exp_val = *iface.getFrameByName<ui::LabelFrame>("exp_val");
 
-  fov_slider.onChange([&](ui::SliderFrame *target) {
-    fov_val.caption(util::fmt("Fov: %.0lf", target->value()));
+  exp_slider.onChange([&](ui::SliderFrame *target) {
+    exp_val.caption(util::fmt("Exposure: %.1lf", target->value()));
   });
-  fov_slider.value(70.0f);
+  exp_slider.value(1.0f);
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::LabelFrame>(iface, "stats")
@@ -880,7 +879,7 @@ int main(int argc, char *argv[])
 
     mat4 model = xform::identity();
 
-    auto persp = xform::perspective(fov_slider.value(),
+    auto persp = xform::perspective(70.0f,
       (float)FramebufferSize.x/(float)FramebufferSize.y, 50.0f, 10e20f);
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
@@ -981,6 +980,9 @@ int main(int argc, char *argv[])
     };
 
     scene_pass.begin(pool);
+
+    program.use()
+      .uniformFloat(U.program.uExposure, exp_slider.value());
 
     mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
 

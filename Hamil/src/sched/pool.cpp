@@ -130,10 +130,15 @@ void WorkerPool::waitJob(JobId id)
   // The Job was already waited on
   if(jobs.at(id) == nullptr) return;
 
-  job->condition().sleep(mutex, [&]() { return job->done(); });
+  // Use a timeout here to prevent deadlocks, they can
+  //   happen due to a race condition in IJob::finished()
+  //   where the waiting thread goes to sleep just BEFORE
+  //   the worker thread wakes condition()
+  // TODO: figure out how to fix this, not bypass it...
+  job->condition().sleep(mutex, [&]() { return job->done(); }, 1);
 
   // Remove the Job from the pool and make sure it's 
-  //   never waited on again until it's rescheduled
+  //   never slept on again until it's rescheduled
   m_data->jobs_alloc.dealloc(id, 1);
   jobs.at(id) = nullptr;
 }
