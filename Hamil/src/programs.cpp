@@ -9,6 +9,16 @@ struct ProgramUniforms : gx::Uniforms {
   float uExposure;
 };
 
+struct AoUniforms : gx::Uniforms {
+  Name ao;
+
+  mat4 uProjection;
+
+  Sampler uPosition;
+  Sampler uNormal;
+  Sampler uNoise;
+};
+
 struct SkyboxUniforms : gx::Uniforms {
   Name skybox;
 
@@ -16,6 +26,7 @@ struct SkyboxUniforms : gx::Uniforms {
   mat4 uProjection;
 
   Sampler uEnvironmentMap;
+  float uExposure;
 };
 
 struct CompositeUniforms : gx::Uniforms {

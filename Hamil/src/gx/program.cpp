@@ -243,15 +243,18 @@ void Program::link()
   GLint link_success = 0;
   glGetProgramiv(m, GL_LINK_STATUS, &link_success);
 
-  if(link_success == GL_FALSE) {
-    GLint log_size;
-    glGetProgramiv(m, GL_LINK_STATUS, &log_size);
+  if(link_success == GL_TRUE) return;
 
-    std::vector<char> log(log_size);
-    glGetProgramInfoLog(m, log_size, nullptr, log.data());
+  // An error occurred during linking
+  GLint log_size;
+  glGetProgramiv(m, GL_INFO_LOG_LENGTH, &log_size);
 
-    win32::panic(util::fmt("OpenGL program linking error:\n%s", log).data(), win32::ShaderLinkingError);
-  }
+  std::vector<char> log(log_size);
+  glGetProgramInfoLog(m, log_size, nullptr, log.data());
+
+  win32::panic(
+    util::fmt("OpenGL program linking error:\n%s", log).data(),
+    win32::ShaderLinkingError);
 }
 
 void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[])
@@ -325,25 +328,26 @@ Shader::Shader(Type type, const char *const sources[], size_t count)
   GLint success = 0;
   glGetShaderiv(m, GL_COMPILE_STATUS, &success);
 
-  if(!success) {
-    GLint log_size;
-    glGetShaderiv(m, GL_INFO_LOG_LENGTH, &log_size);
+  if(success == GL_TRUE) return;
 
-    std::vector<char> log(log_size);
-    glGetShaderInfoLog(m, log_size, nullptr, log.data());
+  // An error occurred during compilation
+  GLint log_size;
+  glGetShaderiv(m, GL_INFO_LOG_LENGTH, &log_size);
 
-    // Concatenate all the sources
-    std::string source;
-    const char **source_ptr = p_shader_source;
-    while(*source_ptr) {
-      source += *source_ptr;
-      source_ptr++;
-    }
+  std::vector<char> log(log_size);
+  glGetShaderInfoLog(m, log_size, nullptr, log.data());
 
-    win32::panic(
-      util::fmt("OpenGL shader compilation error:\n%s\nSource: %s\n", log, source).data(),
-      win32::ShaderCompileError);
+  // Concatenate all the sources
+  std::string source;
+  const char **source_ptr = p_shader_source;
+  while(*source_ptr) {
+    source += *source_ptr;
+    source_ptr++;
   }
+
+  win32::panic(
+    util::fmt("OpenGL shader compilation error:\n%s\nSource: %s\n", log, source).data(),
+    win32::ShaderCompileError);
 }
 
 Shader::~Shader()

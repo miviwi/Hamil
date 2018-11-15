@@ -96,6 +96,7 @@
 #include <array>
 #include <utility>
 #include <atomic>
+#include <random>
 
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 int main(int argc, char *argv[])
@@ -224,12 +225,15 @@ int main(int argc, char *argv[])
   tex.generateMipmaps();
 
   byte cubemap_colors[][3] = {
-    { 0x20, 0x20, 0x20, },
-    { 0x20, 0x20, 0x20, },
-    { 0x20, 0x20, 0x20, },
-    { 0x00, 0x00, 0x00, },
-    { 0x20, 0x20, 0x20, },
-    { 0x20, 0x20, 0x20, },
+    { 0x00, 0x20, 0x20, }, { 0x20, 0x20, 0x00, },
+    { 0x20, 0x20, 0x20, }, { 0x00, 0x00, 0x00, },
+    { 0x20, 0x20, 0x20, }, { 0x20, 0x20, 0x20, },
+
+#if 0
+    vec4(0.0f, 0.25f, 0.25f, 1.0f), vec4(0.5f, 0.5f, 0.0f, 1.0f),
+    vec4(0.25f, 0.25f, 0.25f, 1.0f), vec4(0.4f, 0.4f, 0.4f, 1.0f),
+    vec4(0.1f, 0.1f, 0.1f, 1.0f), vec4(0.1f, 0.1f, 0.1f, 1.0f),
+#endif
   };
 
   auto cubemap_id = pool.createTexture<gx::TextureCubeMap>("tcSkybox", gx::rgb);
@@ -280,12 +284,18 @@ int main(int argc, char *argv[])
   auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
   res::Handle<res::Shader> r_program = R.shader.shaders.program,
+    r_ao = R.shader.shaders.ao,
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
   auto program_id = pool.create<gx::Program>("pProgram", gx::make_program(
     r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program));
   auto& program = pool.get<gx::Program>(program_id);
+
+  auto ao_program_id = pool.create<gx::Program>("pAo", gx::make_program(
+    r_ao->source(res::Shader::Vertex), r_ao->source(res::Shader::Fragment), U.ao
+  ));
+  auto& ao_program = pool.get<gx::Program>(ao_program_id);
 
   auto skybox_program_id = pool.create<gx::Program>("pSkybox", gx::make_program(
     r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox));
@@ -295,18 +305,57 @@ int main(int argc, char *argv[])
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
   auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
+  std::random_device dev_random;
+  std::mt19937 random_generator;
+  random_generator.seed(dev_random());
+
+  std::uniform_real_distribution<float> random_floats(0.0f, 1.0f);
+
+  std::array<vec4, 64> ao_kernel;
+  for(size_t i = 0; i < ao_kernel.size(); i++) {
+    float x = random_floats(random_generator) * 2.0f - 1.0f;
+    float y = random_floats(random_generator) * 2.0f - 1.0f;
+    float z = random_floats(random_generator);
+
+    auto s = vec4{ x, y, z, 0.0f };
+    s = s.normalize() * random_floats(random_generator);
+
+    float scale = (float)i / (float)ao_kernel.size();
+    scale = lerp(0.1f, 1.0f, scale*scale);
+
+    s *= scale;
+
+    ao_kernel[i] = s;
+  }
+
+  std::array<vec3, 4*4> ao_noise;
+  for(auto& sample : ao_noise) {
+    float x = random_floats(random_generator) * 2.0f - 1.0f;
+    float y = random_floats(random_generator) * 2.0f - 1.0f;
+
+    sample = vec3{ x, y, 0.0f };
+  }
+
+  auto ao_noise_tex_id = pool.createTexture<gx::Texture2D>("t2dAoNoise",
+    gx::rgb16f);
+  auto& ao_noise_tex = pool.getTexture<gx::Texture2D>(ao_noise_tex_id);
+
+  auto ao_noise_sampler_id = pool.create<gx::Sampler>(gx::Sampler::repeat2d());
+
+  ao_noise_tex.init(ao_noise.data(), 0, 4, 4, gx::rgb, gx::f32);
+
   auto fb_tex_id = pool.createTexture<gx::Texture2D>("t2dFramebufferColor",
     gx::rgb10, gx::Texture::Multisample);
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
 
-  auto fb_pos_id = pool.createTexture<gx::Texture2D>("t2dFramebufferPos",
-    gx::rgb16f, gx::Texture::Multisample);
+  auto fb_pos_id = pool.createTexture<gx::Texture2D>("t2dFramebufferPosition",
+    gx::rgb32f, gx::Texture::Multisample);
   auto& fb_pos = pool.getTexture<gx::Texture2D>(fb_pos_id);
 
   auto fb_normal_id = pool.createTexture<gx::Texture2D>("t2dFramebufferNormal",
     gx::rgb16f, gx::Texture::Multisample);
   auto& fb_normal = pool.getTexture<gx::Texture2D>(fb_normal_id);
-
+ 
   auto fb_id = pool.create<gx::Framebuffer>("fbFramebuffer");
   auto& fb = pool.get<gx::Framebuffer>(fb_id);
 
@@ -322,6 +371,18 @@ int main(int argc, char *argv[])
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
+
+  auto ao_id = pool.createTexture<gx::Texture2D>("t2dFramebufferAo",
+    gx::rgb8, gx::Texture::Multisample);
+  auto& ao = pool.getTexture<gx::Texture2D>(ao_id);
+
+  auto fb_ao_id = pool.create<gx::Framebuffer>("fbAo");
+  auto& fb_ao = pool.get<gx::Framebuffer>(fb_ao_id);
+
+  ao.initMultisample(1, FramebufferSize);
+
+  fb_ao.use()
+    .tex(ao, 0, gx::Framebuffer::Color(0));
   
   auto fb_composite_id = pool.create<gx::Framebuffer>("fbComposite");
   auto& fb_composite = pool.get<gx::Framebuffer>(fb_composite_id);
@@ -348,6 +409,10 @@ int main(int argc, char *argv[])
 
     UiTexImageUnit    = 4u,
     SceneTexImageUnit = 5u,
+
+    AoPositionTexImageUnit = 6u,
+    AoNormalTexImageUnit = 7u,
+    AoNoiseTexImageUnit = 8u,
   };
 
   static constexpr uint MatrixBinding = 0;
@@ -384,6 +449,8 @@ int main(int argc, char *argv[])
 
   static constexpr uint LightBinding = 2;
   struct LightBlock {
+    vec4 /* vec3 */ ambient_basis[6];
+
     Light lights[4];
     int num_lights;
   };
@@ -394,6 +461,8 @@ int main(int argc, char *argv[])
     MatrixBlock *matrix;
     MaterialBlock *material;
   };
+
+  static constexpr uint AoKernelBinding = 3;
 
   const uint ubo_block_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
   auto ubo_align = [&](uint sz) {
@@ -425,6 +494,11 @@ int main(int argc, char *argv[])
   auto light_ubo_id = pool.createBuffer<gx::UniformBuffer>("buLight", gx::Buffer::Stream);
   pool.getBuffer<gx::UniformBuffer>(light_ubo_id).init(sizeof(LightBlock), 1);
 
+  auto ao_ubo_id = pool.createBuffer<gx::UniformBuffer>("buAo", gx::Buffer::Static);
+  auto& ao_ubo = pool.getBuffer<gx::UniformBuffer>(ao_ubo_id);
+
+  ao_ubo.init(ao_kernel.data(), ao_kernel.size());
+
   program
     .uniformBlockBinding("MatrixBlock", MatrixBinding)
     .uniformBlockBinding("MaterialBlock", MaterialBinding)
@@ -433,7 +507,13 @@ int main(int argc, char *argv[])
   skybox_program.use()
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
 
+  ao_program.use()
+    .uniformSampler(U.ao.uPosition, AoPositionTexImageUnit)
+    .uniformSampler(U.ao.uNormal, AoNormalTexImageUnit)
+    .uniformSampler(U.ao.uNoise, AoNoiseTexImageUnit);
+
   composite_program.use()
+    .uniformBlockBinding("AoKernelBlock", AoKernelBinding)
     .uniformSampler(U.composite.uUi, 4)
     .uniformSampler(U.composite.uScene, 5);
 
@@ -463,12 +543,28 @@ int main(int argc, char *argv[])
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
+  auto ao_pass_id = pool.create<gx::RenderPass>();
+  auto& ao_pass = pool.get<gx::RenderPass>(ao_pass_id)
+    .framebuffer(fb_ao_id)
+    .textures({
+      { AoPositionTexImageUnit, { fb_pos_id, resolve_sampler_id }},
+      { AoNormalTexImageUnit,   { fb_normal_id, resolve_sampler_id }},
+      { AoNoiseTexImageUnit,    { ao_noise_tex_id, ao_noise_sampler_id }}
+    })
+    .pipeline(gx::Pipeline()
+      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .noBlend()
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
+    .clearOp(gx::RenderPass::ClearColor)
+    ;
+
   auto composite_pass_id = pool.create<gx::RenderPass>();
   auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
     .textures({
-      { SceneTexImageUnit, { fb_tex_id, resolve_sampler_id }}
+      { SceneTexImageUnit, { ao_id, resolve_sampler_id }}
     })
+    .uniformBuffer(AoKernelBinding, ao_ubo_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
       .noDepthTest()
@@ -499,6 +595,8 @@ int main(int argc, char *argv[])
     { -10, 6, -10 },
     { 20, 6, 0 },
   };
+
+
 
   struct FloorVtx {
     vec3 pos;
@@ -774,6 +872,8 @@ int main(int argc, char *argv[])
 
   gx::Fence fence;
 
+  bool use_ambient = true;
+
   while(window.processMessages()) {
     using hm::entities;
     using hm::components;
@@ -815,8 +915,8 @@ int main(int argc, char *argv[])
           floor = create_floor();
         } else if(kb->keyDown('Q')) {
           window.quit();
-        } else if(kb->keyDown('O')) {
-          ortho_projection = !ortho_projection;
+        } else if(kb->keyDown('A')) {
+          use_ambient = !use_ambient;
         } else if(kb->keyDown('D')) {
           create_sphere();
         } else if(kb->keyDown('W')) {
@@ -928,6 +1028,18 @@ int main(int argc, char *argv[])
     vec4 color;
 
     size_t num_tris = 0;
+
+    vec4 ambient_basis[6] = {
+      vec4(0.0f, 0.25f, 0.25f, 1.0f), vec4(0.5f, 0.5f, 0.0f, 1.0f),
+      vec4(0.25f, 0.25f, 0.25f, 1.0f), vec4(0.7f, 0.7f, 0.7f, 1.0f),
+      vec4(0.1f, 0.1f, 0.1f, 1.0f), vec4(0.1f, 0.1f, 0.1f, 1.0f),
+    };
+
+    if(!use_ambient) {
+      memset(ambient_basis, 0, sizeof(vec4)*6);
+    }
+
+    memcpy(light_block.ambient_basis, ambient_basis, sizeof(vec4)*6);
 
     light_block.num_lights = 3;
 
@@ -1086,9 +1198,19 @@ int main(int argc, char *argv[])
     }
 
     skybox_uniforms = { view, persp };
+    skybox_program.use()
+      .uniformFloat(U.skybox.uExposure, exp_slider.value())
+      ;
+
     cmd_skybox
       .activeRenderPass(scene_pass_id)
       .execute();
+
+    ao_pass.begin(pool);
+    ao_program.use()
+      .uniformMatrix4x4(U.ao.uProjection, persp)
+      .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
+      ;
 
     for(int i = 0; i < light_block.num_lights; i++) {
       model = xform::Transform()

@@ -180,6 +180,8 @@ static yaml::Document shadergen(win32::File& file,
 
   auto append_source = [&](std::string src, auto tag) {
     if(tag == res::Shader::InlineSource) {
+      if(src.empty()) return; // Don't append empty strings
+
       section->append(yaml::Node::Ptr(
         new yaml::Scalar(src, tag.get(), yaml::Node::Literal)
       ));
