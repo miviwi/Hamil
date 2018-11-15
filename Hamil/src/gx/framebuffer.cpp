@@ -65,16 +65,16 @@ Framebuffer& Framebuffer::tex(const Texture2DArray& tex, unsigned level, unsigne
   return *this;
 }
 
-Framebuffer& Framebuffer::renderbuffer(Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbuffer(Format fmt, Attachment att, const char *label)
 {
   auto dimensions = getColorAttachement0Dimensions();
 
-  return renderbuffer(dimensions.x, dimensions.y, fmt, att);
+  return renderbuffer(dimensions.x, dimensions.y, fmt, att, label);
 }
 
-Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attachment att, const char *label)
 {
-  auto rb = create_rendebuffer();
+  auto rb = create_rendebuffer(label);
   m_rb.append(rb);
 
   if(m_samples) {
@@ -88,23 +88,23 @@ Framebuffer& Framebuffer::renderbuffer(unsigned w, unsigned h, Format fmt, Attac
   return *this;
 }
 
-Framebuffer& Framebuffer::renderbuffer(ivec2 sz, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbuffer(ivec2 sz, Format fmt, Attachment att, const char *label)
 {
   assert((sz.x >= 0 && sz.y >= 0) && "Attempted to create a renderbuffer with negative size!");
 
-  return renderbuffer((unsigned)sz.x, (unsigned)sz.y, fmt, att);
+  return renderbuffer((unsigned)sz.x, (unsigned)sz.y, fmt, att, label);
 }
 
-Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, Format fmt, Attachment att, const char *label)
 {
   auto dimensions = getColorAttachement0Dimensions();
 
-  return renderbufferMultisample(samples, dimensions.x, dimensions.y, fmt, att);
+  return renderbufferMultisample(samples, dimensions.x, dimensions.y, fmt, att, label);
 }
 
-Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, unsigned h, Format fmt, Attachment att, const char *label)
 {
-  auto rb = create_rendebuffer();
+  auto rb = create_rendebuffer(label);
   m_rb.append(rb);
 
   m_samples = samples;
@@ -116,11 +116,11 @@ Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, unsigned w, 
   return *this;
 }
 
-Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, ivec2 sz, Format fmt, Attachment att)
+Framebuffer& Framebuffer::renderbufferMultisample(unsigned samples, ivec2 sz, Format fmt, Attachment att, const char *label)
 {
   assert((sz.x >= 0 && sz.y >= 0) && "Attempted to create a renderbufferMultisample with negative size!");
 
-  return renderbufferMultisample(samples, (unsigned)sz.x, (unsigned)sz.y, fmt, att);
+  return renderbufferMultisample(samples, (unsigned)sz.x, (unsigned)sz.y, fmt, att, label);
 }
 
 void Framebuffer::blit(Framebuffer& fb, ivec4 src, ivec4 dst, unsigned mask, Sampler::Param filter)
@@ -201,12 +201,16 @@ GLenum Framebuffer::attachment(Attachment att)
   return 0;
 }
 
-GLuint Framebuffer::create_rendebuffer()
+GLuint Framebuffer::create_rendebuffer(const char *label)
 {
   GLuint rb;
   glGenRenderbuffers(1, &rb);
 
   glBindRenderbuffer(GL_RENDERBUFFER, rb);
+#if !defined(NDEBUG)
+  glObjectLabel(GL_RENDERBUFFER, rb, -1, label);
+#endif
+
   return rb;
 }
 

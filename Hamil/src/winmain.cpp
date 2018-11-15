@@ -311,8 +311,9 @@ int main(int argc, char *argv[])
 
   std::uniform_real_distribution<float> random_floats(0.0f, 1.0f);
 
-  std::array<vec4, 64> ao_kernel;
-  for(size_t i = 0; i < ao_kernel.size(); i++) {
+  static constexpr uint AoKernelSize = 32;
+  std::array<vec4, AoKernelSize> ao_kernel;
+  for(size_t i = 0; i < AoKernelSize; i++) {
     float x = random_floats(random_generator) * 2.0f - 1.0f;
     float y = random_floats(random_generator) * 2.0f - 1.0f;
     float z = random_floats(random_generator);
@@ -320,7 +321,7 @@ int main(int argc, char *argv[])
     auto s = vec4{ x, y, z, 0.0f };
     s = s.normalize() * random_floats(random_generator);
 
-    float scale = (float)i / (float)ao_kernel.size();
+    float scale = (float)i / (float)AoKernelSize;
     scale = lerp(0.1f, 1.0f, scale*scale);
 
     s *= scale;
@@ -367,7 +368,7 @@ int main(int argc, char *argv[])
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
     .tex(fb_pos, 0, gx::Framebuffer::Color(1))
     .tex(fb_normal, 0, gx::Framebuffer::Color(2))
-    .renderbuffer(gx::depth16, gx::Framebuffer::Depth);
+    .renderbuffer(gx::depth16, gx::Framebuffer::Depth, "rbFramebufferDepth");
   if(fb.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
   }
@@ -388,7 +389,7 @@ int main(int argc, char *argv[])
   auto& fb_composite = pool.get<gx::Framebuffer>(fb_composite_id);
 
   fb_composite.use()
-    .renderbuffer(FramebufferSize, gx::rgb8, gx::Framebuffer::Color(0));
+    .renderbuffer(FramebufferSize, gx::rgb8, gx::Framebuffer::Color(0), "rbComposite");
   if(fb_composite.status() != gx::Framebuffer::Complete) {
     win32::panic("couldn't create composite Framebuffer!", win32::FramebufferError);
   }
@@ -1311,8 +1312,8 @@ int main(int argc, char *argv[])
       e.destroy();
     }
 
-    fence.sync();
     window.swapBuffers();
+    fence.sync();
   }
 
   pool.purge();

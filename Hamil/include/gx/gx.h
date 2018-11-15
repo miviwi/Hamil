@@ -83,6 +83,7 @@ GxInfo& info();
 //       * f  - gx::Fence
 //       * a  - gx::VertexArray, ia - gx::IndexedVertexArray
 //       * fb - gx::Framebuffer
+//       * rb - gx::Framebuffer::renderbuffer<Multisample>()
 //   - Suffixes must be appended to the above depending on the particular
 //     type of object:
 //       * Textures:
