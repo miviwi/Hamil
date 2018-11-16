@@ -36,6 +36,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
 {
   auto shader = new Shader(id, Shader::tag(), name, File, path);
 
+  auto& global_sources   = shader->m_sources[Global];
   auto& vertex_sources   = shader->m_sources[Vertex];
   auto& geometry_sources = shader->m_sources[Geometry];
   auto& fragment_sources = shader->m_sources[Fragment];
@@ -80,7 +81,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
 
       if(auto tag = stage->tag()) {
         if(tag == ExportSource) {
-          // format the name as <program>.(vert|geom|frag)
+          // format the name as <program>.(glsl|vert|geom|frag)
           // ex.
           //     - wireframe.geom
           //     - blinnphong.frag
@@ -90,6 +91,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     }
   };
 
+  do_stage("glsl", global_sources);
   do_stage("vertex", vertex_sources);
   do_stage("geometry", geometry_sources);
   do_stage("fragment", fragment_sources);

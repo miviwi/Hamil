@@ -34,4 +34,5 @@ struct CompositeUniforms : gx::Uniforms {
 
   Sampler uUi;
   Sampler uScene;
+  Sampler uAo;
 };

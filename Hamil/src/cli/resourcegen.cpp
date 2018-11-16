@@ -171,7 +171,7 @@ static yaml::Document shadergen(win32::File& file,
   // count non-preprocessor lines
   size_t line_no = 0;
 
-  yaml::Node::Ptr pvert, pgeom, pfrag;
+  yaml::Node::Ptr pglsl, pvert, pgeom, pfrag;
 
   auto meta = make_meta<res::Shader>(name, path);
 
@@ -248,7 +248,7 @@ static yaml::Document shadergen(win32::File& file,
         break;
 
       case PragmaImport:
-        if(!section) throw GenError(error_message("importing into undefined section!"));
+        if(!section) init_section(pglsl);
 
         append_source(inline_source, res::Shader::InlineSource);
         inline_source.clear();
@@ -257,7 +257,7 @@ static yaml::Document shadergen(win32::File& file,
         return; // Prevent import #pragma's from being added to the source
 
       case PragmaExport:
-        if(!section) throw GenError(error_message("exporting undefined section!"));
+        if(!section) init_section(pglsl);
 
         section->tag(yaml::Node::Tag(res::Shader::ExportSource.get()));
         break;
@@ -272,6 +272,7 @@ static yaml::Document shadergen(win32::File& file,
   // Append left-over lines
   if(section) append_source(inline_source, res::Shader::InlineSource);
 
+  if(pglsl) meta->append(yaml::Scalar::from_str("glsl"),     pglsl);
   if(pvert) meta->append(yaml::Scalar::from_str("vertex"),   pvert);
   if(pgeom) meta->append(yaml::Scalar::from_str("geometry"), pgeom);
   if(pfrag) meta->append(yaml::Scalar::from_str("fragment"), pfrag);

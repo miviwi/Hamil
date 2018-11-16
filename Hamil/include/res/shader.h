@@ -23,6 +23,7 @@ public:
   static constexpr util::StaticString ExportSource = "!export";
 
   enum Stage : size_t {
+    Global,
     Vertex, Geometry, Fragment,
 
     NumStages,

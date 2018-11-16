@@ -329,7 +329,8 @@ int main(int argc, char *argv[])
     ao_kernel[i] = s;
   }
 
-  std::array<vec3, 4*4> ao_noise;
+  static constexpr uint AoNoiseSize = 4;
+  std::array<vec3, AoNoiseSize*AoNoiseSize> ao_noise;
   for(auto& sample : ao_noise) {
     float x = random_floats(random_generator) * 2.0f - 1.0f;
     float y = random_floats(random_generator) * 2.0f - 1.0f;
@@ -343,7 +344,7 @@ int main(int argc, char *argv[])
 
   auto ao_noise_sampler_id = pool.create<gx::Sampler>(gx::Sampler::repeat2d());
 
-  ao_noise_tex.init(ao_noise.data(), 0, 4, 4, gx::rgb, gx::f32);
+  ao_noise_tex.init(ao_noise.data(), 0, AoNoiseSize, AoNoiseSize, gx::rgb, gx::f32);
 
   auto fb_tex_id = pool.createTexture<gx::Texture2D>("t2dFramebufferColor",
     gx::rgb10, gx::Texture::Multisample);
@@ -410,6 +411,7 @@ int main(int argc, char *argv[])
 
     UiTexImageUnit    = 4u,
     SceneTexImageUnit = 5u,
+    AoTexImageUnit    = 10u,
 
     AoPositionTexImageUnit = 6u,
     AoNormalTexImageUnit = 7u,
@@ -514,9 +516,9 @@ int main(int argc, char *argv[])
     .uniformSampler(U.ao.uNoise, AoNoiseTexImageUnit);
 
   composite_program.use()
-    .uniformBlockBinding("AoKernelBlock", AoKernelBinding)
-    .uniformSampler(U.composite.uUi, 4)
-    .uniformSampler(U.composite.uScene, 5);
+    .uniformSampler(U.composite.uUi, UiTexImageUnit)
+    .uniformSampler(U.composite.uScene, SceneTexImageUnit)
+    .uniformSampler(U.composite.uAo, AoTexImageUnit);
 
   auto scene_pass_id = pool.create<gx::RenderPass>();
   auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
@@ -563,13 +565,14 @@ int main(int argc, char *argv[])
   auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
     .textures({
-      { SceneTexImageUnit, { ao_id, resolve_sampler_id }}
+      { SceneTexImageUnit, { fb_tex_id, resolve_sampler_id }},
+      { AoTexImageUnit,    { ao_id, resolve_sampler_id }},
     })
     .uniformBuffer(AoKernelBinding, ao_ubo_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
       .noDepthTest()
-      .clear(vec4{ 0.0f, 0.0f, 0.0f, 0.0f, }, 1.0f))
+      .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f, }, 1.0f))
     .clearOp(gx::RenderPass::ClearColor)
     ;
 
@@ -596,8 +599,6 @@ int main(int argc, char *argv[])
     { -10, 6, -10 },
     { 20, 6, 0 },
   };
-
-
 
   struct FloorVtx {
     vec3 pos;
@@ -1207,11 +1208,6 @@ int main(int argc, char *argv[])
       .activeRenderPass(scene_pass_id)
       .execute();
 
-    ao_pass.begin(pool);
-    ao_program.use()
-      .uniformMatrix4x4(U.ao.uProjection, persp)
-      .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
-      ;
 
     for(int i = 0; i < light_block.num_lights; i++) {
       model = xform::Transform()
@@ -1288,6 +1284,12 @@ int main(int argc, char *argv[])
       ui_paint_job.dbg_ElapsedTime()*1000.0,
       transforms_extract_dt*1000.0)
     );
+
+    ao_pass.begin(pool);
+    ao_program.use()
+      .uniformMatrix4x4(U.ao.uProjection, persp)
+      .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
+      ;
 
     ui_paint_job.result().execute();
     cursor.paint();
