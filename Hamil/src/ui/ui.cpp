@@ -193,6 +193,8 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
 
   m_vtx_id = m_pool.create<gx::IndexedVertexArray>("iaUi",
     VertexPainter::Fmt, m_buf, m_ind);
+
+  m_fence_id = m_pool.create<gx::Fence>();
 }
 
 Ui::~Ui()
@@ -319,6 +321,9 @@ gx::CommandBuffer Ui::paint()
 {
   if(m_frames.empty()) return gx::CommandBuffer::begin().end();
 
+  // Have to wait for the previous paint to complete
+  m_pool.get<gx::Fence>(m_fence_id).block();
+
   // Make sure the MemoryPool is clean (previous paint()
   //   leaves behind data)
   m_mempool.purge();
@@ -437,7 +442,9 @@ gx::CommandBuffer Ui::paint()
     }
   });
 
-  command_buf.end();
+  command_buf
+    .fenceSync(m_fence_id)  // Signal the fence when drawing is done
+    .end();
 
   return command_buf;
 }

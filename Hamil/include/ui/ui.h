@@ -177,6 +177,9 @@ private:
   // Source for paint() draw call vertices
   //   - See VertexPainter::Fmt for the format of the vertices
   gx::ResourcePool::Id m_vtx_id;
+
+  // Used to sync between paint() calls
+  gx::ResourcePool::Id m_fence_id;
 };
 
 }

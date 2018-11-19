@@ -330,12 +330,19 @@ int main(int argc, char *argv[])
   }
 
   static constexpr uint AoNoiseSize = 4;
+  static constexpr float AoNumDirections = 8.0f;
   std::array<vec3, AoNoiseSize*AoNoiseSize> ao_noise;
   for(auto& sample : ao_noise) {
-    float x = random_floats(random_generator) * 2.0f - 1.0f;
-    float y = random_floats(random_generator) * 2.0f - 1.0f;
+    float r0 = random_floats(random_generator),
+      r1 = random_floats(random_generator);
 
-    sample = vec3{ x, y, 0.0f };
+    float angle = 2.0f*PIf*r0 / AoNumDirections;
+
+    sample = {
+      cosf(angle),
+      sinf(angle),
+      r1
+    };
   }
 
   auto ao_noise_tex_id = pool.createTexture<gx::Texture2D>("t2dAoNoise",
@@ -355,7 +362,7 @@ int main(int argc, char *argv[])
   auto& fb_pos = pool.getTexture<gx::Texture2D>(fb_pos_id);
 
   auto fb_normal_id = pool.createTexture<gx::Texture2D>("t2dFramebufferNormal",
-    gx::rgb16f, gx::Texture::Multisample);
+    gx::rgb32f, gx::Texture::Multisample);
   auto& fb_normal = pool.getTexture<gx::Texture2D>(fb_normal_id);
  
   auto fb_id = pool.create<gx::Framebuffer>("fbFramebuffer");
@@ -375,13 +382,13 @@ int main(int argc, char *argv[])
   }
 
   auto ao_id = pool.createTexture<gx::Texture2D>("t2dFramebufferAo",
-    gx::rgb8, gx::Texture::Multisample);
+    gx::rgb8);
   auto& ao = pool.getTexture<gx::Texture2D>(ao_id);
 
   auto fb_ao_id = pool.create<gx::Framebuffer>("fbAo");
   auto& fb_ao = pool.get<gx::Framebuffer>(fb_ao_id);
 
-  ao.initMultisample(1, FramebufferSize);
+  ao.init(FramebufferSize.x/2, FramebufferSize.y/2);
 
   fb_ao.use()
     .tex(ao, 0, gx::Framebuffer::Color(0));
@@ -555,7 +562,7 @@ int main(int argc, char *argv[])
       { AoNoiseTexImageUnit,    { ao_noise_tex_id, ao_noise_sampler_id }}
     })
     .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
+      .viewport(0, 0, FramebufferSize.x/2, FramebufferSize.y/2)
       .noBlend()
       .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
     .clearOp(gx::RenderPass::ClearColor)
@@ -673,6 +680,18 @@ int main(int argc, char *argv[])
       .caption(util::fmt("Exposure: %.1f  ", 0.0f))
       .padding({ 120.0f, 0.0f })
       .gravity(ui::Frame::Center))
+    .frame(ui::create<ui::HSliderFrame>(iface, "ao_r")
+      .range(0.0f, 0.1f))
+    .frame(ui::create<ui::LabelFrame>(iface, "ao_r_val")
+      .caption(util::fmt("AO radius: %.4f  ", 0.0f))
+      .padding({ 120.0f, 0.0f })
+      .gravity(ui::Frame::Center))
+    .frame(ui::create<ui::HSliderFrame>(iface, "ao_bias")
+      .range(0.1f, 0.85f))
+    .frame(ui::create<ui::LabelFrame>(iface, "ao_bias_val")
+      .caption(util::fmt("AO bias: %.4f  ", 0.0f))
+      .padding({ 120.0f, 0.0f })
+      .gravity(ui::Frame::Center))
     ;
 
   auto btn_b = iface.getFrameByName<ui::PushButtonFrame>("b");
@@ -687,6 +706,22 @@ int main(int argc, char *argv[])
     exp_val.caption(util::fmt("Exposure: %.1lf", target->value()));
   });
   exp_slider.value(1.0f);
+
+  auto& ao_r_slider = *iface.getFrameByName<ui::HSliderFrame>("ao_r");
+  auto& ao_r_val = *iface.getFrameByName<ui::LabelFrame>("ao_r_val");
+
+  ao_r_slider.onChange([&](ui::SliderFrame *target) {
+    ao_r_val.caption(util::fmt("AO radius: %.4lf", target->value()));
+  });
+  ao_r_slider.value(0.25);
+
+  auto& ao_bias_slider = *iface.getFrameByName<ui::HSliderFrame>("ao_bias");
+  auto& ao_bias_val = *iface.getFrameByName<ui::LabelFrame>("ao_bias_val");
+
+  ao_bias_slider.onChange([&](ui::SliderFrame *target) {
+    ao_bias_val.caption(util::fmt("AO bias: %.4lf", target->value()));
+  });
+  ao_bias_slider.value(0.15);
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::LabelFrame>(iface, "stats")
@@ -872,9 +907,7 @@ int main(int argc, char *argv[])
 
   double transforms_extract_dt = 0.0;
 
-  gx::Fence fence;
-
-  bool use_ambient = true;
+  bool use_ao = true;
 
   while(window.processMessages()) {
     using hm::entities;
@@ -918,7 +951,7 @@ int main(int argc, char *argv[])
         } else if(kb->keyDown('Q')) {
           window.quit();
         } else if(kb->keyDown('A')) {
-          use_ambient = !use_ambient;
+          use_ao = !use_ao;
         } else if(kb->keyDown('D')) {
           create_sphere();
         } else if(kb->keyDown('W')) {
@@ -974,15 +1007,13 @@ int main(int argc, char *argv[])
       }
     }
 
-    fence.block();
-
     // All the input has been processed - schedule a Ui paint
     auto ui_paint_job_id = worker_pool.scheduleJob(ui_paint_job.withParams());
 
     mat4 model = xform::identity();
 
     auto persp = xform::perspective(70.0f,
-      (float)FramebufferSize.x/(float)FramebufferSize.y, 50.0f, 10e20f);
+      16.0f/9.0f, 50.0f, 10e20f);
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
@@ -1036,10 +1067,6 @@ int main(int argc, char *argv[])
       vec4(0.25f, 0.25f, 0.25f, 1.0f), vec4(0.7f, 0.7f, 0.7f, 1.0f),
       vec4(0.1f, 0.1f, 0.1f, 1.0f), vec4(0.1f, 0.1f, 0.1f, 1.0f),
     };
-
-    if(!use_ambient) {
-      memset(ambient_basis, 0, sizeof(vec4)*6);
-    }
 
     memcpy(light_block.ambient_basis, ambient_basis, sizeof(vec4)*6);
 
@@ -1098,7 +1125,7 @@ int main(int argc, char *argv[])
     program.use()
       .uniformFloat(U.program.uExposure, exp_slider.value());
 
-    mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(2.0f);
+    mat4 modelview = view*xform::translate(0.0f, -1.3f, -10.0f)*xform::scale(50.0f);
 
     block_group.matrix->modelview = modelview;
     block_group.matrix->normal = modelview.inverse().transpose();
@@ -1123,6 +1150,14 @@ int main(int argc, char *argv[])
         .end();
 
       command_buf.execute();
+
+      modelview = view * xform::translate(-60.0f, -1.3f, -10.0f) * xform::scale(50.0f);
+
+      block_group.matrix->modelview = modelview;
+      block_group.matrix->normal = modelview.inverse().transpose();
+
+      command_buf.execute();
+
       num_tris += num_inds / 3;
     }
 
@@ -1173,7 +1208,8 @@ int main(int argc, char *argv[])
       drawsphere();
     });
 
-    modelview = view * floor.component<hm::Transform>().get().matrix();
+    auto floor_transform = floor.component<hm::Transform>();
+    modelview = view * floor_transform().matrix();
 
     block_group.matrix->modelview = modelview;
     block_group.matrix->normal = modelview.inverse().transpose();
@@ -1285,9 +1321,13 @@ int main(int argc, char *argv[])
       transforms_extract_dt*1000.0)
     );
 
+    float proj_scale = (float)FramebufferSize.y / (tanf(70.0f * 0.5f) * 2.0);
+
     ao_pass.begin(pool);
     ao_program.use()
       .uniformMatrix4x4(U.ao.uProjection, persp)
+      .uniformFloat(U.ao.uRadius, ao_r_slider.value() * 0.5 * proj_scale)
+      .uniformFloat(U.ao.uBias, ao_bias_slider.value())
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
       ;
 
@@ -1298,6 +1338,7 @@ int main(int argc, char *argv[])
     composite_pass.begin(pool);
 
     composite_program.use()
+      .uniformBool(U.composite.uAoEnabled, use_ao)
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
 
     fb_composite.blitToWindow(
@@ -1315,7 +1356,6 @@ int main(int argc, char *argv[])
     }
 
     window.swapBuffers();
-    fence.sync();
   }
 
   pool.purge();

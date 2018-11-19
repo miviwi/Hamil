@@ -17,6 +17,9 @@ struct AoUniforms : gx::Uniforms {
   Sampler uPosition;
   Sampler uNormal;
   Sampler uNoise;
+
+  float uRadius;
+  float uBias;
 };
 
 struct SkyboxUniforms : gx::Uniforms {
@@ -35,4 +38,6 @@ struct CompositeUniforms : gx::Uniforms {
   Sampler uUi;
   Sampler uScene;
   Sampler uAo;
+
+  bool uAoEnabled;
 };
