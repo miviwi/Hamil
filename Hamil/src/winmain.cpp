@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
   auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
   res::Handle<res::Shader> r_program = R.shader.shaders.program,
-    r_ao = R.shader.shaders.ao,
+    r_ao = R.shader.shaders.ssao,
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
@@ -333,6 +333,14 @@ int main(int argc, char *argv[])
   static constexpr float AoNumDirections = 8.0f;
   std::array<vec3, AoNoiseSize*AoNoiseSize> ao_noise;
   for(auto& sample : ao_noise) {
+    /*
+    float x = random_floats(random_generator)*2.0f - 1.0f;
+    float y = random_floats(random_generator)*2.0f - 1.0f;
+
+    sample = {
+      x, y, 0.0f
+    };
+    */
     float r0 = random_floats(random_generator),
       r1 = random_floats(random_generator);
 
@@ -357,9 +365,9 @@ int main(int argc, char *argv[])
     gx::rgb10, gx::Texture::Multisample);
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
 
-  auto fb_pos_id = pool.createTexture<gx::Texture2D>("t2dFramebufferPosition",
-    gx::rgb32f, gx::Texture::Multisample);
-  auto& fb_pos = pool.getTexture<gx::Texture2D>(fb_pos_id);
+  auto fb_depth_id = pool.createTexture<gx::Texture2D>("t2dFramebufferDepth",
+    gx::r32f, gx::Texture::Multisample);
+  auto& fb_depth = pool.getTexture<gx::Texture2D>(fb_depth_id);
 
   auto fb_normal_id = pool.createTexture<gx::Texture2D>("t2dFramebufferNormal",
     gx::rgb32f, gx::Texture::Multisample);
@@ -369,12 +377,12 @@ int main(int argc, char *argv[])
   auto& fb = pool.get<gx::Framebuffer>(fb_id);
 
   fb_tex.initMultisample(1, FramebufferSize);
-  fb_pos.initMultisample(1, FramebufferSize);
+  fb_depth.initMultisample(1, FramebufferSize);
   fb_normal.initMultisample(1, FramebufferSize);
 
   fb.use()
     .tex(fb_tex, 0, gx::Framebuffer::Color(0))
-    .tex(fb_pos, 0, gx::Framebuffer::Color(1))
+    .tex(fb_depth, 0, gx::Framebuffer::Color(1))
     .tex(fb_normal, 0, gx::Framebuffer::Color(2))
     .renderbuffer(gx::depth16, gx::Framebuffer::Depth, "rbFramebufferDepth");
   if(fb.status() != gx::Framebuffer::Complete) {
@@ -420,7 +428,7 @@ int main(int argc, char *argv[])
     SceneTexImageUnit = 5u,
     AoTexImageUnit    = 10u,
 
-    AoPositionTexImageUnit = 6u,
+    AoDepthTexImageUnit = 6u,
     AoNormalTexImageUnit = 7u,
     AoNoiseTexImageUnit = 8u,
   };
@@ -518,7 +526,7 @@ int main(int argc, char *argv[])
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
 
   ao_program.use()
-    .uniformSampler(U.ao.uPosition, AoPositionTexImageUnit)
+    .uniformSampler(U.ao.uDepth, AoDepthTexImageUnit)
     .uniformSampler(U.ao.uNormal, AoNormalTexImageUnit)
     .uniformSampler(U.ao.uNoise, AoNoiseTexImageUnit);
 
@@ -548,6 +556,7 @@ int main(int argc, char *argv[])
       .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
     .subpass(gx::RenderPass::Subpass()
       .pipeline(gx::Pipeline()
+        .writeColorOnly()
         .depthTest(gx::Pipeline::LessEqual)
         .cull(gx::Pipeline::Front)))
     .clearOp(gx::RenderPass::ClearColorDepth)
@@ -557,9 +566,9 @@ int main(int argc, char *argv[])
   auto& ao_pass = pool.get<gx::RenderPass>(ao_pass_id)
     .framebuffer(fb_ao_id)
     .textures({
-      { AoPositionTexImageUnit, { fb_pos_id, resolve_sampler_id }},
-      { AoNormalTexImageUnit,   { fb_normal_id, resolve_sampler_id }},
-      { AoNoiseTexImageUnit,    { ao_noise_tex_id, ao_noise_sampler_id }}
+      { AoDepthTexImageUnit,  { fb_depth_id, resolve_sampler_id }},
+      { AoNormalTexImageUnit, { fb_normal_id, resolve_sampler_id }},
+      { AoNoiseTexImageUnit,  { ao_noise_tex_id, ao_noise_sampler_id }}
     })
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x/2, FramebufferSize.y/2)
@@ -681,7 +690,7 @@ int main(int argc, char *argv[])
       .padding({ 120.0f, 0.0f })
       .gravity(ui::Frame::Center))
     .frame(ui::create<ui::HSliderFrame>(iface, "ao_r")
-      .range(0.0f, 0.1f))
+      .range(0.0f, 5.0f))
     .frame(ui::create<ui::LabelFrame>(iface, "ao_r_val")
       .caption(util::fmt("AO radius: %.4f  ", 0.0f))
       .padding({ 120.0f, 0.0f })
@@ -713,7 +722,7 @@ int main(int argc, char *argv[])
   ao_r_slider.onChange([&](ui::SliderFrame *target) {
     ao_r_val.caption(util::fmt("AO radius: %.4lf", target->value()));
   });
-  ao_r_slider.value(0.25);
+  ao_r_slider.value(0.003);
 
   auto& ao_bias_slider = *iface.getFrameByName<ui::HSliderFrame>("ao_bias");
   auto& ao_bias_val = *iface.getFrameByName<ui::LabelFrame>("ao_bias_val");
@@ -721,7 +730,7 @@ int main(int argc, char *argv[])
   ao_bias_slider.onChange([&](ui::SliderFrame *target) {
     ao_bias_val.caption(util::fmt("AO bias: %.4lf", target->value()));
   });
-  ao_bias_slider.value(0.15);
+  ao_bias_slider.value(0.5);
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::LabelFrame>(iface, "stats")
@@ -819,7 +828,7 @@ int main(int argc, char *argv[])
     floor.addComponent<hm::Transform>(
       origin + vec3{ 0.0f, 0.5f, 0.0f },
       quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
-      vec3(50.0f)
+      vec3(100.0f)
     );
     floor.addComponent<hm::RigidBody>(body);
 
@@ -1151,13 +1160,6 @@ int main(int argc, char *argv[])
 
       command_buf.execute();
 
-      modelview = view * xform::translate(-60.0f, -1.3f, -10.0f) * xform::scale(50.0f);
-
-      block_group.matrix->modelview = modelview;
-      block_group.matrix->normal = modelview.inverse().transpose();
-
-      command_buf.execute();
-
       num_tris += num_inds / 3;
     }
 
@@ -1223,6 +1225,32 @@ int main(int argc, char *argv[])
       .draw(gx::Triangles, floor_arr, floor_vtxs.size());
     num_tris += floor_vtxs.size() / 3;
 
+    modelview = view * xform::Transform(
+      { 0.0f, 48.0f, -90.0f }, quat::from_euler(0, PI, 0), vec3(100.0f)).matrix();
+
+    block_group.matrix->modelview = modelview;
+    block_group.matrix->normal = modelview.inverse().transpose();
+
+    upload_ubos();
+
+    program.use()
+      .uniformSampler(U.program.uTex, 0)
+      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
+    num_tris += floor_vtxs.size() / 3;
+
+    modelview = view * xform::Transform(
+      { -100.0f, 48.0f, -50.0f }, quat::from_euler(0, PIf/2.0f, 0), vec3(100.0f)).matrix();
+
+    block_group.matrix->modelview = modelview;
+    block_group.matrix->normal = modelview.inverse().transpose();
+
+    upload_ubos();
+
+    program.use()
+      .uniformSampler(U.program.uTex, 0)
+      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
+    num_tris += floor_vtxs.size() / 3;
+
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
       color = light_block.lights[i].color;
@@ -1243,7 +1271,6 @@ int main(int argc, char *argv[])
     cmd_skybox
       .activeRenderPass(scene_pass_id)
       .execute();
-
 
     for(int i = 0; i < light_block.num_lights; i++) {
       model = xform::Transform()
@@ -1323,11 +1350,22 @@ int main(int argc, char *argv[])
 
     float proj_scale = (float)FramebufferSize.y / (tanf(70.0f * 0.5f) * 2.0);
 
+    vec4 proj_info = {
+      2.0f / persp(0, 0),
+      2.0f / persp(1, 1),
+      -(1.0f - persp(2, 0)) / persp(0, 0),
+      -(1.0f + persp(2, 1)) / persp(1, 1)
+    };
+
+    float ao_radius = ao_r_slider.value();
+    ao_radius *= 0.01f;
+
     ao_pass.begin(pool);
     ao_program.use()
       .uniformMatrix4x4(U.ao.uProjection, persp)
-      .uniformFloat(U.ao.uRadius, ao_r_slider.value() * 0.5 * proj_scale)
-      .uniformFloat(U.ao.uBias, ao_bias_slider.value())
+      .uniformVector4(U.ao.uProjInfo, proj_info)
+      .uniformFloat(U.ao.uRadius, ao_radius * 0.5f * proj_scale)
+      .uniformFloat(U.ao.uBias, ao_bias_slider.value() * 8.0f)
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
       ;
 

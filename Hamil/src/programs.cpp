@@ -13,8 +13,9 @@ struct AoUniforms : gx::Uniforms {
   Name ao;
 
   mat4 uProjection;
+  vec4 uProjInfo;
 
-  Sampler uPosition;
+  Sampler uDepth;
   Sampler uNormal;
   Sampler uNoise;
 
