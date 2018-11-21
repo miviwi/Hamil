@@ -1,17 +1,13 @@
 #pragma once
 
-#include <hm/component.h>
+#include <common.h>
 
+#include <gx/gx.h>
 #include <gx/resourcepool.h>
-#include <gx/program.h>
 
-namespace hm {
+namespace mesh {
 
-struct Model : public Component {
-  Model(u32 entity);
-
-  static constexpr Tag tag() { return "Model"; }
-
+class Mesh {
   enum VertexComponent : u16 {
     Normal   = (1<<0),
     Tangent  = (1<<1),
@@ -30,22 +26,27 @@ struct Model : public Component {
     None = ~0u,
   };
 
-  Model& withNormals();
-  Model& withTangents();
-  Model& withColors(u8 num);
-  Model& withTexCoords(u8 num);
+  Mesh& withNormals();
+  Mesh& withTangents();
+  Mesh& withColors(u8 num);
+  Mesh& withTexCoords(u8 num);
 
-  Model& withBoneWeights();
-  Model& withBoneIds();
+  Mesh& withBoneWeights();
+  Mesh& withBoneIds();
 
-  Model& withArray(gx::ResourcePool::Id id);
-  Model& withIndexedArray(gx::ResourcePool::Id id);
+  Mesh& withArray(gx::ResourcePool::Id id);
+  Mesh& withIndexedArray(gx::ResourcePool::Id id);
 
-  Model& primitive(gx::Primitive p);
+  Mesh& primitive(gx::Primitive p);
 
-  Model& withBase(u32 b);
-  Model& withOffset(u32 off);
-  Model& withNum(u32 n);
+  Mesh& withBase(u32 b);
+  Mesh& withOffset(u32 off);
+  Mesh& withNum(u32 n);
+
+  // Integer which can be used as an id
+  //   for a vertex format which fits this mesh,
+  //   and will be the same for compatible meshes
+  u64 formatId() const;
 
   u16 vertex_components = 0;
   u8 num_vertex_colors = 0;

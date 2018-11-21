@@ -225,9 +225,9 @@ int main(int argc, char *argv[])
   tex.generateMipmaps();
 
   byte cubemap_colors[][3] = {
-    { 0x00, 0x20, 0x20, }, { 0x20, 0x20, 0x00, },
-    { 0x20, 0x20, 0x20, }, { 0x00, 0x00, 0x00, },
-    { 0x20, 0x20, 0x20, }, { 0x20, 0x20, 0x20, },
+    { 0x00, 0xFF, 0xFF, }, { 0xFF, 0xFF, 0x00, },
+    { 0xFF, 0xFF, 0xFF, }, { 0x00, 0x00, 0x00, },
+    { 0xFF, 0xFF, 0xFF, }, { 0xFF, 0xFF, 0xFF, },
 
 #if 0
     vec4(0.0f, 0.25f, 0.25f, 1.0f), vec4(0.5f, 0.5f, 0.0f, 1.0f),
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 
   std::uniform_real_distribution<float> random_floats(0.0f, 1.0f);
 
-  static constexpr uint AoKernelSize = 32;
+  static constexpr uint AoKernelSize = 64;
   std::array<vec4, AoKernelSize> ao_kernel;
   for(size_t i = 0; i < AoKernelSize; i++) {
     float x = random_floats(random_generator) * 2.0f - 1.0f;
@@ -333,14 +333,13 @@ int main(int argc, char *argv[])
   static constexpr float AoNumDirections = 8.0f;
   std::array<vec3, AoNoiseSize*AoNoiseSize> ao_noise;
   for(auto& sample : ao_noise) {
-    /*
     float x = random_floats(random_generator)*2.0f - 1.0f;
     float y = random_floats(random_generator)*2.0f - 1.0f;
 
     sample = {
       x, y, 0.0f
     };
-    */
+    /*
     float r0 = random_floats(random_generator),
       r1 = random_floats(random_generator);
 
@@ -351,6 +350,7 @@ int main(int argc, char *argv[])
       sinf(angle),
       r1
     };
+    */
   }
 
   auto ao_noise_tex_id = pool.createTexture<gx::Texture2D>("t2dAoNoise",
@@ -526,6 +526,7 @@ int main(int argc, char *argv[])
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
 
   ao_program.use()
+    .uniformSampler(U.ao.uEnvironment, SkyboxTexImageUnit)
     .uniformSampler(U.ao.uDepth, AoDepthTexImageUnit)
     .uniformSampler(U.ao.uNormal, AoNormalTexImageUnit)
     .uniformSampler(U.ao.uNoise, AoNoiseTexImageUnit);
@@ -696,7 +697,7 @@ int main(int argc, char *argv[])
       .padding({ 120.0f, 0.0f })
       .gravity(ui::Frame::Center))
     .frame(ui::create<ui::HSliderFrame>(iface, "ao_bias")
-      .range(0.1f, 0.85f))
+      .range(0.1f, 1.85f))
     .frame(ui::create<ui::LabelFrame>(iface, "ao_bias_val")
       .caption(util::fmt("AO bias: %.4f  ", 0.0f))
       .padding({ 120.0f, 0.0f })
@@ -722,7 +723,7 @@ int main(int argc, char *argv[])
   ao_r_slider.onChange([&](ui::SliderFrame *target) {
     ao_r_val.caption(util::fmt("AO radius: %.4lf", target->value()));
   });
-  ao_r_slider.value(0.003);
+  ao_r_slider.value(0.5);
 
   auto& ao_bias_slider = *iface.getFrameByName<ui::HSliderFrame>("ao_bias");
   auto& ao_bias_val = *iface.getFrameByName<ui::LabelFrame>("ao_bias_val");
@@ -730,7 +731,7 @@ int main(int argc, char *argv[])
   ao_bias_slider.onChange([&](ui::SliderFrame *target) {
     ao_bias_val.caption(util::fmt("AO bias: %.4lf", target->value()));
   });
-  ao_bias_slider.value(0.5);
+  ao_bias_slider.value(0.85);
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::LabelFrame>(iface, "stats")
@@ -828,7 +829,7 @@ int main(int argc, char *argv[])
     floor.addComponent<hm::Transform>(
       origin + vec3{ 0.0f, 0.5f, 0.0f },
       quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
-      vec3(100.0f)
+      vec3(50.0f)
     );
     floor.addComponent<hm::RigidBody>(body);
 
@@ -917,6 +918,9 @@ int main(int argc, char *argv[])
   double transforms_extract_dt = 0.0;
 
   bool use_ao = true;
+
+  win32::DeltaTimer time;
+  time.reset();
 
   while(window.processMessages()) {
     using hm::entities;
@@ -1134,7 +1138,7 @@ int main(int argc, char *argv[])
     program.use()
       .uniformFloat(U.program.uExposure, exp_slider.value());
 
-    mat4 modelview = view*xform::translate(0.0f, -1.3f, -10.0f)*xform::scale(50.0f);
+    mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(40.0f);
 
     block_group.matrix->modelview = modelview;
     block_group.matrix->normal = modelview.inverse().transpose();
@@ -1226,7 +1230,7 @@ int main(int argc, char *argv[])
     num_tris += floor_vtxs.size() / 3;
 
     modelview = view * xform::Transform(
-      { 0.0f, 48.0f, -90.0f }, quat::from_euler(0, PI, 0), vec3(100.0f)).matrix();
+      { 0.0f, 48.0f, -45.0f }, quat::from_euler(0, PI, 0), vec3(50.0f)).matrix();
 
     block_group.matrix->modelview = modelview;
     block_group.matrix->normal = modelview.inverse().transpose();
@@ -1239,7 +1243,7 @@ int main(int argc, char *argv[])
     num_tris += floor_vtxs.size() / 3;
 
     modelview = view * xform::Transform(
-      { -100.0f, 48.0f, -50.0f }, quat::from_euler(0, PIf/2.0f, 0), vec3(100.0f)).matrix();
+      { -45.0f, 48.0f, -1.0f }, quat::from_euler(0, PIf/2.0f, 0), vec3(50.0f)).matrix();
 
     block_group.matrix->modelview = modelview;
     block_group.matrix->normal = modelview.inverse().transpose();
@@ -1358,14 +1362,22 @@ int main(int argc, char *argv[])
     };
 
     float ao_radius = ao_r_slider.value();
-    ao_radius *= 0.01f;
+    ao_radius *= 0.4f;
+
+    float light_x = fmod(time.elapsedSecondsf()*1.0f*PIf, 2.0f*PIf);
+    vec4 light_dir = vec4(cosf(light_x), sinf(light_x), 0.0f, 1.0f);
+
+    light_dir = view*light_dir;
+    light_dir = light_dir.normalize();
 
     ao_pass.begin(pool);
     ao_program.use()
+      .uniformMatrix4x4(U.ao.uInverseView, view.inverse())
       .uniformMatrix4x4(U.ao.uProjection, persp)
       .uniformVector4(U.ao.uProjInfo, proj_info)
-      .uniformFloat(U.ao.uRadius, ao_radius * 0.5f * proj_scale)
-      .uniformFloat(U.ao.uBias, ao_bias_slider.value() * 8.0f)
+      .uniformFloat(U.ao.uRadius, ao_radius)
+      .uniformFloat(U.ao.uBias, ao_bias_slider.value() * 2.0f)
+      .uniformVector3(U.ao.uLightPos, light_dir.xyz())
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
       ;
 

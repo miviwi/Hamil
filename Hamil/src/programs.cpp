@@ -12,15 +12,19 @@ struct ProgramUniforms : gx::Uniforms {
 struct AoUniforms : gx::Uniforms {
   Name ao;
 
+  mat4 uInverseView;
   mat4 uProjection;
   vec4 uProjInfo;
 
+  Sampler uEnvironment;
   Sampler uDepth;
   Sampler uNormal;
   Sampler uNoise;
 
   float uRadius;
   float uBias;
+
+  vec3 uLightPos;
 };
 
 struct SkyboxUniforms : gx::Uniforms {
