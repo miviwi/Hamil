@@ -26,6 +26,7 @@ public:
 
   const std::vector<vec3>& vertices() const;
   const std::vector<vec3>& normals() const;
+  const std::vector<vec3>& texCoords() const;
 
   const std::vector<Triangle>& faces() const;
 

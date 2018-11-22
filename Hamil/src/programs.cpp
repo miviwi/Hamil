@@ -22,7 +22,11 @@ struct AoUniforms : gx::Uniforms {
   Sampler uNoise;
 
   float uRadius;
+  float uRadius2;
+  float uNegInvRadius2;
   float uBias;
+  float uBiasBoostFactor;
+  float uNear;
 
   vec3 uLightPos;
 };

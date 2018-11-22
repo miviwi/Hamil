@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <set>
 
 namespace cli {
 
@@ -15,6 +16,6 @@ struct GenError {
 };
 
 
-void resourcegen(std::vector<std::string> resources);
+void resourcegen(std::vector<std::string> resources, std::set<std::string> types);
 
 }

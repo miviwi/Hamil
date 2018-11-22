@@ -5,6 +5,8 @@
 #include <win32/file.h>
 #include <util/str.h>
 #include <util/format.h>
+#include <mesh/mesh.h>
+#include <mesh/obj.h>
 
 #include <res/res.h>
 #include <res/manager.h>
@@ -12,6 +14,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/mesh.h>
 
 #include <string>
 #include <vector>
@@ -28,6 +31,9 @@ static yaml::Document shadergen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
 static yaml::Document imagegen(win32::File& file,
+  const std::string& name, const std::string& path, const std::string& extension);
+
+static yaml::Document meshgen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
 using GenFunc = std::function<
@@ -52,10 +58,13 @@ static const std::map<std::string, GenFunc> p_gen_fns = {
 
   { "tif",  imagegen },  // TIFF Image
   { "tiff", imagegen },  // -- || -- 
+
+  // ------------------ Meshes  -----------------------------
+  { "obj", meshgen },
 };
 
 static const std::regex p_name_regex("^((?:[^/ ]+/)*)([^./ ]*)\\.([a-z]+)$", std::regex::optimize);
-void resourcegen(std::vector<std::string> resources)
+void resourcegen(std::vector<std::string> resources, std::set<std::string> types)
 {
   res::init();
 
@@ -91,6 +100,10 @@ void resourcegen(std::vector<std::string> resources)
       extension = matches[3].str();
 
     if(!path.empty()) path.pop_back(); // Strip the leading '/'
+
+    // Generate only the requested resource types (or all
+    //   when list of types wasn't specified)
+    if(!types.empty() && types.find(extension) == types.end()) continue;
 
     auto it = p_gen_fns.find(extension);
     if(it == p_gen_fns.end()) continue; // No handler for this file type
@@ -314,7 +327,7 @@ static yaml::Document imagegen(win32::File& file,
 
   auto meta = make_meta<res::Image>(name, path)->append(
     yaml::Scalar::from_str("location"),
-    yaml::Node::Ptr(new yaml::Scalar(location, yaml::Node::Tag("!file")))
+    yaml::Scalar::from_str(location, yaml::Node::Tag("!file"))
   )->append(
     yaml::Scalar::from_str("dimensions"),
     yaml::Node::Ptr(yaml::isequence({ width, height }))
@@ -323,6 +336,50 @@ static yaml::Document imagegen(win32::File& file,
   if(params) meta->concat(params->get());
 
   printf("        ...done!\n\n");
+
+  return yaml::Node::Ptr(meta);
+}
+
+static yaml::Document meshgen(win32::File& file,
+  const std::string& name, const std::string& path, const std::string& extension)
+{
+  auto location = util::fmt(".%s/%s.%s", path, name, extension);
+
+  printf("processing mesh: .%s...\n", location.data());
+
+  auto mesh_view = file.map(win32::File::ProtectRead);
+
+  auto obj_loader = mesh::ObjLoader().load(mesh_view.get<const char>(), file.size());
+  auto obj_mesh   = obj_loader.mesh();
+
+  bool has_normals   = !obj_mesh.normals().empty();
+  bool num_texcoords = obj_mesh.texCoords().empty() ? 0u : 1u;
+
+  size_t num_faces = obj_mesh.faces().size();
+
+  auto meta_vertex = new yaml::Mapping();
+  meta_vertex->retainOrder()->append(
+    yaml::Scalar::from_str("normals"), yaml::Scalar::from_b(has_normals)
+  )->append(
+    yaml::Scalar::from_str("tangents"), yaml::Scalar::from_b(false)
+  )->append(
+    yaml::Scalar::from_str("colors"), yaml::Scalar::from_ui(0)
+  )->append(
+    yaml::Scalar::from_str("texcoords"), yaml::Scalar::from_ui(num_texcoords)
+  )->append(
+    yaml::Scalar::from_str("bones"), yaml::Scalar::from_b(false)
+  );
+
+  auto meta = make_meta<res::Mesh>(name, path)->append(
+    yaml::Scalar::from_str("location"),
+    yaml::Scalar::from_str(location, yaml::Node::Tag("!file"))
+  )->append(
+    yaml::Scalar::from_str("vertex"), yaml::Node::Ptr(meta_vertex)
+  )->append(
+    yaml::Scalar::from_str("indexed"), yaml::Scalar::from_b(true)
+  )->append(
+    yaml::Scalar::from_str("primitive"), yaml::Scalar::from_str("triangles")
+  );
 
   return yaml::Node::Ptr(meta);
 }

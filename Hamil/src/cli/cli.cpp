@@ -30,9 +30,9 @@ int args(int argc, char *argv[])
   } else if(opts("resource-gen")->b()) {
     try {
       if(auto resources = opts("resources")) {
-        resourcegen(resources->list());
+        resourcegen(resources->list(), {});
       } else {
-        resourcegen({});
+        resourcegen({}, {});
       }
     } catch(const GenError& e) {
       printf("error: %s\n", e.what.data());

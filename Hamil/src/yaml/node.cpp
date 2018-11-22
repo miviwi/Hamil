@@ -70,6 +70,11 @@ Node::Ptr Scalar::from_str(const std::string& str)
   return std::make_shared<Scalar>(str);
 }
 
+Node::Ptr Scalar::from_str(const std::string& str, Tag tag)
+{
+  return std::make_shared<Scalar>(str, tag);
+}
+
 Node::Ptr Scalar::from_i(long long i)
 {
   return std::make_shared<Scalar>(std::to_string(i));
@@ -351,15 +356,17 @@ Mapping *Mapping::concat(const Node::Ptr& node)
   return this;
 }
 
-void Mapping::retainOrder(bool enable)
+Mapping *Mapping::retainOrder(bool enable)
 {
   if(enable) {
-    if(m_ordered) return;
+    if(m_ordered) return this;
 
     m_ordered.reset(new NodeVector(m.begin(), m.end()));
   } else {
     m_ordered.reset();
   }
+
+  return this;
 }
 
 bool Mapping::ordered() const

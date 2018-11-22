@@ -7,7 +7,7 @@
 
 namespace mesh {
 
-class Mesh {
+struct Mesh {
   enum VertexComponent : u16 {
     Normal   = (1<<0),
     Tangent  = (1<<1),

@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
   auto bunny_load_job = sched::create_job([&]() -> size_t {
-    win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
+    win32::File bunny_f("dragon.obj", win32::File::Read, win32::File::OpenExisting);
     auto bunny = bunny_f.map(win32::File::ProtectRead);
 
     auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
@@ -170,7 +170,12 @@ int main(int argc, char *argv[])
     const auto& bunny_vn = bunny_mesh.normals();
     for(size_t i = 0; i < bunny_v.size(); i++) {
       *bunny_verts++ = bunny_v[i];
-      *bunny_verts++ = bunny_vn[i];
+
+      if(i >= bunny_vn.size()) {
+        *bunny_verts++ = bunny_v[i];
+      } else {
+        *bunny_verts++ = bunny_vn[i];
+      }
     }
 
     auto bunny_inds = bunny_ibuf_view.get<u16>();
@@ -284,7 +289,7 @@ int main(int argc, char *argv[])
   auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
   res::Handle<res::Shader> r_program = R.shader.shaders.program,
-    r_ao = R.shader.shaders.ssao,
+    r_ao = R.shader.shaders.hbao,
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
@@ -333,13 +338,14 @@ int main(int argc, char *argv[])
   static constexpr float AoNumDirections = 8.0f;
   std::array<vec3, AoNoiseSize*AoNoiseSize> ao_noise;
   for(auto& sample : ao_noise) {
+    /*
     float x = random_floats(random_generator)*2.0f - 1.0f;
     float y = random_floats(random_generator)*2.0f - 1.0f;
 
     sample = {
       x, y, 0.0f
     };
-    /*
+    */
     float r0 = random_floats(random_generator),
       r1 = random_floats(random_generator);
 
@@ -350,7 +356,6 @@ int main(int argc, char *argv[])
       sinf(angle),
       r1
     };
-    */
   }
 
   auto ao_noise_tex_id = pool.createTexture<gx::Texture2D>("t2dAoNoise",
@@ -390,8 +395,10 @@ int main(int argc, char *argv[])
   }
 
   auto ao_id = pool.createTexture<gx::Texture2D>("t2dFramebufferAo",
-    gx::rgb8);
+    gx::r8);
   auto& ao = pool.getTexture<gx::Texture2D>(ao_id);
+
+  ao.swizzle(gx::Red, gx::Red, gx::Red, gx::One);
 
   auto fb_ao_id = pool.create<gx::Framebuffer>("fbAo");
   auto& fb_ao = pool.get<gx::Framebuffer>(fb_ao_id);
@@ -697,7 +704,7 @@ int main(int argc, char *argv[])
       .padding({ 120.0f, 0.0f })
       .gravity(ui::Frame::Center))
     .frame(ui::create<ui::HSliderFrame>(iface, "ao_bias")
-      .range(0.1f, 1.85f))
+      .range(0.0f, 1.0f))
     .frame(ui::create<ui::LabelFrame>(iface, "ao_bias_val")
       .caption(util::fmt("AO bias: %.4f  ", 0.0f))
       .padding({ 120.0f, 0.0f })
@@ -731,7 +738,7 @@ int main(int argc, char *argv[])
   ao_bias_slider.onChange([&](ui::SliderFrame *target) {
     ao_bias_val.caption(util::fmt("AO bias: %.4lf", target->value()));
   });
-  ao_bias_slider.value(0.85);
+  ao_bias_slider.value(0.1);
 
   auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
     .frame(ui::create<ui::LabelFrame>(iface, "stats")
@@ -1138,7 +1145,7 @@ int main(int argc, char *argv[])
     program.use()
       .uniformFloat(U.program.uExposure, exp_slider.value());
 
-    mat4 modelview = view*xform::translate(0.0f, 0.0f, -10.0f)*xform::scale(40.0f);
+    mat4 modelview = view*xform::translate(0.0f, -1.5f, -10.0f)*xform::scale(4.0f);
 
     block_group.matrix->modelview = modelview;
     block_group.matrix->normal = modelview.inverse().transpose();
@@ -1362,7 +1369,9 @@ int main(int argc, char *argv[])
     };
 
     float ao_radius = ao_r_slider.value();
-    ao_radius *= 0.4f;
+    ao_radius *= 0.5 * proj_scale;
+
+    float ao_bias = ao_bias_slider.value();
 
     float light_x = fmod(time.elapsedSecondsf()*1.0f*PIf, 2.0f*PIf);
     vec4 light_dir = vec4(cosf(light_x), sinf(light_x), 0.0f, 1.0f);
@@ -1376,7 +1385,11 @@ int main(int argc, char *argv[])
       .uniformMatrix4x4(U.ao.uProjection, persp)
       .uniformVector4(U.ao.uProjInfo, proj_info)
       .uniformFloat(U.ao.uRadius, ao_radius)
-      .uniformFloat(U.ao.uBias, ao_bias_slider.value() * 2.0f)
+      .uniformFloat(U.ao.uRadius2, ao_radius*ao_radius)
+      .uniformFloat(U.ao.uNegInvRadius2, -1.0 / (ao_radius*ao_radius))
+      .uniformFloat(U.ao.uBias, ao_bias)
+      .uniformFloat(U.ao.uBiasBoostFactor, 1.0 / (1.0 - ao_bias))
+      .uniformFloat(U.ao.uNear, 50.0f)
       .uniformVector3(U.ao.uLightPos, light_dir.xyz())
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
       ;

@@ -187,6 +187,11 @@ const std::vector<vec3>& ObjMesh::normals() const
   return m_vn;
 }
 
+const std::vector<vec3>& ObjMesh::texCoords() const
+{
+  return m_vt;
+}
+
 const std::vector<ObjMesh::Triangle>& ObjMesh::faces() const
 {
   return m_tris;

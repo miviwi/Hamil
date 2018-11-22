@@ -99,6 +99,7 @@ public:
   Scalar(const std::string& str, Tag tag = {}, Style style = Any);
 
   static Node::Ptr from_str(const std::string& str);
+  static Node::Ptr from_str(const std::string& str, Tag tag);
   static Node::Ptr from_i(long long i);
   static Node::Ptr from_ui(unsigned long long ui);
   static Node::Ptr from_f(double f);
@@ -196,7 +197,7 @@ public:
 
   // Makes the mapping retain the insertion order
   //   of the keys when iterating
-  void retainOrder(bool enable = true);
+  Mapping *retainOrder(bool enable = true);
   bool ordered() const;
 
   virtual Node::Ptr get(const std::string& key) const;
