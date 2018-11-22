@@ -395,10 +395,10 @@ int main(int argc, char *argv[])
   }
 
   auto ao_id = pool.createTexture<gx::Texture2D>("t2dFramebufferAo",
-    gx::r8);
+    gx::rg16f);
   auto& ao = pool.getTexture<gx::Texture2D>(ao_id);
 
-  ao.swizzle(gx::Red, gx::Red, gx::Red, gx::One);
+  ao.swizzle(gx::Red, gx::Green, gx::Zero, gx::Zero);
 
   auto fb_ao_id = pool.create<gx::Framebuffer>("fbAo");
   auto& fb_ao = pool.get<gx::Framebuffer>(fb_ao_id);
