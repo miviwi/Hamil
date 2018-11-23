@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common.h>
+#include <mesh/loader.h>
 
 #include <math/geometry.h>
 
@@ -28,6 +28,11 @@ public:
   const std::vector<vec3>& normals() const;
   const std::vector<vec3>& texCoords() const;
 
+  bool loaded() const;
+
+  bool hasNormals() const;
+  bool hasTexCoords() const;
+
   const std::vector<Triangle>& faces() const;
 
 private:
@@ -40,24 +45,26 @@ private:
   std::vector<Triangle> m_tris;
 };
 
-class ObjLoader {
+class ObjLoader : public MeshLoader {
 public:
-  struct Error {
-  };
-
-  struct ParseError : public Error {
-  };
-
-  struct NonTriangularFaceError : Error {
-  };
-
-  ObjLoader& load(const char *data, size_t sz);
+  ObjLoader& load(const void *data, size_t sz);
 
   // DO NOT chain this method through load() as it will
   //    cause a dangling refernce to be returned
   // The ObjLoader object must be kept around in order to 
   //   access the mesh(es)
   const ObjMesh& mesh() const;
+
+protected:
+  virtual MeshLoader& doLoad(const void *data, size_t sz);
+
+  virtual MeshLoader& initBuffers(const gx::VertexFormat& fmt, gx::BufferHandle verts);
+  virtual MeshLoader& initBuffers(const gx::VertexFormat& fmt,
+    gx::BufferHandle verts, gx::BufferHandle inds);
+
+  virtual MeshLoader& doStream(const gx::VertexFormat& fmt, gx::BufferHandle verts);
+  virtual MeshLoader& doStreamIndexed(const gx::VertexFormat& fmt,
+    gx::BufferHandle verts, gx::BufferHandle inds);
 
 private:
   void parseLine(std::string::const_iterator it);
@@ -68,7 +75,6 @@ private:
   vec3 loadTexCoord(std::string::const_iterator it);
   vec3 loadNormal(std::string::const_iterator it);
 
-  // TODO!
   ObjMesh::Triangle loadTriangle(std::string::const_iterator it);
 
   ObjMesh m_mesh;

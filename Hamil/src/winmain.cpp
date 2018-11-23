@@ -137,61 +137,26 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attrAlias(0, gx::f32, 2);
 
-  gx::VertexBuffer bunny_vbuf(gx::Buffer::Static);
-  gx::IndexBuffer bunny_ibuf(gx::Buffer::Static, gx::u16);
-  bunny_vbuf.label("bvBunny");
-  bunny_ibuf.label("biBunny");
+  auto bunny_vbuf_id = pool.createBuffer<gx::VertexBuffer>("bvBunny",
+    gx::Buffer::Static);
+  auto bunny_ibuf_id = pool.createBuffer<gx::IndexBuffer>("biBunny",
+    gx::Buffer::Static, gx::u16);
+
+  auto bunny_vbuf = pool.getBuffer(bunny_vbuf_id);
+  auto bunny_ibuf = pool.getBuffer(bunny_ibuf_id);
 
   auto bunny_arr_id = pool.create<gx::IndexedVertexArray>("iaBunny",
-    bunny_fmt, bunny_vbuf, bunny_ibuf);
+    bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  auto bunny_load_job = sched::create_job([&]() -> size_t {
-    win32::File bunny_f("dragon.obj", win32::File::Read, win32::File::OpenExisting);
-    auto bunny = bunny_f.map(win32::File::ProtectRead);
+  win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
+  auto bunny = bunny_f.map(win32::File::ProtectRead);
 
-    auto obj_loader = mesh::ObjLoader().load(bunny.get<const char>(), bunny_f.size());
-    const auto& bunny_mesh = obj_loader.mesh();
+  auto obj_loader = mesh::ObjLoader();
+  obj_loader.loadParams(bunny.get<const char>(), bunny_f.size());
 
-    bunny.unmap();
-
-    printf("bunny vertices: %zu\n"
-      "bunny faces: %zu\n",
-      bunny_mesh.vertices().size(), bunny_mesh.faces().size());
-
-    bunny_vbuf.init(sizeof(vec3)*2, bunny_mesh.vertices().size());
-    bunny_ibuf.init(sizeof(u16)*3, bunny_mesh.faces().size());
-
-    auto bunny_vbuf_view = bunny_vbuf.map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
-    auto bunny_ibuf_view = bunny_ibuf.map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
-
-    auto bunny_verts = bunny_vbuf_view.get<vec3>();
-    const auto& bunny_v = bunny_mesh.vertices();
-    const auto& bunny_vn = bunny_mesh.normals();
-    for(size_t i = 0; i < bunny_v.size(); i++) {
-      *bunny_verts++ = bunny_v[i];
-
-      if(i >= bunny_vn.size()) {
-        *bunny_verts++ = bunny_v[i];
-      } else {
-        *bunny_verts++ = bunny_vn[i];
-      }
-    }
-
-    auto bunny_inds = bunny_ibuf_view.get<u16>();
-    auto bunny_inds_count = bunny_mesh.faces().size() * 3;
-    for(const auto& face : bunny_mesh.faces()) {
-      for(const auto& v : face) *bunny_inds++ = (u16)v.v;
-    }
-
-    bunny_vbuf_view.unmap();
-    bunny_ibuf_view.unmap();
-
-    printf("bunny loaded! (%zu indices)\n", bunny_inds_count);
-
-    return bunny_inds_count;
-  });
-  auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.withParams());
+  auto bunny_load_job = obj_loader.streamIndexed(bunny_fmt, bunny_vbuf, bunny_ibuf);
+  auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.get());
 
   auto world = bt::DynamicsWorld();
 
@@ -1153,13 +1118,13 @@ int main(int argc, char *argv[])
     block_group.material->material = PhongColored;
     block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
 
-    if(bunny_load_job.done()) {
+    if(bunny_load_job->done()) {
       if(bunny_load_job_id != sched::WorkerPool::InvalidJob) {
         worker_pool.waitJob(bunny_load_job_id);
         bunny_load_job_id = sched::WorkerPool::InvalidJob;
       }
 
-      auto num_inds = bunny_load_job.result();
+      auto num_inds = obj_loader.mesh().faces().size() * 3;
 
       auto command_buf = gx::CommandBuffer::begin()
         .bindResourcePool(&pool)
@@ -1420,6 +1385,8 @@ int main(int argc, char *argv[])
 
     window.swapBuffers();
   }
+
+  worker_pool.killWorkers();
 
   pool.purge();
 

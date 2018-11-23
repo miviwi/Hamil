@@ -69,6 +69,12 @@ public:
     m_result(std::nullopt)
   { }
 
+  Job(Job&& other) :
+    IJob(other),
+    m_fn(std::move(other.m_fn)),
+    m_params(std::move(other.m_params)), m_result(std::move(other.m_result))
+  { }
+
   // Intended to be used with ex. WorkerPool::scheduleJob()
   //    pool.scheduleJob(job.withParams("some parameter", true, 3.14f))
   IJob *withParams(Args... args) &

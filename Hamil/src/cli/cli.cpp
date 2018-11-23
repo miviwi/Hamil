@@ -15,6 +15,7 @@ int args(int argc, char *argv[])
 
     .boolean("resource-gen", "generate *.meta files (resource descriptors) from images, sound files etc.")
     .list("resources", "list of resources for resource-gen")
+    .list("types", "list of resource file types to be processed")
     ;
 
   // Print usage if options are invalid or weren't given
@@ -29,11 +30,13 @@ int args(int argc, char *argv[])
      return 1;
   } else if(opts("resource-gen")->b()) {
     try {
-      if(auto resources = opts("resources")) {
-        resourcegen(resources->list(), {});
-      } else {
-        resourcegen({}, {});
-      }
+      std::vector<std::string> resources;
+      std::set<std::string> types;
+
+      if(auto opt = opts("resources")) resources = opt->list();
+      if(auto opt = opts("types")) types.insert(opt->list().cbegin(), opt->list().cend());
+
+      resourcegen(resources, types);
     } catch(const GenError& e) {
       printf("error: %s\n", e.what.data());
       return -1;

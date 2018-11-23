@@ -1,13 +1,16 @@
 #include <mesh/obj.h>
 
 #include <util/str.h>
+#include <gx/buffer.h>
 
 #include <cassert>
 #include <cctype>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 
 #include <string>
+#include <tuple>
 
 namespace mesh {
 
@@ -35,7 +38,14 @@ enum : size_t {
   InitialFaces = 4096,
 };
 
-ObjLoader& ObjLoader::load(const char *data, size_t sz)
+ObjLoader& ObjLoader::load(const void *data, size_t sz)
+{
+  doLoad(data, sz);
+
+  return *this;
+}
+
+MeshLoader& ObjLoader::doLoad(const void *data, size_t sz)
 {
   m_mesh.m_v.reserve(InitialVertices);
   m_mesh.m_vt.reserve(InitialTexCoords);
@@ -43,7 +53,7 @@ ObjLoader& ObjLoader::load(const char *data, size_t sz)
 
   m_mesh.m_tris.reserve(InitialVertices);
 
-  util::splitlines(std::string(data, sz), [this](const std::string& line) {
+  util::splitlines(std::string((const char *)data, sz), [this](const std::string& line) {
     auto it = line.begin();
     while(it != line.end() && isspace(*it)) it++; // skip leading whitespace
 
@@ -51,6 +61,103 @@ ObjLoader& ObjLoader::load(const char *data, size_t sz)
    
     parseLine(it);
   });
+
+  return *this;
+}
+
+MeshLoader& ObjLoader::initBuffers(const gx::VertexFormat& fmt, gx::BufferHandle verts)
+{
+  STUB();
+
+  return *this;
+}
+
+MeshLoader& ObjLoader::initBuffers(const gx::VertexFormat& fmt,
+  gx::BufferHandle verts, gx::BufferHandle inds)
+{
+  auto vertex_sz = fmt.vertexByteSize();
+  auto index_sz = inds.get<gx::IndexBuffer>().elemSize();
+
+  verts().init(vertex_sz, m_mesh.vertices().size());
+  inds().init(index_sz*3 /* each face has 3 vertices */, m_mesh.faces().size());
+
+  return *this;
+}
+
+MeshLoader& ObjLoader::doStream(const gx::VertexFormat& fmt, gx::BufferHandle verts)
+{
+  STUB();
+
+  return *this;
+}
+
+MeshLoader& ObjLoader::doStreamIndexed(const gx::VertexFormat& fmt,
+  gx::BufferHandle vert_buf, gx::BufferHandle ind_buf)
+{
+  if(!m_mesh.loaded()) MeshLoader::load();
+
+  initBuffers(fmt, vert_buf, ind_buf);
+
+  auto verts_view = vert_buf().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+  auto inds_view = ind_buf().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+
+  auto verts = verts_view.get<byte>();
+
+  const vec3 *v_src = m_mesh.vertices().data();
+  const vec3 *vn_src = m_mesh.normals().data();
+  const vec3 *vt_src = m_mesh.texCoords().data();
+
+  auto vertex_stride = fmt.vertexByteSize();
+  StridePtr<vec3> v_dst(verts + 0, vertex_stride);
+  StridePtr<vec3> vn_dst(verts + sizeof(vec3), vertex_stride);
+  StridePtr<vec2> vt_dst(verts + sizeof(vec3) + sizeof(vec3), vertex_stride);
+
+  if(!m_mesh.hasNormals() && !m_mesh.hasTexCoords()) {
+    for(size_t i = 0; i < m_mesh.vertices().size(); i++) {
+      *v_dst++ = *v_src++;
+    }
+  } else if(m_mesh.hasNormals() && !m_mesh.hasTexCoords()) {
+    for(size_t i = 0; i < m_mesh.vertices().size(); i++) {
+      *v_dst++ = *v_src++;
+      *vn_dst++ = *vn_src++;
+    }
+  } else {
+    for(size_t i = 0; i < m_mesh.vertices().size(); i++) {
+      auto vt = *vt_src++;
+
+      *v_dst++ = *v_src++;
+      *vn_dst++ = *vn_src++;
+      *vt_dst++ = vt.xy();
+    }
+  }
+
+  switch(ind_buf.get<gx::IndexBuffer>().elemType()) {
+  case gx::u8: {
+    u8 *inds = inds_view.get<u8>();
+    for(const auto& face : m_mesh.faces()) {
+      for(const auto& vert: face) *inds++ = (u8)vert.v;
+    }
+    break;
+  }
+
+  case gx::u16: {
+    u16 *inds = inds_view.get<u16>();
+    for(const auto& face : m_mesh.faces()) {
+      for(const auto& vert : face) *inds++ = (u16)vert.v;
+    }
+    break;
+  }
+
+  case gx::u32: {
+    u32 *inds = inds_view.get<u32>();
+    for(const auto& face : m_mesh.faces()) {
+      for(const auto& vert : face) *inds++ = (u32)vert.v;
+    }
+    break;
+  }
+
+  default: assert(0); // unreachable
+  }
 
   return *this;
 }
@@ -190,6 +297,21 @@ const std::vector<vec3>& ObjMesh::normals() const
 const std::vector<vec3>& ObjMesh::texCoords() const
 {
   return m_vt;
+}
+
+bool ObjMesh::loaded() const
+{
+  return !m_tris.empty();
+}
+
+bool ObjMesh::hasNormals() const
+{
+  return !m_vn.empty();
+}
+
+bool ObjMesh::hasTexCoords() const
+{
+  return !m_vt.empty();
 }
 
 const std::vector<ObjMesh::Triangle>& ObjMesh::faces() const

@@ -352,20 +352,17 @@ static yaml::Document meshgen(win32::File& file,
   auto obj_loader = mesh::ObjLoader().load(mesh_view.get<const char>(), file.size());
   auto obj_mesh   = obj_loader.mesh();
 
-  bool has_normals   = !obj_mesh.normals().empty();
-  bool num_texcoords = obj_mesh.texCoords().empty() ? 0u : 1u;
-
   size_t num_faces = obj_mesh.faces().size();
 
   auto meta_vertex = new yaml::Mapping();
   meta_vertex->retainOrder()->append(
-    yaml::Scalar::from_str("normals"), yaml::Scalar::from_b(has_normals)
+    yaml::Scalar::from_str("normals"), yaml::Scalar::from_b(obj_mesh.hasNormals())
   )->append(
     yaml::Scalar::from_str("tangents"), yaml::Scalar::from_b(false)
   )->append(
     yaml::Scalar::from_str("colors"), yaml::Scalar::from_ui(0)
   )->append(
-    yaml::Scalar::from_str("texcoords"), yaml::Scalar::from_ui(num_texcoords)
+    yaml::Scalar::from_str("texcoords"), yaml::Scalar::from_ui(obj_mesh.hasTexCoords() ? 1u : 0u)
   )->append(
     yaml::Scalar::from_str("bones"), yaml::Scalar::from_b(false)
   );
