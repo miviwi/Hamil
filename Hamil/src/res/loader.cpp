@@ -4,6 +4,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/mesh.h>
 
 #include <util/format.h>
 #include <win32/file.h>
@@ -50,12 +51,18 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
                              .scalar("channels", yaml::Scalar::String, yaml::Optional)
                              .scalar("flip_vertical", yaml::Scalar::Boolean, yaml::Optional)
                              .scalarSequence("dimensions", yaml::Scalar::Int) },
+  { Mesh::tag(),   yaml::Schema()
+                             .scalar("location", yaml::Scalar::Tagged)
+                             .mapping("vertex")
+                             .scalar("indexed", yaml::Scalar::Boolean)
+                             .scalar("primitive", yaml::Scalar::String) },
 };
 
 static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> p_loader_fns = {
   { Text::tag(),   &SimpleFsLoader::loadText   },
   { Shader::tag(), &SimpleFsLoader::loadShader },
   { Image::tag(),  &SimpleFsLoader::loadImage  },
+  { Mesh::tag(),   &SimpleFsLoader::loadMesh   },
 };
 
 Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
@@ -248,6 +255,14 @@ Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& m
   printf("loaded image(0x%.16llx)...\n", id);
 
   return img;
+}
+
+Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& meta)
+{
+  const yaml::Scalar *name, *path;
+  std::tie(name, path) = name_path(meta);
+
+  return Mesh::from_yaml(meta, id, name->str(), path->str());
 }
 
 }

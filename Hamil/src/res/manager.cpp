@@ -2,6 +2,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/mesh.h>
 
 #include <util/hash.h>
 
@@ -62,6 +63,7 @@ static const std::map<std::string, res::Resource::Tag> p_tags = {
   { Text::tag().get(),   Text::tag() },
   { Shader::tag().get(), Shader::tag() },
   { Image::tag().get(),  Image::tag() },
+  { Mesh::tag().get(),   Mesh::tag() },
 };
 
 std::optional<Resource::Tag> ResourceManager::make_tag(const char *tag)

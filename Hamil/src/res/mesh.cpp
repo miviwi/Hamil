@@ -3,10 +3,12 @@
 #include <yaml/document.h>
 #include <yaml/node.h>
 #include <gx/gx.h>
+#include <mesh/obj.h>
 
 #include <cassert>
 
 #include <unordered_map>
+#include <functional>
 
 namespace res {
 
@@ -15,9 +17,25 @@ Resource::Ptr Mesh::from_yaml(const yaml::Document& doc, Id id,
 {
   auto mesh = new Mesh(id, Mesh::tag(), name, File, path);
 
-  mesh->populate(doc);
+  auto location = mesh->populate(doc);
+
+  // TODO:
+  //   1. Read the mesh data from the disk
+  //   2. Parse it
+  //   3. Stream it into a <Indexed>VertexArray
+  win32::File mesh_data(location.data(), win32::File::Read, win32::File::OpenExisting);
+  mesh->m_mesh_data.emplace(mesh_data.map(win32::File::ProtectRead));
+
+  mesh->m_loader->loadParams(mesh->m_mesh_data->get(), mesh_data.size());
+
+  mesh->m_loaded = true;
 
   return Resource::Ptr(mesh);
+}
+
+mesh::MeshLoader& Mesh::loader()
+{
+  return *m_loader;
 }
 
 static const std::unordered_map<std::string, gx::Primitive> p_mesh_prims = {
@@ -32,7 +50,12 @@ static const std::unordered_map<std::string, gx::Primitive> p_mesh_prims = {
   { "trianglestrip", gx::TriangleStrip },
 };
 
-void Mesh::populate(const yaml::Document& doc)
+using MeshLoaderFactoryFn = std::function<mesh::MeshLoader *()>;
+static const std::unordered_map<std::string, MeshLoaderFactoryFn> p_loader_factories = {
+  { "obj", []() -> mesh::MeshLoader * { return new mesh::ObjLoader(); } },
+};
+
+std::string Mesh::populate(const yaml::Document& doc)
 {
   auto vertex = doc("vertex");
 
@@ -56,6 +79,18 @@ void Mesh::populate(const yaml::Document& doc)
 
   m_mesh.primitive(it->second);
 
+  auto location = doc("location");
+  std::string location_str = location->as<yaml::Scalar>()->str();
+
+  auto mesh_type_off = location_str.rfind('.');
+  assert(mesh_type_off != std::string::npos && "Invalid Mesh file type!");
+
+  auto loader_factory = p_loader_factories.find(location_str.substr(mesh_type_off+1));
+  if(loader_factory == p_loader_factories.end()) throw UnknownTypeError();
+  
+  m_loader = loader_factory->second();
+
+  return location_str;
 }
 
 }

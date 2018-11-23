@@ -78,6 +78,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/mesh.h>
 
 #include <mesh/util.h>
 #include <mesh/halfedge.h>
@@ -132,6 +133,14 @@ int main(int argc, char *argv[])
     .acquireWorkerGlContexts(window)
     .kickWorkers();
 
+  auto world = bt::DynamicsWorld();
+
+  py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
+
+  res::load(R.shader.shaders.ids);
+  res::load(R.image.ids);
+  res::load(R.mesh.ids);
+
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3)
@@ -149,21 +158,12 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  win32::File bunny_f("bunny0.obj", win32::File::Read, win32::File::OpenExisting);
-  auto bunny = bunny_f.map(win32::File::ProtectRead);
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
 
-  auto obj_loader = mesh::ObjLoader();
-  obj_loader.loadParams(bunny.get<const char>(), bunny_f.size());
+  auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
   auto bunny_load_job = obj_loader.streamIndexed(bunny_fmt, bunny_vbuf, bunny_ibuf);
   auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.get());
-
-  auto world = bt::DynamicsWorld();
-
-  py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
-
-  res::load(R.shader.shaders.ids);
-  res::load(R.image.ids);
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
