@@ -19,17 +19,6 @@ public:
     NumConfigTypes,
   };
 
-  enum DepthFunc {
-    Never = GL_NEVER,
-    Always = GL_ALWAYS,
-    Less = GL_LESS,
-    LessEqual = GL_LEQUAL,
-    Greater = GL_GREATER,
-    GreaterEqual = GL_GEQUAL,
-    Equal = GL_EQUAL,
-    NotEqual = GL_NOTEQUAL,
-  };
-
   enum FrontFace {
     Clockwise = GL_CW,
     CounterClockwise = GL_CCW,
@@ -52,7 +41,7 @@ public:
   Pipeline& additiveBlend();
   Pipeline& subtractiveBlend();
   Pipeline& multiplyBlend();
-  Pipeline& depthTest(DepthFunc func);
+  Pipeline& depthTest(CompareFunc func);
   Pipeline& cull(FrontFace front, CullMode mode);
   Pipeline& cull(CullMode mode);
   Pipeline& clearColor(vec4 color);

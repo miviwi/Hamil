@@ -55,6 +55,13 @@ enum Face {
   PosZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z, NegZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
 };
 
+enum CompareFunc {
+  Never = GL_NEVER, Always = GL_ALWAYS,
+  Less = GL_LESS, LessEqual = GL_LEQUAL,
+  Greater = GL_GREATER, GreaterEqual = GL_GEQUAL,
+  Equal = GL_EQUAL, NotEqual = GL_NOTEQUAL,
+};
+
 // Ordered according to CubeMap FBO layer indices
 static constexpr std::array<Face, 6> Faces = {
   PosX, NegX,

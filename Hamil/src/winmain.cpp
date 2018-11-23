@@ -382,7 +382,7 @@ int main(int argc, char *argv[])
     win32::panic("couldn't create composite Framebuffer!", win32::FramebufferError);
   }
 
-  auto resolve_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d());
+  auto resolve_sampler_id = pool.create<gx::Sampler>(gx::Sampler::borderclamp2d());
 
   struct SkyboxUniforms {
     mat4 view;
@@ -515,14 +515,14 @@ int main(int argc, char *argv[])
       { FloorTexImageUnit,  { tex_id, floor_sampler_id }},
       { SkyboxTexImageUnit, { cubemap_id, cubemap_sampler_id }}
     })
-   .uniformBuffersRange({
+    .uniformBuffersRange({
       { MatrixBinding,   { scene_ubo_id, 0, ubo_align(sizeof(MatrixBlock)) } },
       { MaterialBinding, { scene_ubo_id, material_block_offset, ubo_align(sizeof(MaterialBlock)) } },
     })
     .uniformBuffer(LightBinding, light_ubo_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-      .depthTest(gx::Pipeline::LessEqual)
+      .depthTest(gx::LessEqual)
       .cull(gx::Pipeline::Back)
       .seamlessCubemap()
       .noBlend()
@@ -530,7 +530,7 @@ int main(int argc, char *argv[])
     .subpass(gx::RenderPass::Subpass()
       .pipeline(gx::Pipeline()
         .writeColorOnly()
-        .depthTest(gx::Pipeline::LessEqual)
+        .depthTest(gx::LessEqual)
         .cull(gx::Pipeline::Front)))
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;

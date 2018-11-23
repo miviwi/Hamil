@@ -4,6 +4,8 @@
 #include <yaml/node.h>
 #include <gx/gx.h>
 
+#include <cassert>
+
 #include <unordered_map>
 
 namespace res {
@@ -18,8 +20,16 @@ Resource::Ptr Mesh::from_yaml(const yaml::Document& doc, Id id,
   return Resource::Ptr(mesh);
 }
 
-static const std::unordered_map<std::string, gx::Primitive> p_mesh_prims ={
-  { "triangles", gx::Triangles },
+static const std::unordered_map<std::string, gx::Primitive> p_mesh_prims = {
+  { "points", gx::Points },
+
+  { "lines",     gx::Lines     },
+  { "lineloop",  gx::LineLoop  },
+  { "linestrip", gx::LineStrip },
+
+  { "triangles",     gx::Triangles     },
+  { "trianglefan",   gx::TriangleFan   },
+  { "trianglestrip", gx::TriangleStrip },
 };
 
 void Mesh::populate(const yaml::Document& doc)
@@ -42,7 +52,7 @@ void Mesh::populate(const yaml::Document& doc)
   }
 
   auto it = p_mesh_prims.find(doc("primitive")->as<yaml::Scalar>()->str());
-  if(it == p_mesh_prims.end()) throw Error();
+  assert(it != p_mesh_prims.end() && "Invalid primitive specified!");
 
   m_mesh.primitive(it->second);
 

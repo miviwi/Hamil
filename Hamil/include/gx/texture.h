@@ -2,6 +2,7 @@
 
 #include <gx/gx.h>
 #include <gx/buffer.h>
+#include <gx/pipeline.h>
 
 #include <util/ref.h>
 #include <math/geometry.h>
@@ -161,6 +162,7 @@ class Sampler : public Ref {
 public:
   enum ParamName {
     MinFilter, MagFilter,
+    MinLod, MaxLod,
     WrapS, WrapT, WrapR,
     Anisotropy,
     BorderColor,
@@ -184,9 +186,16 @@ public:
   static Sampler edgeclamp2d_linear();
   static Sampler edgeclamp2d_mipmap();
 
+  static Sampler borderclamp2d();
+  static Sampler borderclamp2d_linear();
+  static Sampler borderclamp2d_mipmap();
+
   Sampler& param(ParamName name, Param p);
   Sampler& param(ParamName name, float value);
   Sampler& param(ParamName name, vec4 value);
+
+  Sampler& compareRef(CompareFunc func);
+  Sampler& noCompareRef();
 
   void label(const char *lbl);
 

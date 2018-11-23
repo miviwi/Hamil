@@ -176,11 +176,10 @@ Pipeline& Pipeline::multiplyBlend()
   return *this;
 }
 
-Pipeline& Pipeline::depthTest(DepthFunc func)
+Pipeline& Pipeline::depthTest(CompareFunc func)
 {
   m_enabled[Depth] = true;
   m_depth.func = (GLenum)func;
-
 
   return *this;
 }

@@ -30,10 +30,16 @@ public:
   // Stores 'data' pointer for async loading in stream<Indexed>()
   MeshLoader& loadParams(const void *data, size_t sz);
 
-  // Fills 'verts' with the Meshes vertices
+  // Fills 'verts' with the Meshes vertices based on 'fmt'
+  //   - The returned StreamJobPtr must be passed directly
+  //     to WorkerPool::scheduleJob()
   StreamJobPtr stream(const gx::VertexFormat& fmt, gx::BufferHandle verts);
-  // Fills 'verts' with the Meshes vertices and 'inds' with it's indices
-  StreamJobPtr streamIndexed(const gx::VertexFormat& fmt, gx::BufferHandle verts, gx::BufferHandle inds);
+  // Fills 'verts' with the Meshes vertices (based on 'fmt') and 'inds' with
+  //  it's indices (based on gx::IndexBuffer::elemType())
+  //   - The returned StreamJobPtr must be passed directly
+  //     to WorkerPool::scheduleJob()
+  StreamJobPtr streamIndexed(const gx::VertexFormat& fmt,
+    gx::BufferHandle verts, gx::BufferHandle inds);
 
 protected:
   // 'sz' is the length of 'data' in bytes

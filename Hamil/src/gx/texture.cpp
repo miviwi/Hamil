@@ -316,6 +316,33 @@ Sampler Sampler::edgeclamp2d_mipmap()
     .param(MagFilter, Linear);
 }
 
+Sampler Sampler::borderclamp2d()
+{
+  return Sampler()
+    .param(WrapS, BorderClamp)
+    .param(WrapT, BorderClamp)
+    .param(MinFilter, Nearest)
+    .param(MagFilter, Nearest);
+}
+
+Sampler Sampler::borderclamp2d_linear()
+{
+  return Sampler()
+    .param(WrapS, BorderClamp)
+    .param(WrapT, BorderClamp)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::borderclamp2d_mipmap()
+{
+  return Sampler()
+    .param(WrapS, BorderClamp)
+    .param(WrapT, BorderClamp)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
 Sampler& Sampler::param(ParamName name, Param p)
 {
   assert((name == MagFilter ? p != LinearMipmapLinear : true)
@@ -340,6 +367,21 @@ Sampler& Sampler::param(ParamName name, vec4 value)
   return *this;
 }
 
+Sampler& Sampler::compareRef(CompareFunc func)
+{
+  glSamplerParameteri(m, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+  glSamplerParameteri(m, GL_TEXTURE_COMPARE_FUNC, func);
+
+  return *this;
+}
+
+Sampler& Sampler::noCompareRef()
+{
+  glSamplerParameteri(m, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+
+  return *this;
+}
+
 void Sampler::label(const char *lbl)
 {
 #if !defined(NDEBUG)
@@ -351,6 +393,7 @@ GLenum Sampler::pname(ParamName name)
 {
   static const GLenum table[] = {
     GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER,
+    GL_TEXTURE_MIN_LOD, GL_TEXTURE_MAX_LOD,
     GL_TEXTURE_WRAP_S, GL_TEXTURE_WRAP_T, GL_TEXTURE_WRAP_R,
     GL_TEXTURE_MAX_ANISOTROPY,
     GL_TEXTURE_BORDER_COLOR,
@@ -388,7 +431,8 @@ static void setDefaultParameters(GLenum target)
 
   glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-}
 
+  glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+}
 
 }
