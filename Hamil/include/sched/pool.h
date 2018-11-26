@@ -80,7 +80,7 @@ public:
   JobId jobId(IJob *job) const;
 
   // Create and start the worker Threads
-  WorkerPool& kickWorkers();
+  WorkerPool& kickWorkers(const char *name = nullptr);
 
   // Stop the worker Threads
   WorkerPool& killWorkers();

@@ -12,23 +12,20 @@
 
 namespace res {
 
-Resource::Ptr Mesh::from_yaml(const yaml::Document& doc, Id id,
+Resource::Ptr Mesh::from_yaml(IOBuffer mesh_data,
+  const yaml::Document& doc, Id id,
   const std::string& name, const std::string& path)
 {
   auto mesh = new Mesh(id, Mesh::tag(), name, File, path);
 
-  auto location = mesh->populate(doc);
+  mesh->m_mesh_data = std::move(mesh_data);
+  mesh->populate(doc);
 
   // TODO:
   //   1. Read the mesh data from the disk
   //   2. Parse it
   //   3. Stream it into a <Indexed>VertexArray
-  win32::File mesh_data(location.data(), win32::File::Read, win32::File::OpenExisting);
-  mesh->m_mesh_data.emplace(mesh_data.map(win32::File::ProtectRead));
-
-  mesh->m_loader->loadParams(mesh->m_mesh_data->get(), mesh_data.size());
-
-  mesh->m_loaded = true;
+  mesh->m_loader->loadParams(mesh->m_mesh_data.get(), mesh->m_mesh_data.size());
 
   return Resource::Ptr(mesh);
 }
@@ -55,7 +52,7 @@ static const std::unordered_map<std::string, MeshLoaderFactoryFn> p_loader_facto
   { "obj", []() -> mesh::MeshLoader * { return new mesh::ObjLoader(); } },
 };
 
-std::string Mesh::populate(const yaml::Document& doc)
+void Mesh::populate(const yaml::Document& doc)
 {
   auto vertex = doc("vertex");
 
@@ -90,7 +87,11 @@ std::string Mesh::populate(const yaml::Document& doc)
   
   m_loader = loader_factory->second();
 
-  return location_str;
+  m_loader->onLoaded([this](mesh::MeshLoader& loader) {
+    m_mesh_data.release();   // Dispose of the mesh data when it's no longer needed
+
+    m_loaded = true;
+  });
 }
 
 }

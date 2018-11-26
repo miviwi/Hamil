@@ -26,6 +26,8 @@ enum LoadFlags : int {
                           //   check Resource::loaded() to know when loading is done
 };
 
+class ResourceManager;
+
 class ResourceLoader {
 public:
   using Ptr = std::unique_ptr<ResourceLoader>;
@@ -46,7 +48,19 @@ public:
     { }
   };
 
-  virtual Resource::Ptr load(Resource::Id id, LoadFlags flags) = 0;
+  Resource::Ptr load(Resource::Id id, LoadFlags flags);
+
+  ResourceManager& manager();
+
+protected:
+  ResourceLoader *init(ResourceManager *manager);
+
+  virtual Resource::Ptr doLoad(Resource::Id id, LoadFlags flags) = 0;
+
+private:
+  friend ResourceManager;
+
+  ResourceManager *m_man;
 };
 
 // SimpleFsLoader:
@@ -57,13 +71,14 @@ class SimpleFsLoader : public ResourceLoader {
 public:
   SimpleFsLoader(const char *base_path);
 
-  virtual Resource::Ptr load(Resource::Id id, LoadFlags flags);
-
   using LoaderFn = Resource::Ptr (SimpleFsLoader::*)(Resource::Id, const yaml::Document&);
   Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadImage(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadMesh(Resource::Id id, const yaml::Document& meta);
+
+protected:
+  virtual Resource::Ptr doLoad(Resource::Id id, LoadFlags flags);
 
 private:
   void enumAvailable(std::string path);

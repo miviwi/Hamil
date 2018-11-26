@@ -15,6 +15,7 @@ Pipeline::Pipeline()
 
   m_viewport = { -1, -1, -1, -1 };
   m_scissor.current = false;
+  m_blend.color = { 0.0f, 0.0f, 0.0f, 0.0f };
   m_depth.func = GL_LESS;
   m_cull.front = GL_CCW;
   m_clear.stencil = ~0;
@@ -176,6 +177,13 @@ Pipeline& Pipeline::multiplyBlend()
   return *this;
 }
 
+Pipeline& Pipeline::blendColor(vec4 color)
+{
+  m_blend.color = color;
+
+  return *this;
+}
+
 Pipeline& Pipeline::depthTest(CompareFunc func)
 {
   m_enabled[Depth] = true;
@@ -330,6 +338,7 @@ void Pipeline::enable(ConfigType config) const
     do_enable(Blend, GL_BLEND);
     glBlendEquation(m_blend.mode);
     glBlendFunc(m_blend.sfactor, m_blend.dfactor);
+    glBlendColor(m_blend.color.r, m_blend.color.g, m_blend.color.b, m_blend.color.a);
     break;
   case Depth:
     do_enable(Depth, GL_DEPTH_TEST);

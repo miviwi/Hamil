@@ -41,6 +41,7 @@ public:
   Pipeline& additiveBlend();
   Pipeline& subtractiveBlend();
   Pipeline& multiplyBlend();
+  Pipeline& blendColor(vec4 color);
   Pipeline& depthTest(CompareFunc func);
   Pipeline& cull(FrontFace front, CullMode mode);
   Pipeline& cull(CullMode mode);
@@ -87,6 +88,8 @@ private:
   struct BlendConfig {
     GLenum mode;
     GLenum sfactor, dfactor;
+
+    vec4 color;
   } m_blend;
 
   struct DepthConfig {

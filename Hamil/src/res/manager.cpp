@@ -5,6 +5,7 @@
 #include <res/mesh.h>
 
 #include <util/hash.h>
+#include <yaml/node.h>
 
 #include <cstring>
 #include <map>
@@ -14,19 +15,23 @@ namespace res {
 
 ResourceManager::ResourceManager(std::initializer_list<ResourceLoader *> loader_chain) :
   m_caches({ { ResourceCache::Generic }, { ResourceCache::Static } }),
-  m_loader_chain(loader_chain.size())
+  m_loader_chain(loader_chain.size()),
+  m_io_workers(NumIOWorkers)
 {
   // populate the loader chain in reverse to allow
   // listing the loaders in a natural order (the last loader
   // in the std::initializer_list has the highest priority)
   size_t i = loader_chain.size()-1;
   for(const auto& loader : loader_chain) {
-    m_loader_chain[i] = ResourceLoader::Ptr(loader);
+    m_loader_chain[i] = ResourceLoader::Ptr(loader->init(this));
     i--;
   }
+
+  m_io_workers.kickWorkers("ResuorceManager_IOWorker");
 }
 
-Resource::Id ResourceManager::guid(Resource::Tag tag, const std::string& name, const std::string& path) const
+Resource::Id ResourceManager::guid(Resource::Tag tag,
+  const std::string& name, const std::string& path) const
 {
   size_t hash = 0;
   util::hash_combine<Resource::Tag::Hash>(hash, tag);
@@ -59,11 +64,43 @@ ResourceHandle ResourceManager::handle(Resource::Id id)
   return ResourceHandle(); // unreachable
 }
 
+ResourceManager& ResourceManager::requestIo(const IORequest::Ptr& req)
+{
+  req->m_id = m_io_workers.scheduleJob(req->job());
+
+  return *this;
+}
+
+IOBuffer& ResourceManager::waitIo(const IORequest::Ptr& req)
+{
+  assert(req->m_id != sched::WorkerPool::InvalidJob &&
+    "Attempted to wait for an invalid IORequest!");
+
+  m_io_workers.waitJob(req->m_id);
+
+  return req->result();
+}
+
+IOBuffer ResourceManager::mapLocation(const yaml::Scalar *location,
+  size_t offset, size_t sz)
+{
+  IOBuffer view(nullptr, 0);
+
+  if(location->tag().value() == "!file") {
+    win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
+    size_t map_sz = sz ? sz : f.size();
+
+    return IOBuffer(f.map(win32::File::ProtectRead, offset, map_sz));
+  }
+
+  return view;
+}
+
 static const std::map<std::string, res::Resource::Tag> p_tags = {
-  { Text::tag().get(),   Text::tag() },
+  { Text::tag().get(),   Text::tag()   },
   { Shader::tag().get(), Shader::tag() },
-  { Image::tag().get(),  Image::tag() },
-  { Mesh::tag().get(),   Mesh::tag() },
+  { Image::tag().get(),  Image::tag()  },
+  { Mesh::tag().get(),   Mesh::tag()   },
 };
 
 std::optional<Resource::Tag> ResourceManager::make_tag(const char *tag)

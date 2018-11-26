@@ -23,6 +23,25 @@
 
 namespace res {
 
+ResourceManager& ResourceLoader::manager()
+{
+  return *m_man;
+}
+
+ResourceLoader *ResourceLoader::init(ResourceManager *manager)
+{
+  m_man = manager;
+
+  return this;
+}
+
+Resource::Ptr ResourceLoader::load(Resource::Id id, LoadFlags flags)
+{
+  assert(m_man && "load() called before init()!");
+
+  return doLoad(id, flags);
+}
+
 SimpleFsLoader::SimpleFsLoader(const char *base_path) :
   m_path(base_path)
 {
@@ -65,7 +84,7 @@ static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> p_loade
   { Mesh::tag(),   &SimpleFsLoader::loadMesh   },
 };
 
-Resource::Ptr SimpleFsLoader::load(Resource::Id id, LoadFlags flags)
+Resource::Ptr SimpleFsLoader::doLoad(Resource::Id id, LoadFlags flags)
 {
   auto it = m_available.find(id);
   if(it == m_available.end()) return Resource::Ptr();  // Resource not found!
@@ -198,10 +217,12 @@ Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& me
   const yaml::Scalar *name, *path, *location;
   std::tie(name, path, location) = name_path_location(meta);
 
-  win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
-  win32::FileView view = f.map(win32::File::ProtectRead);
+  auto req = IORequest::read_file(location->str());
+  manager().requestIo(req);
 
-  return Text::from_file(view.get<char>(), f.size(), id, name->str(), path->str());
+  auto text = manager().waitIo(req);
+
+  return Text::from_file(text.get<const char>(), text.size(), id, name->str(), path->str());
 }
 
 Resource::Ptr SimpleFsLoader::loadShader(Resource::Id id, const yaml::Document& meta)
@@ -243,26 +264,27 @@ Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& m
   unsigned flags = 0;
   if(flip_vertical && flip_vertical->as<yaml::Scalar>()->b()) flags |= Image::FlipVertical;
 
-  win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
-  win32::FileView view = f.map(win32::File::ProtectRead);
+  auto view = manager().mapLocation(location);
+  if(!view) throw IOError(location->repr());
 
-  auto img = Image::from_file(view.get(), f.size(), num_channels, flags, id, name->str(), path->str());
+  auto img = Image::from_file(view.get(), view.size(), num_channels, flags, id, name->str(), path->str());
 
   if(img->as<Image>()->dimensions() != ivec2{ width, height }) {
     throw InvalidResourceError(id);
   }
-
-  printf("loaded image(0x%.16llx)...\n", id);
 
   return img;
 }
 
 Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& meta)
 {
-  const yaml::Scalar *name, *path;
-  std::tie(name, path) = name_path(meta);
+  const yaml::Scalar *name, *path, *location;
+  std::tie(name, path, location) = name_path_location(meta);
 
-  return Mesh::from_yaml(meta, id, name->str(), path->str());
+  auto view = manager().mapLocation(location);
+  if(!view) throw IOError(location->repr());
+
+  return Mesh::from_yaml(view, meta, id, name->str(), path->str());
 }
 
 }

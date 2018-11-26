@@ -8,6 +8,7 @@
 #include <gx/buffer.h>
 
 #include <memory>
+#include <functional>
 
 namespace mesh {
 
@@ -23,6 +24,8 @@ public:
   struct NonTriangularFaceError : Error { };
 
   using StreamJobPtr = std::unique_ptr<sched::IJob>;
+
+  using OnLoadedFn = std::function<void(MeshLoader&)>;
 
   // Uses the loadParams()
   MeshLoader& load();
@@ -40,6 +43,8 @@ public:
   //     to WorkerPool::scheduleJob()
   StreamJobPtr streamIndexed(const gx::VertexFormat& fmt,
     gx::BufferHandle verts, gx::BufferHandle inds);
+
+  MeshLoader& onLoaded(OnLoadedFn fn);
 
 protected:
   // 'sz' is the length of 'data' in bytes
@@ -64,6 +69,8 @@ protected:
 private:
   const void *m_data = nullptr;
   size_t m_sz = ~0ull;
+
+  OnLoadedFn m_on_loaded;
 };
 
 }

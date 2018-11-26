@@ -22,6 +22,7 @@ MeshLoader::StreamJobPtr MeshLoader::stream(const gx::VertexFormat& fmt, gx::Buf
   return StreamJobPtr(new sched::Job<Unit, gx::VertexFormat, gx::BufferHandle>(
     sched::create_job([this](gx::VertexFormat fmt, gx::BufferHandle verts) -> Unit {
       doStream(fmt, verts);
+      if(m_on_loaded) m_on_loaded(*this);
 
       return {};
     }, fmt, verts)
@@ -34,10 +35,18 @@ MeshLoader::StreamJobPtr MeshLoader::streamIndexed(const gx::VertexFormat& fmt,
   return StreamJobPtr(new sched::Job<Unit, gx::VertexFormat, gx::BufferHandle, gx::BufferHandle>(
     sched::create_job([this](gx::VertexFormat fmt, gx::BufferHandle verts, gx::BufferHandle inds) -> Unit {
       doStreamIndexed(fmt, verts, inds);
+      if(m_on_loaded) m_on_loaded(*this);
 
       return {};
     }, fmt, verts, inds)
   ));
+}
+
+MeshLoader& MeshLoader::onLoaded(OnLoadedFn fn)
+{
+  m_on_loaded = fn;
+
+  return *this;
 }
 
 }

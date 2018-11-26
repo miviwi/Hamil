@@ -12,7 +12,7 @@ class ResourceManager;
 void init();
 void finalize();
 
-ResourceManager& resource();
+ResourceManager& resources();
 
 ResourceManager& load(std::initializer_list<size_t> ids);
 ResourceManager& load(const size_t *ids, size_t sz);

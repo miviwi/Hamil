@@ -159,13 +159,15 @@ WorkerPool::JobId WorkerPool::jobId(IJob *job) const
   return std::distance(jobs.cbegin(), it);
 }
 
-WorkerPool& WorkerPool::kickWorkers()
+WorkerPool& WorkerPool::kickWorkers(const char *name)
 {
   // Make sure the workers don't terminate immediately
   m_data->done.store(false);
 
   uint num_cores = win32::cpuinfo().numPhysicalProcessors();
   bool hyperthreading = win32::cpuinfo().hyperthreading();
+
+  if(!name) name = "WorkerPool_Worker";
 
   for(size_t i = 0; i < m_num_workers; i++) {
     // ulong (WorkerPool::*fn)() -> ulong (*fn)()
@@ -175,7 +177,7 @@ WorkerPool& WorkerPool::kickWorkers()
     m_workers.append(worker);
 
     // Give each worker a nice name
-    worker->dbg_SetName(util::fmt("WorkerPool_Worker%zu", i).data());
+    worker->dbg_SetName(util::fmt("%s%zu", name, i).data());
 
     // Lock each worker to a given thread
     //   - When the system has hyperthreading (SMT)

@@ -25,13 +25,13 @@ static PyObject *Res_Guid(PyObject *self, PyObject *args, PyObject *kwds)
   if(!PyArg_ParseTupleAndKeywords(args, kwds, "sss:guid", kwds_names,
     &tag_str, &name, &path)) return nullptr;
 
-  auto tag = res::resource().make_tag(tag_str);
+  auto tag = res::resources().make_tag(tag_str);
   if(!tag) {
     PyErr_SetString(PyExc_ValueError, "invalid resource tag!");
     return nullptr;
   }
 
-  auto guid = res::resource().guid(tag.value(), name, path);
+  auto guid = res::resources().guid(tag.value(), name, path);
   return PyLong_FromSize_t(guid);
 }
 
@@ -45,7 +45,7 @@ static PyObject *Res_Load(PyObject *self, PyObject *args)
   if(!PyArg_ParseTuple(args, "K|i:load", &guid, &flags)) return nullptr;
 
   try {
-    auto ptr = res::resource().load(guid, flags);
+    auto ptr = res::resources().load(guid, flags);
     if(auto r = ptr.lock()) {
       return Unicode::from_format("%s/%s (0x%.16llx): %s",
         r->path().data(), r->name().data(), r->id(), r->getTag().get()).move();

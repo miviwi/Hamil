@@ -1,6 +1,7 @@
 #pragma once
 
 #include <res/resource.h>
+#include <res/io.h>
 
 #include <util/staticstring.h>
 #include <win32/file.h>
@@ -8,6 +9,7 @@
 #include <mesh/loader.h>
 
 #include <optional>
+#include <utility>
 
 namespace yaml {
 class Document;
@@ -26,7 +28,8 @@ public:
   struct UnknownTypeError : public Error { };
 
   // 'doc' must be pre-validated!
-  static Resource::Ptr from_yaml(const yaml::Document& doc, Id id,
+  static Resource::Ptr from_yaml(IOBuffer mesh_data,
+    const yaml::Document& doc, Id id,
     const std::string& name = "", const std::string& path = "");
 
   // Returns a MeshLoader appropriate for the Meshes file type
@@ -40,13 +43,12 @@ protected:
 private:
   friend ResourceManager;
 
-  // Returns the Meshes data location
-  std::string populate(const yaml::Document& doc);
+  void populate(const yaml::Document& doc);
 
   mesh::Mesh m_mesh;
   mesh::MeshLoader *m_loader = nullptr;
 
-  std::optional<win32::FileView> m_mesh_data = std::nullopt;
+  IOBuffer m_mesh_data;
 };
 
 }

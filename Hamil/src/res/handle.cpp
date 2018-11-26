@@ -4,7 +4,7 @@
 namespace res {
 
 HandleBase::HandleBase(Resource::Id id) :
-  m(resource().handle(id))
+  m(resources().handle(id))
 {
 }
 
