@@ -98,13 +98,12 @@ mat4 ortho(float t, float l, float b, float r, float n, float f)
 
 mat4 frutsum(float t, float l, float b, float r, float n, float f)
 {
-  auto n2 = n*2.0f;
+  auto nn = n*2.0f;
   return mat4{
-    n2/(r-l), 0.0f,     (r+l)/(r-l),  0.0f,
-    0.0f,     n2/(t-b), (t+b)/(t-b),  0.0f,
-    0.0f,     0.0f,     -(f+n)/(f-n), -f*n2/(f-n),
+    nn/(r-l), 0.0f,     (r+l)/(r-l),  0.0f,
+    0.0f,     nn/(t-b), (t+b)/(t-b),  0.0f,
+    0.0f,     0.0f,     -(f+n)/(f-n), -f*nn/(f-n),
     0.0f,     0.0f,     -1.0f,        0.0f,
-
   };
 }
 
@@ -117,6 +116,25 @@ mat4 perspective(float fovy, float aspect, float n, float f)
   w = h * aspect;
 
   return frutsum(h, -w, -h, w, n, f);
+}
+
+mat4 perspective_inf(float fovy, float aspect, float n)
+{
+  constexpr float inv_deg2rad = 1.0f / (360.0f*PIf);
+
+  float w, h;
+  h = tanf(fovy * inv_deg2rad) * n;
+  w = h * aspect;
+
+  float nn = n*2.0f;
+  float t = h, l = -w, b = -h, r = w;
+
+  return mat4{
+    nn/(r-l), 0.0f,     (r+l)/(r-l), 0.0f,
+    0.0f,     nn/(t-b), (t+b)/(t-b), 0.0f,
+    0.0f,     0.0f,     -1.0f,       -nn,
+    0.0f,     0.0f,     -1.0f,       0.0f,
+  };
 }
 
 mat4 look_at(vec3 eye, vec3 target, vec3 up)

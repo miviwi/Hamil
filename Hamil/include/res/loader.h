@@ -2,6 +2,9 @@
 
 #include <common.h>
 #include <res/resource.h>
+#include <res/io.h>
+
+#include <win32/mutex.h>
 
 #include <string>
 #include <unordered_map>
@@ -55,6 +58,7 @@ public:
 protected:
   ResourceLoader *init(ResourceManager *manager);
 
+  virtual void doInit() = 0;
   virtual Resource::Ptr doLoad(Resource::Id id, LoadFlags flags) = 0;
 
 private:
@@ -71,20 +75,20 @@ class SimpleFsLoader : public ResourceLoader {
 public:
   SimpleFsLoader(const char *base_path);
 
-  using LoaderFn = Resource::Ptr (SimpleFsLoader::*)(Resource::Id, const yaml::Document&);
-  Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
-  Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
-  Resource::Ptr loadImage(Resource::Id id, const yaml::Document& meta);
-  Resource::Ptr loadMesh(Resource::Id id, const yaml::Document& meta);
 
 protected:
+  virtual void doInit();
   virtual Resource::Ptr doLoad(Resource::Id id, LoadFlags flags);
 
 private:
   void enumAvailable(std::string path);
-  Resource::Id enumOne(const char *meta_file, size_t sz, const char *full_path = "");
 
-  using NamePathTuple         = std::tuple<const yaml::Scalar* /* name */, const yaml::Scalar* /* path */>;
+  void metaIoCompleted(std::string full_path, IORequest& req);
+  static Resource::Id enumOne(const char *meta_file, size_t sz, const char *full_path = "");
+
+  using NamePathTuple = std::tuple<
+    const yaml::Scalar* /* name */, const yaml::Scalar* /* path */
+  >;
   using NamePathLocationTuple = std::tuple<
     const yaml::Scalar* /* name */, const yaml::Scalar* /* path */, const yaml::Scalar* /* location */
   >;
@@ -93,8 +97,23 @@ private:
   static NamePathTuple name_path(const yaml::Document& meta);
   static NamePathLocationTuple name_path_location(const yaml::Document& meta);
 
+  using LoaderFn = Resource::Ptr(SimpleFsLoader::*)(Resource::Id, const yaml::Document&);
+
+  static const std::unordered_map<Resource::Tag, LoaderFn> loader_fns;
+
+  Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadImage(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadMesh(Resource::Id id, const yaml::Document& meta);
+
   std::string m_path;
-  std::unordered_map<Resource::Id, std::vector<char> /* meta_file */>  m_available;
+
+  // enumAvailable() kicks off IORequests which after completion
+  //   call metaIoCompleted() which inserts into m_available. Because
+  //   it can be called on multiple threads simultaneously a Mutex
+  //   is needed
+  win32::Mutex m_available_mutex;
+  std::unordered_map<Resource::Id, IOBuffer /* meta_file */>  m_available;
 };
 
 }

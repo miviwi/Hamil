@@ -18,16 +18,18 @@ ResourceManager::ResourceManager(std::initializer_list<ResourceLoader *> loader_
   m_loader_chain(loader_chain.size()),
   m_io_workers(NumIOWorkers)
 {
-  // populate the loader chain in reverse to allow
-  // listing the loaders in a natural order (the last loader
-  // in the std::initializer_list has the highest priority)
+  // Kick off the IO workers right away so loaders
+  //   can utilize IORequests during init()
+  m_io_workers.kickWorkers("ResuorceManager_IOWorker");
+
+  // Populate the loader chain in reverse to allow
+  //   listing the loaders in a natural order (the last loader
+  //   in the std::initializer_list has the highest priority)
   size_t i = loader_chain.size()-1;
   for(const auto& loader : loader_chain) {
     m_loader_chain[i] = ResourceLoader::Ptr(loader->init(this));
     i--;
   }
-
-  m_io_workers.kickWorkers("ResuorceManager_IOWorker");
 }
 
 Resource::Id ResourceManager::guid(Resource::Tag tag,

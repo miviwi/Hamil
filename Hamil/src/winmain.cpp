@@ -997,8 +997,8 @@ int main(int argc, char *argv[])
 
     mat4 model = xform::identity();
 
-    auto persp = xform::perspective(70.0f,
-      16.0f/9.0f, 50.0f, 10e20f);
+    auto persp = xform::perspective_inf(70.0f,
+      16.0f/9.0f, 50.0f);
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 

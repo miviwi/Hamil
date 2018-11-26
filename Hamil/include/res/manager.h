@@ -30,7 +30,7 @@ public:
   using Ptr = std::unique_ptr<ResourceManager>;
 
   enum {
-    NumIOWorkers = 1,
+    NumIOWorkers = 2,
   };
 
   struct Error { };

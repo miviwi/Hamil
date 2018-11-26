@@ -32,6 +32,8 @@ ResourceLoader *ResourceLoader::init(ResourceManager *manager)
 {
   m_man = manager;
 
+  doInit();
+
   return this;
 }
 
@@ -45,9 +47,6 @@ Resource::Ptr ResourceLoader::load(Resource::Id id, LoadFlags flags)
 SimpleFsLoader::SimpleFsLoader(const char *base_path) :
   m_path(base_path)
 {
-  win32::current_working_directory(base_path);
-  
-  enumAvailable("./"); // enum all resources starting from 'base_path'
 }
 
 static yaml::Schema p_meta_generic_schema = 
@@ -77,12 +76,19 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
                              .scalar("primitive", yaml::Scalar::String) },
 };
 
-static const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> p_loader_fns = {
+const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> SimpleFsLoader::loader_fns = {
   { Text::tag(),   &SimpleFsLoader::loadText   },
   { Shader::tag(), &SimpleFsLoader::loadShader },
   { Image::tag(),  &SimpleFsLoader::loadImage  },
   { Mesh::tag(),   &SimpleFsLoader::loadMesh   },
 };
+
+void SimpleFsLoader::doInit()
+{
+  win32::current_working_directory(m_path.data());
+
+  enumAvailable("./"); // enum all resources starting from 'base_path'
+}
 
 Resource::Ptr SimpleFsLoader::doLoad(Resource::Id id, LoadFlags flags)
 {
@@ -90,7 +96,7 @@ Resource::Ptr SimpleFsLoader::doLoad(Resource::Id id, LoadFlags flags)
   if(it == m_available.end()) return Resource::Ptr();  // Resource not found!
 
   // The file was already parsed (in enumOne()) so we can assume it is valid
-  auto meta = yaml::Document::from_string(it->second.data(), it->second.size()-1 /* libyaml doesn't like '\0' */);
+  auto meta = yaml::Document::from_string(it->second.get<const char>(), it->second.size());
   if(p_meta_generic_schema.validate(meta)) throw InvalidResourceError(id);
 
   auto tag = ResourceManager::make_tag(meta("tag")->as<yaml::Scalar>()->str());
@@ -101,8 +107,8 @@ Resource::Ptr SimpleFsLoader::doLoad(Resource::Id id, LoadFlags flags)
 
   if(schema_it->second.validate(meta)) throw InvalidResourceError(id);
 
-  auto loader_it = p_loader_fns.find(tag.value());
-  assert(loader_it != p_loader_fns.end() && "loading function missing in SimpleFsLoader!");
+  auto loader_it = loader_fns.find(tag.value());
+  assert(loader_it != loader_fns.end() && "loading function missing in SimpleFsLoader!");
 
   auto loader = loader_it->second;
 
@@ -135,39 +141,50 @@ void SimpleFsLoader::enumAvailable(std::string path)
     return; // no .meta files in current directory
   }
 
-  meta_query.foreach([this,path](const char *name, FileQuery::Attributes attrs) {
+  std::vector<IORequest::Ptr> reqs;
+  meta_query.foreach([this,path,&reqs](const char *name, FileQuery::Attributes attrs) {
     // if there's somehow a directory that fits *.meta ignore it
     if(attrs & FileQuery::IsDirectory) return;
 
     auto full_path = path + name;
 
     try {
-      // Because we are in the middle of initializing the ResourceManager
-      //   the low-level win32::File interface has to be used which means
-      //   synchronous IO.
-      // Maybe res::init() could be run on a separate thread so events
-      //   could still be processed?
-      // Regardless, a splash screen should be put up on the screen to let the
+      // A splash screen should be up on the screen here to let the
       //   user know the application is doing something and isn't just frozen
-      win32::File file(full_path.data(), win32::File::Read, win32::File::OpenExisting);
-
-      std::vector<char> file_buf(file.size()+1); // put '\0' at the end
-      file.read(file_buf.data());
-
-      auto id = enumOne(file_buf.data(), file.size(), file.fullPath());
-      if(id == Resource::InvalidId) return;
-
-      printf("found resource %-25s: 0x%.16llx\n", full_path.data(), id);
-
-      m_available.emplace(
-        id,
-        std::move(file_buf)
+      auto& req = reqs.emplace_back(IORequest::read_file(full_path));
+      req->onCompleted(
+        std::bind(&SimpleFsLoader::metaIoCompleted,
+          this, full_path, std::placeholders::_1)
       );
+
+      manager().requestIo(req);
     } catch(const win32::File::Error&) {
       // panic, there really shouldn't be an exception here
       win32::panic(util::fmt("error opening file \"%s\"", full_path.data()).data(), win32::FileOpenError);
     }
   });
+
+  // Wait until all the requests have completed
+  for(auto& req : reqs) {
+    if(!req->completed()) manager().waitIo(req);
+  }
+}
+
+void SimpleFsLoader::metaIoCompleted(std::string full_path, IORequest& req)
+{
+  auto file = req.result();
+
+  auto id = enumOne(file.get<const char>(), file.size(), full_path.data());
+  if(id == Resource::InvalidId) return;  // The *.meta file was invalid
+
+  printf("found resource %-25s: 0x%.16llx\n", full_path.data(), id);
+
+  // Multiple threads can be executing this method simultaneously
+  auto guard = m_available_mutex.acquireScoped();
+  m_available.emplace(
+    id,
+    std::move(file)
+  );
 }
 
 Resource::Id SimpleFsLoader::enumOne(const char *meta_file, size_t sz, const char *full_path)

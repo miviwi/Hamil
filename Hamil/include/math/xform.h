@@ -20,6 +20,7 @@ mat4 rotz(float a);
 mat4 ortho(float t, float l, float b, float r, float n, float f);
 mat4 frutsum(float t, float l, float b, float r, float n, float f);
 mat4 perspective(float fovy, float aspect, float n, float f);
+mat4 perspective_inf(float fovy, float aspect, float n);
 
 mat4 look_at(vec3 eye, vec3 target, vec3 up);
 
