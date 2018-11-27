@@ -83,6 +83,13 @@ IOBuffer& ResourceManager::waitIo(const IORequest::Ptr& req)
   return req->result();
 }
 
+ResourceManager& ResourceManager::waitIoIdle()
+{
+  m_io_workers.waitWorkersIdle();
+
+  return *this;
+}
+
 IOBuffer ResourceManager::mapLocation(const yaml::Scalar *location,
   size_t offset, size_t sz)
 {

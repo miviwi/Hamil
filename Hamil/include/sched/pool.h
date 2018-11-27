@@ -85,6 +85,9 @@ public:
   // Stop the worker Threads
   WorkerPool& killWorkers();
 
+  // Blocks until all scheduled jobs have completed
+  WorkerPool& waitWorkersIdle();
+
 private:
   // 16 inline threads ought to be enough to avoid heap allocation for most cases
   using WorkerVector = util::SmallVector<win32::Thread *, 16*sizeof(win32::Thread *)>;

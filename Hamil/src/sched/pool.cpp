@@ -51,6 +51,14 @@ public:
   // TODO: Replace std::vector with a lock-free queue (?)
   std::vector<WorkerPool::JobId> job_queue;
 
+  // Used to sleep() on 'workers_idle'
+  win32::Mutex workers_idle_mutex;
+  // Signaled when all workers finish (i.e. !workers_active && queue.empty())
+  win32::ConditionVariable workers_idle;
+
+  // The number of currently active worker threads
+  std::atomic<uint> workers_active;
+
   // Set to true when workers should terminate
   std::atomic<bool> done;
 
@@ -235,6 +243,23 @@ WorkerPool& WorkerPool::killWorkers()
   return *this;
 }
 
+WorkerPool& WorkerPool::waitWorkersIdle()
+{
+  auto& idle_mutex = m_data->workers_idle_mutex;
+  auto lock_guard = idle_mutex.acquireScoped();
+
+  auto& queue = m_data->job_queue;
+  auto& workers_active = m_data->workers_active;
+
+  m_data->workers_idle.sleep(idle_mutex, [&]() {
+    // Avoid a situation where a job gets scheduled just
+    //   as we've been woken up causing a spurious wakeup
+    return queue.empty() && workers_active.load() < 1;
+  });
+
+  return *this;
+}
+
 ulong WorkerPool::doWork()
 {
   auto& mutex = m_data->mutex;
@@ -242,6 +267,8 @@ ulong WorkerPool::doWork()
   auto& done = m_data->done;
 
   auto& queue = m_data->job_queue;
+
+  auto& workers_active = m_data->workers_active;
 
   // If GlContexts were acquired for the workers - grab one
   auto& contexts = m_data->contexts;
@@ -273,7 +300,14 @@ ulong WorkerPool::doWork()
 
     assert(job && "Attempted to perform() an invalid Job!");
 
+    workers_active++;  // Work started...
     job->perform();
+
+    // If the previous value of workers_active is 1
+    //   that means we were the only active worker
+    bool workers_idle = workers_active.fetch_sub(1) < 2;
+
+    if(workers_idle && queue.empty()) m_data->workers_idle.wakeAll();
   }
 
   if(context) context->release();

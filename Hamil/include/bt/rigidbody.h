@@ -47,6 +47,8 @@ public:
   vec3 centerOfMass() const;
   float mass() const;
 
+  AABB aabb() const;
+
   float rollingFriction() const;
   RigidBody& rollingFriction(float friction);
 

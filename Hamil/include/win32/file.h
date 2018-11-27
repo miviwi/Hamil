@@ -98,7 +98,8 @@ public:
   Size read(void *buf); 
   Size write(const void *buf, Size sz);
 
-  void seek(Seek seek, long offset) const;
+  void seek(Seek seek, size_t offset) const;
+  size_t seekOffset() const;
 
   bool flush();
 

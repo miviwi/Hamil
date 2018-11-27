@@ -63,6 +63,8 @@ public:
   // Blocks until 'req' completes and returns it's result
   IOBuffer& waitIo(const IORequest::Ptr& req);
 
+  ResourceManager& waitIoIdle();
+
   // - Returns an IOBuffer backed by a FileView when the location is a '!file'
   IOBuffer mapLocation(const yaml::Scalar *location, size_t offset = 0, size_t sz = 0);
 

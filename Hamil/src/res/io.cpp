@@ -1,6 +1,7 @@
 #include <res/io.h>
 
 #include <tuple>
+#include <numeric>
 
 namespace res {
 
@@ -23,15 +24,12 @@ IOBuffer::IOBuffer(const IOBuffer& other) :
 
 IOBuffer& IOBuffer::operator=(const IOBuffer& other)
 {
-  // Do some clean up
-  m_buf = std::monostate();
-
   m_ptr = other.m_ptr;
   m_sz  = other.m_sz;
 
   switch(other.m_buf.index()) {
-  case FileView:     m_buf.emplace<win32::FileView>(std::get<win32::FileView>(other.m_buf)); break;
-  case MemoryBuffer: m_buf.emplace<MemoryBufferPtr>(std::get<MemoryBufferPtr>(other.m_buf)); break;
+  case FileView:     m_buf.emplace<FileView>(std::get<FileView>(other.m_buf)); break;
+  case MemoryBuffer: m_buf.emplace<MemoryBuffer>(std::get<MemoryBuffer>(other.m_buf)); break;
   }
 
   return *this;
@@ -42,20 +40,17 @@ IOBuffer& IOBuffer::operator=(IOBuffer&& other)
   std::swap(m_ptr, other.m_ptr);
   std::swap(m_sz, other.m_sz);
 
-  m_buf = std::monostate();
-
   switch(other.m_buf.index()) {
   case FileView:
-    m_buf.emplace<win32::FileView>(std::get<win32::FileView>(other.m_buf));
+    m_buf.emplace<FileView>(std::get<FileView>(other.m_buf));
     break;
 
   case MemoryBuffer:
-    m_buf.emplace<MemoryBufferPtr>(std::move(
-      std::get<MemoryBufferPtr>(other.m_buf)
+    m_buf.emplace<MemoryBuffer>(std::move(
+      std::get<MemoryBuffer>(other.m_buf)
     ));
     break;
   }
-  other.m_buf = std::monostate();
 
   return *this;
 }
@@ -64,7 +59,7 @@ IOBuffer IOBuffer::make_memory_buffer(size_t sz)
 {
   IOBuffer self;
 
-  auto& buf = self.m_buf.emplace<MemoryBufferPtr>(new byte[sz]);
+  auto& buf = self.m_buf.emplace<MemoryBuffer>(new byte[sz]);
 
   self.m_ptr = buf.get();
   self.m_sz  = sz;
@@ -92,7 +87,7 @@ void IOBuffer::release()
   m_ptr = nullptr;
   m_sz = 0;
 
-  m_buf = std::monostate();
+  m_buf.emplace<Unknown>();
 }
 
 IORequest::Ptr IORequest::read_file(const std::string& path, size_t offset, size_t sz)
@@ -137,12 +132,16 @@ IORequest& IORequest::onCompleted(IOComplete fn)
 Unit IORequest::performIo(IOLocation loc)
 {
   win32::File f(loc.path.data(), win32::File::Read, win32::File::OpenExisting);
-  size_t sz = loc.size ? loc.size : f.size();
-
+  size_t sz = loc.size ? loc.size : f.size();  // Read the whole file if 'size'
+                                               //   wasn't specified
   m_result = IOBuffer::make_memory_buffer(sz);
 
-  f.seek(win32::File::SeekBegin, (long)loc.offset);
-  f.read(m_result.get(), (win32::File::Size)sz);
+  f.seek(win32::File::SeekBegin, loc.offset);
+  do {  // Make sure to read as much requested data as possible
+    auto read = f.read(m_result.get(), (win32::File::Size)sz);
+    sz -= read;
+  } while(sz >= std::numeric_limits<win32::File::Size>::max() &&
+    f.seekOffset() < f.size() /* requested_size > file_size */ );
 
   if(m_complete) m_complete(*this);
 

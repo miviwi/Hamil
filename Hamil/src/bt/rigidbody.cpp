@@ -130,6 +130,14 @@ float RigidBody::mass() const
   return inv_mass != 0.0f ? 1.0f/inv_mass : inv_mass;
 }
 
+AABB RigidBody::aabb() const
+{
+  btVector3 aabb_min, aabb_max;
+  m->getAabb(aabb_min, aabb_max);
+
+  return AABB(from_btVector3(aabb_min), from_btVector3(aabb_max));
+}
+
 float RigidBody::rollingFriction() const
 {
   return m->getRollingFriction();

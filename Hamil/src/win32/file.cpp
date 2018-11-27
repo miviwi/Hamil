@@ -34,10 +34,11 @@ File::File(const char *path, Access access, Share share, OpenMode open) :
                   creation_disposition, FILE_ATTRIBUTE_NORMAL, nullptr);
   if(m == INVALID_HANDLE_VALUE) throw FileOpenError(GetLastError());
 
-  DWORD size_low = 0, size_high = 0;
-  size_low = GetFileSize(m, &size_high);
+  LARGE_INTEGER size;
+  BOOL result = GetFileSizeEx(m, &size);
+  if(result != TRUE) throw FileOpenError(GetLastError());
 
-  m_sz = dword_combine2(size_high, size_low);
+  m_sz = (size_t)size.QuadPart;
 }
 
 File::File(const char *path, Access access, OpenMode open) :
@@ -125,7 +126,7 @@ File::Size File::write(const void *buf, Size sz)
   return num_written;
 }
 
-void File::seek(Seek seek, long offset) const
+void File::seek(Seek seek, size_t offset) const
 {
   DWORD move_method = 0;
   switch(seek) {
@@ -134,7 +135,22 @@ void File::seek(Seek seek, long offset) const
   case SeekEnd:     move_method = FILE_END; break;
   }
 
-  SetFilePointer(m, offset, nullptr, move_method);
+  LARGE_INTEGER move_distance;
+  move_distance.QuadPart = offset;
+
+  SetFilePointerEx(m, move_distance, nullptr, move_method);
+}
+
+size_t File::seekOffset() const
+{
+  LARGE_INTEGER file_pointer;
+  LARGE_INTEGER distance;
+  distance.QuadPart = 0;
+
+  BOOL result = SetFilePointerEx(m, distance, &file_pointer, FILE_CURRENT);
+  if(result != TRUE) throw Error(GetLastError());
+
+  return (size_t)file_pointer.QuadPart;
 }
 
 bool File::flush()

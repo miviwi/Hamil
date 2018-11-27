@@ -160,14 +160,12 @@ void SimpleFsLoader::enumAvailable(std::string path)
       manager().requestIo(req);
     } catch(const win32::File::Error&) {
       // panic, there really shouldn't be an exception here
-      win32::panic(util::fmt("error opening file \"%s\"", full_path.data()).data(), win32::FileOpenError);
+      win32::panic(util::fmt("error opening file \"%s\"", full_path).data(), win32::FileOpenError);
     }
   });
 
   // Wait until all the requests have completed
-  for(auto& req : reqs) {
-    if(!req->completed()) manager().waitIo(req);
-  }
+  manager().waitIoIdle();
 }
 
 void SimpleFsLoader::metaIoCompleted(std::string full_path, IORequest& req)
@@ -298,10 +296,12 @@ Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& me
   const yaml::Scalar *name, *path, *location;
   std::tie(name, path, location) = name_path_location(meta);
 
-  auto view = manager().mapLocation(location);
-  if(!view) throw IOError(location->repr());
+  auto req = IORequest::read_file(location->str());
+  manager().requestIo(req);
 
-  return Mesh::from_yaml(view, meta, id, name->str(), path->str());
+  auto& mesh_data = manager().waitIo(req);
+
+  return Mesh::from_yaml(std::move(mesh_data), meta, id, name->str(), path->str());
 }
 
 }

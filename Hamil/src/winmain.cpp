@@ -7,6 +7,7 @@
 #include <math/quaternion.h>
 #include <math/transform.h>
 #include <math/util.h>
+#include <math/frustum.h>
 
 #include <win32/win32.h>
 #include <win32/panic.h>
@@ -1002,6 +1003,8 @@ int main(int argc, char *argv[])
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
+    frustum3 frustum(eye.xyz(), view, persp);
+
     auto texmatrix = xform::Transform()
       .scale(3.0f)
       .matrix()
@@ -1182,6 +1185,9 @@ int main(int argc, char *argv[])
 
       color = { entity == picked_entity ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
       model = component().t.matrix();
+
+      auto view_pos = view*model * vec4();
+      if(!frustum.sphereInside(view_pos.xyz(), 1.1f /* add some leeway */)) return;
 
       drawsphere();
     });

@@ -608,6 +608,11 @@ struct alignas(16) Matrix4 {
     return { d[col + 0], d[col + 4], d[col + 8], d[col + 12] };
   }
 
+  Vector row(unsigned row) const
+  {
+    return Vector(d + row*4);
+  }
+
   static Matrix4 from_mat3(const Matrix3<T>& m)
   {
     return {
@@ -791,3 +796,16 @@ inline vec4 operator*(const mat4& a, const vec4& b)
 #endif
 
 #pragma pack(pop)
+
+// Axis-aligned bounding box
+struct AABB {
+  AABB()
+  {
+  }
+
+  AABB(vec3 min_, vec3 max_) :
+    min(min_), max(max_)
+  { }
+
+  vec3 min, max;
+};
