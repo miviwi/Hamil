@@ -25,6 +25,9 @@ struct Geometry {
   constexpr Geometry(float x_, float y_, vec2 size) :
     x(x_), y(y_), w(size.x), h(size.y)
   { }
+  constexpr Geometry(vec2 pos, vec2 size) :
+    x(pos.x), y(pos.y), w(size.x), h(size.y)
+  { }
   constexpr Geometry(float w_, float h_) :
     x(0), y(0), w(w_), h(h_)
   { }
@@ -43,6 +46,7 @@ struct Geometry {
   bool intersect(vec2 p) const;
 
   vec2 center() const;
+  vec2 centerRelative() const;
 };
 
 struct Color : public Vector4<byte> {

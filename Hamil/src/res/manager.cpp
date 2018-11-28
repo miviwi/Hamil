@@ -20,7 +20,7 @@ ResourceManager::ResourceManager(std::initializer_list<ResourceLoader *> loader_
 {
   // Kick off the IO workers right away so loaders
   //   can utilize IORequests during init()
-  m_io_workers.kickWorkers("ResuorceManager_IOWorker");
+  m_io_workers.kickWorkers("ResourceManager_IOWorker");
 
   // Populate the loader chain in reverse to allow
   //   listing the loaders in a natural order (the last loader

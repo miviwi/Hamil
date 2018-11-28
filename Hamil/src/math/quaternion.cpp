@@ -14,13 +14,13 @@ Quaternion Quaternion::from_euler(float x, float y, float z)
 {
   x *= 0.5f; y *= 0.5f; z *= 0.5f;
 
-  float cx = cos(x),
-    cy = cos(y),
-    cz = cos(z);
+  float cx = cosf(x),
+    cy = cosf(y),
+    cz = cosf(z);
 
-  float sx = sin(x),
-    sy = sin(y),
-    sz = sin(z);
+  float sx = sinf(x),
+    sy = sinf(y),
+    sz = sinf(z);
 
   float cycz = cy*cz,
     sysz = sy*sz,
@@ -109,12 +109,12 @@ Quaternion Quaternion::slerp(const Quaternion& a, const Quaternion& b, float t)
 
   if(c < (1.0f - 1e-3f)) {    // Slerp
     float s = sqrtf(1.0f - c*c);
-    float alpha = atan2(s, c);
+    float alpha = atan2f(s, c);
 
     float inv_s = 1.0f / s;
 
-    float p = sin((1.0f - t)*alpha) * inv_s;
-    float r = sin(t*alpha) * inv_s;
+    float p = sinf((1.0f - t)*alpha) * inv_s;
+    float r = sinf(t*alpha) * inv_s;
 
     return a*p + q*r;
   }

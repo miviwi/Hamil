@@ -141,8 +141,9 @@ void ConsoleFrame::losingCapture()
   m_console->losingCapture();
 }
 
-void ConsoleFrame::attached()
+void ConsoleFrame::attached(Frame *parent)
 {
+  Frame::attached(parent);
 }
 
 ConsoleFrame& ConsoleFrame::toggle()

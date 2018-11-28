@@ -44,7 +44,7 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   virtual void losingCapture();
-  virtual void attached();
+  virtual void attached(Frame *parent);
 
   const ft::Font::Ptr& font() const;
   TextBoxFrame& font(const ft::Font::Ptr& font);

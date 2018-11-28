@@ -152,8 +152,10 @@ void TextBoxFrame::losingCapture()
   m_state = Default;
 }
 
-void TextBoxFrame::attached()
+void TextBoxFrame::attached(Frame *parent)
 {
+  Frame::attached(parent);
+
   m_cursor_blink.start();
 }
 

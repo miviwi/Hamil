@@ -36,7 +36,7 @@ public:
   virtual void paint(VertexPainter& painter, Geometry parent);
 
   virtual void losingCapture();
-  virtual void attached();
+  virtual void attached(Frame *parent);
 
   ConsoleFrame& toggle();
   ConsoleFrame& dropped(bool val);

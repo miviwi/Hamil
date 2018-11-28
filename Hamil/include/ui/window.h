@@ -19,8 +19,6 @@ public:
   virtual bool input(CursorDriver& cursor, const InputPtr& input);
   virtual void paint(VertexPainter& painter, Geometry parent);
 
-  Frame& position(vec2 pos);
-
   WindowFrame& title(const std::string& title);
 
   WindowFrame& background(Color c);

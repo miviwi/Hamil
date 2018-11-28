@@ -4,6 +4,7 @@
 namespace ui {
 
 Frame::Frame(Ui &ui, const char *name, Geometry geom) :
+  m_parent(nullptr),
   m_ui(&ui), m_name(name), m_gravity(Center), m_geom(geom), m_pad({ 0.0f, 0.0f })
 {
   m_ui->registerFrame(this);
@@ -30,28 +31,14 @@ Frame::~Frame()
 
 bool Frame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(!m_geom.intersect(cursor.pos())) return false;
-
-  if(auto mouse = input->get<win32::Mouse>()) {
-    using win32::Mouse;
-
-    if(mouse->buttonDown(Mouse::Left)) {
-      //m_countrer++;
-    } else if(mouse->buttons & Mouse::Left) {
-      m_geom.x += mouse->dx; m_geom.y += mouse->dy;
-    }
-
-    return true;
-  }
-
-  return false;
+  return m_geom.intersect(cursor.pos());
 }
 
 Frame& Frame::geometry(Geometry g)
 {
   m_geom = {
-    floor(g.x), floor(g.y),
-    ceil(g.w), ceil(g.h)
+    g.pos().floor(),
+    g.size().ceil()
   };
 
   return *this;
@@ -59,21 +46,7 @@ Frame& Frame::geometry(Geometry g)
 
 Geometry Frame::geometry() const
 {
-  Geometry g = m_geom;
-  vec2 pad = padding();
-
-  if(!g.w && !g.h) {
-    vec2 sz  = sizeHint();
-    return {
-      g.x, g.y,
-      std::max(sz.x, pad.x), std::max(sz.y, pad.y)
-    };
-  }
-
-  return {
-    g.x, g.y,
-    std::max(g.w, pad.x), std::max(g.h, pad.y)
-  };
+  return Geometry(position(), size());
 }
 
 Frame& Frame::gravity(Gravity gravity)
@@ -92,8 +65,9 @@ void Frame::losingCapture()
 {
 }
 
-void Frame::attached()
+void Frame::attached(Frame *parent)
 {
+  m_parent = parent;
 }
 
 vec2 Frame::sizeHint() const
@@ -146,12 +120,33 @@ bool Frame::evMouseDrag(const MouseDragEvent& e)
   return false;
 }
 
+vec2 Frame::position() const
+{
+  return positionRelative() + (m_parent ? m_parent->position() : vec2());
+}
+
+vec2 Frame::positionRelative() const
+{
+  return m_geom.pos();
+}
+
 Frame& Frame::position(vec2 pos)
 {
   m_geom.x = pos.x;
   m_geom.y = pos.y;
 
   return *this;
+}
+
+vec2 Frame::size() const
+{
+  vec2 sz = m_geom.size();
+  vec2 pad = padding();
+
+  // If no explicit size was given use the sizeHint()
+  if(sz.isZero()) sz = sizeHint();
+
+  return vec2::max(sz, pad);
 }
 
 Frame& Frame::size(vec2 sz)

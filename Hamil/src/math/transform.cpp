@@ -5,7 +5,7 @@
 namespace xform {
 
 Transform::Transform() :
-  m(xform::identity())
+  m(mat4::identity())
 {
 }
 

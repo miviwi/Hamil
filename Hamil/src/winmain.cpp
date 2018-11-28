@@ -332,6 +332,8 @@ int main(int argc, char *argv[])
 
   ao_noise_tex.init(ao_noise.data(), 0, AoNoiseSize, AoNoiseSize, gx::rgb, gx::f32);
 
+  auto ao_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
+
   auto fb_tex_id = pool.createTexture<gx::Texture2D>("t2dFramebufferColor",
     gx::rgb10, gx::Texture::Multisample);
   auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
@@ -556,7 +558,7 @@ int main(int argc, char *argv[])
     .framebuffer(fb_composite_id)
     .textures({
       { SceneTexImageUnit, { fb_tex_id, resolve_sampler_id }},
-      { AoTexImageUnit,    { ao_id, resolve_sampler_id }},
+      { AoTexImageUnit,    { ao_id, ao_sampler_id }},
     })
     .uniformBuffer(AoKernelBinding, ao_ubo_id)
     .pipeline(gx::Pipeline()
@@ -571,7 +573,7 @@ int main(int argc, char *argv[])
 
   mat4 ortho = xform::ortho(0, 0, b, r, 0.1f, 1000.0f);
 
-  mat4 zoom_mtx = xform::identity();
+  mat4 zoom_mtx = mat4::identity();
 
   window.captureMouse();
 
@@ -735,7 +737,8 @@ int main(int argc, char *argv[])
     //.frame(ui::create<ui::LabelFrame>(iface)
     //  .drawable(logo))
     .frame(ui::create<ui::LabelFrame>(iface)
-      .drawable(benis))
+      .drawable(benis)
+      .position({ 50.0f, 0.0f }))
     ;
 
   iface
@@ -962,7 +965,7 @@ int main(int argc, char *argv[])
         if(mouse->buttonDown(Mouse::Left)) iface.keyboard(nullptr);
 
         if(mouse->buttons & Mouse::Left) {
-          mat4 d_mtx = xform::identity()
+          mat4 d_mtx = mat4::identity()
             *xform::roty(yaw)
             *xform::rotx(-pitch)
             ;
@@ -981,7 +984,7 @@ int main(int argc, char *argv[])
         } else if(mouse->buttonDown(Mouse::Middle)) {
           zoom = 1.0f;
 
-          zoom_mtx = xform::identity();
+          zoom_mtx = mat4::identity();
         }
 
         if(mouse->buttonDown(Mouse::Left)) {
@@ -996,14 +999,14 @@ int main(int argc, char *argv[])
     // All the input has been processed - schedule a Ui paint
     auto ui_paint_job_id = worker_pool.scheduleJob(ui_paint_job.withParams());
 
-    mat4 model = xform::identity();
+    mat4 model = mat4::identity();
 
     auto persp = xform::perspective_inf(70.0f,
       16.0f/9.0f, 50.0f);
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
-    frustum3 frustum(eye.xyz(), view, persp);
+    frustum3 frustum(eye.xyz(), view, persp, true);
 
     auto texmatrix = xform::Transform()
       .scale(3.0f)
@@ -1186,8 +1189,14 @@ int main(int argc, char *argv[])
       color = { entity == picked_entity ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
       model = component().t.matrix();
 
-      auto view_pos = view*model * vec4();
-      if(!frustum.sphereInside(view_pos.xyz(), 1.1f /* add some leeway */)) return;
+      auto view_pos = view * model * vec4();
+      AABB aabb;
+
+      aabb.min = view_pos.xyz() - vec3(1.0f, 1.0f, 1.0f);
+      aabb.max = view_pos.xyz() + vec3(1.0f, 1.0f, 1.0f);
+
+      //if(!frustum.aabbInside(aabb)) return;
+      //if(!frustum.sphereInside(view_pos.xyz(), 1.0f)) return;
 
       drawsphere();
     });

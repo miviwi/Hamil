@@ -65,10 +65,25 @@ struct Vector2 {
 
   Vector2 operator-() const { return { -x, -y }; }
 
+  bool isZero() const { return x == (T)0 && y == (T)0; }
+
+  Vector2 floor() const { return { std::floor(x), std::floor(y) }; }
+  Vector2 ceil() const { return { std::ceil(x), std::ceil(y) }; }
+
   template <typename U>
   Vector2<U> cast() const
   {
     return Vector2<U>{ (U)x, (U)y };
+  }
+
+  static Vector2 min(const Vector2& a, const Vector2& b)
+  {
+    return { std::min(a.x, b.x), std::min(a.y, b.y) };
+  }
+
+  static Vector2 max(const Vector2& a, const Vector2& b)
+  {
+    return { std::max(a.x, b.x), std::max(a.y, b.y) };
   }
 
   operator float *() { return (float *)this; }
@@ -172,6 +187,18 @@ struct Vector3 {
     return (b-a).normalize();
   }
 
+  // Returns a vector pointing towards (theta, phi)
+  //   on the unit sphere
+  static Vector3 from_spherical(T theta, T phi)
+  {
+    T ct = cos(theta),
+      cp = cos(phi),
+      st = sin(theta),
+      sp = sin(phi);
+
+    return { sp*ct, sp*st, cp };
+  }
+
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
 
   T length2() const { return dot(*this); }
@@ -202,7 +229,7 @@ struct Vector3 {
 
   Vector3 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z }; }
 
-  bool isZero() const { return x == 0.0f && y == 0.0f && z == 0.0f; }
+  bool isZero() const { return x == (T)0 && y == (T)0 && z == (T)0; }
 
   bool zeroLength() const
   {
@@ -211,6 +238,16 @@ struct Vector3 {
   }
 
   Vector3 operator-() const { return { -x, -y, -z }; }
+
+  static Vector3 min(const Vector3& a, const Vector3& b)
+  {
+    return { std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z) };
+  }
+
+  static Vector3 max(const Vector3& a, const Vector3& b)
+  {
+    return { std::max(a.x, b.x), std::max(a.y, b.y), std::max(a.z, b.z) };
+  }
 
   static Vector3 zero()    { return { (T)0, (T)0, (T)0 }; }
   static Vector3 up()      { return { (T)0, (T)1, (T)0 }; }
@@ -529,6 +566,14 @@ template <typename T>
 struct Matrix2 {
   T d[2*2];
 
+  static Matrix2 identity()
+  {
+    return {
+      (T)1, (T)0,
+      (T)0, (T)1,
+    };
+  }
+
   T operator()(unsigned col, unsigned row) const { return d[col + row*2]; }
 
   Matrix2& operator *=(Matrix2& b) { *this = *this * b; return *this; }
@@ -561,6 +606,15 @@ struct Matrix3 {
       a.x, a.y, a.z,
       b.x, b.y, b.z,
       c.x, c.y, c.z,
+    };
+  }
+
+  static Matrix3 identity()
+  {
+    return {
+      (T)1, (T)0, (T)0,
+      (T)0, (T)1, (T)0,
+      (T)0, (T)0, (T)1,
     };
   }
 
@@ -613,27 +667,33 @@ struct alignas(16) Matrix4 {
     return Vector(d + row*4);
   }
 
+  static Matrix4 identity()
+  {
+    return {
+      (T)1, (T)0, (T)0, (T)0,
+      (T)0, (T)1, (T)0, (T)0,
+      (T)0, (T)0, (T)1, (T)0,
+      (T)0, (T)0, (T)0, (T)1,
+    };
+  }
+
   static Matrix4 from_mat3(const Matrix3<T>& m)
   {
     return {
-      m[0], m[1], m[2], 0.0f,
-      m[3], m[4], m[5], 0.0f,
-      m[6], m[7], m[8], 0.0f,
-      0.0f, 0.0f, 0.0f, 1.0f,
+      m[0], m[1], m[2], (T)0,
+      m[3], m[4], m[5], (T)0,
+      m[6], m[7], m[8], (T)0,
+      (T)0, (T)0, (T)0, (T)1,
     };
   }
 
-  Matrix4& operator *=(const Matrix4& b) { *this = *this * b; return *this; }
+  Matrix4& operator*=(const Matrix4& b) { *this = *this * b; return *this; }
 
   Matrix4 transpose() const
   {
-    return Matrix4{
-      d[0], d[4], d[8],  d[12],
-      d[1], d[5], d[9],  d[13],
-      d[2], d[6], d[10], d[14],
-      d[3], d[7], d[11], d[15],
-    };
+    return from_rows(column(0), column(1), column(2), column(3));
   }
+
   // Must be non-singular!
   inline Matrix4 inverse() const;
 
@@ -648,7 +708,7 @@ struct alignas(16) Matrix4 {
 
   Vector3<T> translation() const
   {
-    return { d[3], d[7], d[11] };
+    return column(3).xyz();
   }
 
   Vector3<T> scale() const

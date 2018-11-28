@@ -73,6 +73,11 @@ vec2 Geometry::center() const
   );
 }
 
+vec2 Geometry::centerRelative() const
+{
+  return center() - pos();
+}
+
 Color Color::darken(unsigned factor) const
 {
   auto f = [=](int v) -> byte

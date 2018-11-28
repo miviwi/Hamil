@@ -65,19 +65,6 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
   m_content->paint(painter, g);
 }
 
-Frame& WindowFrame::position(vec2 pos)
-{
-  const auto& style = ownStyle();
-  const auto& window = style.window;
-
-  Frame::position(pos);
-  if(m_content) {
-    m_content->position(pos + DecorationsSize + window.margin);
-  }
-
-  return *this;
-}
-
 WindowFrame& WindowFrame::title(const std::string& title)
 {
   m_title = ui().drawable().fromText(ownStyle().font, title, white());
@@ -96,6 +83,11 @@ WindowFrame& WindowFrame::content(Frame *content)
 {
   m_content = content;
 
+  m_content->attached(this);
+
+  vec2 content_pos = m_content->positionRelative();
+  m_content->position(content_pos + DecorationsSize + ownStyle().window.margin);
+
   return *this;
 }
 
@@ -109,7 +101,7 @@ vec2 WindowFrame::sizeHint() const
   const auto& style = ownStyle();
   const auto& window = style.window;
 
-  auto content_size = m_content ? m_content->geometry().size() : vec2();
+  auto content_size = m_content ? m_content->size() : vec2();
 
   return content_size + DecorationsSize + window.margin*2.0f;
 }

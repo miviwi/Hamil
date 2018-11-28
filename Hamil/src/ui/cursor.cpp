@@ -243,7 +243,7 @@ void CursorDriver::paint()
 {
   if(!m_shown) return;
 
-  mat4 modelviewprojection = xform::identity()
+  mat4 modelviewprojection = mat4::identity()
     *xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f)
     *xform::translate(m_pos)
     *xform::scale(1.0f);

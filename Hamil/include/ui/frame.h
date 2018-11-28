@@ -58,8 +58,17 @@ public:
   Frame& gravity(Gravity gravity);
   Gravity gravity() const;
 
+  // Set the Frame's position relative to it's parent
   Frame& position(vec2 pos);
+  // Returns the Frame's position relative to the Ui
+  vec2 position() const;
+  // Returns the Frame's position relative to it's parent
+  vec2 positionRelative() const;
+
   Frame& size(vec2 sz);
+  // Returns the size given to the Frame or the sizeHint()
+  //   which will be >= padding()
+  vec2 size() const;
 
   vec2 padding() const;
   // Sets the padding of a Frame to 'pad' which means
@@ -71,7 +80,9 @@ public:
   virtual void losingCapture();
   // Intended for internal use (called when the Frame
   //   is attached to the Ui, a Layout etc.)
-  virtual void attached();
+  // When overriding this method Frame::attached(...)
+  //   MUST be called inside it!
+  virtual void attached(Frame *parent);
 
   // Used as the size when it's not explicitly specified
   //   - The actual value depends on the Frame's type,
@@ -106,6 +117,8 @@ protected:
   virtual bool evMouseDrag(const MouseDragEvent& e);
   
 private:
+  Frame *m_parent;
+
   const char *m_name;
   Gravity m_gravity;
   Geometry m_geom;

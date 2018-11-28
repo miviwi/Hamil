@@ -1,6 +1,6 @@
 #include <math/frustum.h>
 
-frustum3::frustum3(const vec3& eye, mat4 vp)
+frustum3::frustum3(const vec3& eye, mat4 vp, bool inf_far)
 {
   vec4 r = vp.row(3) - vp.row(0);
   vec4 l = vp.row(3) + vp.row(0);
@@ -14,13 +14,17 @@ frustum3::frustum3(const vec3& eye, mat4 vp)
   planes[2] = b;
   planes[3] = r;
   planes[4] = n;
-  planes[5] = f;
+  planes[5] = !inf_far ? f : n;  // Avoid NaNs when far=inf
 
-  for(auto& plane : planes) plane = plane.normalize();
+  for(auto& plane : planes) {
+    float l = plane.xyz().length();
+
+    plane *= 1.0f/l;
+  }
 }
 
-frustum3::frustum3(const vec3& eye, const mat4& view, const mat4& projection) :
-  frustum3(eye, projection * view)
+frustum3::frustum3(const vec3& eye, const mat4& view, const mat4& projection, bool inf_far) :
+  frustum3(eye, projection * view, inf_far)
 {
 }
 

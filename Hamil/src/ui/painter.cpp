@@ -566,22 +566,22 @@ vec2 VertexPainter::textAlignCenter(ft::Font& font, Geometry g, vec2 text_size) 
 
   vec2 center = g.center();
   vec2 pos = {
-    floor(center.x - text_size.x/2.0f),
-    floor(center.y - (font.descender() + height/2.0f))
+    center.x - text_size.x/2.0f,
+    center.y - (font.descender() + height/2.0f)
   };
 
-  return pos;
+  return pos.floor();
 }
 
 vec2 VertexPainter::textAlignLeft(ft::Font& font, Geometry g, vec2 text_size) const
 {
   vec2 center = g.center();
   vec2 pos = {
-    floor(g.x),
-    floor(center.y - font.descender())
+    g.x,
+    center.y - font.descender()
   };
 
-  return pos;
+  return pos.floor();
 }
 
 void VertexPainter::assertBegin()
@@ -605,7 +605,7 @@ VertexPainter& VertexPainter::text(ft::Font& font, const std::string& str, vec2 
 
   appendCommand(Command::text(
     font,
-    { floor(pos.x), floor(pos.y) }, c,
+    pos.floor(), c,
     base, offset,
     s.num()
   ));
@@ -703,7 +703,7 @@ VertexPainter& VertexPainter::text(const Drawable& text, vec2 pos)
 
   appendCommand(Command::text(
     text.textFont(),
-    { floor(pos.x), floor(pos.y) }, text.textColor(),
+    pos.floor(), text.textColor(),
     base, offset,
     text.num()
   ));
@@ -724,10 +724,6 @@ VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
     ;
 
   vec2 center = g.center();
-  vec2 pos = {
-    floor(center.x - text.size().x/2.0f),
-    floor(center.y - text.textFont().descender())
-  };
 
   appendCommand(Command::text(
     text.textFont(),
