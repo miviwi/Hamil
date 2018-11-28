@@ -65,6 +65,23 @@ inline Quaternion operator+(const Quaternion& a, const Quaternion& b)
   return { a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w };
 }
 
+inline Quaternion operator+(const Quaternion& a, float u)
+{
+  return { a.x+u, a.y+u, a.z+u, a.w+u };
+}
+
+inline Quaternion& operator+=(Quaternion& a, const Quaternion& b)
+{
+  a = a+b;
+  return a;
+}
+
+inline Quaternion& operator+=(Quaternion& a, float u)
+{
+  a = a+u;
+  return a;
+}
+
 inline Quaternion operator*(const Quaternion& a, const Quaternion& b)
 {
 #if defined(NO_SSE)
@@ -115,6 +132,12 @@ inline vec3 operator*(const Quaternion& q, const vec3& v)
 inline Quaternion& operator*=(Quaternion& a, const Quaternion& b)
 {
   a = a*b;
+  return a;
+}
+
+inline Quaternion& operator*=(Quaternion& a, float u)
+{
+  a = a*u;
   return a;
 }
 
