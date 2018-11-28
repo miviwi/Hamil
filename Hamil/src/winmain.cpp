@@ -737,8 +737,7 @@ int main(int argc, char *argv[])
     //.frame(ui::create<ui::LabelFrame>(iface)
     //  .drawable(logo))
     .frame(ui::create<ui::LabelFrame>(iface)
-      .drawable(benis)
-      .position({ 50.0f, 0.0f }))
+      .drawable(benis))
     ;
 
   iface

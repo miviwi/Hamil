@@ -58,6 +58,12 @@ public:
   Frame& gravity(Gravity gravity);
   Gravity gravity() const;
 
+  // Returns the Frame's parent or nullptr if the Frame
+  //   wasn't previously attached()
+  Frame *parent();
+  // Const version of parent() (see note above)
+  const Frame *parent() const;
+
   // Set the Frame's position relative to it's parent
   Frame& position(vec2 pos);
   // Returns the Frame's position relative to the Ui
@@ -94,7 +100,7 @@ public:
   virtual bool isLayout() const { return false; }
 
 protected:
-  friend class Ui;
+  friend Ui;
   Ui *m_ui;
 
   Ui& ui();

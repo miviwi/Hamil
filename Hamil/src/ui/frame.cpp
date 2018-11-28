@@ -61,6 +61,16 @@ Frame::Gravity Frame::gravity() const
   return m_gravity;
 }
 
+Frame *Frame::parent()
+{
+  return m_parent;
+}
+
+const Frame *Frame::parent() const
+{
+  return m_parent;
+}
+
 void Frame::losingCapture()
 {
 }
@@ -122,7 +132,7 @@ bool Frame::evMouseDrag(const MouseDragEvent& e)
 
 vec2 Frame::position() const
 {
-  return positionRelative() + (m_parent ? m_parent->position() : vec2());
+  return positionRelative() + (parent() ? parent()->position() : vec2());
 }
 
 vec2 Frame::positionRelative() const

@@ -673,7 +673,6 @@ VertexPainter& VertexPainter::drawableCentered(const Drawable& drawable, Geometr
 
 VertexPainter& VertexPainter::drawableLeft(const Drawable& drawable, Geometry g)
 {
-  // TODO: insert return statement here
   switch(drawable.type()) {
   case Drawable::Invalid: break; // Drawable wasn't initialized - nothing to draw
 
@@ -696,10 +695,7 @@ VertexPainter& VertexPainter::text(const Drawable& text, vec2 pos)
   auto base = currentBase();
   auto offset = currentOffset();
 
-  text
-    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
-    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
-    ;
+  appendVerticesAndIndices(text);
 
   appendCommand(Command::text(
     text.textFont(),
@@ -718,10 +714,7 @@ VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
   auto base = currentBase();
   auto offset = currentOffset();
 
-  text
-    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
-    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
-    ;
+  appendVerticesAndIndices(text);
 
   vec2 center = g.center();
 
@@ -742,10 +735,7 @@ VertexPainter& VertexPainter::textLeft(const Drawable& text, Geometry g)
   auto base = currentBase();
   auto offset = currentOffset();
 
-  text
-    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
-    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
-    ;
+  appendVerticesAndIndices(text);
 
   appendCommand(Command::text(
     text.textFont(),
@@ -769,10 +759,7 @@ VertexPainter& VertexPainter::image(const Drawable& image, vec2 pos)
   auto base = currentBase();
   auto offset = currentOffset();
 
-  image
-    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
-    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
-    ;
+  appendVerticesAndIndices(image);
 
   appendCommand(Command::image(
     pos, image.imageAtlasPage(),
@@ -789,10 +776,7 @@ VertexPainter& VertexPainter::imageCentered(const Drawable& image, Geometry g)
   auto base = currentBase();
   auto offset = currentOffset();
 
-  image
-    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
-    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
-    ;
+  appendVerticesAndIndices(image);
 
   vec2 center = g.center();
   vec2 pos = center - image.size()*0.5f;
@@ -812,10 +796,7 @@ VertexPainter& VertexPainter::imageLeft(const Drawable& image, Geometry g)
   auto base = currentBase();
   auto offset = currentOffset();
 
-  image
-    .appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
-    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover)
-    ;
+  appendVerticesAndIndices(image);
 
   vec2 center = g.center();
   vec2 pos = {
@@ -885,6 +866,14 @@ void VertexPainter::appendVertices(std::initializer_list<Vertex> verts)
     *m_buf_rover++ = v;
     *m_ind_rover++ = ind++;
   }
+}
+
+void VertexPainter::appendVerticesAndIndices(const Drawable& d)
+{
+  checkEnoughSpace(d.num());
+
+  d.appendVertices(&m_buf_rover, m_buf_end-m_buf_rover)
+    .appendIndices(&m_ind_rover, m_ind_end-m_ind_rover);
 }
 
 void VertexPainter::restartPrimitive()
