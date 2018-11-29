@@ -48,6 +48,8 @@ struct Mesh {
   //   and will be the same for compatible meshes
   u64 formatId() const;
 
+  gx::Primitive getPrimitive() const;
+
   u16 vertex_components = 0;
   u8 num_vertex_colors = 0;
   u8 num_vertex_tex_coords = 0;

@@ -159,7 +159,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -431,6 +431,10 @@ int main(int argc, char *argv[])
     };
     vec4 color;
 
+    vec4 /* vec3 */ ior;
+    float metalness;
+    float roughness;
+
     MaterialBlock() :
       material(0)
     { }
@@ -624,7 +628,8 @@ int main(int argc, char *argv[])
   gx::VertexBuffer floor_vbuf(gx::Buffer::Static);
   floor_vbuf.init(floor_vtxs.data(), floor_vtxs.size());
 
-  gx::VertexArray floor_arr(floor_fmt, floor_vbuf);
+  auto floor_arr_id = pool.create<gx::VertexArray>("aFloor", floor_fmt, floor_vbuf);
+  auto& floor_arr = pool.get<gx::VertexArray>(floor_arr_id);
 
   gx::VertexBuffer sphere_vbuf(gx::Buffer::Static);
   gx::IndexBuffer  sphere_ibuf(gx::Buffer::Static, gx::u16);
@@ -632,7 +637,9 @@ int main(int argc, char *argv[])
   sphere_vbuf.init(sphere_verts.data(), sphere_verts.size());
   sphere_ibuf.init(sphere_inds.data(), sphere_inds.size());
 
-  gx::IndexedVertexArray sphere_arr(fmt, sphere_vbuf, sphere_ibuf);
+  auto sphere_arr_id = pool.create<gx::IndexedVertexArray>("iaSphere",
+    fmt, sphere_vbuf, sphere_ibuf);
+  auto& sphere_arr = pool.get<gx::IndexedVertexArray>(sphere_arr_id);
 
   auto line_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
@@ -790,14 +797,16 @@ int main(int argc, char *argv[])
   pbo.init(1, PboSize);
 
   auto floor_shape = bt::shapes().box({ 50.0f, 0.5f, 50.0f });
+  auto floor_mesh = mesh::Mesh()
+    .withNormals()
+    .withTexCoords(1)
+    .withArray(floor_arr_id)
+    .withNum((u32)floor_vtxs.size());
   auto create_floor = [&]()
   {
     vec3 origin = { 0.0f, -1.5f, -6.0f };
     auto body = bt::RigidBody::create(floor_shape, origin)
       .rollingFriction(0.2f);
-#if 0
-      .createMotionState(
-#endif
 
     auto floor = hm::entities().createGameObject("floor", scene);
 
@@ -807,6 +816,15 @@ int main(int argc, char *argv[])
       vec3(50.0f)
     );
     floor.addComponent<hm::RigidBody>(body);
+    floor.addComponent<hm::Mesh>(floor_mesh);
+
+    auto material = floor.addComponent<hm::Material>();
+
+    material().diff_type = hm::Material::DiffuseTexture;
+
+    material().metalness = 1.0f;
+    material().roughness = 0.2f;
+    material().ior = vec3(14.7f);
 
     world.addRigidBody(body);
 
@@ -814,6 +832,10 @@ int main(int argc, char *argv[])
   };
 
   auto sphere_shape = bt::shapes().sphere(1.0f);
+  auto sphere_mesh = mesh::Mesh()
+    .withNormals()
+    .withIndexedArray(sphere_arr_id)
+    .withNum((u32)sphere_inds.size());
   unsigned num_spheres = 0;
   auto create_sphere = [&]()
   {
@@ -825,6 +847,7 @@ int main(int argc, char *argv[])
 
     entity.addComponent<hm::Transform>(body.worldTransform());
     entity.addComponent<hm::RigidBody>(body);
+    entity.addComponent<hm::Mesh>(sphere_mesh);
 
     world.addRigidBody(body);
 
@@ -833,7 +856,32 @@ int main(int argc, char *argv[])
     return entity;
   };
 
+  auto create_model = [&](const mesh::Mesh& mesh,
+    const std::string& name = "bunny")
+  {
+    vec3 origin = { 0.0f, -1.5f, -10.0f };
+
+    auto entity = hm::entities().createGameObject(name, scene);
+
+    entity.addComponent<hm::Transform>(
+      xform::Transform(origin, quat(), vec3(4.0f))
+    );
+    entity.addComponent<hm::Mesh>(mesh);
+
+    auto material = entity.addComponent<hm::Material>();
+
+    material().diff_type = hm::Material::DiffuseConstant;
+    material().diff_color = { 0.53f, 0.8f, 0.94f };
+
+    material().metalness = 0.1f;
+    material().roughness = 0.9f;
+    material().ior = vec3(1.47f);
+
+    return entity;
+  };
+
   auto floor = create_floor();
+  hm::Entity bunny;
 
   auto cmd_upload_ubos = gx::CommandBuffer::begin()
     .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
@@ -1005,7 +1053,7 @@ int main(int argc, char *argv[])
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
-    frustum3 frustum(eye.xyz(), view, persp, true);
+    frustum3 frustum(view, persp, true);
 
     auto texmatrix = xform::Transform()
       .scale(3.0f)
@@ -1110,38 +1158,73 @@ int main(int argc, char *argv[])
       num_tris += sphere_inds.size() / 3;
     };
 
+    auto drawentity = [&](hm::Entity e, bool shaded = true)
+    {
+      auto& transform = e.component<hm::Transform>().get().t;
+      auto& mesh = e.component<hm::Mesh>().get().m;
+
+      mat4 model = transform.matrix();
+      mat4 modelview = view*model;
+
+      block_group.matrix->modelview = modelview;
+      block_group.matrix->normal = modelview.inverse().transpose();
+
+      uint material_id = PhongProceduralColored;
+      if(auto material = e.component<hm::Material>()) {
+        switch(material().diff_type) {
+        case hm::Material::DiffuseTexture: material_id = PhongTextured; break;
+        case hm::Material::DiffuseConstant: material_id = PhongColored; break;
+        }
+
+        color = material().diff_color;
+
+        block_group.material->metalness = material().metalness;
+        block_group.material->roughness = material().roughness;
+        block_group.material->ior = vec4(material().ior, 1.0f);
+      } else {
+        block_group.material->metalness = 1.0f;
+        block_group.material->roughness = 0.1f;
+        block_group.material->ior = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+      }
+
+      block_group.material->material = material_id;
+      block_group.material->color = color;
+
+      upload_ubos();
+
+      if(mesh.vertex_array_flags & mesh::Mesh::Indexed) {
+        auto& vertex_array = pool.get<gx::IndexedVertexArray>(mesh.vertex_array_id);
+
+        program.use()
+          .draw(mesh.getPrimitive(), vertex_array, mesh.num);
+        vertex_array.end();
+      } else {
+        auto& vertex_array = pool.get<gx::VertexArray>(mesh.vertex_array_id);
+
+        program.use()
+          .uniformSampler(U.program.uTex, FloorTexImageUnit)
+          .draw(mesh.getPrimitive(), vertex_array, mesh.num);
+      }
+
+      num_tris += mesh.num / 3;
+    };
+
     scene_pass.begin(pool);
 
     program.use()
       .uniformFloat(U.program.uExposure, exp_slider.value());
 
-    mat4 modelview = view*xform::translate(0.0f, -1.5f, -10.0f)*xform::scale(4.0f);
-
-    block_group.matrix->modelview = modelview;
-    block_group.matrix->normal = modelview.inverse().transpose();
-
-    block_group.material->material = PhongColored;
-    block_group.material->color = { 0.53f, 0.8f, 0.94f, 1.0f };
-
-    if(bunny_load_job->done()) {
-      if(bunny_load_job_id != sched::WorkerPool::InvalidJob) {
-        worker_pool.waitJob(bunny_load_job_id);
-        bunny_load_job_id = sched::WorkerPool::InvalidJob;
-      }
+    if(bunny_load_job->done() && bunny_load_job_id != sched::WorkerPool::InvalidJob) {
+      worker_pool.waitJob(bunny_load_job_id);
+      bunny_load_job_id = sched::WorkerPool::InvalidJob;
 
       auto num_inds = obj_loader.mesh().faces().size() * 3;
+      auto bunny_mesh = mesh::Mesh()
+        .withNormals()
+        .withIndexedArray(bunny_arr_id)
+        .withNum((u32)num_inds);
 
-      auto command_buf = gx::CommandBuffer::begin()
-        .bindResourcePool(&pool)
-        .bindMemoryPool(&memory)
-        .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
-        .program(program_id)
-        .drawIndexed(gx::Triangles, bunny_arr_id, num_inds)
-        .end();
-
-      command_buf.execute();
-
-      num_tris += num_inds / 3;
+      bunny = create_model(bunny_mesh);
     }
 
     if(draw_nudge_line) {
@@ -1176,7 +1259,11 @@ int main(int argc, char *argv[])
     // Draw the Entities
     components().foreach([&](hmRef<hm::Transform> component) {
       auto entity = component().entity();
-      if(!entity.hasComponent<hm::RigidBody>() || entity == floor) return;
+
+      if(!entity.hasComponent<hm::RigidBody>()) {
+        drawentity(entity);
+        return;
+      }
 
       auto origin = component().t.translation();
 
@@ -1186,60 +1273,18 @@ int main(int argc, char *argv[])
       }
 
       color = { entity == picked_entity ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
-      model = component().t.matrix();
 
-      auto view_pos = view * model * vec4();
+      auto view_pos = model * vec4();
       AABB aabb;
 
       aabb.min = view_pos.xyz() - vec3(1.0f, 1.0f, 1.0f);
       aabb.max = view_pos.xyz() + vec3(1.0f, 1.0f, 1.0f);
 
       //if(!frustum.aabbInside(aabb)) return;
-      //if(!frustum.sphereInside(view_pos.xyz(), 1.0f)) return;
+      //if(!frustum.sphereInside(view_pos.xyz(), component().t.scale().x)) return;
 
-      drawsphere();
+      drawentity(entity);
     });
-
-    auto floor_transform = floor.component<hm::Transform>();
-    modelview = view * floor_transform().matrix();
-
-    block_group.matrix->modelview = modelview;
-    block_group.matrix->normal = modelview.inverse().transpose();
-
-    block_group.material->material = PhongTextured;
-
-    upload_ubos();
-
-    program.use()
-      .uniformSampler(U.program.uTex, 0)
-      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
-    num_tris += floor_vtxs.size() / 3;
-
-    modelview = view * xform::Transform(
-      { 0.0f, 48.0f, -45.0f }, quat::from_euler(0, PI, 0), vec3(50.0f)).matrix();
-
-    block_group.matrix->modelview = modelview;
-    block_group.matrix->normal = modelview.inverse().transpose();
-
-    upload_ubos();
-
-    program.use()
-      .uniformSampler(U.program.uTex, 0)
-      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
-    num_tris += floor_vtxs.size() / 3;
-
-    modelview = view * xform::Transform(
-      { -45.0f, 48.0f, -1.0f }, quat::from_euler(0, PIf/2.0f, 0), vec3(50.0f)).matrix();
-
-    block_group.matrix->modelview = modelview;
-    block_group.matrix->normal = modelview.inverse().transpose();
-
-    upload_ubos();
-
-    program.use()
-      .uniformSampler(U.program.uTex, 0)
-      .draw(gx::Triangles, floor_arr, floor_vtxs.size());
-    num_tris += floor_vtxs.size() / 3;
 
     for(int i = 0; i < light_block.num_lights; i++) {
       vec4 pos = light_position[i];
@@ -1291,7 +1336,7 @@ int main(int argc, char *argv[])
     float y = entity_str_origin_y;
     float x = 30.0f;
     scene.gameObject().foreachChild([&](hm::Entity entity) {
-      if(!entity.hasComponent<hm::RigidBody>()) return;
+      if(!entity.hasComponent<hm::Transform>()) return;
 
       if(y > FramebufferSize.y-small_face.height()) {
         x += entity_str_width;

@@ -35,6 +35,11 @@ mesh::MeshLoader& Mesh::loader()
   return *m_loader;
 }
 
+const mesh::Mesh& Mesh::mesh() const
+{
+  return m_mesh;
+}
+
 static const std::unordered_map<std::string, gx::Primitive> p_mesh_prims = {
   { "points", gx::Points },
 

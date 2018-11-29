@@ -2,8 +2,9 @@
 
 namespace hm {
 
-Mesh::Mesh(u32 entity) :
-  Component(entity)
+Mesh::Mesh(u32 entity, const mesh::Mesh& mesh) :
+  Component(entity),
+  m(mesh)
 {
 }
 

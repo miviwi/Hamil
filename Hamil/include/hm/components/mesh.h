@@ -7,7 +7,7 @@
 namespace hm {
 
 struct Mesh : public Component {
-  Mesh(u32 entity);
+  Mesh(u32 entity, const mesh::Mesh& mesh);
 
   static constexpr Tag tag() { return "Mesh"; }
  

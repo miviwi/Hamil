@@ -99,4 +99,9 @@ u64 Mesh::formatId() const
   return (u64)vertex_props | ((u64)array_props<<32ull);
 }
 
+gx::Primitive Mesh::getPrimitive() const
+{
+  return (gx::Primitive)array_primitive;
+}
+
 }

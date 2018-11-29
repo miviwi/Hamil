@@ -4,3 +4,4 @@
 #include <hm/components/rigidbody.h>
 #include <hm/components/transform.h>
 #include <hm/components/mesh.h>
+#include <hm/components/material.h>

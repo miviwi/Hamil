@@ -37,6 +37,8 @@ public:
   //   if Resource::loaded() == true
   mesh::MeshLoader& loader();
 
+  const mesh::Mesh& mesh() const;
+
 protected:
   using Resource::Resource;
 

@@ -1,13 +1,47 @@
 #include <math/frustum.h>
 
-frustum3::frustum3(const vec3& eye, mat4 vp, bool inf_far)
+frustum3::frustum3(mat4 vp, bool inf_far)
 {
-  vec4 r = vp.row(3) - vp.row(0);
-  vec4 l = vp.row(3) + vp.row(0);
-  vec4 t = vp.row(3) - vp.row(1);
-  vec4 b = vp.row(3) + vp.row(1);
-  vec4 f = vp.row(3) - vp.row(2);
-  vec4 n = vp.row(3) + vp.row(2);
+  mat4 inv_vp = vp.inverse();
+
+  //                         7--------6
+  //                        /|       /|
+  //     Y ^               / |      / |
+  //     | _              3--------2  |
+  //     | /' -Z          |  |     |  |
+  //     |/               |  5-----|--4
+  //     + ---> X         | /      | /
+  //                      |/       |/
+  //                      1--------0
+  corners = { {
+    {  1.0f, -1.0f,  1.0f },
+    { -1.0f, -1.0f,  1.0f },
+    {  1.0f,  1.0f,  1.0f },
+    { -1.0f,  1.0f,  1.0f },
+    {  1.0f, -1.0f, -1.0f },
+    { -1.0f, -1.0f, -1.0f },
+    {  1.0f,  1.0f, -1.0f },
+    { -1.0f,  1.0f, -1.0f },
+  } };
+
+  for(auto& c : corners) c = (inv_vp * vec4(c, 1.0f)).xyz();
+
+  auto plane_from_points = [](vec3 p1, vec3 p2, vec3 p3) -> vec4 {
+    vec3 v = p2 - p1;
+    vec3 u = p3 - p1;
+
+    vec3 n = v.cross(u).normalize();
+    float d = n.dot(p1);
+
+    return vec4(n, -d);
+  };
+
+  vec4 r = plane_from_points(corners[0], corners[4], corners[2]);
+  vec4 l = plane_from_points(corners[1], corners[3], corners[5]);
+  vec4 t = plane_from_points(corners[3], corners[2], corners[7]);
+  vec4 b = plane_from_points(corners[1], corners[5], corners[0]);
+  vec4 n = plane_from_points(corners[1], corners[0], corners[3]);
+  vec4 f = plane_from_points(corners[5], corners[7], corners[4]);
 
   planes[0] = t;
   planes[1] = l;
@@ -15,16 +49,10 @@ frustum3::frustum3(const vec3& eye, mat4 vp, bool inf_far)
   planes[3] = r;
   planes[4] = n;
   planes[5] = !inf_far ? f : n;  // Avoid NaNs when far=inf
-
-  for(auto& plane : planes) {
-    float l = plane.xyz().length();
-
-    plane *= 1.0f/l;
-  }
 }
 
-frustum3::frustum3(const vec3& eye, const mat4& view, const mat4& projection, bool inf_far) :
-  frustum3(eye, projection * view, inf_far)
+frustum3::frustum3(const mat4& view, const mat4& projection, bool inf_far) :
+  frustum3(projection * view, inf_far)
 {
 }
 
@@ -32,7 +60,7 @@ bool frustum3::sphereInside(const vec3& pos, float r) const
 {
   vec4 p(pos, 1.0f);
   for(const auto& plane : planes) {
-    if(plane.dot(p) <= -r) return false;
+    if(plane.dot(p) < -r) return false;
   } 
 
   return true;
