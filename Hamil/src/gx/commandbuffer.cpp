@@ -22,7 +22,7 @@ CommandBuffer CommandBuffer::begin(size_t initial_alloc)
   return CommandBuffer(initial_alloc);
 }
 
-CommandBuffer& CommandBuffer::renderPass(ResourceId pass)
+CommandBuffer& CommandBuffer::renderpass(ResourceId pass)
 {
   return appendCommand(OpBeginRenderPass, pass);
 }

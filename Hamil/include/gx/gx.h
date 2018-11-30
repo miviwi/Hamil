@@ -23,8 +23,10 @@ enum Format {
 
   r8 = GL_R8, r16 = GL_R16,
   rg8 = GL_RG8, rg16 = GL_RG16,
-  rgb8 = GL_RGB8, rgb10 = GL_RGB10, rgb565 = GL_RGB565,
-  rgb5a1 = GL_RGB5_A1, rgb10a2 = GL_RGB10_A2, rgba8 = GL_RGBA8,
+  rgb8 = GL_RGB8, rgb10 = GL_RGB10, rgb16 = GL_RGB16,
+  rgba8 = GL_RGBA8, rgb10a2 = GL_RGB10_A2, rgba16 = GL_RGBA16,
+
+  rgb565 = GL_RGB565, rgb5a1 = GL_RGB5_A1,
 
   r16f = GL_R16F, r32f = GL_R32F,
   rg16f = GL_RG16F, rg32f = GL_RG32F,

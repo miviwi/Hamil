@@ -48,6 +48,7 @@ public:
   float mass() const;
 
   AABB aabb() const;
+  Sphere boundingSphere() const;
 
   float rollingFriction() const;
   RigidBody& rollingFriction(float friction);

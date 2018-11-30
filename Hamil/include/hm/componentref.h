@@ -22,12 +22,22 @@ public:
     return *m;
   }
 
+  const T& get() const
+  {
+    return *m;
+  }
+
   T *ptr()
   {
     return m;
   }
 
   T& operator()()
+  {
+    return get();
+  }
+
+  const T& operator()() const
   {
     return get();
   }

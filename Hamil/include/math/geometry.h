@@ -867,5 +867,26 @@ struct AABB {
     min(min_), max(max_)
   { }
 
-  vec3 min, max;
+  union {
+    vec3 min;
+    vec4 pad0_;
+  };
+
+  union {
+    vec3 max;
+    vec4 pad1_;
+  };
+};
+
+struct Sphere {
+  Sphere()
+  {
+  }
+
+  Sphere(vec3 c_, float r_) :
+    c(c_), r(r_)
+  { }
+
+  vec3 c;
+  float r;
 };

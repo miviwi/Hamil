@@ -138,6 +138,13 @@ AABB RigidBody::aabb() const
   return AABB(from_btVector3(aabb_min), from_btVector3(aabb_max));
 }
 
+Sphere RigidBody::boundingSphere() const
+{
+  AABB bbox = aabb();
+
+  return Sphere((bbox.min+bbox.max) * 0.5f, (bbox.max-bbox.min).length() * 0.5f);
+}
+
 float RigidBody::rollingFriction() const
 {
   return m->getRollingFriction();

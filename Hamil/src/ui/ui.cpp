@@ -366,7 +366,7 @@ gx::CommandBuffer Ui::paint()
   auto projection = xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f);
 
   command_buf
-    .renderPass(m_renderpass_id)
+    .renderpass(m_renderpass_id)
     .program(m_program_id)
     .uniformSampler(U.ui.uFontAtlas, ft::TexImageUnit)
     .uniformSampler(U.ui.uImageAtlas, DrawableManager::TexImageUnit);

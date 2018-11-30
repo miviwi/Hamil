@@ -2,26 +2,27 @@
 
 namespace hm {
 
-Transform::Transform(u32 entity, const xform::Transform& transform) :
+Transform::Transform(u32 entity, const xform::Transform& transform, const AABB& aabb_) :
   Component(entity),
-  t(transform)
+  t(transform), aabb(aabb_)
 {
 }
 
-Transform::Transform(u32 entity, vec3 position, quat orientation) :
+Transform::Transform(u32 entity, vec3 position, quat orientation, const AABB& aabb_) :
   Component(entity),
-  t(position, orientation)
+  t(position, orientation), aabb(aabb_)
 {
 }
 
-Transform::Transform(u32 entity, vec3 position, quat orientation, vec3 scale) :
+Transform::Transform(u32 entity, vec3 position, quat orientation, vec3 scale, const AABB& aabb_) :
   Component(entity),
-  t(position, orientation, scale)
+  t(position, orientation, scale), aabb(aabb_)
 {
 }
 
-Transform::Transform(u32 entity, const mat4& transform) :
-  Component(entity)
+Transform::Transform(u32 entity, const mat4& transform, const AABB& aabb_) :
+  Component(entity),
+  aabb(aabb_)
 {
   set(transform);
 }

@@ -155,7 +155,7 @@ public:
   //   commands can be bigger than this number)
   static CommandBuffer begin(size_t initial_alloc = 64);
 
-  CommandBuffer& renderPass(ResourceId pass);
+  CommandBuffer& renderpass(ResourceId pass);
   CommandBuffer& subpass(uint id);
   CommandBuffer& program(ResourceId prog);
   CommandBuffer& draw(Primitive p, ResourceId vertex_array, size_t num_verts);

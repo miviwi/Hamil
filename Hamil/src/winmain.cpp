@@ -92,6 +92,11 @@
 #include <hm/componentman.h>
 #include <hm/components/all.h>
 
+#include <ek/euklid.h>
+#include <ek/renderer.h>
+#include <ek/renderview.h>
+#include <ek/renderobject.h>
+
 #include <cli/cli.h>
 
 #include <vector>
@@ -122,6 +127,7 @@ int main(int argc, char *argv[])
   bt::init();
   res::init();
   hm::init();
+  ek::init();
 
   printf("numPhysicalProcessors(): %2u\n", win32::cpuinfo().numPhysicalProcessors());
   printf("numLogicalProcessors():  %2u\n", win32::cpuinfo().numLogicalProcessors());
@@ -789,6 +795,8 @@ int main(int argc, char *argv[])
 
   auto scene = hm::entities().createGameObject("Scene");
 
+  scene.addComponent<hm::Transform>(xform::Transform());
+
   const int PboSize = sizeof(u8)*3 * FramebufferSize.area();
 
   auto pbo_id = pool.createBuffer<gx::PixelBuffer>("bpTest",
@@ -813,7 +821,8 @@ int main(int argc, char *argv[])
     floor.addComponent<hm::Transform>(
       origin + vec3{ 0.0f, 0.5f, 0.0f },
       quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
-      vec3(50.0f)
+      vec3(50.0f),
+      body.aabb()
     );
     floor.addComponent<hm::RigidBody>(body);
     floor.addComponent<hm::Mesh>(floor_mesh);
@@ -849,6 +858,14 @@ int main(int argc, char *argv[])
     entity.addComponent<hm::RigidBody>(body);
     entity.addComponent<hm::Mesh>(sphere_mesh);
 
+    auto material = entity.addComponent<hm::Material>();
+
+    material().diff_type = hm::Material::Other;
+
+    material().metalness = random_floats(random_generator);
+    material().roughness = random_floats(random_generator);
+    material().ior = vec3(1.47f);
+
     world.addRigidBody(body);
 
     num_spheres++;
@@ -856,17 +873,22 @@ int main(int argc, char *argv[])
     return entity;
   };
 
+  auto model_shape = bt::shapes().box({ 2.0f, 2.0f, 2.0f });
   auto create_model = [&](const mesh::Mesh& mesh,
     const std::string& name = "bunny")
   {
-    vec3 origin = { 0.0f, -1.5f, -10.0f };
+    vec3 origin = { 0.0f, -1.0f, -10.0f };
+    auto body = bt::RigidBody::create(model_shape, origin);
 
     auto entity = hm::entities().createGameObject(name, scene);
 
     entity.addComponent<hm::Transform>(
       xform::Transform(origin, quat(), vec3(4.0f))
     );
+    entity.addComponent<hm::RigidBody>(body);
     entity.addComponent<hm::Mesh>(mesh);
+
+    world.addRigidBody(body);
 
     auto material = entity.addComponent<hm::Material>();
 
@@ -933,6 +955,7 @@ int main(int argc, char *argv[])
       auto transform = entity.component<hm::Transform>();
 
       transform() = rb().rb.worldTransform();
+      transform().aabb = rb().rb.aabb();
     });
 
     return {};
@@ -982,6 +1005,8 @@ int main(int argc, char *argv[])
 
           scene.destroy();
           scene = entities().createGameObject("Scene");
+
+          scene.addComponent<hm::Transform>(xform::Transform());
 
           floor = create_floor();
         } else if(kb->keyDown('Q')) {
@@ -1048,12 +1073,12 @@ int main(int argc, char *argv[])
 
     mat4 model = mat4::identity();
 
-    auto persp = xform::perspective_inf(70.0f,
-      16.0f/9.0f, 50.0f);
+    auto persp = xform::perspective(70.0f,
+      16.0f/9.0f, 50.0f, 1e6);
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
-    frustum3 frustum(view, persp, true);
+    frustum3 frustum(view, persp, false);
 
     auto texmatrix = xform::Transform()
       .scale(3.0f)
@@ -1062,6 +1087,20 @@ int main(int argc, char *argv[])
 
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
+
+    auto render_view = ek::RenderView(ek::RenderView::CameraView)
+      .forwardRender()
+      .viewport(FramebufferSize)
+      .sampleCount(1)
+      .view(view)
+      .projection(persp);
+
+    auto extract_for_view_job = ek::renderer().extractForView(scene, render_view);
+    auto extract_for_view_job_id = worker_pool.scheduleJob(extract_for_view_job.get());
+
+    worker_pool.waitJob(extract_for_view_job_id);
+
+    auto& render_objects = extract_for_view_job->result();
 
     bt::RigidBody picked_body;
     hm::Entity picked_entity = hm::Entity::Invalid;
@@ -1169,12 +1208,14 @@ int main(int argc, char *argv[])
       block_group.matrix->modelview = modelview;
       block_group.matrix->normal = modelview.inverse().transpose();
 
-      uint material_id = PhongProceduralColored;
+      uint material_id = 0;
       if(auto material = e.component<hm::Material>()) {
         switch(material().diff_type) {
         case hm::Material::DiffuseTexture: material_id = PhongTextured; break;
         case hm::Material::DiffuseConstant: material_id = PhongColored; break;
         }
+
+        if(material().diff_type & hm::Material::Other) material_id = PhongProceduralColored;
 
         color = material().diff_color;
 
@@ -1257,31 +1298,28 @@ int main(int argc, char *argv[])
     std::vector<hm::Entity> dead_entities;
 
     // Draw the Entities
-    components().foreach([&](hmRef<hm::Transform> component) {
-      auto entity = component().entity();
+    components().foreach([&](hmRef<hm::Transform> transform) {
+      auto entity = transform().entity();
 
-      if(!entity.hasComponent<hm::RigidBody>()) {
+      if(!entity.hasComponent<hm::Mesh>()) return;
+
+      if(!entity.hasComponent<hm::RigidBody>() || entity == bunny) {
         drawentity(entity);
         return;
       }
 
-      auto origin = component().t.translation();
+      auto origin = transform().t.translation();
 
       if(origin.distance2(vec3::zero()) > 10e3*10e3) {
         dead_entities.push_back(entity);
         return;
       }
 
-      color = { entity == picked_entity ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f), 1.0f };
+      auto material = entity.component<hm::Material>();
+      material().diff_color = (entity == picked_entity) ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f);
 
-      auto view_pos = model * vec4();
-      AABB aabb;
-
-      aabb.min = view_pos.xyz() - vec3(1.0f, 1.0f, 1.0f);
-      aabb.max = view_pos.xyz() + vec3(1.0f, 1.0f, 1.0f);
-
-      //if(!frustum.aabbInside(aabb)) return;
-      //if(!frustum.sphereInside(view_pos.xyz(), component().t.scale().x)) return;
+      AABB aabb = transform().aabb;
+      if(!frustum.aabbInside(aabb)) return;
 
       drawentity(entity);
     });
@@ -1449,6 +1487,7 @@ int main(int argc, char *argv[])
 
   pool.purge();
 
+  ek::finalize();
   hm::finalize();
   res::finalize();
   bt::finalize();

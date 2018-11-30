@@ -9,6 +9,8 @@
 #include <gx/renderpass.h>
 #include <gx/fence.h>
 
+#include <win32/mutex.h>
+
 #include <vector>
 #include <tuple>
 #include <utility>
@@ -37,6 +39,8 @@ public:
   template <typename T, typename... Args>
   Id create(Args... args)
   {
+    auto lock_guard = m_mutex.acquireScoped();
+
     auto& vec = getVector<T>();
     auto id = (Id)vec.size();
 
@@ -49,6 +53,8 @@ public:
   template <typename T, typename... Args>
   Id create(const char *label, Args... args)
   {
+    auto lock_guard = m_mutex.acquireScoped();
+
     auto& vec = getVector<T>();
     auto id = (Id)vec.size();
 
@@ -121,6 +127,8 @@ private:
   {
     return std::get<std::vector<T>>(m_resources);
   }
+
+  win32::Mutex m_mutex;
 
   TupleOfVectors<
     Program,

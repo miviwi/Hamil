@@ -4,7 +4,11 @@
 
 namespace ek {
 
+class Renderer;
+
 void init();
 void finalize();
+
+Renderer& renderer();
 
 }

@@ -13,8 +13,10 @@ struct Material : public Component {
 
   static Tag tag() { return "Material"; }
 
-  enum DiffuseType {
+  enum DiffuseType : u32 {
     DiffuseConstant, DiffuseTexture,
+
+    Other = 1u << (u32)(sizeof(u32)*CHAR_BIT - 1),
   };
 
   bool unshaded = false;

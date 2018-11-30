@@ -6,32 +6,33 @@ frustum3::frustum3(mat4 vp, bool inf_far)
 
   //                         7--------6
   //                        /|       /|
-  //     Y ^               / |      / |
+  //     ^ Y               / |      / |
   //     | _              3--------2  |
-  //     | /' -Z          |  |     |  |
+  //     | /' Z           |  |     |  |
   //     |/               |  5-----|--4
   //     + ---> X         | /      | /
   //                      |/       |/
   //                      1--------0
   corners = { {
-    {  1.0f, -1.0f,  1.0f },
-    { -1.0f, -1.0f,  1.0f },
-    {  1.0f,  1.0f,  1.0f },
-    { -1.0f,  1.0f,  1.0f },
-    {  1.0f, -1.0f, -1.0f },
-    { -1.0f, -1.0f, -1.0f },
-    {  1.0f,  1.0f, -1.0f },
-    { -1.0f,  1.0f, -1.0f },
+    {  1.0f, -1.0f, -1.0f, 1.0f },
+    { -1.0f, -1.0f, -1.0f, 1.0f },
+    {  1.0f,  1.0f, -1.0f, 1.0f },
+    { -1.0f,  1.0f, -1.0f, 1.0f },
+    {  1.0f, -1.0f,  1.0f, 1.0f },
+    { -1.0f, -1.0f,  1.0f, 1.0f },
+    {  1.0f,  1.0f,  1.0f, 1.0f },
+    { -1.0f,  1.0f,  1.0f, 1.0f },
   } };
 
-  for(auto& c : corners) c = (inv_vp * vec4(c, 1.0f)).xyz();
+  // Unproject the NDC cube into a world-space frustum
+  for(auto& c : corners) c = (inv_vp * c).perspectiveDivide();
 
-  auto plane_from_points = [](vec3 p1, vec3 p2, vec3 p3) -> vec4 {
-    vec3 v = p2 - p1;
-    vec3 u = p3 - p1;
+  auto plane_from_points = [](vec4 p0, vec4 p1, vec4 p2) -> vec4 {
+    vec3 v = p1 - p0;
+    vec3 u = p2 - p0;
 
-    vec3 n = v.cross(u).normalize();
-    float d = n.dot(p1);
+    vec3 n = u.cross(v).normalize();
+    float d = n.dot(p0.xyz());
 
     return vec4(n, -d);
   };
@@ -64,6 +65,11 @@ bool frustum3::sphereInside(const vec3& pos, float r) const
   } 
 
   return true;
+}
+
+bool frustum3::sphereInside(const Sphere& s) const
+{
+  return sphereInside(s.c, s.r);
 }
 
 bool frustum3::aabbInside(const AABB& aabb) const
