@@ -1,4 +1,5 @@
 #include <ek/renderview.h>
+#include <ek/renderer.h>
 #include <ek/renderobject.h>
 
 #include <math/util.h>
@@ -139,9 +140,12 @@ frustum3 RenderView::constructFrustum()
   return frustum3(m_view, m_projection);
 }
 
-gx::CommandBuffer RenderView::render(const std::vector<RenderObject>& objects,
+gx::CommandBuffer RenderView::render(Renderer& renderer,
+  const std::vector<RenderObject>& objects,
   gx::MemoryPool *mempool, gx::ResourcePool *pool)
 {
+  m_renderer = &renderer;
+
   m_pool = pool;
   m_mempool = mempool;
 
@@ -226,6 +230,9 @@ u32 RenderView::doCreateFramebufferNoMultisample()
 
     rt().init(m_viewport.z, m_viewport.w);
 
+    m_rts[m_num_rts] = rt_id;
+    m_num_rts++;
+
     return rt.get<gx::Texture2D>();
   };
 
@@ -261,6 +268,9 @@ u32 RenderView::doCreateFramebufferMultisample()
     auto& rt = m_pool->getTexture<gx::Texture2D>(rt_id);
 
     rt.initMultisample(m_samples, m_viewport.z, m_viewport.w);
+
+    m_rts[m_num_rts] = rt_id;
+    m_num_rts++;
 
     return rt;
   };

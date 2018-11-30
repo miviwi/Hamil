@@ -125,6 +125,9 @@ private:
 
 class TextureHandle : public Ref {
 public:
+  TextureHandle() :
+    m(nullptr)
+  { }
   ~TextureHandle();
 
   template <typename Tex, typename... Args>

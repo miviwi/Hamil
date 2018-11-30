@@ -17,6 +17,7 @@ class MemoryPool;
 
 namespace ek {
 
+class Renderer;
 class RenderObject;
 
 // Stores a MemoryPool Handle and a size
@@ -76,7 +77,8 @@ public:
   //   the hm::Mesh Components of the extracted Entities!
   // Because MemoryPool has no thread safety each concurrent
   //   call of render() must have an independent one
-  gx::CommandBuffer render(const std::vector<RenderObject>& objects,
+  gx::CommandBuffer render(Renderer& renderer,
+    const std::vector<RenderObject>& objects,
     gx::MemoryPool *mempool, gx::ResourcePool *pool);
 
 private:
@@ -111,6 +113,8 @@ private:
 
   mat4 m_view;
   mat4 m_projection;
+
+  Renderer *m_renderer;
 
   gx::MemoryPool *m_mempool;
   gx::ResourcePool *m_pool;

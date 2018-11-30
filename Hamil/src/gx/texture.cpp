@@ -230,7 +230,7 @@ TextureHandle::TextureHandle(Texture *tex) :
 
 TextureHandle::~TextureHandle()
 {
-  if(deref()) return;
+  if(!m || deref()) return;
 
   delete m;
 }
