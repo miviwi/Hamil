@@ -6,6 +6,9 @@
 #include <hm/components/transform.h>
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
+#include <gx/resourcepool.h>
+
+#include <cassert>
 
 namespace ek {
 
@@ -16,6 +19,24 @@ Renderer::ExtractObjectsJob Renderer::extractForView(hm::Entity scene, RenderVie
       return doExtractForView(scene, *view);
     }, scene, &view)
   ));
+}
+
+const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool)
+{
+  RenderTarget k(config);
+
+  auto it = m_rts.find(k);
+  if(it != m_rts.end()) {
+    if(it->lock()) return *it;
+  }
+
+  auto result = m_rts.insert(RenderTarget::from_config(config, pool));
+  assert(result.second && "Failed to insert RenderTarget!");
+
+  auto locked = result.first->lock();
+  assert(locked && "Failed to lock() the RenderTarget!");
+
+  return *result.first;
 }
 
 Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& view)

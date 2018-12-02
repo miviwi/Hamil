@@ -183,9 +183,24 @@ gx::Pipeline RenderView::createPipeline()
 
 u32 RenderView::createFramebuffer()
 {
-  if(m_samples == 0) return doCreateFramebufferNoMultisample();
+  RenderTargetConfig config;
 
-  return doCreateFramebufferMultisample();
+  switch(m_render) {
+  case DepthOnly:
+    config = RenderTargetConfig::depth_prepass(m_samples);
+    break;
+
+  case Forward:
+    config = RenderTargetConfig::forward_linearz(m_samples);
+    break;
+
+  case Deferred:
+    break;
+
+  default: assert(0); // unreachable
+  }
+
+  return renderer().queryRenderTarget(config, *m_pool).framebufferId();
 }
 
 u32 RenderView::createRenderPass()
@@ -211,84 +226,6 @@ u32 RenderView::createRenderPass()
   case Deferred:
     pass
       .clearOp(gx::RenderPass::ClearColorDepth);
-    break;
-
-  default: assert(0); // unreachable
-  }
-
-  return id;
-}
-
-u32 RenderView::doCreateFramebufferNoMultisample()
-{
-  auto id = m_pool->create<gx::Framebuffer>();
-  auto& fb = m_pool->get<gx::Framebuffer>(id);
-
-  auto create_rt = [this](gx::Format fmt) -> gx::Texture2D& {
-    auto rt_id = m_pool->createTexture<gx::Texture2D>(fmt);
-    auto rt = m_pool->getTexture(rt_id);
-
-    rt().init(m_viewport.z, m_viewport.w);
-
-    m_rts[m_num_rts] = rt_id;
-    m_num_rts++;
-
-    return rt.get<gx::Texture2D>();
-  };
-
-  switch(m_render) {
-  case DepthOnly:
-    fb.use()
-      .renderbuffer(gx::depth32f, gx::Framebuffer::Depth);
-    break;
-
-  case Forward:
-    fb.use()
-      .tex(create_rt(gx::rgb8), 0, gx::Framebuffer::Color(0))  /* Accumulation */
-      .tex(create_rt(gx::r32f), 0, gx::Framebuffer::Color(1))  /* Linear Z */
-      .renderbuffer(gx::depth16, gx::Framebuffer::Depth);
-    break;
-
-  case Deferred:
-    break;
-
-  default: assert(0); // unreachable
-  }
-
-  return id;
-}
-
-u32 RenderView::doCreateFramebufferMultisample()
-{
-  auto id = m_pool->create<gx::Framebuffer>();
-  auto& fb = m_pool->get<gx::Framebuffer>(id);
-
-  auto create_rt = [this](gx::Format fmt) -> gx::Texture2D& {
-    auto rt_id = m_pool->createTexture<gx::Texture2D>(fmt, gx::Texture::Multisample);
-    auto& rt = m_pool->getTexture<gx::Texture2D>(rt_id);
-
-    rt.initMultisample(m_samples, m_viewport.z, m_viewport.w);
-
-    m_rts[m_num_rts] = rt_id;
-    m_num_rts++;
-
-    return rt;
-  };
-
-  switch(m_render) {
-  case DepthOnly:
-    fb.use()
-      .renderbufferMultisample(m_samples, gx::depth32f, gx::Framebuffer::Depth);
-    break;
-
-  case Forward:
-    fb.use()
-      .tex(create_rt(gx::rgb8), 0, gx::Framebuffer::Color(0))  /* Accumulation */
-      .tex(create_rt(gx::r32f), 0, gx::Framebuffer::Color(1))  /* Linear Z */
-      .renderbuffer(gx::depth16, gx::Framebuffer::Depth);
-    break;
-
-  case Deferred:
     break;
 
   default: assert(0); // unreachable

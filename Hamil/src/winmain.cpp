@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
   printf("numLogicalProcessors():  %2u\n", win32::cpuinfo().numLogicalProcessors());
 
   gx::ResourcePool pool(64);
-  gx::MemoryPool memory(1024);
+  gx::MemoryPool memory(4096);
 
   sched::WorkerPool worker_pool;
   worker_pool
@@ -1101,6 +1101,8 @@ int main(int argc, char *argv[])
     worker_pool.waitJob(extract_for_view_job_id);
 
     auto& render_objects = extract_for_view_job->result();
+
+    //render_view.render(ek::renderer(), render_objects, &memory, &pool);
 
     bt::RigidBody picked_body;
     hm::Entity picked_entity = hm::Entity::Invalid;

@@ -86,11 +86,6 @@ private:
   u32 createFramebuffer();
   u32 createRenderPass();
 
-  // Called internally by createFramebuffer() when m_samples == 0
-  u32 doCreateFramebufferNoMultisample();
-  // Called intermally by createFramebuffer() when m_samples > 0
-  u32 doCreateFramebufferMultisample();
-
   u32 constantBlockSizeAlign(u32 sz);
 
   ShaderConstants generateSceneConstants();

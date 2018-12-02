@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ek/euklid.h>
+#include <ek/rendertarget.h>
 #include <ek/renderobject.h>
 #include <ek/renderview.h>
 
@@ -8,7 +9,12 @@
 #include <hm/entity.h>
 #include <hm/componentref.h>
 
+#include <unordered_set>
 #include <memory>
+
+namespace gx {
+class ResourcePool;
+}
 
 namespace hm {
 struct Transform;
@@ -25,6 +31,8 @@ public:
 
   ExtractObjectsJob extractForView(hm::Entity scene, RenderView& view);
 
+  const RenderTarget& queryRenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);
+
 private:
   ObjectVector doExtractForView(hm::Entity scene, RenderView& view);
 
@@ -32,6 +40,8 @@ private:
   //   them to 'objects'
   void extractOne(ObjectVector& objects, const frustum3& frustum,
     hm::Entity e, const mat4& parent);
+
+  std::unordered_set<RenderTarget, RenderTarget::Hash> m_rts;
 };
 
 }

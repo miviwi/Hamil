@@ -4,53 +4,130 @@
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
 
+#include <cassert>
+#include <cstring>
+
 namespace ek {
 
-RenderTarget RenderTarget::createForwardWithLinearZ(gx::ResourcePool& pool, ivec4 viewport, uint samples)
+RenderTargetConfig RenderTargetConfig::depth_prepass(uint samples)
 {
-  RenderTarget rt(viewport);
+  RenderTargetConfig self;
 
-  auto id = pool.create<gx::Framebuffer>();
-  auto& fb = pool.get<gx::Framebuffer>(id);
+  self.type = DepthPrepass;
+  self.samples = samples;
+
+  self.depth = gx::depth24;
+
+  return self;
+}
+
+RenderTargetConfig RenderTargetConfig::forward_linearz(uint samples)
+{
+  RenderTargetConfig self;
+
+  self.type = Forward;
+  self.samples = samples;
+
+  self.accumulation.emplace(gx::rgb16f);
+  self.linearz.emplace(gx::r32f);
+  self.depth = gx::depth24;
+
+  return self;
+}
+
+RenderTarget RenderTarget::from_config(const RenderTargetConfig& config, gx::ResourcePool& pool)
+{
+  RenderTarget rt(config);
+
+  // TODO!
+  switch(config.type) {
+  case RenderTargetConfig::DepthPrepass: rt.initDepthPrepass(pool); break;
+  case RenderTargetConfig::Forward:      rt.initForward(pool); break;
+
+  default: assert(0); // unreachable
+  }
+
+  return rt;
+}
+
+const RenderTargetConfig& RenderTarget::config() const
+{
+  return m_config;
+}
+
+void RenderTarget::initForward(gx::ResourcePool& pool)
+{
+  m_fb_id = pool.create<gx::Framebuffer>();
+  auto& fb = pool.get<gx::Framebuffer>(m_fb_id);
 
   gx::TextureHandle accumulation, linearz;
 
-  if(samples > 0) {
-    accumulation = rt.createTexMultisample(pool, gx::rgb8, samples);
-    linearz      = rt.createTexMultisample(pool, gx::r32f, samples);
+  if(m_config.samples > 0) {
+    accumulation = createTexMultisample(pool, (gx::Format)m_config.accumulation.value(), m_config.samples);
+    if(m_config.linearz) {
+      linearz = createTexMultisample(pool, (gx::Format)m_config.linearz.value(), m_config.samples);
+    }
   } else {
-    accumulation = rt.createTex(pool, gx::rgb8);
-    linearz      = rt.createTex(pool, gx::r32f);
+    accumulation = createTex(pool, (gx::Format)m_config.accumulation.value());
+    if(m_config.linearz) {
+      linearz = createTex(pool, (gx::Format)m_config.linearz.value());
+    }
   }
 
   fb.use()
     .tex(accumulation.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(0))  /* Accumulation */
-    .tex(linearz.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(1))       /* Linear Z */
-    .renderbuffer(gx::depth24, gx::Framebuffer::Depth);
+    .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
 
-  return rt;
+  if(m_config.linearz) {
+    fb.tex(linearz.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(1));      /* Linear Z */
+  }
 }
 
-RenderTarget RenderTarget::createDepthPrepass(gx::ResourcePool& pool, ivec4 viewport, uint samples)
+void RenderTarget::initDepthPrepass(gx::ResourcePool& pool)
 {
-  RenderTarget rt(viewport);
+  m_fb_id = pool.create<gx::Framebuffer>();
+  auto& fb = pool.get<gx::Framebuffer>(m_fb_id);
 
-  auto id = pool.create<gx::Framebuffer>();
-  auto& fb = pool.get<gx::Framebuffer>(id);
-
-  if(samples > 0) {
+  if(m_config.samples > 0) {
     fb.use()
-      .renderbufferMultisample(samples, gx::depth24, gx::Framebuffer::Depth);
+      .renderbufferMultisample(m_config.samples, (gx::Format)m_config.depth, gx::Framebuffer::Depth);
   } else {
     fb.use()
-      .renderbuffer(gx::depth24, gx::Framebuffer::Depth);
+      .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
   }
-
-  return rt;
 }
 
-RenderTarget::RenderTarget(ivec4 viewport) :
-  m_viewport(viewport)
+bool RenderTarget::lock() const
+{
+  bool locked = false;
+
+  return m_in_use.compare_exchange_strong(locked, false);
+}
+
+void RenderTarget::unlock() const
+{
+  m_in_use.store(false);
+}
+
+u32 RenderTarget::framebufferId() const
+{
+  return m_fb_id;
+}
+
+bool RenderTarget::operator==(const RenderTarget& other) const
+{
+  return memcmp(&m_config, &other.m_config, sizeof(RenderTargetConfig)) == 0;
+}
+
+RenderTarget::RenderTarget(const RenderTargetConfig& config) :
+  m_config(config)
+{
+}
+
+RenderTarget::RenderTarget(const RenderTarget& other) :
+  m_config(other.m_config),
+  m_fb_id(other.m_fb_id), m_texture_ids(other.m_texture_ids),
+  m_in_use(other.m_in_use.load())
 {
 }
 
@@ -59,7 +136,7 @@ gx::TextureHandle RenderTarget::createTexMultisample(gx::ResourcePool& pool, gx:
   auto id = pool.createTexture<gx::Texture2D>(fmt, gx::Texture::Multisample);
   auto tex = pool.getTexture(id);
 
-  tex.get<gx::Texture2D>().initMultisample(samples, m_viewport.z, m_viewport.w);
+  tex.get<gx::Texture2D>().initMultisample(samples, m_config.viewport.z, m_config.viewport.w);
 
   m_texture_ids.append(id);
 
@@ -68,11 +145,10 @@ gx::TextureHandle RenderTarget::createTexMultisample(gx::ResourcePool& pool, gx:
 
 gx::TextureHandle RenderTarget::createTex(gx::ResourcePool& pool, gx::Format fmt)
 {
-  // TODO: insert return statement here
   auto id = pool.createTexture<gx::Texture2D>(fmt);
   auto tex = pool.getTexture(id);
 
-  tex().init(m_viewport.z, m_viewport.w);
+  tex().init(m_config.viewport.z, m_config.viewport.w);
 
   m_texture_ids.append(id);
 
