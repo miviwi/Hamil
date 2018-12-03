@@ -52,6 +52,8 @@ RenderTarget RenderTarget::from_config(const RenderTargetConfig& config, gx::Res
   default: assert(0); // unreachable
   }
 
+  rt.checkComplete(pool);  // Throws CreateError
+
   return rt;
 }
 
@@ -100,6 +102,14 @@ void RenderTarget::initDepthPrepass(gx::ResourcePool& pool)
     fb.use()
       .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
   }
+}
+
+void RenderTarget::checkComplete(gx::ResourcePool& pool)
+{
+  auto& fb = pool.get<gx::Framebuffer>(m_fb_id);
+
+  auto status = fb.status();
+  if(status != gx::Framebuffer::Complete) throw CreateError();
 }
 
 bool RenderTarget::lock() const

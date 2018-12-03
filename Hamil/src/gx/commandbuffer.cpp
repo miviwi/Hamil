@@ -68,6 +68,8 @@ CommandBuffer& CommandBuffer::bufferUpload(ResourceId buf, MemoryPool::Handle h,
 
 CommandBuffer& CommandBuffer::uniformInt(uint location, int value)
 {
+  if(location == ~0u) return *this; // The variable was optimized out
+
   union {
     int i;
     u32 data;
@@ -81,6 +83,8 @@ CommandBuffer& CommandBuffer::uniformInt(uint location, int value)
 
 CommandBuffer& CommandBuffer::uniformFloat(uint location, float value)
 {
+  if(location == ~0u) return *this; // The variable was optimized out
+
   union {
     float f;
     u32 data;
@@ -94,18 +98,24 @@ CommandBuffer& CommandBuffer::uniformFloat(uint location, float value)
 
 CommandBuffer& CommandBuffer::uniformSampler(uint location, uint sampler)
 {
+  if(location == ~0u) return *this; // The variable was optimized out
+
   return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformSampler, location))
     .appendExtraData((u32)sampler);
 }
 
 CommandBuffer& CommandBuffer::uniformVector4(uint location, MemoryPool::Handle h)
 {
+  if(location == ~0u) return *this; // The variable was optimized out
+
   return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformVector4, location))
     .appendExtraData(h);
 }
 
 CommandBuffer& CommandBuffer::uniformMatrix4x4(uint location, MemoryPool::Handle h)
 {
+  if(location == ~0u) return *this; // The variable was optimized out
+
   return appendCommand(OpPushUniform, make_push_uniform(OpDataUniformMatrix4x4, location))
     .appendExtraData(h);
 }

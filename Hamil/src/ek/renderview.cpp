@@ -13,6 +13,8 @@
 #include <gx/vertex.h>
 #include <gx/texture.h>
 
+#include <uniforms.h>
+
 #include <cassert>
 #include <cstring>
 #include <algorithm>
@@ -32,13 +34,14 @@ enum LightType : uint {
   Directional, Spot, Point,
 };
 
-enum MaterialId : uint {
+enum MaterialId : u32 {
   Unshaded,
   ConstantColor,
   ProceduralColor,
   Textured,
 };
 
+#pragma pack(push, 1)
 struct LightConstants {
   vec4 /* vec3 */ position;
   vec4 /* vec3 */ color;
@@ -69,11 +72,14 @@ struct ObjectConstants {
   vec4 /* vec3 */ diff_color;
   vec4 /* vec3 */ ior;
 
-  MaterialId material_id;
+  ivec4 material_id;
 
   float metalness;
   float roughness;
+
+  float pad_[2];
 };
+#pragma pack(pop)
 
 RenderView::RenderView(ViewType type) :
   m_type(type),
@@ -81,6 +87,7 @@ RenderView::RenderView(ViewType type) :
   m_viewport(0, 0, 0, 0),
   m_samples(0),
   m_view(mat4::identity()), m_projection(mat4::identity()),
+  m_renderer(nullptr),
   m_mempool(nullptr), m_pool(nullptr),
   m_renderpass_id(gx::ResourcePool::Invalid),
   m_scene_ubo_id(gx::ResourcePool::Invalid),
@@ -187,11 +194,13 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   auto scene_constants = generateSceneConstants();
 
   auto object_ubo = m_pool->getBuffer(m_object_ubo_id);
+  object_ubo().init(ObjectConstantBufferSize, 1);
+
   auto object_ubo_view = object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
 
   m_objects = object_ubo_view.get<ObjectConstants>();
   m_objects_rover = StridePtr<ObjectConstants>(m_objects, ObjectConstantsSize);
-  m_objects_end = m_objects + objects.size();
+  m_objects_end = (ObjectConstants *)((byte *)m_objects + objects.size()*ObjectConstantsSize);
 
   m_renderpass_id = createRenderPass();
   auto& renderpass = m_pool->get<gx::RenderPass>(m_renderpass_id);
@@ -227,6 +236,11 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   return cmd.end();
 }
 
+const RenderTarget& RenderView::renderTarget(uint index) const
+{
+  return *m_rts.at(index);
+}
+
 gx::Pipeline RenderView::createPipeline()
 {
   auto pipeline = gx::Pipeline()
@@ -260,6 +274,8 @@ u32 RenderView::createFramebuffer()
 
   default: assert(0); // unreachable
   }
+
+  config.viewport = { 0, 0, 1280, 720 }; // TODO
 
   const auto& rt = renderer().queryRenderTarget(config, *m_pool);
   m_rts.emplace_back(&rt);
@@ -336,9 +352,21 @@ ShaderConstants RenderView::generateSceneConstants()
     { 1.0f, 1.0f, 1.0f, 1.0f },
   };
 
-  scene->num_lights = 0;
   memset(scene->light_types, 0, sizeof(SceneConstants::light_types));
-  memset(scene->lights, 0, sizeof(SceneConstants::lights));
+
+  scene->num_lights = 3;
+  scene->lights[0] = {
+    m_view * vec4(0.0f, 6.0f, 0.0f, 1.0f),
+    vec3{ 1.0f, 1.0f, 1.0f }
+  };
+  scene->lights[1] = {
+    m_view * vec4(-10.0f, 6.0f, -10.0f, 1.0f),
+    vec3{ 1.0f, 1.0f, 0.0f }
+  };
+  scene->lights[2] = {
+    m_view * vec4(20.0f, 6.0f, 0.0f, 1.0f),
+    vec3{ 0.0f, 1.0f, 1.0f }
+  };
 
   memcpy(scene->ambient_basis, ambient_basis, sizeof(SceneConstants::ambient_basis));
 
@@ -360,11 +388,11 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   object.texture = mat4::identity();
 
   switch(material.diff_type) {
-  case hm::Material::DiffuseConstant: object.material_id = ConstantColor; break;
-  case hm::Material::DiffuseTexture:  object.material_id = Textured; break;
-  case hm::Material::Other:           object.material_id = ProceduralColor; break;
+  case hm::Material::DiffuseConstant: object.material_id.x = ConstantColor; break;
+  case hm::Material::DiffuseTexture:  object.material_id.x = Textured; break;
+  case hm::Material::Other:           object.material_id.x = ProceduralColor; break;
 
-  default: object.material_id = Unshaded; break;
+  default: object.material_id.x = Unshaded; break;
   }
 
   object.diff_color = material.diff_color;
@@ -388,12 +416,17 @@ void RenderView::renderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 {
   auto constants_offset = writeConstants(ro);
 
-  auto program = renderer().queryProgram(ro, *m_pool);
+  auto program_id = renderer().queryProgram(ro, *m_pool);
+  auto& program = m_pool->get<gx::Program>(program_id);
+
+  program
+    .uniformBlockBinding("SceneConstantsBlock", SceneConstantsBinding)
+    .uniformBlockBinding("ObjectConstantsBlock", ObjectConstantsBinding);
 
   cmd
-    .program(program)
-    .uniformSampler(0, DiffuseTexImageUnit) // TODO
-    .uniformInt(0, constants_offset) // TODO
+    .program(program_id)
+    .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit)
+    .uniformInt(U.forward.uObjectConstantsOffset, constants_offset)
     ;
 
   auto& renderpass = m_pool->get<gx::RenderPass>(m_renderpass_id);
@@ -413,10 +446,10 @@ void RenderView::renderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
   }
 
   if(mesh.isIndexed()) {
-    if(mesh.base || mesh.offset) {
+    if(mesh.base != mesh::Mesh::None && mesh.offset != mesh::Mesh::None) {
       cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
         mesh.num, mesh.base, mesh.offset);
-    } else { // Use the shorter command if possible
+    } else { // Use the shorter command when possible
       cmd.drawIndexed(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
     }
   } else {

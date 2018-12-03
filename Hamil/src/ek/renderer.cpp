@@ -83,11 +83,12 @@ u32 Renderer::queryProgram(const RenderObject& ro, gx::ResourcePool& pool)
   if(m_programs.empty()) {
     m_programs_lock.acquireExclusive();
 
-    res::load(&R.shader.shaders.program, 1);   // Make sure it's loaded
-    res::Handle<res::Shader> r_program = R.shader.shaders.program;
+    res::load(&R.shader.shaders.ubo, 1);
+    res::load(R.shader.shaders.ids);   // Make sure it's loaded
+    res::Handle<res::Shader> r_program = R.shader.shaders.forward;
 
     auto id = pool.create<gx::Program>(gx::make_program(
-      r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program));
+      r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.forward));
     m_programs.push_back(id);
 
     m_programs_lock.releaseExclusive();

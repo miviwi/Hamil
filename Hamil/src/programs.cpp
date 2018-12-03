@@ -9,6 +9,15 @@ struct ProgramUniforms : gx::Uniforms {
   float uExposure;
 };
 
+struct ForwardUniforms : gx::Uniforms {
+  Name forward;
+
+  Sampler uDiffuseTex;
+  float uExposure;
+
+  int uObjectConstantsOffset;
+};
+
 struct AoUniforms : gx::Uniforms {
   Name ao;
 

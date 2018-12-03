@@ -144,6 +144,7 @@ int main(int argc, char *argv[])
 
   py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
 
+  res::load(&R.shader.shaders.ubo, 1);
   res::load(R.shader.shaders.ids);
   res::load(R.image.ids);
   res::load(R.mesh.ids);
@@ -433,13 +434,15 @@ int main(int argc, char *argv[])
   struct MaterialBlock {
     union {
       uint material;
-      vec4 pad_;
+      vec4 pad0_;
     };
     vec4 color;
 
     vec4 /* vec3 */ ior;
     float metalness;
     float roughness;
+
+    vec2 pad1_;
 
     MaterialBlock() :
       material(0)
@@ -831,6 +834,9 @@ int main(int argc, char *argv[])
 
     material().diff_type = hm::Material::DiffuseTexture;
 
+    material().diff_tex.id = tex_id;
+    material().diff_tex.sampler_id = floor_sampler_id;
+
     material().metalness = 1.0f;
     material().roughness = 0.2f;
     material().ior = vec3(14.7f);
@@ -889,6 +895,8 @@ int main(int argc, char *argv[])
     entity.addComponent<hm::Mesh>(mesh);
 
     world.addRigidBody(body);
+
+    entity.component<hm::Transform>().get().aabb = body.aabb();
 
     auto material = entity.addComponent<hm::Material>();
 
@@ -1095,15 +1103,6 @@ int main(int argc, char *argv[])
       .view(view)
       .projection(persp);
 
-    auto extract_for_view_job = ek::renderer().extractForView(scene, render_view);
-    auto extract_for_view_job_id = worker_pool.scheduleJob(extract_for_view_job.get());
-
-    worker_pool.waitJob(extract_for_view_job_id);
-
-    auto& render_objects = extract_for_view_job->result();
-
-    render_view.render(ek::renderer(), render_objects, &pool);
-
     bt::RigidBody picked_body;
     hm::Entity picked_entity = hm::Entity::Invalid;
     bool draw_nudge_line = false;
@@ -1171,17 +1170,14 @@ int main(int argc, char *argv[])
 
     auto& scene_ubo = pool.getBuffer(scene_ubo_id);
     auto upload_ubos = [&]() {
-#if 0
-      auto ubo_view = scene_ubo().map(gx::Buffer::Write, 0, block_group_size, gx::Buffer::MapInvalidate);
-
-      memcpy(ubo_view.get(), memory.ptr(block_group_handle), block_group_size);
-#else
       cmd_upload_ubos.execute();
-#endif
     };
 
     auto drawsphere = [&](bool shaded = true)
     {
+      num_tris += sphere_inds.size() / 3;
+      return;
+
       mat4 modelview = view*model;
 
       block_group.matrix->modelview = modelview;
@@ -1195,14 +1191,16 @@ int main(int argc, char *argv[])
       program.use()
         .draw(gx::Triangles, sphere_arr, sphere_inds.size());
       sphere_arr.end();
-
-      num_tris += sphere_inds.size() / 3;
     };
 
     auto drawentity = [&](hm::Entity e, bool shaded = true)
     {
       auto& transform = e.component<hm::Transform>().get().t;
       auto& mesh = e.component<hm::Mesh>().get().m;
+
+      num_tris += mesh.num / 3;
+
+      return;
 
       mat4 model = transform.matrix();
       mat4 modelview = view*model;
@@ -1235,7 +1233,7 @@ int main(int argc, char *argv[])
 
       upload_ubos();
 
-      if(mesh.vertex_array_flags & mesh::Mesh::Indexed) {
+      if(mesh.isIndexed()) {
         auto& vertex_array = pool.get<gx::IndexedVertexArray>(mesh.vertex_array_id);
 
         program.use()
@@ -1249,13 +1247,19 @@ int main(int argc, char *argv[])
           .draw(mesh.getPrimitive(), vertex_array, mesh.num);
       }
 
-      num_tris += mesh.num / 3;
     };
 
     scene_pass.begin(pool);
 
     program.use()
       .uniformFloat(U.program.uExposure, exp_slider.value());
+
+    auto extract_for_view_job = ek::renderer().extractForView(scene, render_view);
+    auto extract_for_view_job_id = worker_pool.scheduleJob(extract_for_view_job.get());
+    worker_pool.waitJob(extract_for_view_job_id);
+
+    auto& render_objects = extract_for_view_job->result();
+    render_view.render(ek::renderer(), render_objects, &pool).execute();
 
     if(bunny_load_job->done() && bunny_load_job_id != sched::WorkerPool::InvalidJob) {
       worker_pool.waitJob(bunny_load_job_id);
@@ -1270,7 +1274,7 @@ int main(int argc, char *argv[])
       bunny = create_model(bunny_mesh);
     }
 
-    if(draw_nudge_line) {
+    if(draw_nudge_line && 0) {
       float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3.0f);
 
       auto q = quat::rotation_between(vec3::up(), hit_normal);
@@ -1318,7 +1322,9 @@ int main(int argc, char *argv[])
       }
 
       auto material = entity.component<hm::Material>();
-      material().diff_color = (entity == picked_entity) ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f);
+      if(material().diff_type != hm::Material::DiffuseTexture) {
+        material().diff_color = (entity == picked_entity) ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f);
+      }
 
       AABB aabb = transform().aabb;
       if(!frustum.aabbInside(aabb)) return;
@@ -1423,6 +1429,7 @@ int main(int argc, char *argv[])
       transforms_extract_dt*1000.0)
     );
 
+#if 0
     float proj_scale = (float)FramebufferSize.y / (tanf(70.0f * 0.5f) * 2.0);
 
     vec4 proj_info = {
@@ -1473,6 +1480,7 @@ int main(int argc, char *argv[])
       ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
+#endif
     worker_pool.waitJob(transforms_extract_job_id);
     transforms_extract_dt = transforms_extract_job.dbg_ElapsedTime();
 
@@ -1481,6 +1489,14 @@ int main(int argc, char *argv[])
       world.removeRigidBody(e.component<hm::RigidBody>().get().rb);
       e.destroy();
     }
+
+    const auto& render_view_rt = render_view.renderTarget(0);
+    auto& render_view_fb = pool.get<gx::Framebuffer>(render_view_rt.framebufferId());
+
+    render_view_fb.blitToWindow(
+      ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
+      ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
+      gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
 
     window.swapBuffers();
   }

@@ -53,6 +53,10 @@ public:
 
 class RenderTarget {
 public:
+  struct Error { };
+
+  struct CreateError : public Error { };
+
   RenderTarget(const RenderTarget& other);
 
   // Create a new RenderTarget accorind to 'config'
@@ -76,6 +80,8 @@ private:
 
   void initForward(gx::ResourcePool& pool);
   void initDepthPrepass(gx::ResourcePool& pool);
+
+  void checkComplete(gx::ResourcePool& pool);
 
   bool lock() const;
   void unlock() const;

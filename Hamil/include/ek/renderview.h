@@ -86,6 +86,8 @@ public:
     const std::vector<RenderObject>& objects,
     gx::ResourcePool *pool);
 
+  const RenderTarget& renderTarget(uint index) const;
+
 private:
   enum {
     SceneConstantsBinding  = 0,
@@ -139,7 +141,7 @@ private:
 
   // Used by writeConstants() to find the new RenderObject's constants
   //   offset in the current block
-  size_t m_num_objects_per_block;
+  size_t m_num_objects_per_block = ~0ull;
 
   // Stores the beginning of the ObjectConstants UniformBuffer mapping
   ObjectConstants *m_objects = nullptr;
