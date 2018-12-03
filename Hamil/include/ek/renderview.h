@@ -19,10 +19,14 @@ namespace ek {
 
 class Renderer;
 class RenderObject;
+class RenderTarget;
 
 // Stores a MemoryPool Handle and a size
 struct ShaderConstants;
 
+struct ObjectConstants;
+
+// Must keep the RenderView around until render() finishes
 class RenderView {
 public:
   enum ViewType {
@@ -49,7 +53,10 @@ public:
     Deferred,
   };
 
+  static constexpr size_t MempoolInitialAlloc = 4096;
+
   RenderView(ViewType type);
+  ~RenderView();
 
   // RenderType = DepthOnly
   RenderView& depthPrepass();
@@ -75,24 +82,32 @@ public:
 
   // Make SURE to specify the ResourcePool used to create
   //   the hm::Mesh Components of the extracted Entities!
-  // Because MemoryPool has no thread safety each concurrent
-  //   call of render() must have an independent one
   gx::CommandBuffer render(Renderer& renderer,
     const std::vector<RenderObject>& objects,
-    gx::MemoryPool *mempool, gx::ResourcePool *pool);
+    gx::ResourcePool *pool);
 
 private:
+  enum {
+    SceneConstantsBinding  = 0,
+    ObjectConstantsBinding = 1,
+
+    DiffuseTexImageUnit = 0,
+  };
+
   gx::Pipeline createPipeline();
   u32 createFramebuffer();
   u32 createRenderPass();
+  u32 createConstantBuffer(u32 sz);
 
   u32 constantBlockSizeAlign(u32 sz);
 
   ShaderConstants generateSceneConstants();
-  ShaderConstants generateConstants(const RenderObject& ro);
+  // Returns an offset into the ObjectConstants UniformBuffer
+  //   where the element under that offset describes 'ro'
+  u32 writeConstants(const RenderObject& ro);
 
-  u32 getProgram(const RenderObject& ro);
-
+  // Writes ObjectsConstants and commands (into 'cmd') needed to
+  //   render 'ro'
   void renderOne(const RenderObject& ro, gx::CommandBuffer& cmd);
 
   ViewType m_type;
@@ -114,18 +129,25 @@ private:
   gx::MemoryPool *m_mempool;
   gx::ResourcePool *m_pool;
 
-  // Stores the number of currently used render tagrets
-  uint m_num_rts;
-  // Stores the render target textures
-  std::array<u32, 8 /* Minimum required render targets */> m_rts;
+  // Stores the currently used render tagrets
+  std::vector<const RenderTarget *> m_rts;
 
-  // Stores ids of Programs
-  std::vector<u32> m_programs;
+  u32 m_renderpass_id;
 
-  // TODO: allocate this somewhere
   u32 m_scene_ubo_id;
-  // TODO: allocate this somewhere
   u32 m_object_ubo_id;
+
+  // Used by writeConstants() to find the new RenderObject's constants
+  //   offset in the current block
+  size_t m_num_objects_per_block;
+
+  // Stores the beginning of the ObjectConstants UniformBuffer mapping
+  ObjectConstants *m_objects = nullptr;
+  // Stores the current write offset into the ObjectConstants UniformBuffer
+  //   mapping
+  StridePtr<ObjectConstants> m_objects_rover;
+  // Stores the end of the ObjectConstants UniformBuffer mapping
+  ObjectConstants *m_objects_end = nullptr;
 };
 
 }

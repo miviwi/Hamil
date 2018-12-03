@@ -46,23 +46,9 @@ public:
   //   - HDR internal format (rgb16f)
   static RenderTargetConfig forward_linearz(uint samples = 0);
 
-  struct Hash {
-    size_t operator()(const RenderTargetConfig& c) const
-    {
-      using U32Hash = std::hash<u32>;
-      using OptU32Hash = std::hash<std::optional<u32>>;
+  // Returns 'true' when 'other' is compatible
+  bool operator==(const RenderTargetConfig& other) const;
 
-      size_t hash;
-
-      util::hash_combine<U32Hash>(hash, c.type);
-      util::hash_combine<U32Hash>(hash, c.samples);
-      util::hash_combine<OptU32Hash>(hash, c.accumulation);
-      util::hash_combine<OptU32Hash>(hash, c.linearz);
-      util::hash_combine<U32Hash>(hash, c.depth);
-
-      return hash;
-    }
-  };
 };
 
 class RenderTarget {
@@ -77,19 +63,6 @@ public:
   // Returns a gx::ResourcePool::Id which refers to this RenderTarget's
   //   gx::Framebuffer
   u32 framebufferId() const;
-
-  // Returns 'true' when 'other' was created
-  //   with the same config
-  bool operator==(const RenderTarget& other) const;
-
-  struct Hash {
-    size_t operator()(const RenderTarget& rt) const
-    {
-      RenderTargetConfig::Hash hash;
-
-      return hash(rt.config());
-    }
-  };
 
 private:
   friend Renderer;

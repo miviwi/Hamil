@@ -46,6 +46,8 @@ public:
     return p;
   }
 
+  T *get() const { return m_ptr; }
+
 private:
   T *m_ptr;
   size_t m_stride;

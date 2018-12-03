@@ -50,6 +50,8 @@ struct Mesh {
 
   gx::Primitive getPrimitive() const;
 
+  bool isIndexed() const;
+
   u16 vertex_components = 0;
   u8 num_vertex_colors = 0;
   u8 num_vertex_tex_coords = 0;

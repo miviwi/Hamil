@@ -64,6 +64,8 @@ public:
   //   'where' become invalidated
   void purgeFrom(Handle where);
 
+  size_t size() const { return m_rover - m_ptr; }
+
 private:
   static uintptr_t align(uintptr_t ptr);
 

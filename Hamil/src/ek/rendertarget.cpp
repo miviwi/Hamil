@@ -35,6 +35,11 @@ RenderTargetConfig RenderTargetConfig::forward_linearz(uint samples)
   return self;
 }
 
+bool RenderTargetConfig::operator==(const RenderTargetConfig& other) const
+{
+  return memcmp(this, &other, sizeof(RenderTargetConfig)) == 0;
+}
+
 RenderTarget RenderTarget::from_config(const RenderTargetConfig& config, gx::ResourcePool& pool)
 {
   RenderTarget rt(config);
@@ -114,13 +119,10 @@ u32 RenderTarget::framebufferId() const
   return m_fb_id;
 }
 
-bool RenderTarget::operator==(const RenderTarget& other) const
-{
-  return memcmp(&m_config, &other.m_config, sizeof(RenderTargetConfig)) == 0;
-}
 
 RenderTarget::RenderTarget(const RenderTargetConfig& config) :
-  m_config(config)
+  m_config(config),
+  m_in_use(false)
 {
 }
 

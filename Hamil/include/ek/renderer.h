@@ -6,10 +6,11 @@
 #include <ek/renderview.h>
 
 #include <sched/job.h>
+#include <win32/rwlock.h>
 #include <hm/entity.h>
 #include <hm/componentref.h>
 
-#include <unordered_set>
+#include <vector>
 #include <memory>
 
 namespace gx {
@@ -29,9 +30,20 @@ public:
     sched::Job<ObjectVector, hm::Entity, RenderView *>
   >;
 
+  enum {
+    // Bump this when things go wrong :)
+    InitialRenderTargets = 16,
+  };
+
+  Renderer();
+
   ExtractObjectsJob extractForView(hm::Entity scene, RenderView& view);
 
   const RenderTarget& queryRenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);
+  void releaseRenderTarget(const RenderTarget& rt);
+
+  // Returns a gx::Program which can be used to render 'ro'
+  u32 queryProgram(const RenderObject& ro, gx::ResourcePool& pool);
 
 private:
   ObjectVector doExtractForView(hm::Entity scene, RenderView& view);
@@ -41,7 +53,11 @@ private:
   void extractOne(ObjectVector& objects, const frustum3& frustum,
     hm::Entity e, const mat4& parent);
 
-  std::unordered_set<RenderTarget, RenderTarget::Hash> m_rts;
+  win32::ReaderWriterLock m_rts_lock;
+  std::vector<RenderTarget> m_rts;
+
+  win32::ReaderWriterLock m_programs_lock;
+  std::vector<u32> m_programs;
 };
 
 }

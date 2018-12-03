@@ -15,6 +15,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <algorithm>
 
 namespace ek {
 
@@ -47,6 +48,7 @@ struct SceneConstants {
   mat4 view;
   mat4 projection;
 
+  // projection * view
   mat4 viewprojection;
 
   vec4 /* vec3 */ ambient_basis[6];
@@ -80,10 +82,23 @@ RenderView::RenderView(ViewType type) :
   m_samples(0),
   m_view(mat4::identity()), m_projection(mat4::identity()),
   m_mempool(nullptr), m_pool(nullptr),
-  m_num_rts(0),
-  m_object_ubo_id(gx::ResourcePool::Invalid)
+  m_renderpass_id(gx::ResourcePool::Invalid),
+  m_scene_ubo_id(gx::ResourcePool::Invalid),
+  m_object_ubo_id(gx::ResourcePool::Invalid),
+  m_objects_rover(nullptr, 1)
 {
   m_ubo_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
+}
+
+RenderView::~RenderView()
+{
+  for(auto rt : m_rts) renderer().releaseRenderTarget(*rt);
+
+  if(m_renderpass_id != gx::ResourcePool::Invalid) m_pool->release<gx::RenderPass>(m_renderpass_id);
+  if(m_scene_ubo_id != gx::ResourcePool::Invalid)  m_pool->releaseBuffer(m_scene_ubo_id);
+  if(m_object_ubo_id != gx::ResourcePool::Invalid) m_pool->releaseBuffer(m_object_ubo_id);
+
+  delete m_mempool;
 }
 
 RenderView& RenderView::depthPrepass()
@@ -142,25 +157,71 @@ frustum3 RenderView::constructFrustum()
 
 gx::CommandBuffer RenderView::render(Renderer& renderer,
   const std::vector<RenderObject>& objects,
-  gx::MemoryPool *mempool, gx::ResourcePool *pool)
+  gx::ResourcePool *pool)
 {
+  // Used by internal methods
   m_renderer = &renderer;
 
+  // Used by internal methods
   m_pool = pool;
-  m_mempool = mempool;
+  // Internal to this RenderView
+  m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
 
-  auto renderpass_id = createRenderPass();
+  const u32 ObjectConstantsSize = constantBlockSizeAlign(sizeof(ObjectConstants));
+  const u32 SceneConstantsSize  = constantBlockSizeAlign(sizeof(SceneConstants));
+  const size_t ConstantBlockMaxSize = gx::info().maxUniformBlockSize();
+
+  // Unaligned size of ObjectConstants UniformBuffer
+  const size_t ObjectConstantBufferUASize = objects.size() * ObjectConstantsSize;
+
+  // Must be a multiple of ConstantBlockMaxSize, so align it assuming it's
+  //   unaligned (could waste some space in case that's false)
+  const size_t ObjectConstantBufferSize = ObjectConstantBufferUASize +
+    /* align */ (ConstantBlockMaxSize - (ObjectConstantBufferUASize % ConstantBlockMaxSize));
+
+  m_scene_ubo_id  = createConstantBuffer(SceneConstantsSize);
+  m_object_ubo_id = createConstantBuffer(ObjectConstantsSize);
+
+  m_num_objects_per_block = ConstantBlockMaxSize / ObjectConstantsSize;
 
   auto scene_constants = generateSceneConstants();
 
+  auto object_ubo = m_pool->getBuffer(m_object_ubo_id);
+  auto object_ubo_view = object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+
+  m_objects = object_ubo_view.get<ObjectConstants>();
+  m_objects_rover = StridePtr<ObjectConstants>(m_objects, ObjectConstantsSize);
+  m_objects_end = m_objects + objects.size();
+
+  m_renderpass_id = createRenderPass();
+  auto& renderpass = m_pool->get<gx::RenderPass>(m_renderpass_id);
+
+  renderpass
+    .uniformBufferRange(SceneConstantsBinding, m_scene_ubo_id, 0, SceneConstantsSize)
+    .uniformBufferRange(ObjectConstantsBinding, m_object_ubo_id, 0, ConstantBlockMaxSize);
+
   auto cmd = gx::CommandBuffer::begin()
     .bindResourcePool(pool)
-    .bindMemoryPool(mempool)
-    .renderpass(renderpass_id)
+    .bindMemoryPool(m_mempool)
+    .renderpass(m_renderpass_id)
     .bufferUpload(m_scene_ubo_id, scene_constants.h, scene_constants.sz);
 
   for(const auto& ro : objects) {
     renderOne(ro, cmd);
+
+    auto current_rover = (uintptr_t)m_objects_rover.get();
+    auto current_rover_off = current_rover - (uintptr_t)m_objects;
+
+    if(current_rover_off % ConstantBlockMaxSize == 0) {
+      // We need to advance to a new part of the UniformBuffer
+      auto next_subpass = renderpass.nextSubpassId();
+
+      renderpass.subpass(gx::RenderPass::Subpass()
+        .uniformBufferRange(ObjectConstantsSize, m_object_ubo_id, current_rover_off, ConstantBlockMaxSize)
+      );
+
+      cmd.subpass(next_subpass);
+    }
   }
 
   return cmd.end();
@@ -200,7 +261,10 @@ u32 RenderView::createFramebuffer()
   default: assert(0); // unreachable
   }
 
-  return renderer().queryRenderTarget(config, *m_pool).framebufferId();
+  const auto& rt = renderer().queryRenderTarget(config, *m_pool);
+  m_rts.emplace_back(&rt);
+
+  return rt.framebufferId();
 }
 
 u32 RenderView::createRenderPass()
@@ -230,6 +294,16 @@ u32 RenderView::createRenderPass()
 
   default: assert(0); // unreachable
   }
+
+  return id;
+}
+
+u32 RenderView::createConstantBuffer(u32 sz)
+{
+  auto id = m_pool->createBuffer<gx::UniformBuffer>(gx::Buffer::Dynamic);
+  auto buf = m_pool->getBuffer(id);
+
+  buf().init(constantBlockSizeAlign(sz), 1);
 
   return id;
 }
@@ -271,49 +345,83 @@ ShaderConstants RenderView::generateSceneConstants()
   return constants;
 }
 
-ShaderConstants RenderView::generateConstants(const RenderObject& ro)
+u32 RenderView::writeConstants(const RenderObject& ro)
 {
-  ShaderConstants constants;
+  assert(m_objects_rover.get() < m_objects_end && "Wrote too many ObjectConstants!");
 
-  constants.sz = constantBlockSizeAlign(sizeof(ObjectConstants));
-  constants.h  = m_mempool->alloc(constants.sz);
+  // Move the rover forward
+  ObjectConstants& object = *m_objects_rover++;
 
   const auto& model_matrix = ro.model();
   const auto& material = ro.material();
-  ObjectConstants *object = m_mempool->ptr<ObjectConstants>(constants.h);
 
-  object->model   = model_matrix;
-  object->normal  = model_matrix.inverse().transpose();
-  object->texture = mat4::identity();
+  object.model   = model_matrix;
+  object.normal  = model_matrix.inverse().transpose();
+  object.texture = mat4::identity();
 
   switch(material.diff_type) {
-  case hm::Material::DiffuseConstant: object->material_id = ConstantColor; break;
-  case hm::Material::DiffuseTexture:  object->material_id = Textured; break;
-  case hm::Material::Other:           object->material_id = ProceduralColor; break;
+  case hm::Material::DiffuseConstant: object.material_id = ConstantColor; break;
+  case hm::Material::DiffuseTexture:  object.material_id = Textured; break;
+  case hm::Material::Other:           object.material_id = ProceduralColor; break;
 
-  default: object->material_id = Unshaded; break;
+  default: object.material_id = Unshaded; break;
   }
 
-  object->diff_color = material.diff_color;
-  object->ior = vec4(material.ior, 1.0f);
-  object->metalness = material.metalness;
-  object->roughness = material.roughness;
+  object.diff_color = material.diff_color;
+  object.ior = vec4(material.ior, 1.0f);
+  object.metalness = material.metalness;
+  object.roughness = material.roughness;
 
-  return constants;
+  size_t buffer_off = &object - m_objects;
+
+  // The buffer is divided into blocks where one block
+  //   has the max possible size bindable at once by the GPU,
+  //   thus we need to extract the offset of the object in the
+  //   CURRENTLY BOUND block
+  u32 block_off = (u32)(buffer_off % m_num_objects_per_block);
+
+  return block_off;
 }
 
 // TODO
-u32 RenderView::getProgram(const RenderObject & ro)
-{
-  return m_programs.front();
-}
-
 void RenderView::renderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 {
-  auto constants = generateConstants(ro);
+  auto constants_offset = writeConstants(ro);
+
+  auto program = renderer().queryProgram(ro, *m_pool);
 
   cmd
-    .bufferUpload(m_object_ubo_id, constants.h, constants.sz);
+    .program(program)
+    .uniformSampler(0, DiffuseTexImageUnit) // TODO
+    .uniformInt(0, constants_offset) // TODO
+    ;
+
+  auto& renderpass = m_pool->get<gx::RenderPass>(m_renderpass_id);
+
+  const auto& mesh = ro.mesh().m;
+  const auto& material = ro.material();
+
+  // TODO!
+  if(material.diff_type == hm::Material::DiffuseTexture) {
+    auto next_subpass = renderpass.nextSubpassId();
+
+    renderpass.subpass(gx::RenderPass::Subpass()
+      .texture(DiffuseTexImageUnit, material.diff_tex.id, material.diff_tex.sampler_id)
+    );
+
+    cmd.subpass(next_subpass);
+  }
+
+  if(mesh.isIndexed()) {
+    if(mesh.base || mesh.offset) {
+      cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
+        mesh.num, mesh.base, mesh.offset);
+    } else { // Use the shorter command if possible
+      cmd.drawIndexed(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
+    }
+  } else {
+    cmd.draw(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
+  }
 }
 
 }

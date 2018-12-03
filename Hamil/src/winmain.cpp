@@ -1102,7 +1102,7 @@ int main(int argc, char *argv[])
 
     auto& render_objects = extract_for_view_job->result();
 
-    //render_view.render(ek::renderer(), render_objects, &memory, &pool);
+    render_view.render(ek::renderer(), render_objects, &pool);
 
     bt::RigidBody picked_body;
     hm::Entity picked_entity = hm::Entity::Invalid;

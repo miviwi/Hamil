@@ -104,4 +104,9 @@ gx::Primitive Mesh::getPrimitive() const
   return (gx::Primitive)array_primitive;
 }
 
+bool Mesh::isIndexed() const
+{
+  return vertex_array_flags & Indexed;
+}
+
 }

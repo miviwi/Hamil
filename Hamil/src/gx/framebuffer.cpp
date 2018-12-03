@@ -208,7 +208,7 @@ GLuint Framebuffer::create_rendebuffer(const char *label)
 
   glBindRenderbuffer(GL_RENDERBUFFER, rb);
 #if !defined(NDEBUG)
-  glObjectLabel(GL_RENDERBUFFER, rb, -1, label);
+  if(label) glObjectLabel(GL_RENDERBUFFER, rb, -1, label);
 #endif
 
   return rb;

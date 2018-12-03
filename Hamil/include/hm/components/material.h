@@ -22,8 +22,14 @@ struct Material : public Component {
   bool unshaded = false;
 
   DiffuseType diff_type;
-  vec3 diff_color;
-  gx::ResourcePool::Id diff_tex_id;
+  union {
+    vec3 diff_color;
+
+    struct {
+      gx::ResourcePool::Id id;
+      gx::ResourcePool::Id sampler_id;
+    } diff_tex;
+  };
 
   float metalness;
   float roughness;

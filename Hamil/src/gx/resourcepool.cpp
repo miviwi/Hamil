@@ -30,6 +30,11 @@ ResourcePool::ResourcePool(uint32_t pool_size)
 void ResourcePool::purge()
 {
   TupleOfVectorsHelper<decltype(m_resources)>::clear(m_resources);
+
+  size_t sz = std::get<0>(m_resources).size();
+  for(auto& free_list : m_free_lists) {
+    free_list.clear();
+  }
 }
 
 }

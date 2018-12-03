@@ -100,7 +100,7 @@ public:
     auto ptr = data();
     m_sz--;
 
-    return std::move(ptr + m_sz);
+    return std::move(*(ptr + m_sz));
   }
 
   // Sets 'end_ptr' as the new end of the vector
@@ -135,6 +135,8 @@ public:
   const T *cend() const { return data() + m_sz; }
 
   u32 size() const { return m_sz; }
+
+  bool empty() const { return m_sz == 0; }
 
   u32 capacity() const { return m_sz > InlineElems ? m_heap.capacity : InlineElems; }
 

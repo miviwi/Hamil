@@ -9,9 +9,12 @@
 #include <gx/renderpass.h>
 #include <gx/fence.h>
 
+#include <util/smallvector.h>
+#include <util/tupleindex.h>
 #include <win32/mutex.h>
 
 #include <vector>
+#include <array>
 #include <tuple>
 #include <utility>
 
@@ -31,6 +34,8 @@ public:
   template <typename... Args>
   using TupleOfVectors = std::tuple<std::vector<Args>...>;
 
+  using FreeList = util::SmallVector<Id, 64>;
+
   // 'pool_size' represents the number of pre-allocated
   //   Ids per resource type
   ResourcePool(uint32_t pool_size);
@@ -41,10 +46,23 @@ public:
   {
     auto lock_guard = m_mutex.acquireScoped();
 
+    FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
-    auto id = (Id)vec.size();
 
-    vec.emplace_back(std::forward<Args>(args)...);
+    T *resource = nullptr;
+    Id id = Invalid;
+
+    if(free_list.empty()) {
+      id = (Id)vec.size();
+
+      vec.emplace_back(std::forward<Args>(args)...);
+    } else {
+      id = free_list.pop();
+      resource = vec.data() + id;
+
+      resource->~T();
+      new(resource) T(std::forward<Args>(args)...);
+    }
 
     return id;
   }
@@ -55,13 +73,51 @@ public:
   {
     auto lock_guard = m_mutex.acquireScoped();
 
+    FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
-    auto id = (Id)vec.size();
 
-    auto resource = vec.emplace_back(std::forward<Args>(args)...);
-    resource.label(label);
+    T *resource = nullptr;
+    Id id = Invalid;
+
+    if(free_list.empty()) {
+      id = (Id)vec.size();
+
+      resource = &vec.emplace_back(std::forward<Args>(args)...);
+    } else {
+      id = free_list.pop();
+      resource = vec.data() + id;
+
+      resource->~T();
+      new(resource) T(std::forward<Args>(args)...);
+    }
+
+    resource->label(label);
 
     return id;
+  }
+
+  template <typename T>
+  void release(Id id)
+  {
+    FreeList& free_list = getFreeList<T>();
+    auto& vec = getVector<T>();
+
+    assert(id < vec.size() && "Invalid 'id' passed to release()!");
+    assert(vec.at(id).refs() == 1 && "Attempted to release() an in-use resource!");
+
+    // Calling the destructor is deferred until the
+    //   resource is re-used
+    free_list.append(id);
+  }
+
+  void releaseTexture(Id id)
+  {
+    release<TextureHandle>(id);
+  }
+
+  void releaseBuffer(Id id)
+  {
+    release<BufferHandle>(id);
   }
 
   template <typename T, typename... Args>
@@ -128,6 +184,22 @@ private:
     return std::get<std::vector<T>>(m_resources);
   }
 
+  template <typename T>
+  FreeList& getFreeList()
+  {
+    auto idx = util::tuple_index_v<std::vector<T>, decltype(m_resources)>;
+
+    return m_free_lists.at(idx);
+  }
+
+  template <typename T>
+  const FreeList& getFreeList() const
+  {
+    auto idx = util::tuple_index_v<std::vector<T>, decltype(m_resources)>;
+
+    return m_free_lists.at(idx);
+  }
+
   win32::Mutex m_mutex;
 
   TupleOfVectors<
@@ -141,6 +213,12 @@ private:
     RenderPass,
     Fence
   > m_resources;
+
+  enum {
+    NumResources = std::tuple_size_v<decltype(m_resources)>,
+  };
+
+  std::array<FreeList, NumResources> m_free_lists;
 };
 
 }
