@@ -2,6 +2,7 @@
 
 #include <ek/euklid.h>
 
+#include <util/ref.h>
 #include <util/smallvector.h>
 #include <util/hash.h>
 #include <math/geometry.h>
@@ -51,13 +52,14 @@ public:
 
 };
 
-class RenderTarget {
+class RenderTarget : public Ref {
 public:
   struct Error { };
 
   struct CreateError : public Error { };
 
   RenderTarget(const RenderTarget& other);
+  ~RenderTarget();
 
   // Create a new RenderTarget accorind to 'config'
   static RenderTarget from_config(const RenderTargetConfig& config, gx::ResourcePool& pool);

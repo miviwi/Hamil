@@ -56,7 +56,7 @@ struct SceneConstants {
 
   vec4 /* vec3 */ ambient_basis[6];
 
-  uint num_lights;
+  ivec4 num_lights;
   // - Each vector stores 4 adjacent LightTypes which
   //   correspond to the lights[] array
   // - Packed to save memory used for alignment padding
@@ -354,7 +354,7 @@ ShaderConstants RenderView::generateSceneConstants()
 
   memset(scene->light_types, 0, sizeof(SceneConstants::light_types));
 
-  scene->num_lights = 3;
+  scene->num_lights.x = 3;
   scene->lights[0] = {
     m_view * vec4(0.0f, 6.0f, 0.0f, 1.0f),
     vec3{ 1.0f, 1.0f, 1.0f }

@@ -41,28 +41,28 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
 
   auto it = m_rts.begin();
   while(it != m_rts.end()) {
-    auto next = std::find_if(m_rts.begin(), m_rts.end(), [&](const RenderTarget& rt) {
+    it = std::find_if(m_rts.begin(), m_rts.end(), [&](const RenderTarget& rt) {
       return rt.config() == config;
     });
 
+    if(it == m_rts.end()) break; // No fitting RenderTarget was created
+
     // Check if the RenderTarget isn't already in use
     if(it->lock()) {
-      // Release the lock
       m_rts_lock.releaseShared();
 
       return *it;
     }
-
-    next = it;
   }
 
-  // No free RenderTarget available - need to write to the vector
+  // Need to create a new RenderTarget which means
+  //   we'll be writing to the vector
   m_rts_lock.releaseShared();
   m_rts_lock.acquireExclusive();
 
   auto& result = m_rts.emplace_back(RenderTarget::from_config(config, pool));
 
-  // Done Writing
+  // Done writing
   m_rts_lock.releaseExclusive();
 
   auto locked = result.lock();

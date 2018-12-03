@@ -51,7 +51,7 @@ public:
   struct InvalidMapFlagsError : public Error { };
   struct MapError : public Error { };
 
-  ~Buffer();
+  virtual ~Buffer();
 
   virtual void use() const;
   virtual void unbind() const;
@@ -136,10 +136,21 @@ private:
 class UniformBuffer : public Buffer {
 public:
   UniformBuffer(Usage usage);
+  virtual ~UniformBuffer();
 
   void bindToIndex(unsigned idx);
   void bindToIndex(unsigned idx, size_t offset, size_t size);
   void bindToIndex(unsigned idx, size_t size);
+
+private:
+  // Returns 'true' when this is currently bound at 'idx' with
+  //   the same 'offset' and 'size'
+  bool checkBinding(unsigned idx, size_t offset = 0, size_t size = ~0ull);
+
+  void updateBinding(unsigned idx, size_t offset = 0, size_t size = ~0ull);
+
+  // Clear all saved bound indices
+  void clearBindings();
 };
 
 class TexelBuffer : public Buffer {

@@ -40,6 +40,8 @@ public:
   ExtractObjectsJob extractForView(hm::Entity scene, RenderView& view);
 
   const RenderTarget& queryRenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);
+  // Remeber to call this after a RenderTarget is no longer in use
+  //   so they're not infinitely created
   void releaseRenderTarget(const RenderTarget& rt);
 
   // Returns a gx::Program which can be used to render 'ro'

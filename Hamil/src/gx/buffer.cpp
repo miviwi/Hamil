@@ -5,6 +5,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <algorithm>
 
 namespace gx {
 
@@ -232,22 +233,33 @@ unsigned IndexBuffer::elemSize() const
   return 0;
 }
 
-thread_local static GLuint p_last_uniform[NumUniformBindings] ={
-  ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
-  ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
-  ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u, ~0u,
+struct pBufferBinding {
+  GLuint buf = ~0u;
+  size_t offset = 0, size = ~0ull;
 };
+
+thread_local static pBufferBinding p_last_uniform[NumUniformBindings];
 
 UniformBuffer::UniformBuffer(Usage usage) :
   Buffer(usage, GL_UNIFORM_BUFFER)
 {
 }
 
+UniformBuffer::~UniformBuffer()
+{
+  // ~Buffer() will call deref()
+  if(refs() > 1) return;
+
+  // When a Buffer gets destroyed the indexed bindings
+  //   get invalidated, so clear the shadowed state
+  clearBindings();
+}
+
 void UniformBuffer::bindToIndex(unsigned idx)
 {
-  if(p_last_uniform[idx] == m) return;
+  if(checkBinding(idx)) return;
 
-  p_last_uniform[idx] = m;
+  updateBinding(idx);
   glBindBufferBase(m_target, idx, m);
 }
 
@@ -257,15 +269,49 @@ void UniformBuffer::bindToIndex(unsigned idx, size_t offset, size_t size)
     size % info().minUniformBindAlignment() == 0) &&
     "The offset or size passed to bindToIndex() do not meet the alignment requirement!");
 
-  if(p_last_uniform[idx] == m) return;
+  if(checkBinding(idx, offset, size)) return;
 
-  p_last_uniform[idx] = m;
+  updateBinding(idx, offset, size);
   glBindBufferRange(m_target, idx, m, offset, size);
 }
 
 void UniformBuffer::bindToIndex(unsigned idx, size_t size)
 {
   bindToIndex(idx, 0, size);
+}
+
+bool UniformBuffer::checkBinding(unsigned idx, size_t offset, size_t size)
+{
+  const auto& binding = p_last_uniform[idx];
+  if(binding.buf != m || binding.offset != offset || binding.size < size) return false;
+
+  return true;
+}
+
+void UniformBuffer::updateBinding(unsigned idx, size_t offset, size_t size)
+{
+  auto& binding = p_last_uniform[idx];
+
+  binding.buf = m;
+  binding.offset = offset;
+  binding.size   = size;
+}
+
+void UniformBuffer::clearBindings()
+{
+  auto it = p_last_uniform;
+  auto end = p_last_uniform + NumUniformBindings;
+  while(it != end) {
+    it = std::find_if(it, end, [this](const pBufferBinding& binding) {
+      return binding.buf == m;
+    });
+
+    // The Buffer was never bound to an index
+    if(it == end) break;
+
+    // Clear the binding
+    it->buf = ~0u;
+  }
 }
 
 TexelBuffer::TexelBuffer(Usage usage) :

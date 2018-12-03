@@ -143,6 +143,15 @@ RenderTarget::RenderTarget(const RenderTarget& other) :
 {
 }
 
+RenderTarget::~RenderTarget()
+{
+  if(deref()) return;
+
+  // TODO!!
+  for(auto& tex_id : m_texture_ids) {
+  }
+}
+
 gx::TextureHandle RenderTarget::createTexMultisample(gx::ResourcePool& pool, gx::Format fmt, uint samples)
 {
   auto id = pool.createTexture<gx::Texture2D>(fmt, gx::Texture::Multisample);

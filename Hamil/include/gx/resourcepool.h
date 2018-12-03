@@ -11,7 +11,7 @@
 
 #include <util/smallvector.h>
 #include <util/tupleindex.h>
-#include <win32/mutex.h>
+#include <win32/rwlock.h>
 
 #include <vector>
 #include <array>
@@ -44,7 +44,7 @@ public:
   template <typename T, typename... Args>
   Id create(Args... args)
   {
-    auto lock_guard = m_mutex.acquireScoped();
+    m_lock.acquireExclusive();
 
     FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
@@ -64,6 +64,8 @@ public:
       new(resource) T(std::forward<Args>(args)...);
     }
 
+    m_lock.releaseExclusive();
+
     return id;
   }
 
@@ -71,7 +73,7 @@ public:
   template <typename T, typename... Args>
   Id create(const char *label, Args... args)
   {
-    auto lock_guard = m_mutex.acquireScoped();
+    m_lock.acquireExclusive();
 
     FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
@@ -90,8 +92,9 @@ public:
       resource->~T();
       new(resource) T(std::forward<Args>(args)...);
     }
-
     resource->label(label);
+
+    m_lock.releaseExclusive();
 
     return id;
   }
@@ -99,6 +102,8 @@ public:
   template <typename T>
   void release(Id id)
   {
+    m_lock.acquireExclusive();
+
     FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
 
@@ -108,6 +113,8 @@ public:
     // Calling the destructor is deferred until the
     //   resource is re-used
     free_list.append(id);
+
+    m_lock.releaseExclusive();
   }
 
   void releaseTexture(Id id)
@@ -146,8 +153,23 @@ public:
     return create<BufferHandle>(label, BufferHandle::create<T>(std::forward<Args>(args)...));
   }
 
-  template <typename T> T& get(Id id) { return getVector<T>().at(id); }
-  template <typename T> const T& get(Id id) const { return getVector<T>().at(id); }
+  template <typename T> T& get(Id id)
+  {
+    // Most of the time there sould be no contention here
+    m_lock.acquireShared();
+    auto& resource = getVector<T>().at(id);
+    m_lock.releaseShared();
+
+    return resource;
+  }
+  template <typename T> const T& get(Id id) const
+  {
+    m_lock.acquireShared();
+    const auto& resource = getVector<T>().at(id);
+    m_lock.releaseShared();
+
+    return resource;
+  }
 
   template <typename T> T& getTexture(Id id) { return getTexture(id).get<T>(); }
   TextureHandle& getTexture(Id id) { return get<TextureHandle>(id); }
@@ -200,7 +222,7 @@ private:
     return m_free_lists.at(idx);
   }
 
-  win32::Mutex m_mutex;
+  mutable win32::ReaderWriterLock m_lock;
 
   TupleOfVectors<
     Program,

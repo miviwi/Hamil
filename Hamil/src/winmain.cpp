@@ -402,72 +402,6 @@ int main(int argc, char *argv[])
   auto skybox_uniforms_handle = memory.alloc<SkyboxUniforms>();
   auto& skybox_uniforms = *memory.ptr<SkyboxUniforms>(skybox_uniforms_handle);
 
-  enum : uint {
-    FloorTexImageUnit  = 0u,
-    SkyboxTexImageUnit = 1u,
-
-    UiTexImageUnit    = 4u,
-    SceneTexImageUnit = 5u,
-    AoTexImageUnit    = 10u,
-
-    AoDepthTexImageUnit = 6u,
-    AoNormalTexImageUnit = 7u,
-    AoNoiseTexImageUnit = 8u,
-  };
-
-  static constexpr uint MatrixBinding = 0;
-  struct MatrixBlock {
-    mat4 modelview;
-    mat4 projection;
-    mat4 normal;
-    mat4 tex;
-  };
-
-  enum Material : uint {
-    Unshaded,
-    PhongColored,
-    PhongProceduralColored,
-    PhongTextured,
-  };
-
-  static constexpr uint MaterialBinding = 1;
-  struct MaterialBlock {
-    union {
-      uint material;
-      vec4 pad0_;
-    };
-    vec4 color;
-
-    vec4 /* vec3 */ ior;
-    float metalness;
-    float roughness;
-
-    vec2 pad1_;
-
-    MaterialBlock() :
-      material(0)
-    { }
-  };
-
-  struct Light {
-    vec4 position, color;
-  };
-
-  static constexpr uint LightBinding = 2;
-  struct LightBlock {
-    vec4 /* vec3 */ ambient_basis[6];
-
-    Light lights[4];
-    int num_lights;
-  };
-
-  struct BlockGroup {
-    gx::MemoryPool::Handle handle;
-
-    MatrixBlock *matrix;
-    MaterialBlock *material;
-  };
-
   static constexpr uint AoKernelBinding = 3;
 
   const uint ubo_block_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
@@ -475,67 +409,20 @@ int main(int argc, char *argv[])
     return pow2_align(sz, ubo_block_alignment);
   };
 
-  uint material_block_offset = ubo_align(sizeof(MatrixBlock));
-  uint block_group_size = material_block_offset + ubo_align(sizeof(MaterialBlock));
-
-  auto alloc_block_group = [&]() -> BlockGroup {
-    BlockGroup b;
-
-    b.handle = memory.alloc(block_group_size);
-
-    b.matrix   = memory.ptr<MatrixBlock>(b.handle);
-    b.material = memory.ptr<MaterialBlock>(b.handle + material_block_offset);
-
-    return b;
-  };
-
-  auto block_group = alloc_block_group();
-
-  auto scene_ubo_id = pool.createBuffer<gx::UniformBuffer>("buScene", gx::Buffer::Stream);
-  pool.getBuffer<gx::UniformBuffer>(scene_ubo_id).init(block_group_size, 1);
-
-  auto light_block_handle = memory.alloc<LightBlock>();
-  auto& light_block = *memory.ptr<LightBlock>(light_block_handle);
-
-  auto light_ubo_id = pool.createBuffer<gx::UniformBuffer>("buLight", gx::Buffer::Stream);
-  pool.getBuffer<gx::UniformBuffer>(light_ubo_id).init(sizeof(LightBlock), 1);
-
   auto ao_ubo_id = pool.createBuffer<gx::UniformBuffer>("buAo", gx::Buffer::Static);
   auto& ao_ubo = pool.getBuffer<gx::UniformBuffer>(ao_ubo_id);
 
   ao_ubo.init(ao_kernel.data(), ao_kernel.size());
 
-  program
-    .uniformBlockBinding("MatrixBlock", MatrixBinding)
-    .uniformBlockBinding("MaterialBlock", MaterialBinding)
-    .uniformBlockBinding("LightBlock", LightBinding);
-
   skybox_program.use()
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
-
-  ao_program.use()
-    .uniformSampler(U.ao.uEnvironment, SkyboxTexImageUnit)
-    .uniformSampler(U.ao.uDepth, AoDepthTexImageUnit)
-    .uniformSampler(U.ao.uNormal, AoNormalTexImageUnit)
-    .uniformSampler(U.ao.uNoise, AoNoiseTexImageUnit);
-
-  composite_program.use()
-    .uniformSampler(U.composite.uUi, UiTexImageUnit)
-    .uniformSampler(U.composite.uScene, SceneTexImageUnit)
-    .uniformSampler(U.composite.uAo, AoTexImageUnit);
 
   auto scene_pass_id = pool.create<gx::RenderPass>();
   auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
     .framebuffer(fb_id)
     .textures({
-      { FloorTexImageUnit,  { tex_id, floor_sampler_id }},
-      { SkyboxTexImageUnit, { cubemap_id, cubemap_sampler_id }}
+      { 1, { cubemap_id, cubemap_sampler_id }}
     })
-    .uniformBuffersRange({
-      { MatrixBinding,   { scene_ubo_id, 0, ubo_align(sizeof(MatrixBlock)) } },
-      { MaterialBinding, { scene_ubo_id, material_block_offset, ubo_align(sizeof(MaterialBlock)) } },
-    })
-    .uniformBuffer(LightBinding, light_ubo_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
       .depthTest(gx::LessEqual)
@@ -551,27 +438,12 @@ int main(int argc, char *argv[])
     .clearOp(gx::RenderPass::ClearColorDepth)
     ;
 
-  auto ao_pass_id = pool.create<gx::RenderPass>();
-  auto& ao_pass = pool.get<gx::RenderPass>(ao_pass_id)
-    .framebuffer(fb_ao_id)
-    .textures({
-      { AoDepthTexImageUnit,  { fb_depth_id, resolve_sampler_id }},
-      { AoNormalTexImageUnit, { fb_normal_id, resolve_sampler_id }},
-      { AoNoiseTexImageUnit,  { ao_noise_tex_id, ao_noise_sampler_id }}
-    })
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x/2, FramebufferSize.y/2)
-      .noBlend()
-      .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
-    .clearOp(gx::RenderPass::ClearColor)
-    ;
-
   auto composite_pass_id = pool.create<gx::RenderPass>();
   auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
     .textures({
-      { SceneTexImageUnit, { fb_tex_id, resolve_sampler_id }},
-      { AoTexImageUnit,    { ao_id, ao_sampler_id }},
+      { 4, { fb_tex_id, resolve_sampler_id }},
+      { 5,    { ao_id, ao_sampler_id }},
     })
     .uniformBuffer(AoKernelBinding, ao_ubo_id)
     .pipeline(gx::Pipeline()
@@ -668,7 +540,7 @@ int main(int argc, char *argv[])
   gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
   ui::Ui iface(pool, ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
 
-  composite_pass.texture(UiTexImageUnit, iface.framebufferTextureId(), resolve_sampler_id);
+  composite_pass.texture(5, iface.framebufferTextureId(), resolve_sampler_id);
 
   iface.realSize(FramebufferSize.cast<float>());
 
@@ -913,10 +785,6 @@ int main(int argc, char *argv[])
   auto floor = create_floor();
   hm::Entity bunny;
 
-  auto cmd_upload_ubos = gx::CommandBuffer::begin()
-    .bufferUpload(scene_ubo_id, block_group.handle, block_group_size)
-    .end();
-
   auto cmd_skybox = gx::CommandBuffer::begin()
     .subpass(0)
     .program(skybox_program_id)
@@ -924,9 +792,6 @@ int main(int argc, char *argv[])
     .uniformMatrix4x4(U.skybox.uProjection, skybox_uniforms_handle+sizeof(mat4))
     .drawIndexed(gx::Triangles, skybox_arr_id, skybox_inds.size())
     .end();
-
-  cmd_upload_ubos.bindResourcePool(&pool);
-  cmd_upload_ubos.bindMemoryPool(&memory);
 
   cmd_skybox.bindResourcePool(&pool);
   cmd_skybox.bindMemoryPool(&memory);
@@ -1099,7 +964,6 @@ int main(int argc, char *argv[])
     auto render_view = ek::RenderView(ek::RenderView::CameraView)
       .forwardRender()
       .viewport(FramebufferSize)
-      .sampleCount(1)
       .view(view)
       .projection(persp);
 
@@ -1136,121 +1000,6 @@ int main(int argc, char *argv[])
 
     step_timer.reset();
 
-    vec4 color;
-
-    size_t num_tris = 0;
-
-    vec4 ambient_basis[6] = {
-      vec4(0.0f, 0.25f, 0.25f, 1.0f), vec4(0.5f, 0.5f, 0.0f, 1.0f),
-      vec4(0.25f, 0.25f, 0.25f, 1.0f), vec4(0.7f, 0.7f, 0.7f, 1.0f),
-      vec4(0.1f, 0.1f, 0.1f, 1.0f), vec4(0.1f, 0.1f, 0.1f, 1.0f),
-    };
-
-    memcpy(light_block.ambient_basis, ambient_basis, sizeof(vec4)*6);
-
-    light_block.num_lights = 3;
-
-    light_block.lights[0] = {
-      view*vec4(light_position[0], 1.0f),
-      vec3{ 1.0f, 1.0f, 1.0f }
-    };
-    light_block.lights[1] = {
-      view*vec4(light_position[1], 1.0f),
-      vec3{ 1.0f, 1.0f, 0.0f }
-    };
-    light_block.lights[2] = {
-      view*vec4(light_position[2], 1.0f),
-      vec3{ 0.0f, 1.0f, 1.0f }
-    };
-
-    pool.getBuffer(light_ubo_id).get().upload(&light_block, 0, 1);
-
-    block_group.matrix->projection = persp;
-    block_group.matrix->tex = texmatrix;
-
-    auto& scene_ubo = pool.getBuffer(scene_ubo_id);
-    auto upload_ubos = [&]() {
-      cmd_upload_ubos.execute();
-    };
-
-    auto drawsphere = [&](bool shaded = true)
-    {
-      num_tris += sphere_inds.size() / 3;
-      return;
-
-      mat4 modelview = view*model;
-
-      block_group.matrix->modelview = modelview;
-      block_group.matrix->normal = modelview.inverse().transpose();
-
-      block_group.material->material = shaded ? PhongProceduralColored : Unshaded;
-      block_group.material->color = color;
-
-      upload_ubos();
-
-      program.use()
-        .draw(gx::Triangles, sphere_arr, sphere_inds.size());
-      sphere_arr.end();
-    };
-
-    auto drawentity = [&](hm::Entity e, bool shaded = true)
-    {
-      auto& transform = e.component<hm::Transform>().get().t;
-      auto& mesh = e.component<hm::Mesh>().get().m;
-
-      num_tris += mesh.num / 3;
-
-      return;
-
-      mat4 model = transform.matrix();
-      mat4 modelview = view*model;
-
-      block_group.matrix->modelview = modelview;
-      block_group.matrix->normal = modelview.inverse().transpose();
-
-      uint material_id = 0;
-      if(auto material = e.component<hm::Material>()) {
-        switch(material().diff_type) {
-        case hm::Material::DiffuseTexture: material_id = PhongTextured; break;
-        case hm::Material::DiffuseConstant: material_id = PhongColored; break;
-        }
-
-        if(material().diff_type & hm::Material::Other) material_id = PhongProceduralColored;
-
-        color = material().diff_color;
-
-        block_group.material->metalness = material().metalness;
-        block_group.material->roughness = material().roughness;
-        block_group.material->ior = vec4(material().ior, 1.0f);
-      } else {
-        block_group.material->metalness = 1.0f;
-        block_group.material->roughness = 0.1f;
-        block_group.material->ior = vec4(1.0f, 1.0f, 1.0f, 1.0f);
-      }
-
-      block_group.material->material = material_id;
-      block_group.material->color = color;
-
-      upload_ubos();
-
-      if(mesh.isIndexed()) {
-        auto& vertex_array = pool.get<gx::IndexedVertexArray>(mesh.vertex_array_id);
-
-        program.use()
-          .draw(mesh.getPrimitive(), vertex_array, mesh.num);
-        vertex_array.end();
-      } else {
-        auto& vertex_array = pool.get<gx::VertexArray>(mesh.vertex_array_id);
-
-        program.use()
-          .uniformSampler(U.program.uTex, FloorTexImageUnit)
-          .draw(mesh.getPrimitive(), vertex_array, mesh.num);
-      }
-
-    };
-
-    scene_pass.begin(pool);
-
     program.use()
       .uniformFloat(U.program.uExposure, exp_slider.value());
 
@@ -1278,71 +1027,9 @@ int main(int argc, char *argv[])
       float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3.0f);
 
       auto q = quat::rotation_between(vec3::up(), hit_normal);
-
-      model = xform::Transform()
-        .translate(0.0f, 0.5f, 0.0f)
-        .scale(1.0f, 1.5f*force_factor, 1.0f)
-        .rotate(q)
-        .translate(picked_body.origin())
-        .matrix();
-
-      auto modelview = view*model;
-
-      block_group.matrix->modelview = modelview;
-      block_group.matrix->normal = modelview.inverse().transpose();
-
-      block_group.material->material = Unshaded;
-      block_group.material->color = { 1.0f, 1.0f/force_factor, 1.0f/force_factor, 1.0f };
-
-      upload_ubos();
-
-      program.use()
-        .draw(gx::Triangles, line_arr, line_inds.size());
-      line_arr.end();
     }
 
     std::vector<hm::Entity> dead_entities;
-
-    // Draw the Entities
-    components().foreach([&](hmRef<hm::Transform> transform) {
-      auto entity = transform().entity();
-
-      if(!entity.hasComponent<hm::Mesh>()) return;
-
-      if(!entity.hasComponent<hm::RigidBody>() || entity == bunny) {
-        drawentity(entity);
-        return;
-      }
-
-      auto origin = transform().t.translation();
-
-      if(origin.distance2(vec3::zero()) > 10e3*10e3) {
-        dead_entities.push_back(entity);
-        return;
-      }
-
-      auto material = entity.component<hm::Material>();
-      if(material().diff_type != hm::Material::DiffuseTexture) {
-        material().diff_color = (entity == picked_entity) ? vec3(1.0f, 0.0f, 0.0f) : vec3(1.0f);
-      }
-
-      AABB aabb = transform().aabb;
-      if(!frustum.aabbInside(aabb)) return;
-
-      drawentity(entity);
-    });
-
-    for(int i = 0; i < light_block.num_lights; i++) {
-      vec4 pos = light_position[i];
-      color = light_block.lights[i].color;
-      model = xform::Transform()
-        .scale(0.2f)
-        .translate(pos)
-        .matrix()
-        ;
-
-      drawsphere(/* shaded = */ false);
-    }
 
     skybox_uniforms = { view, persp };
     skybox_program.use()
@@ -1352,19 +1039,6 @@ int main(int argc, char *argv[])
     cmd_skybox
       .activeRenderPass(scene_pass_id)
       .execute();
-
-    for(int i = 0; i < light_block.num_lights; i++) {
-      model = xform::Transform()
-        .scale(0.2f)
-        .translate(light_position[i])
-        .matrix()
-        ;
-
-      vec2 screen = xform::project(vec3{ -1.5f, 1, -1 }, persp*view*model, FramebufferSize);
-      screen.y -= 10;
-
-      small_face.draw(util::fmt("Light %d", i+1), screen, { 1.0f, 1.0f, 1.0f });
-    }
 
     if(picked_entity && picked_entity.alive()) {
       if(picked_entity.gameObject().parent() == scene) {
@@ -1423,7 +1097,7 @@ int main(int argc, char *argv[])
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",
       step_dt*1000.0,
-      num_tris,
+      (size_t)0,
       physics_step_job.dbg_ElapsedTime()*1000.0,
       ui_paint_job.dbg_ElapsedTime()*1000.0,
       transforms_extract_dt*1000.0)
@@ -1495,8 +1169,8 @@ int main(int argc, char *argv[])
 
     render_view_fb.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-      ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-      gx::Framebuffer::ColorBit, gx::Sampler::Nearest);
+      ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
+      gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
   }
