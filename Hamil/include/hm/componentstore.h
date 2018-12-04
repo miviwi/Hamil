@@ -23,13 +23,22 @@ class IComponentStore {
 public:
   static bool compare_component(u32 id, Component *component);
 
+  // Do not use the following methods directly!
+  //   - See IComponentManager::lock()/unlock()
+  //   - Because a ComponentManager doesn't directly
+  //     store it's Components the ComponentStore
+  //     must handle synchronization
+
   void lock();
   void unlock();
 
   void requireUnlocked();
   void endRequireUnlocked();
 
+  // -------------------------------------------
+
 protected:
+  // Should be called only ONCE
   static void reap_component(Component *component);
 
   // m_locked < 0 means requireUnlocked() was called

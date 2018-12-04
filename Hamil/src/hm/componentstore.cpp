@@ -25,6 +25,10 @@ void IComponentStore::lock()
     //   called as many times as requireUnlocked()
     //   (so locked == 0)
     m_mutex.acquire();
+
+    // compare_exchange_strong() will verify
+    //   this assumption
+    locked = 0;
   }
 
   // If we were woken up after another thread waiting
@@ -57,6 +61,10 @@ void IComponentStore::requireUnlocked()
     //   called as many times as lock()
     //   (so locked == 0)
     m_mutex.acquire();
+
+    // compare_exchange_strong() will verify
+    //   this assumption
+    locked = 0;
   }
 
   if(!m_locked.compare_exchange_strong(locked, locked-1)) {
