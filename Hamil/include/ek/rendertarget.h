@@ -15,6 +15,7 @@ enum Format;
 
 class ResourcePool;
 class TextureHandle;
+class Framebuffer;
 }
 
 namespace ek {
@@ -38,6 +39,8 @@ public:
 
   std::optional<u32 /* gx::Format */> accumulation = std::nullopt;
   std::optional<u32 /* gx::Format */> linearz = std::nullopt;
+
+  std::optional<u32 /* gx::Format */> moments = std::nullopt;
   u32 depth = 0;
 
   // 0 == no MSAA
@@ -47,13 +50,24 @@ public:
   //   - HDR internal format (rgb16f)
   static RenderTargetConfig forward_linearz(uint samples = 0);
 
+  // 0 == no MSAA
+  static RenderTargetConfig msm_shadowmap(uint samples = 0);
+
   // Returns 'true' when 'other' is compatible
   bool operator==(const RenderTargetConfig& other) const;
-
 };
 
 class RenderTarget : public Ref {
 public:
+  enum TextureType {
+    // Forward
+    Accumulation = 0,
+    LinearZ = 1,
+
+    // ShadowMap
+    Moments = 0,
+  };
+
   struct Error { };
 
   struct CreateError : public Error { };
@@ -70,6 +84,8 @@ public:
   //   gx::Framebuffer
   u32 framebufferId() const;
 
+  u32 textureId(TextureType type) const;
+
 private:
   friend Renderer;
 
@@ -77,15 +93,25 @@ private:
 
   RenderTarget(const RenderTargetConfig& config);
 
+  // Stores the Id in 'm_fb_id'
+  gx::Framebuffer& createFramebuffer(gx::ResourcePool& pool);
+
   gx::TextureHandle createTexMultisample(gx::ResourcePool& pool, gx::Format fmt, uint samples);
   gx::TextureHandle createTex(gx::ResourcePool& pool, gx::Format fmt);
 
   void initForward(gx::ResourcePool& pool);
   void initDepthPrepass(gx::ResourcePool& pool);
+  void initShadowMap(gx::ResourcePool& pool);
 
   void checkComplete(gx::ResourcePool& pool);
 
+  u32 forwardTextureId(TextureType type) const;
+  u32 shadowMapTexureId(TextureType type) const;
+
+  // Returns 'true' if the RenderTarget was locked successfully
+  //   i.e. wasn't already in use before the call
   bool lock() const;
+  // Marks the RenderTarget as no longer in use
   void unlock() const;
 
   RenderTargetConfig m_config;

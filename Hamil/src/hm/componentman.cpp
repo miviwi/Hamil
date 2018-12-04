@@ -48,4 +48,32 @@ IComponentManager::Ptr create_component_manager()
   return ptr;
 }
 
+IComponentManager& IComponentManager::lock()
+{
+  components().lock();
+
+  return *this;
+}
+
+IComponentManager& IComponentManager::unlock()
+{
+  components().unlock();
+
+  return *this;
+}
+
+IComponentManager& IComponentManager::requireUnlocked()
+{
+  components().requireUnlocked();
+
+  return *this;
+}
+
+IComponentManager& IComponentManager::endRequireUnlocked()
+{
+  components().endRequireUnlocked();
+
+  return *this;
+}
+
 }

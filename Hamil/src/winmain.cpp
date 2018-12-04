@@ -739,6 +739,7 @@ int main(int argc, char *argv[])
     auto material = entity.addComponent<hm::Material>();
 
     material().diff_type = hm::Material::Other;
+    material().diff_color = vec3(1.0f);
 
     material().metalness = random_floats(random_generator);
     material().roughness = random_floats(random_generator);
@@ -820,6 +821,8 @@ int main(int argc, char *argv[])
   });
 
   auto transforms_extract_job = sched::create_job([&]() -> Unit {
+    hm::components().requireUnlocked();
+
     // Update Transforms
     hm::components().foreach([&](hmRef<hm::RigidBody> rb) {
       if(rb().rb.isStatic()) return;
@@ -830,6 +833,8 @@ int main(int argc, char *argv[])
       transform() = rb().rb.worldTransform();
       transform().aabb = rb().rb.aabb();
     });
+
+    hm::components().endRequireUnlocked();
 
     return {};
   });
@@ -1005,14 +1010,12 @@ int main(int argc, char *argv[])
 
     auto extract_for_view_job = ek::renderer().extractForView(scene, render_view);
     auto extract_for_view_job_id = worker_pool.scheduleJob(extract_for_view_job.get());
-    worker_pool.waitJob(extract_for_view_job_id);
-
-    auto& render_objects = extract_for_view_job->result();
-    render_view.render(ek::renderer(), render_objects, &pool).execute();
 
     if(bunny_load_job->done() && bunny_load_job_id != sched::WorkerPool::InvalidJob) {
       worker_pool.waitJob(bunny_load_job_id);
       bunny_load_job_id = sched::WorkerPool::InvalidJob;
+
+      hm::components().requireUnlocked();
 
       auto num_inds = obj_loader.mesh().faces().size() * 3;
       auto bunny_mesh = mesh::Mesh()
@@ -1021,6 +1024,8 @@ int main(int argc, char *argv[])
         .withNum((u32)num_inds);
 
       bunny = create_model(bunny_mesh);
+
+      hm::components().endRequireUnlocked();
     }
 
     if(draw_nudge_line && 0) {
@@ -1031,7 +1036,13 @@ int main(int argc, char *argv[])
 
     std::vector<hm::Entity> dead_entities;
 
-    skybox_uniforms = { view, persp };
+
+    worker_pool.waitJob(extract_for_view_job_id);
+
+    auto& render_objects = extract_for_view_job->result();
+    render_view.render(ek::renderer(), render_objects, &pool).execute();
+
+    skybox_uniforms ={ view, persp };
     skybox_program.use()
       .uniformFloat(U.skybox.uExposure, exp_slider.value())
       ;
@@ -1140,7 +1151,6 @@ int main(int argc, char *argv[])
       ;
 
     ui_paint_job.result().execute();
-    cursor.paint();
 
     // Resolve the main Framebuffer and composite the Ui on top of it
     composite_pass.begin(pool);
@@ -1155,8 +1165,11 @@ int main(int argc, char *argv[])
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
 #endif
+    cursor.paint();
     worker_pool.waitJob(transforms_extract_job_id);
     transforms_extract_dt = transforms_extract_job.dbg_ElapsedTime();
+
+    hm::components().requireUnlocked();
 
     // Kill off dead_entites
     for(auto& e : dead_entities) {
@@ -1164,7 +1177,9 @@ int main(int argc, char *argv[])
       e.destroy();
     }
 
-    const auto& render_view_rt = render_view.renderTarget(0);
+    hm::components().endRequireUnlocked();
+
+    const auto& render_view_rt = render_view.presentRenderTarget();
     auto& render_view_fb = pool.get<gx::Framebuffer>(render_view_rt.framebufferId());
 
     render_view_fb.blitToWindow(

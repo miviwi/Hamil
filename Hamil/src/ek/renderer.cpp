@@ -81,21 +81,23 @@ u32 Renderer::queryProgram(const RenderObject& ro, gx::ResourcePool& pool)
 {
   // Temporary!
   if(m_programs.empty()) {
-    m_programs_lock.acquireExclusive();
-
     res::load(&R.shader.shaders.ubo, 1);
     res::load(R.shader.shaders.ids);   // Make sure it's loaded
     res::Handle<res::Shader> r_program = R.shader.shaders.forward;
 
     auto id = pool.create<gx::Program>(gx::make_program(
       r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.forward));
-    m_programs.push_back(id);
 
+    // Writing to 'm_programs'
+    m_programs_lock.acquireExclusive();
+    m_programs.push_back(id);
     m_programs_lock.releaseExclusive();
+
+    return id;
   }
 
+  // Reading from 'm_programs'
   m_programs_lock.acquireShared();
-
   auto program = m_programs.front(); // TODO!
   m_programs_lock.releaseShared();
 
@@ -106,10 +108,17 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
 {
   ObjectVector objects;
   auto frustum = view.constructFrustum();
+
+  // Make the Components immutable
+  hm::components().lock();
+
   auto transform_matrix = scene.component<hm::Transform>().get().matrix();
   scene.gameObject().foreachChild([&](hm::Entity e) {
     extractOne(objects, frustum, e, transform_matrix);
   });
+
+  // Done reading components
+  hm::components().unlock();
 
   return objects;
 }

@@ -6,7 +6,9 @@
 
 #include <util/hashindex.h>
 #include <util/tupleindex.h>
+#include <win32/mutex.h>
 
+#include <atomic>
 #include <array>
 #include <vector>
 #include <tuple>
@@ -21,8 +23,19 @@ class IComponentStore {
 public:
   static bool compare_component(u32 id, Component *component);
 
+  void lock();
+  void unlock();
+
+  void requireUnlocked();
+  void endRequireUnlocked();
+
 protected:
   static void reap_component(Component *component);
+
+  // m_locked < 0 means requireUnlocked() was called
+  //  and the lock cannot be taken
+  std::atomic<int> m_locked;
+  win32::Mutex m_mutex;
 };
 
 template <typename... Args>

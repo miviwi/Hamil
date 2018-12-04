@@ -51,6 +51,19 @@ public:
     components().foreach<T>(fn);
   }
 
+  // Call this method to make the underlying ComponentStore
+  //   immutable until the corresponding call to unlock()
+  IComponentManager& lock();
+  // Call this when mutating operations can resume
+  IComponentManager& unlock();
+
+  // Call this before operations that mutate components
+  //   - Will block if another thread has called lock()
+  //     before
+  IComponentManager& requireUnlocked();
+  // Call this when mutating operations have finished
+  IComponentManager& endRequireUnlocked();
+
 protected:
   virtual ComponentStore& components() = 0;
 };

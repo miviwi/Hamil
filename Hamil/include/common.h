@@ -48,6 +48,8 @@ public:
 
   T *get() const { return m_ptr; }
 
+  size_t stride() const { return m_stride; }
+
 private:
   T *m_ptr;
   size_t m_stride;

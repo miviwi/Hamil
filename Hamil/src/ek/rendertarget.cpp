@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cstring>
+#include "..\..\include\ek\rendertarget.h"
 
 namespace ek {
 
@@ -35,6 +36,19 @@ RenderTargetConfig RenderTargetConfig::forward_linearz(uint samples)
   return self;
 }
 
+RenderTargetConfig RenderTargetConfig::msm_shadowmap(uint samples)
+{
+  RenderTargetConfig self;
+
+  self.type = ShadowMap;
+  self.samples = samples;
+
+  self.moments.emplace(gx::rgba16);
+  self.depth = gx::depth24;
+
+  return self;
+}
+
 bool RenderTargetConfig::operator==(const RenderTargetConfig& other) const
 {
   return memcmp(this, &other, sizeof(RenderTargetConfig)) == 0;
@@ -48,6 +62,7 @@ RenderTarget RenderTarget::from_config(const RenderTargetConfig& config, gx::Res
   switch(config.type) {
   case RenderTargetConfig::DepthPrepass: rt.initDepthPrepass(pool); break;
   case RenderTargetConfig::Forward:      rt.initForward(pool); break;
+  case RenderTargetConfig::ShadowMap:    rt.initShadowMap(pool); break;
 
   default: assert(0); // unreachable
   }
@@ -62,10 +77,18 @@ const RenderTargetConfig& RenderTarget::config() const
   return m_config;
 }
 
+u32 RenderTarget::textureId(TextureType type) const
+{
+  switch(m_config.type) {
+  case RenderTargetConfig::Forward: return forwardTextureId(type);
+  }
+
+  return ~0u;
+}
+
 void RenderTarget::initForward(gx::ResourcePool& pool)
 {
-  m_fb_id = pool.create<gx::Framebuffer>();
-  auto& fb = pool.get<gx::Framebuffer>(m_fb_id);
+  auto& fb = createFramebuffer(pool);
 
   gx::TextureHandle accumulation, linearz;
 
@@ -92,8 +115,7 @@ void RenderTarget::initForward(gx::ResourcePool& pool)
 
 void RenderTarget::initDepthPrepass(gx::ResourcePool& pool)
 {
-  m_fb_id = pool.create<gx::Framebuffer>();
-  auto& fb = pool.get<gx::Framebuffer>(m_fb_id);
+  auto& fb = createFramebuffer(pool);
 
   if(m_config.samples > 0) {
     fb.use()
@@ -104,12 +126,48 @@ void RenderTarget::initDepthPrepass(gx::ResourcePool& pool)
   }
 }
 
+void RenderTarget::initShadowMap(gx::ResourcePool& pool)
+{
+  auto& fb = createFramebuffer(pool);
+
+  gx::TextureHandle moments;
+
+  if(m_config.samples > 0) {
+    moments = createTexMultisample(pool, (gx::Format)m_config.moments.value(), m_config.samples);
+  } else {
+    moments = createTex(pool, (gx::Format)m_config.moments.value());
+  }
+
+  fb.use()
+    .tex(moments.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(0))
+    .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
+}
+
 void RenderTarget::checkComplete(gx::ResourcePool& pool)
 {
   auto& fb = pool.get<gx::Framebuffer>(m_fb_id);
 
   auto status = fb.status();
   if(status != gx::Framebuffer::Complete) throw CreateError();
+}
+
+u32 RenderTarget::forwardTextureId(TextureType type) const
+{
+  switch(type) {
+  case Accumulation: return m_texture_ids.at(0);
+  case LinearZ:      return m_texture_ids.size() > 1 ? m_texture_ids.at(1) : ~0u;
+  }
+
+  return ~0u;
+}
+
+u32 RenderTarget::shadowMapTexureId(TextureType type) const
+{
+  switch(type) {
+  case Moments: return m_texture_ids.at(0);
+  }
+
+  return ~0u;
 }
 
 bool RenderTarget::lock() const
@@ -128,7 +186,6 @@ u32 RenderTarget::framebufferId() const
 {
   return m_fb_id;
 }
-
 
 RenderTarget::RenderTarget(const RenderTargetConfig& config) :
   m_config(config),
@@ -150,6 +207,13 @@ RenderTarget::~RenderTarget()
   // TODO!!
   for(auto& tex_id : m_texture_ids) {
   }
+}
+
+gx::Framebuffer& RenderTarget::createFramebuffer(gx::ResourcePool& pool)
+{
+  m_fb_id = pool.create<gx::Framebuffer>();
+
+  return pool.get<gx::Framebuffer>(m_fb_id);
 }
 
 gx::TextureHandle RenderTarget::createTexMultisample(gx::ResourcePool& pool, gx::Format fmt, uint samples)

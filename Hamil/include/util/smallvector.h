@@ -64,6 +64,16 @@ public:
     return *this;
   }
 
+  T& at(u32 idx)
+  {
+    return *(data() + idx);
+  }
+
+  const T& at(u32 idx) const
+  {
+    return *(data() + idx);
+  }
+
   // Appends 'elem' to the end of the container and
   //   returns it's index
   u32 append(const T& elem)

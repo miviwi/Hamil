@@ -56,7 +56,8 @@ struct SceneConstants {
 
   vec4 /* vec3 */ ambient_basis[6];
 
-  ivec4 num_lights;
+  // Driver issiues force this to be an ivec4
+  ivec4 /* int */ num_lights;
   // - Each vector stores 4 adjacent LightTypes which
   //   correspond to the lights[] array
   // - Packed to save memory used for alignment padding
@@ -72,12 +73,17 @@ struct ObjectConstants {
   vec4 /* vec3 */ diff_color;
   vec4 /* vec3 */ ior;
 
-  ivec4 material_id;
+  // Driver issiues force this to be an ivec4
+  ivec4 /* int */ material_id;
 
   float metalness;
   float roughness;
 
   float pad_[2];
+};
+
+struct ObjectShadowConstants {
+  mat4 model;
 };
 #pragma pack(pop)
 
@@ -95,6 +101,7 @@ RenderView::RenderView(ViewType type) :
   m_objects_rover(nullptr, 1)
 {
   m_ubo_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
+  m_constant_block_sz = (u32)gx::info().maxUniformBlockSize();
 }
 
 RenderView::~RenderView()
@@ -108,7 +115,7 @@ RenderView::~RenderView()
   delete m_mempool;
 }
 
-RenderView& RenderView::depthPrepass()
+RenderView& RenderView::depthOnlyRender()
 {
   m_render = DepthOnly;
 
@@ -162,6 +169,13 @@ frustum3 RenderView::constructFrustum()
   return frustum3(m_view, m_projection);
 }
 
+const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] = {
+  { nullptr, nullptr, nullptr },   // Invalid
+  { nullptr, &RenderView::forwardCameraRenderOne, nullptr },   // CameraView
+  { nullptr, nullptr, nullptr },   // LightView
+  { &RenderView::shadowRenderOne, nullptr, nullptr },   // ShadowView
+};
+
 gx::CommandBuffer RenderView::render(Renderer& renderer,
   const std::vector<RenderObject>& objects,
   gx::ResourcePool *pool)
@@ -174,40 +188,12 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Internal to this RenderView
   m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
 
-  const u32 ObjectConstantsSize = constantBlockSizeAlign(sizeof(ObjectConstants));
-  const u32 SceneConstantsSize  = constantBlockSizeAlign(sizeof(SceneConstants));
-  const size_t ConstantBlockMaxSize = gx::info().maxUniformBlockSize();
-
-  // Unaligned size of ObjectConstants UniformBuffer
-  const size_t ObjectConstantBufferUASize = objects.size() * ObjectConstantsSize;
-
-  // Must be a multiple of ConstantBlockMaxSize, so align it assuming it's
-  //   unaligned (could waste some space in case that's false)
-  const size_t ObjectConstantBufferSize = ObjectConstantBufferUASize +
-    /* align */ (ConstantBlockMaxSize - (ObjectConstantBufferUASize % ConstantBlockMaxSize));
-
-  m_scene_ubo_id  = createConstantBuffer(SceneConstantsSize);
-  m_object_ubo_id = createConstantBuffer(ObjectConstantsSize);
-
-  m_num_objects_per_block = ConstantBlockMaxSize / ObjectConstantsSize;
-
   auto scene_constants = generateSceneConstants();
 
-  auto object_ubo = m_pool->getBuffer(m_object_ubo_id);
-  object_ubo().init(ObjectConstantBufferSize, 1);
-
-  auto object_ubo_view = object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
-
-  m_objects = object_ubo_view.get<ObjectConstants>();
-  m_objects_rover = StridePtr<ObjectConstants>(m_objects, ObjectConstantsSize);
-  m_objects_end = (ObjectConstants *)((byte *)m_objects + objects.size()*ObjectConstantsSize);
-
   m_renderpass_id = createRenderPass();
-  auto& renderpass = m_pool->get<gx::RenderPass>(m_renderpass_id);
+  auto& renderpass = getRenderpass();
 
-  renderpass
-    .uniformBufferRange(SceneConstantsBinding, m_scene_ubo_id, 0, SceneConstantsSize)
-    .uniformBufferRange(ObjectConstantsBinding, m_object_ubo_id, 0, ConstantBlockMaxSize);
+  initConstantBuffers(objects.size());
 
   auto cmd = gx::CommandBuffer::begin()
     .bindResourcePool(pool)
@@ -215,30 +201,20 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
     .renderpass(m_renderpass_id)
     .bufferUpload(m_scene_ubo_id, scene_constants.h, scene_constants.sz);
 
+  auto render_one = RenderFns[m_type][m_render];
+
   for(const auto& ro : objects) {
-    renderOne(ro, cmd);
-
-    auto current_rover = (uintptr_t)m_objects_rover.get();
-    auto current_rover_off = current_rover - (uintptr_t)m_objects;
-
-    if(current_rover_off % ConstantBlockMaxSize == 0) {
-      // We need to advance to a new part of the UniformBuffer
-      auto next_subpass = renderpass.nextSubpassId();
-
-      renderpass.subpass(gx::RenderPass::Subpass()
-        .uniformBufferRange(ObjectConstantsSize, m_object_ubo_id, current_rover_off, ConstantBlockMaxSize)
-      );
-
-      cmd.subpass(next_subpass);
-    }
+    (this->*render_one)(ro, cmd);
+ 
+    advanceConstantBlockBinding(cmd);
   }
 
   return cmd.end();
 }
 
-const RenderTarget& RenderView::renderTarget(uint index) const
+const RenderTarget& RenderView::presentRenderTarget() const
 {
-  return *m_rts.at(index);
+  return *m_rts.at(0);
 }
 
 gx::Pipeline RenderView::createPipeline()
@@ -262,7 +238,10 @@ u32 RenderView::createFramebuffer()
 
   switch(m_render) {
   case DepthOnly:
-    config = RenderTargetConfig::depth_prepass(m_samples);
+    switch(m_type) {
+    case CameraView: config = RenderTargetConfig::depth_prepass(m_samples); break;
+    case ShadowView: config = RenderTargetConfig::msm_shadowmap(m_samples); break;
+    }
     break;
 
   case Forward:
@@ -275,7 +254,7 @@ u32 RenderView::createFramebuffer()
   default: assert(0); // unreachable
   }
 
-  config.viewport = { 0, 0, 1280, 720 }; // TODO
+  config.viewport = m_viewport;
 
   const auto& rt = renderer().queryRenderTarget(config, *m_pool);
   m_rts.emplace_back(&rt);
@@ -294,22 +273,8 @@ u32 RenderView::createRenderPass()
 
   pass
     .framebuffer(framebuffer_id)
-    .pipeline(pipeline);
-
-  switch(m_render) {
-  case DepthOnly:
-    pass
-      .clearOp(gx::RenderPass::ClearDepth);
-    break;
-
-  case Forward:
-  case Deferred:
-    pass
-      .clearOp(gx::RenderPass::ClearColorDepth);
-    break;
-
-  default: assert(0); // unreachable
-  }
+    .pipeline(pipeline)
+    .clearOp(gx::RenderPass::ClearColorDepth);
 
   return id;
 }
@@ -327,6 +292,63 @@ u32 RenderView::createConstantBuffer(u32 sz)
 u32 RenderView::constantBlockSizeAlign(u32 sz)
 {
   return pow2_align(sz, m_ubo_alignment);
+}
+
+gx::RenderPass& RenderView::getRenderpass()
+{
+  return m_pool->get<gx::RenderPass>(m_renderpass_id);
+}
+
+void RenderView::initConstantBuffers(size_t num_ros)
+{
+  const u32 ObjectConstantsSize = constantBlockSizeAlign(sizeof(ObjectConstants));
+  const u32 SceneConstantsSize  = constantBlockSizeAlign(sizeof(SceneConstants));
+
+  // Unaligned size of ObjectConstants UniformBuffer
+  const size_t ObjectConstantBufferUASize = num_ros * ObjectConstantsSize;
+
+  // Must be a multiple of ConstantBlockMaxSize, so align it assuming it's
+  //   unaligned (could waste some space in case that's false)
+  const size_t ObjectConstantBufferSize = ObjectConstantBufferUASize +
+    /* align */ (m_constant_block_sz - (ObjectConstantBufferUASize % m_constant_block_sz));
+
+  m_scene_ubo_id  = createConstantBuffer(SceneConstantsSize);
+  m_object_ubo_id = createConstantBuffer(ObjectConstantsSize);
+
+  m_num_objects_per_block = m_constant_block_sz / ObjectConstantsSize;
+
+  auto object_ubo = m_pool->getBuffer(m_object_ubo_id);
+  object_ubo().init(ObjectConstantBufferSize, 1);
+
+  auto object_ubo_view = object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+
+  m_objects = object_ubo_view.get<ObjectConstants>();
+  m_objects_rover = StridePtr<ObjectConstants>(m_objects, ObjectConstantsSize);
+  m_objects_end = (ObjectConstants *)((byte *)m_objects + ObjectConstantBufferSize);
+
+  getRenderpass()
+    .uniformBufferRange(SceneConstantsBinding, m_scene_ubo_id, 0, SceneConstantsSize)
+    .uniformBufferRange(ObjectConstantsBinding, m_object_ubo_id, 0, m_constant_block_sz);
+}
+
+void RenderView::advanceConstantBlockBinding(gx::CommandBuffer& cmd)
+{
+  auto& renderpass = getRenderpass();
+
+  auto current_rover = (uintptr_t)m_objects_rover.get();
+  auto current_rover_off = current_rover - (uintptr_t)m_objects;
+
+  // Check if we need to advance to the next uniform block yet
+  if(current_rover_off % m_constant_block_sz != 0) return;
+
+  // We need to advance to a new part of the UniformBuffer
+  auto next_subpass = renderpass.nextSubpassId();
+  auto subpass = gx::RenderPass::Subpass()
+    .uniformBufferRange(ObjectConstantsBinding, m_object_ubo_id,
+      current_rover_off, m_constant_block_sz);
+
+  renderpass.subpass(subpass);
+  cmd.subpass(next_subpass);
 }
 
 ShaderConstants RenderView::generateSceneConstants()
@@ -412,36 +434,41 @@ u32 RenderView::writeConstants(const RenderObject& ro)
 }
 
 // TODO
-void RenderView::renderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
+void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 {
   auto constants_offset = writeConstants(ro);
 
   auto program_id = renderer().queryProgram(ro, *m_pool);
-  auto& program = m_pool->get<gx::Program>(program_id);
+  auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.forward
 
-  program
-    .uniformBlockBinding("SceneConstantsBlock", SceneConstantsBinding)
-    .uniformBlockBinding("ObjectConstantsBlock", ObjectConstantsBinding);
+  if(m_init_programs.find(program_id) == m_init_programs.end()) {
+    program.use()
+      .uniformBlockBinding("SceneConstantsBlock", SceneConstantsBinding)
+      .uniformBlockBinding("ObjectConstantsBlock", ObjectConstantsBinding)
+
+      .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit);
+
+    m_init_programs.insert(program_id);
+  }
 
   cmd
     .program(program_id)
-    .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit)
     .uniformInt(U.forward.uObjectConstantsOffset, constants_offset)
     ;
 
-  auto& renderpass = m_pool->get<gx::RenderPass>(m_renderpass_id);
+  auto& renderpass = getRenderpass();
 
   const auto& mesh = ro.mesh().m;
   const auto& material = ro.material();
 
   // TODO!
+  //   - Batch RenderObject by Diffuse texture
   if(material.diff_type == hm::Material::DiffuseTexture) {
     auto next_subpass = renderpass.nextSubpassId();
+    auto subpass = gx::RenderPass::Subpass()
+      .texture(DiffuseTexImageUnit, material.diff_tex.id, material.diff_tex.sampler_id);
 
-    renderpass.subpass(gx::RenderPass::Subpass()
-      .texture(DiffuseTexImageUnit, material.diff_tex.id, material.diff_tex.sampler_id)
-    );
-
+    renderpass.subpass(subpass);
     cmd.subpass(next_subpass);
   }
 
@@ -455,6 +482,10 @@ void RenderView::renderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
   } else {
     cmd.draw(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
   }
+}
+
+void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer & cmd)
+{
 }
 
 }
