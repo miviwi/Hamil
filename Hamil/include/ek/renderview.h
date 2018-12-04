@@ -98,6 +98,8 @@ public:
   const RenderTarget& presentRenderTarget() const;
 
 private:
+  friend Renderer;
+
   enum {
     SceneConstantsBinding  = 0,
     ObjectConstantsBinding = 1,
@@ -147,6 +149,9 @@ private:
 
   // m_type == ShadowView, m_render == DepthOnly
   void shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd);
+
+  // Emits the draw command for ro.mesh()
+  void emitDraw(const RenderObject& ro, gx::CommandBuffer& cmd);
 
   ViewType m_type;
   RenderType m_render;

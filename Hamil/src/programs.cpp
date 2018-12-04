@@ -18,6 +18,12 @@ struct ForwardUniforms : gx::Uniforms {
   int uObjectConstantsOffset;
 };
 
+struct ShadowUniforms : gx::Uniforms {
+  Name msm;
+
+  int uObjectConstantsOffset;
+};
+
 struct AoUniforms : gx::Uniforms {
   Name ao;
 

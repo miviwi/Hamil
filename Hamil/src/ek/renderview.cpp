@@ -225,7 +225,7 @@ gx::Pipeline RenderView::createPipeline()
     .cull(gx::Pipeline::Back)
     .noBlend();
 
-  if(m_render == DepthOnly) {
+  if(m_render == DepthOnly && m_type != ShadowView) {
     pipeline.writeDepthOnly();
   }
 
@@ -438,7 +438,7 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
 {
   auto constants_offset = writeConstants(ro);
 
-  auto program_id = renderer().queryProgram(ro, *m_pool);
+  auto program_id = renderer().queryProgram(*this, ro, *m_pool);
   auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.forward
 
   if(m_init_programs.find(program_id) == m_init_programs.end()) {
@@ -453,12 +453,10 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
 
   cmd
     .program(program_id)
-    .uniformInt(U.forward.uObjectConstantsOffset, constants_offset)
-    ;
+    .uniformInt(U.forward.uObjectConstantsOffset, constants_offset);
 
   auto& renderpass = getRenderpass();
 
-  const auto& mesh = ro.mesh().m;
   const auto& material = ro.material();
 
   // TODO!
@@ -472,6 +470,35 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
     cmd.subpass(next_subpass);
   }
 
+  emitDraw(ro, cmd);
+}
+
+void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
+{
+  auto constants_offset = writeConstants(ro);
+
+  auto program_id = renderer().queryProgram(*this, ro, *m_pool);
+  auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.msm
+
+  if(m_init_programs.find(program_id) == m_init_programs.end()) {
+    program.use()
+      .uniformBlockBinding("SceneConstantsBlock", SceneConstantsBinding)
+      .uniformBlockBinding("ObjectConstantsBlock", ObjectConstantsBinding);
+
+    m_init_programs.insert(program_id);
+  }
+
+  cmd
+    .program(program_id)
+    .uniformInt(U.forward.uObjectConstantsOffset, constants_offset);
+
+  emitDraw(ro, cmd);
+}
+
+void RenderView::emitDraw(const RenderObject& ro, gx::CommandBuffer& cmd)
+{
+  const auto& mesh = ro.mesh().m;
+
   if(mesh.isIndexed()) {
     if(mesh.base != mesh::Mesh::None && mesh.offset != mesh::Mesh::None) {
       cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
@@ -482,10 +509,6 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
   } else {
     cmd.draw(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
   }
-}
-
-void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer & cmd)
-{
 }
 
 }

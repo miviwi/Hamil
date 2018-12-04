@@ -77,28 +77,39 @@ void Renderer::releaseRenderTarget(const RenderTarget& rt)
 }
 
 // TODO: Select the program based on the RenderObject
-u32 Renderer::queryProgram(const RenderObject& ro, gx::ResourcePool& pool)
+u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro, gx::ResourcePool& pool)
 {
   // Temporary!
   if(m_programs.empty()) {
     res::load(&R.shader.shaders.ubo, 1);
     res::load(R.shader.shaders.ids);   // Make sure it's loaded
-    res::Handle<res::Shader> r_program = R.shader.shaders.forward;
 
-    auto id = pool.create<gx::Program>(gx::make_program(
-      r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.forward));
+    res::Handle<res::Shader> f_forward = R.shader.shaders.forward;
+    res::Handle<res::Shader> f_msm = R.shader.shaders.msm;
+
+    auto forward = pool.create<gx::Program>(gx::make_program(
+      f_forward->source(res::Shader::Vertex), f_forward->source(res::Shader::Fragment), U.forward));
+    auto msm = pool.create<gx::Program>(gx::make_program(
+      f_msm->source(res::Shader::Vertex), f_msm->source(res::Shader::Fragment), U.msm));
 
     // Writing to 'm_programs'
     m_programs_lock.acquireExclusive();
-    m_programs.push_back(id);
-    m_programs_lock.releaseExclusive();
 
-    return id;
+    m_programs.push_back(forward);
+    m_programs.push_back(msm);
+
+    m_programs_lock.releaseExclusive();
   }
 
   // Reading from 'm_programs'
   m_programs_lock.acquireShared();
-  auto program = m_programs.front(); // TODO!
+
+  u32 program = ~0u;
+  switch(view.m_type) {
+  case RenderView::CameraView: program = m_programs.at(0); break;
+  case RenderView::ShadowView: program = m_programs.at(1); break;
+  }
+
   m_programs_lock.releaseShared();
 
   return program;

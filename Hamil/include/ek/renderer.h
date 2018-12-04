@@ -45,7 +45,7 @@ public:
   void releaseRenderTarget(const RenderTarget& rt);
 
   // Returns a gx::Program which can be used to render 'ro'
-  u32 queryProgram(const RenderObject& ro, gx::ResourcePool& pool);
+  u32 queryProgram(const RenderView& view, const RenderObject& ro, gx::ResourcePool& pool);
 
 private:
   ObjectVector doExtractForView(hm::Entity scene, RenderView& view);

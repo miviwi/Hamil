@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 
   win32::init();
 
-  constexpr vec2 WindowSize       = { 1600, 900 };
+  constexpr ivec2 WindowSize       = { 1600, 900 };
   constexpr ivec2 FramebufferSize = { 1280, 720 };
 
   using win32::Window;
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -538,7 +538,7 @@ int main(int argc, char *argv[])
   line_ibuf.init(line_inds.data(), line_inds.size());
 
   gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
-  ui::Ui iface(pool, ui::Geometry{ 0, 0, WindowSize.x, WindowSize.y }, ui::Style::basic_style());
+  ui::Ui iface(pool, ui::Geometry(vec2(), WindowSize.cast<float>()), ui::Style::basic_style());
 
   composite_pass.texture(5, iface.framebufferTextureId(), resolve_sampler_id);
 
@@ -966,11 +966,24 @@ int main(int argc, char *argv[])
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
 
+    ivec2 shadowmap_size = { 512, 512 };
+
+    vec3 shadow_pos = vec3(50.0f)*vec3(cos(time.elapsedSecondsf()), 1.0f, sin(time.elapsedSecondsf()));
+
+    auto shadow_view_mtx = xform::look_at(shadow_pos, vec3::zero(), vec3::up());
+    auto shadow_proj = xform::ortho(60, -60, -60, 60, 20, 1e3);
+
     auto render_view = ek::RenderView(ek::RenderView::CameraView)
       .forwardRender()
       .viewport(FramebufferSize)
       .view(view)
       .projection(persp);
+
+    auto shadow_view = ek::RenderView(ek::RenderView::ShadowView)
+      .depthOnlyRender()
+      .viewport(shadowmap_size)
+      .view(shadow_view_mtx)
+      .projection(shadow_proj);
 
     bt::RigidBody picked_body;
     hm::Entity picked_entity = hm::Entity::Invalid;
@@ -1011,6 +1024,9 @@ int main(int argc, char *argv[])
     auto extract_for_view_job = ek::renderer().extractForView(scene, render_view);
     auto extract_for_view_job_id = worker_pool.scheduleJob(extract_for_view_job.get());
 
+    auto extract_for_shadows_job = ek::renderer().extractForView(scene, shadow_view);
+    auto extract_for_shadows_job_id = worker_pool.scheduleJob(extract_for_shadows_job.get());
+
     if(bunny_load_job->done() && bunny_load_job_id != sched::WorkerPool::InvalidJob) {
       worker_pool.waitJob(bunny_load_job_id);
       bunny_load_job_id = sched::WorkerPool::InvalidJob;
@@ -1036,13 +1052,15 @@ int main(int argc, char *argv[])
 
     std::vector<hm::Entity> dead_entities;
 
+    worker_pool.waitJob(extract_for_shadows_job_id);
+    auto& shadow_objects = extract_for_shadows_job->result();
+    shadow_view.render(ek::renderer(), shadow_objects, &pool).execute();
 
     worker_pool.waitJob(extract_for_view_job_id);
-
     auto& render_objects = extract_for_view_job->result();
     render_view.render(ek::renderer(), render_objects, &pool).execute();
 
-    skybox_uniforms ={ view, persp };
+    skybox_uniforms = { view, persp };
     skybox_program.use()
       .uniformFloat(U.skybox.uExposure, exp_slider.value())
       ;
@@ -1182,9 +1200,17 @@ int main(int argc, char *argv[])
     const auto& render_view_rt = render_view.presentRenderTarget();
     auto& render_view_fb = pool.get<gx::Framebuffer>(render_view_rt.framebufferId());
 
+    const auto& shadow_view_rt = shadow_view.presentRenderTarget();
+    auto& shadow_view_fb = pool.get<gx::Framebuffer>(shadow_view_rt.framebufferId());
+
     render_view_fb.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-      ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
+      ivec4{ 0, 0, WindowSize.x, WindowSize.y },
+      gx::Framebuffer::ColorBit, gx::Sampler::Linear);
+
+    shadow_view_fb.blitToWindow(
+      ivec4{ 0, 0, shadowmap_size.x, shadowmap_size.y },
+      ivec4{ 0, 0, shadowmap_size.x, shadowmap_size.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
