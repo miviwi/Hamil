@@ -490,7 +490,7 @@ void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 
   cmd
     .program(program_id)
-    .uniformInt(U.forward.uObjectConstantsOffset, constants_offset);
+    .uniformInt(U.msm.uObjectConstantsOffset, constants_offset);
 
   emitDraw(ro, cmd);
 }

@@ -91,19 +91,21 @@ private:
 
   using TextureIds = util::SmallVector<u32, sizeof(u32) * /* Minimum required MRTs */ 8>;
 
-  RenderTarget(const RenderTargetConfig& config);
+  RenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);
 
   // Stores the Id in 'm_fb_id'
-  gx::Framebuffer& createFramebuffer(gx::ResourcePool& pool);
+  gx::Framebuffer& createFramebuffer();
 
-  gx::TextureHandle createTexMultisample(gx::ResourcePool& pool, gx::Format fmt, uint samples);
-  gx::TextureHandle createTex(gx::ResourcePool& pool, gx::Format fmt);
+  gx::TextureHandle createTexMultisample(gx::Format fmt, uint samples);
+  gx::TextureHandle createTex(gx::Format fmt);
 
-  void initForward(gx::ResourcePool& pool);
-  void initDepthPrepass(gx::ResourcePool& pool);
-  void initShadowMap(gx::ResourcePool& pool);
+  void initForward();
+  void initDepthPrepass();
+  void initShadowMap();
 
-  void checkComplete(gx::ResourcePool& pool);
+  void checkComplete();
+
+  gx::Framebuffer& getFramebuffer();
 
   u32 forwardTextureId(TextureType type) const;
   u32 shadowMapTexureId(TextureType type) const;
@@ -115,6 +117,8 @@ private:
   void unlock() const;
 
   RenderTargetConfig m_config;
+
+  gx::ResourcePool *m_pool;
 
   u32 m_fb_id;
   TextureIds m_texture_ids;

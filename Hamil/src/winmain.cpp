@@ -971,7 +971,9 @@ int main(int argc, char *argv[])
     vec3 shadow_pos = vec3(50.0f)*vec3(cos(time.elapsedSecondsf()), 1.0f, sin(time.elapsedSecondsf()));
 
     auto shadow_view_mtx = xform::look_at(shadow_pos, vec3::zero(), vec3::up());
-    auto shadow_proj = xform::ortho(60, -60, -60, 60, 20, 1e3);
+    auto shadow_proj = xform::ortho(60, -60, -60, 60, 20, 120);
+
+
 
     auto render_view = ek::RenderView(ek::RenderView::CameraView)
       .forwardRender()
@@ -1217,8 +1219,6 @@ int main(int argc, char *argv[])
   }
 
   worker_pool.killWorkers();
-
-  pool.purge();
 
   ek::finalize();
   hm::finalize();
