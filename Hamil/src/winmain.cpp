@@ -140,12 +140,12 @@ int main(int argc, char *argv[])
     .acquireWorkerGlContexts(window)
     .kickWorkers();
 
+  ek::renderer().cachePrograms(pool);
+
   auto world = bt::DynamicsWorld();
 
   py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
 
-  res::load(&R.shader.shaders.ubo, 1);
-  res::load(R.shader.shaders.ids);
   res::load(R.image.ids);
   res::load(R.mesh.ids);
 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -261,19 +261,13 @@ int main(int argc, char *argv[])
     fullscreen_quad_fmt, fullscreen_quad_vbuf);
   auto& fullscreen_quad_arr = pool.get<gx::VertexArray>(fullscreen_quad_arr_id);
 
-  res::Handle<res::Shader> r_program = R.shader.shaders.program,
-    r_ao = R.shader.shaders.hbao,
+  res::load(R.shader.shaders.colorspace);
+  res::load(R.shader.shaders.skybox);
+  res::load(R.shader.shaders.composite);
+
+  res::Handle<res::Shader>
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
-
-  auto program_id = pool.create<gx::Program>("pProgram", gx::make_program(
-    r_program->source(res::Shader::Vertex), r_program->source(res::Shader::Fragment), U.program));
-  auto& program = pool.get<gx::Program>(program_id);
-
-  auto ao_program_id = pool.create<gx::Program>("pAo", gx::make_program(
-    r_ao->source(res::Shader::Vertex), r_ao->source(res::Shader::Fragment), U.ao
-  ));
-  auto& ao_program = pool.get<gx::Program>(ao_program_id);
 
   auto skybox_program_id = pool.create<gx::Program>("pSkybox", gx::make_program(
     r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox));
@@ -966,26 +960,26 @@ int main(int argc, char *argv[])
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
 
-    ivec2 shadowmap_size = { 512, 512 };
+    ivec2 shadowmap_size = { 1024, 1024 };
 
-    vec3 shadow_pos = vec3(50.0f)*vec3(cos(time.elapsedSecondsf()), 1.0f, sin(time.elapsedSecondsf()));
+    auto timef = time.elapsedSecondsf() * 0.1;
+    vec3 shadow_pos = vec3(50.0f)*vec3(cos(timef), 1.0f, sin(timef));
 
     auto shadow_view_mtx = xform::look_at(shadow_pos, vec3::zero(), vec3::up());
-    auto shadow_proj = xform::ortho(60, -60, -60, 60, 20, 120);
-
-
-
-    auto render_view = ek::RenderView(ek::RenderView::CameraView)
-      .forwardRender()
-      .viewport(FramebufferSize)
-      .view(view)
-      .projection(persp);
+    auto shadow_proj = xform::ortho(60, -60, -60, 60, 0.1, 100);
 
     auto shadow_view = ek::RenderView(ek::RenderView::ShadowView)
       .depthOnlyRender()
       .viewport(shadowmap_size)
       .view(shadow_view_mtx)
       .projection(shadow_proj);
+
+    auto render_view = ek::RenderView(ek::RenderView::CameraView)
+      .addInput(&shadow_view)
+      .forwardRender()
+      .viewport(FramebufferSize)
+      .view(view)
+      .projection(persp);
 
     bt::RigidBody picked_body;
     hm::Entity picked_entity = hm::Entity::Invalid;
@@ -1019,9 +1013,6 @@ int main(int argc, char *argv[])
     );
 
     step_timer.reset();
-
-    program.use()
-      .uniformFloat(U.program.uExposure, exp_slider.value());
 
     auto extract_for_view_job = ek::renderer().extractForView(scene, render_view);
     auto extract_for_view_job_id = worker_pool.scheduleJob(extract_for_view_job.get());
@@ -1212,7 +1203,7 @@ int main(int argc, char *argv[])
 
     shadow_view_fb.blitToWindow(
       ivec4{ 0, 0, shadowmap_size.x, shadowmap_size.y },
-      ivec4{ 0, 0, shadowmap_size.x, shadowmap_size.y },
+      ivec4{ 0, 0, 256, 256 },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();

@@ -15,11 +15,13 @@ struct ForwardUniforms : gx::Uniforms {
   Sampler uDiffuseTex;
   float uExposure;
 
+  Sampler uShadowMap;
+
   int uObjectConstantsOffset;
 };
 
 struct ShadowUniforms : gx::Uniforms {
-  Name msm;
+  Name rendermsm;
 
   int uObjectConstantsOffset;
 };

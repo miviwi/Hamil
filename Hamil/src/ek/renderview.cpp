@@ -54,6 +54,8 @@ struct SceneConstants {
   // projection * view
   mat4 viewprojection;
 
+  mat4 light_vp;
+
   vec4 /* vec3 */ ambient_basis[6];
 
   // Driver issiues force this to be an ivec4
@@ -217,6 +219,13 @@ const RenderTarget& RenderView::presentRenderTarget() const
   return *m_rts.at(0);
 }
 
+RenderView& RenderView::addInput(const RenderView *input)
+{
+  m_inputs.push_back(input);
+
+  return *this;
+}
+
 gx::Pipeline RenderView::createPipeline()
 {
   auto pipeline = gx::Pipeline()
@@ -224,10 +233,6 @@ gx::Pipeline RenderView::createPipeline()
     .depthTest(gx::LessEqual)
     .cull(gx::Pipeline::Back)
     .noBlend();
-
-  if(m_render == DepthOnly && m_type != ShadowView) {
-    pipeline.writeDepthOnly();
-  }
 
   return pipeline;
 }
@@ -264,6 +269,16 @@ u32 RenderView::createFramebuffer()
 
 u32 RenderView::createRenderPass()
 {
+  switch(m_type) {
+  case CameraView: return createForwardRenderPass();
+  case ShadowView: return createShadowRenderPass();
+  }
+
+  return ~0u;
+}
+
+u32 RenderView::createForwardRenderPass()
+{
   auto id = m_pool->create<gx::RenderPass>();
 
   auto framebuffer_id = createFramebuffer();
@@ -274,6 +289,37 @@ u32 RenderView::createRenderPass()
   pass
     .framebuffer(framebuffer_id)
     .pipeline(pipeline)
+    .clearOp(gx::RenderPass::ClearColorDepth);
+
+  // Temporary!
+
+  if(m_inputs.empty()) return id; // ShadowMap not provided
+
+  const auto& shadow_rt = m_inputs.at(0)->presentRenderTarget();
+
+  auto shadow_map = shadow_rt.textureId(RenderTarget::Moments);
+  auto shadow_map_sampler = m_pool->create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
+
+  // Bind the ShadowMap to a tex unit
+  pass
+    .texture(ShadowMapTexImageUnit, shadow_map, shadow_map_sampler);
+
+  return id;
+}
+
+u32 RenderView::createShadowRenderPass()
+{
+  auto id = m_pool->create<gx::RenderPass>();
+
+  auto framebuffer_id = createFramebuffer();
+  auto pipeline = createPipeline();
+
+  auto& pass = m_pool->get<gx::RenderPass>(id);
+
+  pass
+    .framebuffer(framebuffer_id)
+    .pipeline(pipeline
+      .clear({ 1.0f, 1.0f, 1.0f, 1.0f }, 1.0f))
     .clearOp(gx::RenderPass::ClearColorDepth);
 
   return id;
@@ -364,6 +410,13 @@ ShaderConstants RenderView::generateSceneConstants()
   scene->projection = m_projection;
   scene->viewprojection = m_projection * m_view;
 
+  if(m_type == CameraView && !m_inputs.empty()) {
+    auto light_view = m_inputs.at(0);
+    mat4 light_vp = light_view->m_projection * light_view->m_view;
+
+    scene->light_vp = light_vp;
+  }
+
   // TODO: pass these in as a parameter...
   vec4 ambient_basis[6] = {
     { 1.0f, 1.0f, 1.0f, 1.0f },
@@ -446,7 +499,8 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
       .uniformBlockBinding("SceneConstantsBlock", SceneConstantsBinding)
       .uniformBlockBinding("ObjectConstantsBlock", ObjectConstantsBinding)
 
-      .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit);
+      .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit)
+      .uniformSampler(U.forward.uShadowMap, ShadowMapTexImageUnit);
 
     m_init_programs.insert(program_id);
   }
@@ -478,7 +532,7 @@ void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
   auto constants_offset = writeConstants(ro);
 
   auto program_id = renderer().queryProgram(*this, ro, *m_pool);
-  auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.msm
+  auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.rendermsm
 
   if(m_init_programs.find(program_id) == m_init_programs.end()) {
     program.use()
@@ -490,7 +544,7 @@ void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 
   cmd
     .program(program_id)
-    .uniformInt(U.msm.uObjectConstantsOffset, constants_offset);
+    .uniformInt(U.rendermsm.uObjectConstantsOffset, constants_offset);
 
   emitDraw(ro, cmd);
 }

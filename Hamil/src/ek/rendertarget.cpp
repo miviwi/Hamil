@@ -80,7 +80,8 @@ const RenderTargetConfig& RenderTarget::config() const
 u32 RenderTarget::textureId(TextureType type) const
 {
   switch(m_config.type) {
-  case RenderTargetConfig::Forward: return forwardTextureId(type);
+  case RenderTargetConfig::Forward:   return forwardTextureId(type);
+  case RenderTargetConfig::ShadowMap: return shadowMapTexureId(type);
   }
 
   return ~0u;

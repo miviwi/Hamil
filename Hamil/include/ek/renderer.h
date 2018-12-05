@@ -37,6 +37,8 @@ public:
 
   Renderer();
 
+  Renderer& cachePrograms(gx::ResourcePool& pool);
+
   ExtractObjectsJob extractForView(hm::Entity scene, RenderView& view);
 
   const RenderTarget& queryRenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);

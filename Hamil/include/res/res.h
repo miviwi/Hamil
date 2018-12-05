@@ -14,6 +14,7 @@ void finalize();
 
 ResourceManager& resources();
 
+ResourceManager& load(size_t id);
 ResourceManager& load(std::initializer_list<size_t> ids);
 ResourceManager& load(const size_t *ids, size_t sz);
 

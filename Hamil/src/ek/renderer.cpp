@@ -25,6 +25,34 @@ Renderer::Renderer()
   m_rts.reserve(InitialRenderTargets);
 }
 
+Renderer& Renderer::cachePrograms(gx::ResourcePool& pool)
+{
+  if(!m_programs.empty()) return *this; // Already cached
+
+  res::load(R.shader.shaders.ubo);
+  res::load(R.shader.shaders.msm);
+
+  res::load(R.shader.shaders.ids);
+
+  res::Handle<res::Shader> f_forward = R.shader.shaders.forward;
+  res::Handle<res::Shader> f_rendermsm = R.shader.shaders.rendermsm;
+
+  auto forward = pool.create<gx::Program>(gx::make_program(
+    f_forward->source(res::Shader::Vertex), f_forward->source(res::Shader::Fragment), U.forward));
+  auto rendermsm = pool.create<gx::Program>(gx::make_program(
+    f_rendermsm->source(res::Shader::Vertex), f_rendermsm->source(res::Shader::Fragment), U.rendermsm));
+
+  // Writing to 'm_programs'
+  m_programs_lock.acquireExclusive();
+
+  m_programs.push_back(forward);
+  m_programs.push_back(rendermsm);
+
+  m_programs_lock.releaseExclusive();
+
+  return *this;
+}
+
 Renderer::ExtractObjectsJob Renderer::extractForView(hm::Entity scene, RenderView& view)
 {
   return ExtractObjectsJob(new sched::Job<ObjectVector, hm::Entity, RenderView *>(
@@ -79,27 +107,7 @@ void Renderer::releaseRenderTarget(const RenderTarget& rt)
 // TODO: Select the program based on the RenderObject
 u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro, gx::ResourcePool& pool)
 {
-  // Temporary!
-  if(m_programs.empty()) {
-    res::load(&R.shader.shaders.ubo, 1);
-    res::load(R.shader.shaders.ids);   // Make sure it's loaded
-
-    res::Handle<res::Shader> f_forward = R.shader.shaders.forward;
-    res::Handle<res::Shader> f_msm = R.shader.shaders.msm;
-
-    auto forward = pool.create<gx::Program>(gx::make_program(
-      f_forward->source(res::Shader::Vertex), f_forward->source(res::Shader::Fragment), U.forward));
-    auto msm = pool.create<gx::Program>(gx::make_program(
-      f_msm->source(res::Shader::Vertex), f_msm->source(res::Shader::Fragment), U.msm));
-
-    // Writing to 'm_programs'
-    m_programs_lock.acquireExclusive();
-
-    m_programs.push_back(forward);
-    m_programs.push_back(msm);
-
-    m_programs_lock.releaseExclusive();
-  }
+  if(m_programs.empty()) cachePrograms(pool);
 
   // Reading from 'm_programs'
   m_programs_lock.acquireShared();

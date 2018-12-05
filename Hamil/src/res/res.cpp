@@ -33,6 +33,13 @@ ResourceManager& resources()
   return *p_manager;
 }
 
+ResourceManager& load(size_t id)
+{
+  p_manager->load(id);
+
+  return *p_manager;
+}
+
 ResourceManager& load(std::initializer_list<size_t> ids)
 {
   for(auto id : ids) {

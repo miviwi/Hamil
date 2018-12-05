@@ -20,27 +20,32 @@ void IComponentStore::lock()
 
   // Take the mutex if we're the first lock() invocation
   //   or if requireUnlocked() was called
+  //
+  // In the former case: locked == 0
+  // Otherwise:          locked <  0
   if(locked <= 0) {
     // m_mutex is held until endRequireUnlocked() was
     //   called as many times as requireUnlocked()
     //   (so locked == 0)
     m_mutex.acquire();
 
-    // compare_exchange_strong() will verify
-    //   this assumption
-    locked = 0;
+    locked = 0;  // compare_exchange_strong() will verify
+                 //   this assumption
   }
 
-  // If we were woken up after another thread waiting
-  //   on 'm_mutex' the counter could is now in an
-  //   unexpected state
-  if(!m_locked.compare_exchange_strong(locked, locked+1)) {
-    // We'll need to reacquire the mutex because we
-    //   slept through a requireUnlocked() call
-    m_mutex.release();
+  // If the compare_exchange_strong() succeedes we've either just
+  //   acquired 'm_mutex' or (when locked was > 0 at the start)
+  //   we've acquired it before. In any case we'll release it when
+  //   unlock() gets called as many times as lock() (so locked == 0)
+  if(m_locked.compare_exchange_strong(locked, locked+1)) return;
 
-    lock();   // Retry
-  }
+  // We were woken up after another thread waiting
+  //   on 'm_mutex' so the counter is now in an
+  //   unknown state so we'll reacquire it to
+  //   wait once more
+  m_mutex.release();
+
+  lock();   // Retry
 }
 
 void IComponentStore::unlock()
@@ -56,24 +61,27 @@ void IComponentStore::requireUnlocked()
 {
   int locked = m_locked.load();
 
+  // Take the mutex when
+  //   locked == 0 (we are the first requireUnlocked() call)
+  //   locked >  0 (we need to wait for unlock() to be called)
   if(locked >= 0) {
     // m_mutex is held until unlock() was
     //   called as many times as lock()
     //   (so locked == 0)
     m_mutex.acquire();
 
-    // compare_exchange_strong() will verify
-    //   this assumption
-    locked = 0;
+    locked = 0;  // compare_exchange_strong() will verify
+                 //   this assumption
   }
 
-  if(!m_locked.compare_exchange_strong(locked, locked-1)) {
-    // We'll need to reacquire the mutex because we
-    //   slept through a lock() call
-    m_mutex.release();
+  if(m_locked.compare_exchange_strong(locked, locked-1)) return;
 
-    requireUnlocked();  // Retry
-  }
+  // We'll need to reacquire the mutex because we
+  //   slept through a lock() call - see note in
+  //   lock() componentstore.cpp:35
+  m_mutex.release();
+
+  requireUnlocked();  // Retry
 }
 
 void IComponentStore::endRequireUnlocked()

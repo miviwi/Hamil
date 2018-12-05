@@ -97,6 +97,8 @@ public:
   //   the rendered view
   const RenderTarget& presentRenderTarget() const;
 
+  RenderView& addInput(const RenderView *input);
+
 private:
   friend Renderer;
 
@@ -104,12 +106,18 @@ private:
     SceneConstantsBinding  = 0,
     ObjectConstantsBinding = 1,
 
-    DiffuseTexImageUnit = 0,
+    DiffuseTexImageUnit   = 0,
+    ShadowMapTexImageUnit = 1,
   };
 
   gx::Pipeline createPipeline();
+
   u32 createFramebuffer();
+
   u32 createRenderPass();
+  u32 createForwardRenderPass();
+  u32 createShadowRenderPass();
+
   // Aligns 'sz' appropriately
   u32 createConstantBuffer(u32 sz);
 
@@ -174,6 +182,8 @@ private:
 
   gx::MemoryPool *m_mempool;
   gx::ResourcePool *m_pool;
+
+  std::vector<const RenderView *> m_inputs;
 
   // Stores the currently used render tagrets
   std::vector<const RenderTarget *> m_rts;
