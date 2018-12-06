@@ -9,6 +9,7 @@
 #include <vector>
 #include <unordered_map>
 #include <initializer_list>
+#include <optional>
 
 namespace gx {
 
@@ -68,9 +69,16 @@ enum Primitive : GLenum {
   TriangleStrip = GL_TRIANGLE_STRIP,
 };
 
+struct UniformDescriptor {
+  int offset;
+
+  int array_size;
+  int array_stride;
+};
+
 class Program : public Ref {
 public:
-  using OffsetMap = std::unordered_map<std::string, size_t>;
+  using DescriptorMap = std::unordered_map<std::string, UniformDescriptor>;
 
   Program(const Shader& vertex, const Shader& fragment);
   Program(const Shader& vertex, const Shader& geometry, const Shader& fragment);
@@ -92,7 +100,9 @@ public:
   unsigned getUniformBlockIndex(const char *name);
   Program& uniformBlockBinding(unsigned block, unsigned index);
   Program& uniformBlockBinding(const char *name, unsigned index);
-  const OffsetMap& uniformBlockOffsets(unsigned block);
+
+  const DescriptorMap& uniformBlockDescriptors(unsigned block);
+  const DescriptorMap& uniformBlockDescriptors(const char *name);
 
   int getOutputLocation(const char *name);
 
@@ -125,11 +135,15 @@ public:
 private:
   void link();
   void getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[]);
-  void getUniformBlockOffsets();
+  void getUniformBlockDescriptors();
 
   GLuint m;
-  static const OffsetMap m_null_offsets;
-  std::vector<OffsetMap> m_ubo_offsets;
+
+  using DescriptorMapVector = std::vector<DescriptorMap>;
+
+  static const DescriptorMap m_null_descs;
+  // Lazy initialized in uniformBlockDescriptors()
+  std::optional<DescriptorMapVector> m_ubo_descs = std::nullopt;
 };
 
 template <typename T>

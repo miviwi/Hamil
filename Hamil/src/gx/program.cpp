@@ -25,8 +25,6 @@ Program::Program(const Shader& vertex, const Shader& fragment)
  
   glDetachShader(m, vertex.m);
   glDetachShader(m, fragment.m);
-
-  getUniformBlockOffsets();
 }
 
 Program::Program(const Shader& vertex, const Shader& geometry, const Shader& fragment)
@@ -42,12 +40,10 @@ Program::Program(const Shader& vertex, const Shader& geometry, const Shader& fra
   glDetachShader(m, vertex.m);
   glDetachShader(m, geometry.m);
   glDetachShader(m, fragment.m);
-
-  getUniformBlockOffsets();
 }
 
 Program::Program(Program&& other) :
-  m(other.m), m_ubo_offsets(std::move(other.m_ubo_offsets))
+  m(other.m), m_ubo_descs(std::move(other.m_ubo_descs))
 {
   other.m = 0;
 }
@@ -64,7 +60,7 @@ Program& Program::operator=(Program&& other)
   this->~Program();
 
   m = other.m;
-  m_ubo_offsets = std::move(other.m_ubo_offsets);
+  m_ubo_descs = std::move(other.m_ubo_descs);
 
   other.m = 0;
 
@@ -93,12 +89,19 @@ Program& Program::uniformBlockBinding(const char *name, unsigned index)
   return uniformBlockBinding(getUniformBlockIndex(name), index);
 }
 
-const Program::OffsetMap Program::m_null_offsets;
-const Program::OffsetMap& Program::uniformBlockOffsets(unsigned block)
+const Program::DescriptorMap Program::m_null_descs;
+const Program::DescriptorMap& Program::uniformBlockDescriptors(unsigned block)
 {
-  if(block >= m_ubo_offsets.size()) return m_null_offsets;
+  // Lazy-initialize the DescriptorMapVector
+  if(!m_ubo_descs) getUniformBlockDescriptors();
 
-  return m_ubo_offsets[block];
+  // If the block index is out of range return an empty map
+  return block < m_ubo_descs->size() ? m_ubo_descs->at(block) : m_null_descs;
+}
+
+const Program::DescriptorMap& Program::uniformBlockDescriptors(const char *name)
+{
+  return uniformBlockDescriptors(getUniformBlockIndex(name));
 }
 
 int Program::getOutputLocation(const char *name)
@@ -269,37 +272,59 @@ void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_
 
 thread_local static char p_uniform_name[256];
 
-void Program::getUniformBlockOffsets()
+void Program::getUniformBlockDescriptors()
 {
-  enum { InitalNumIndicesAndOffsets = 64 };
+  enum { InitalNumIndices = 64 };
 
-  std::vector<unsigned> indices(InitalNumIndicesAndOffsets);
-  std::vector<int> offsets(InitalNumIndicesAndOffsets);
+  std::vector<unsigned> indices(InitalNumIndices);
+  std::vector<int> offsets(InitalNumIndices);
+  std::vector<int> sizes(InitalNumIndices);
+  std::vector<int> strides(InitalNumIndices);
 
   int num_blocks = 0;
   glGetProgramiv(m, GL_ACTIVE_UNIFORM_BLOCKS, &num_blocks);
 
-  m_ubo_offsets.resize(num_blocks);
+  m_ubo_descs.emplace(num_blocks);
 
   for(int block = 0; block < num_blocks; block++) {
-    OffsetMap& offset_map = m_ubo_offsets[block];
+    DescriptorMap& offset_map = m_ubo_descs->at(block);
 
     int num_uniforms = 0;
     glGetActiveUniformBlockiv(m, block, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &num_uniforms);
+
+    // Check if we have enough space in the vectors
     if(num_uniforms > indices.size()) {
       indices.resize(num_uniforms);
       offsets.resize(num_uniforms);
+      sizes.resize(num_uniforms);
+      strides.resize(num_uniforms);
     }
 
+    // First query the indices of the Uniforms
     glGetActiveUniformBlockiv(m, block, GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES, (int *)indices.data());
+
+    // ...then their offsets
     glGetActiveUniformsiv(m, num_uniforms, indices.data(), GL_UNIFORM_OFFSET, offsets.data());
+    // ...and the sizes
+    glGetActiveUniformsiv(m, num_uniforms, indices.data(), GL_UNIFORM_SIZE, sizes.data());
+    // ...and lastly the arrays strides
+    glGetActiveUniformsiv(m, num_uniforms, indices.data(), GL_UNIFORM_ARRAY_STRIDE, strides.data());
+
     for(int i = 0; i < num_uniforms; i++) {
       auto uniform = (unsigned)indices[i];
-      auto offset = (size_t)offsets[i];
 
+      auto offset = offsets[i];
+      auto size   = sizes[i];
+      auto stride = strides[i];
+
+      // Query the name string
       glGetActiveUniformName(m, uniform, sizeof(p_uniform_name), nullptr, p_uniform_name);
 
-      offset_map.insert({ p_uniform_name, offset });
+      offset_map.insert({
+        p_uniform_name,
+
+        UniformDescriptor{ offset, size, stride }
+      });
     }
   }
 }
