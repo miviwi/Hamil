@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -328,45 +328,13 @@ int main(int argc, char *argv[])
   auto ao_noise_tex_id = pool.createTexture<gx::Texture2D>("t2dAoNoise",
     gx::rgb16f);
   auto& ao_noise_tex = pool.getTexture<gx::Texture2D>(ao_noise_tex_id);
-
   auto ao_noise_sampler_id = pool.create<gx::Sampler>(gx::Sampler::repeat2d());
-
   ao_noise_tex.init(ao_noise.data(), 0, AoNoiseSize, AoNoiseSize, gx::rgb, gx::f32);
-
-  auto ao_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
-
-  auto fb_tex_id = pool.createTexture<gx::Texture2D>("t2dFramebufferColor",
-    gx::rgb10, gx::Texture::Multisample);
-  auto& fb_tex = pool.getTexture<gx::Texture2D>(fb_tex_id);
-
-  auto fb_depth_id = pool.createTexture<gx::Texture2D>("t2dFramebufferDepth",
-    gx::r32f, gx::Texture::Multisample);
-  auto& fb_depth = pool.getTexture<gx::Texture2D>(fb_depth_id);
-
-  auto fb_normal_id = pool.createTexture<gx::Texture2D>("t2dFramebufferNormal",
-    gx::rgb32f, gx::Texture::Multisample);
-  auto& fb_normal = pool.getTexture<gx::Texture2D>(fb_normal_id);
- 
-  auto fb_id = pool.create<gx::Framebuffer>("fbFramebuffer");
-  auto& fb = pool.get<gx::Framebuffer>(fb_id);
-
-  fb_tex.initMultisample(1, FramebufferSize);
-  fb_depth.initMultisample(1, FramebufferSize);
-  fb_normal.initMultisample(1, FramebufferSize);
-
-  fb.use()
-    .tex(fb_tex, 0, gx::Framebuffer::Color(0))
-    .tex(fb_depth, 0, gx::Framebuffer::Color(1))
-    .tex(fb_normal, 0, gx::Framebuffer::Color(2))
-    .renderbuffer(gx::depth16, gx::Framebuffer::Depth, "rbFramebufferDepth");
-  if(fb.status() != gx::Framebuffer::Complete) {
-    win32::panic("couldn't create main Framebuffer!", win32::FramebufferError);
-  }
 
   auto ao_id = pool.createTexture<gx::Texture2D>("t2dFramebufferAo",
     gx::rg16f);
   auto& ao = pool.getTexture<gx::Texture2D>(ao_id);
-
+  auto ao_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
   ao.swizzle(gx::Red, gx::Green, gx::Zero, gx::Zero);
 
   auto fb_ao_id = pool.create<gx::Framebuffer>("fbAo");
@@ -412,35 +380,9 @@ int main(int argc, char *argv[])
     .uniformBlockBinding("SceneConstants", 0)
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
 
-  auto scene_pass_id = pool.create<gx::RenderPass>();
-  auto& scene_pass = pool.get<gx::RenderPass>(scene_pass_id)
-    .framebuffer(fb_id)
-    .textures({
-      { 1, { cubemap_id, cubemap_sampler_id }}
-    })
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
-      .depthTest(gx::LessEqual)
-      .cull(gx::Pipeline::Back)
-      .seamlessCubemap()
-      .noBlend()
-      .clear(vec4{ 0.0f, 0.0f, 0.0f, 1.0f }, 1.0f))
-    .subpass(gx::RenderPass::Subpass()
-      .pipeline(gx::Pipeline()
-        .writeColorOnly()
-        .depthTest(gx::LessEqual)
-        .cull(gx::Pipeline::Front)))
-    .clearOp(gx::RenderPass::ClearColorDepth)
-    ;
-
   auto composite_pass_id = pool.create<gx::RenderPass>();
   auto& composite_pass = pool.get<gx::RenderPass>(composite_pass_id)
     .framebuffer(fb_composite_id)
-    .textures({
-      { 4, { fb_tex_id, resolve_sampler_id }},
-      { 5,    { ao_id, ao_sampler_id }},
-    })
-    .uniformBuffer(AoKernelBinding, ao_ubo_id)
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.x, FramebufferSize.y)
       .noDepthTest()
@@ -780,18 +722,6 @@ int main(int argc, char *argv[])
 
   auto floor = create_floor();
   hm::Entity bunny;
-
-  auto cmd_skybox = gx::CommandBuffer::begin()
-    .renderpass(scene_pass_id)
-    .subpass(0)
-    .program(skybox_program_id)
-    .uniformMatrix4x4(U.skybox.uView, skybox_uniforms_handle)
-    .uniformMatrix4x4(U.skybox.uProjection, skybox_uniforms_handle+sizeof(mat4))
-    .drawIndexed(gx::Triangles, skybox_arr_id, skybox_inds.size())
-    .end();
-
-  cmd_skybox.bindResourcePool(&pool);
-  cmd_skybox.bindMemoryPool(&memory);
 
   auto ui_paint_job = sched::create_job([&]() -> gx::CommandBuffer {
 
@@ -1162,21 +1092,9 @@ int main(int argc, char *argv[])
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size())
       ;
 
+#endif
     ui_paint_job.result().execute();
 
-    // Resolve the main Framebuffer and composite the Ui on top of it
-    composite_pass.begin(pool);
-
-    composite_program.use()
-      .uniformBool(U.composite.uAoEnabled, use_ao)
-      .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
-
-    fb_composite.blitToWindow(
-      ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-      ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
-      gx::Framebuffer::ColorBit, gx::Sampler::Linear);
-
-#endif
     cursor.paint();
     worker_pool.waitJob(transforms_extract_job_id);
     transforms_extract_dt = transforms_extract_job.dbg_ElapsedTime();
@@ -1197,9 +1115,27 @@ int main(int argc, char *argv[])
     const auto& shadow_view_rt = shadow_view.presentRenderTarget();
     auto& shadow_view_fb = pool.get<gx::Framebuffer>(shadow_view_rt.framebufferId());
 
-    render_view_fb.blitToWindow(
+    const uint UiTexImageUnit = 4;
+    const uint SceneTexImageUnit = 5;
+
+    // Resolve the main Framebuffer and composite the Ui on top of it
+    composite_pass.textures({
+      { UiTexImageUnit, { iface.framebufferTextureId(),
+                          resolve_sampler_id } },
+      { SceneTexImageUnit, { render_view_rt.textureId(ek::RenderTarget::Accumulation),
+                             resolve_sampler_id } },
+    });
+
+    composite_pass.begin(pool);
+
+    composite_program.use()
+      .uniformSampler(U.composite.uUi, UiTexImageUnit)
+      .uniformSampler(U.composite.uScene, SceneTexImageUnit)
+      .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
+
+    fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
-      ivec4{ 0, 0, WindowSize.x, WindowSize.y },
+      ivec4{ 0, 0, (int)WindowSize.x, (int)WindowSize.y },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     shadow_view_fb.blitToWindow(
