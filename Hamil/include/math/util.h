@@ -5,6 +5,8 @@
 
 #include <cassert>
 #include <string>
+#include <vector>
+#include <utility>
 
 static unsigned pow2_round(unsigned v)
 {
@@ -107,6 +109,15 @@ float smoothstep(T min, T max, float u)
   u = clamp((u - min) / (max - min), 0.0f, 1.0f);
   return u*u*(3 - 2*u);
 }
+
+// r == 1   =>  3x3 kernel
+// r == 2   =>  5x5 kernel
+// r == 3   =>  7x7 kernel
+//  etc...
+// Returns a vector where the first r*2 + 1 elements
+//   are the kernel itself and the last element is
+//   the normalization factor
+std::vector<float> gaussian_kernel(int r);
 
 namespace math {
 

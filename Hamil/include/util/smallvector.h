@@ -64,15 +64,14 @@ public:
     return *this;
   }
 
-  T& at(u32 idx)
-  {
-    return *(data() + idx);
-  }
+  T& at(u32 idx) { return *(data() + idx); }
+  const T& at(u32 idx) const { return *(data() + idx); }
 
-  const T& at(u32 idx) const
-  {
-    return *(data() + idx);
-  }
+  T& front() { return *data(); }
+  const T& front() const { return *data(); }
+
+  T& back() { return *(end() - 1); }
+  const T& back() const { return *(cend() - 1); }
 
   // Appends 'elem' to the end of the container and
   //   returns it's index

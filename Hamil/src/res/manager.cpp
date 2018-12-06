@@ -33,7 +33,7 @@ ResourceManager::ResourceManager(std::initializer_list<ResourceLoader *> loader_
 }
 
 Resource::Id ResourceManager::guid(Resource::Tag tag,
-  const std::string& name, const std::string& path) const
+  const std::string& name, const std::string& path)
 {
   size_t hash = 0;
   util::hash_combine<Resource::Tag::Hash>(hash, tag);

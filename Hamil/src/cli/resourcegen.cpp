@@ -66,9 +66,6 @@ static const std::map<std::string, GenFunc> p_gen_fns = {
 static const std::regex p_name_regex("^((?:[^/ ]+/)*)([^./ ]*)\\.([a-z]+)$", std::regex::optimize);
 void resourcegen(std::vector<std::string> resources, std::set<std::string> types)
 {
-  win32::init();
-  res::init();
-
   if(resources.empty()) {
     std::function<void(const std::string&)> enum_resources = [&](const std::string& path) {
       win32::FileQuery q((path + "*").data());
@@ -136,7 +133,7 @@ template <typename T>
 yaml::Mapping *make_meta(const std::string& name, const std::string& path)
 {
   auto full_path = path.empty() ? "" : "/" + path;
-  auto guid = res::resources().guid<T>(name, full_path);
+  auto guid = res::ResourceManager::guid<T>(name, full_path);
 
   return yaml::ordered_string_mapping({
     { "guid", util::fmt("0x%.16llx", guid) },

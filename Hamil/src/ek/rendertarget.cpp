@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <cstring>
-#include "..\..\include\ek\rendertarget.h"
 
 namespace ek {
 
@@ -36,14 +35,14 @@ RenderTargetConfig RenderTargetConfig::forward_linearz(uint samples)
   return self;
 }
 
-RenderTargetConfig RenderTargetConfig::msm_shadowmap(uint samples)
+RenderTargetConfig RenderTargetConfig::moment_shadow_map(uint samples)
 {
   RenderTargetConfig self;
 
-  self.type = ShadowMap;
+  self.type = MomentShadowMap;
   self.samples = samples;
 
-  self.moments.emplace(gx::rgba16);
+  self.moments.emplace(gx::rgba32f);
   self.depth = gx::depth24;
 
   return self;
@@ -60,9 +59,9 @@ RenderTarget RenderTarget::from_config(const RenderTargetConfig& config, gx::Res
 
   // TODO!
   switch(config.type) {
-  case RenderTargetConfig::DepthPrepass: rt.initDepthPrepass(); break;
-  case RenderTargetConfig::Forward:      rt.initForward(); break;
-  case RenderTargetConfig::ShadowMap:    rt.initShadowMap(); break;
+  case RenderTargetConfig::DepthPrepass:    rt.initDepthPrepass(); break;
+  case RenderTargetConfig::Forward:         rt.initForward(); break;
+  case RenderTargetConfig::MomentShadowMap: rt.initShadowMap(); break;
 
   default: assert(0); // unreachable
   }
@@ -79,9 +78,13 @@ const RenderTargetConfig& RenderTarget::config() const
 
 u32 RenderTarget::textureId(TextureType type) const
 {
+  if(type == Depth) {
+    return m_config.depth_texture ? m_texture_ids.back() : ~0u;
+  }
+
   switch(m_config.type) {
-  case RenderTargetConfig::Forward:   return forwardTextureId(type);
-  case RenderTargetConfig::ShadowMap: return shadowMapTexureId(type);
+  case RenderTargetConfig::Forward:         return forwardTextureId(type);
+  case RenderTargetConfig::MomentShadowMap: return shadowMapTexureId(type);
   }
 
   return ~0u;
@@ -92,26 +95,26 @@ void RenderTarget::initForward()
   auto& fb = createFramebuffer();
 
   gx::TextureHandle accumulation, linearz;
-
   if(m_config.samples > 0) {
-    accumulation = createTexMultisample((gx::Format)m_config.accumulation.value(), m_config.samples);
+    accumulation = createTexMultisample(m_config.accumulation.value(), m_config.samples);
     if(m_config.linearz) {
-      linearz = createTexMultisample((gx::Format)m_config.linearz.value(), m_config.samples);
+      linearz = createTexMultisample(m_config.linearz.value(), m_config.samples);
     }
   } else {
-    accumulation = createTex((gx::Format)m_config.accumulation.value());
+    accumulation = createTex(m_config.accumulation.value());
     if(m_config.linearz) {
-      linearz = createTex((gx::Format)m_config.linearz.value());
+      linearz = createTex(m_config.linearz.value());
     }
   }
 
   fb.use()
-    .tex(accumulation.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(0))  /* Accumulation */
-    .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
+    .tex(accumulation.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(0));  /* Accumulation */
 
   if(m_config.linearz) {
     fb.tex(linearz.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(1));      /* Linear Z */
   }
+
+  initDepth();
 }
 
 void RenderTarget::initDepthPrepass()
@@ -132,16 +135,16 @@ void RenderTarget::initShadowMap()
   auto& fb = createFramebuffer();
 
   gx::TextureHandle moments;
-
   if(m_config.samples > 0) {
-    moments = createTexMultisample((gx::Format)m_config.moments.value(), m_config.samples);
+    moments = createTexMultisample(m_config.moments.value(), m_config.samples);
   } else {
-    moments = createTex((gx::Format)m_config.moments.value());
+    moments = createTex(m_config.moments.value());
   }
 
   fb.use()
-    .tex(moments.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(0))
-    .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
+    .tex(moments.get<gx::Texture2D>(), 0, gx::Framebuffer::Color(0));
+
+  initDepth();
 }
 
 void RenderTarget::checkComplete()
@@ -226,9 +229,9 @@ gx::Framebuffer& RenderTarget::createFramebuffer()
   return m_pool->get<gx::Framebuffer>(m_fb_id);
 }
 
-gx::TextureHandle RenderTarget::createTexMultisample(gx::Format fmt, uint samples)
+gx::TextureHandle RenderTarget::createTexMultisample(u32 fmt, uint samples)
 {
-  auto id = m_pool->createTexture<gx::Texture2D>(fmt, gx::Texture::Multisample);
+  auto id = m_pool->createTexture<gx::Texture2D>((gx::Format)fmt, gx::Texture::Multisample);
   auto tex = m_pool->getTexture(id);
 
   tex.get<gx::Texture2D>().initMultisample(samples, m_config.viewport.z, m_config.viewport.w);
@@ -238,9 +241,9 @@ gx::TextureHandle RenderTarget::createTexMultisample(gx::Format fmt, uint sample
   return tex;
 }
 
-gx::TextureHandle RenderTarget::createTex(gx::Format fmt)
+gx::TextureHandle RenderTarget::createTex(u32 fmt)
 {
-  auto id = m_pool->createTexture<gx::Texture2D>(fmt);
+  auto id = m_pool->createTexture<gx::Texture2D>((gx::Format)fmt);
   auto tex = m_pool->getTexture(id);
 
   tex().init(m_config.viewport.z, m_config.viewport.w);
@@ -248,6 +251,30 @@ gx::TextureHandle RenderTarget::createTex(gx::Format fmt)
   m_texture_ids.append(id);
 
   return tex;
+}
+
+void RenderTarget::initDepth()
+{
+  auto& fb = getFramebuffer();
+
+  if(m_config.depth_texture) {
+    gx::TextureHandle depth;
+
+    if(m_config.samples > 0) {
+      depth = createTexMultisample(m_config.depth, m_config.samples);
+    } else {
+      depth = createTex(m_config.depth);
+    }
+
+    fb.use()
+      .tex(depth.get<gx::Texture2D>(), 0, gx::Framebuffer::Depth);
+  } else {
+    // Framebuffer::renderbuffer() handles multisampling transparently,
+    //   i.e. when at least one render target has MSAA it will automatically
+    //   set it for all renderbuffers
+    fb.use()
+      .renderbuffer((gx::Format)m_config.depth, gx::Framebuffer::Depth);
+  }
 }
 
 }

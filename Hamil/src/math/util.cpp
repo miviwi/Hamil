@@ -2,6 +2,41 @@
 
 #include <util/format.h>
 
+#include <cmath>
+
+std::vector<float> gaussian_kernel(int r)
+{
+  constexpr float NormFactor = 0.39894f;
+
+  const int kernel_1d_size = r*2 + 1;
+
+  const float sigma      = (float)(r+1) * 2.0f;
+  const float inv_sigma  = 1.0f / sigma;
+  const float sigma2     = sigma*sigma;
+  const float inv_sigma2 = 1.0f / sigma2;
+
+  auto norm_pdf = [=](float x) -> float {
+    float neghalf_x2 = -0.5f * (x*x);
+
+    return NormFactor * expf(neghalf_x2 * inv_sigma2) * inv_sigma;
+  };
+
+  std::vector<float> kernel(kernel_1d_size);
+  float Z = 0.0f;
+  for(int i = 0; i <= r; i++) {
+    float n = norm_pdf((float)i);
+
+    kernel[r + i] = kernel[r - i] = n;
+  }
+
+  for(int i = 0; i < kernel_1d_size; i++) Z += kernel[i];
+  Z = 1.0 / (Z*Z);
+
+  kernel.push_back(Z);
+
+  return kernel;
+}
+
 namespace math {
 
 std::string to_str(const vec2& v)

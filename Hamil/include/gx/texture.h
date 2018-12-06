@@ -25,6 +25,13 @@ public:
 
   virtual ~Texture();
 
+  /* --------------- Texture1D init methods ---------------- */
+  void init(unsigned w);
+
+  void init(const void *data, unsigned mip, unsigned w, Format format, Type type);
+  void upload(const void *data, unsigned mip, unsigned x, unsigned w,
+    Format format, Type type);
+
   /* --------------- Texture2D init methods ---------------- */
 
   void init(unsigned w, unsigned h); // Initializes MipMap level 0
@@ -74,6 +81,11 @@ protected:
 
 private:
   GLenum m;
+};
+
+class Texture1D : public Texture {
+public:
+  Texture1D(Format format);
 };
 
 class Texture2D : public Texture {
@@ -180,6 +192,18 @@ public:
   ~Sampler();
 
   /* Helpers for creating common Sampler configurations */
+
+  static Sampler repeat1d();
+  static Sampler repeat1d_linear();
+  static Sampler repeat1d_mipmap();
+
+  static Sampler edgeclamp1d();
+  static Sampler edgeclamp1d_linear();
+  static Sampler edgeclamp1d_mipmap();
+
+  static Sampler borderclamp1d();
+  static Sampler borderclamp1d_linear();
+  static Sampler borderclamp1d_mipmap();
 
   static Sampler repeat2d();
   static Sampler repeat2d_linear();

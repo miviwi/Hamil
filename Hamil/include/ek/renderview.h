@@ -2,6 +2,7 @@
 
 #include <ek/euklid.h>
 
+#include <util/ref.h>
 #include <math/geometry.h>
 #include <math/frustum.h>
 
@@ -28,8 +29,11 @@ struct ShaderConstants;
 
 struct ObjectConstants;
 
+// PIMPL class
+class RenderViewData;
+
 // Must keep the RenderView around until render() finishes
-class RenderView {
+class RenderView : public Ref {
 public:
   enum ViewType {
     Invalid,
@@ -106,9 +110,12 @@ private:
     SceneConstantsBinding  = 0,
     ObjectConstantsBinding = 1,
 
-    DiffuseTexImageUnit   = 0,
-    ShadowMapTexImageUnit = 1,
+    DiffuseTexImageUnit    = 0,
+    ShadowMapTexImageUnit  = 1,
+    BlurKernelTexImageUnit = 2,
   };
+
+  constexpr static int GaussianBlurRadius = 2;  // See math/util.h
 
   gx::Pipeline createPipeline();
 
@@ -120,6 +127,9 @@ private:
 
   // Aligns 'sz' appropriately
   u32 createConstantBuffer(u32 sz);
+
+  // No-op when id == gx::ResourcePool::Invalid
+  void releaseConstantBuffer(u32 id);
 
   // Aligns 'sz' to gx::info().minUniformBindAlignment()
   //   (i.e. the minimum required alignment of a uniform
@@ -148,6 +158,11 @@ private:
   // Returns an offset into the ObjectConstants UniformBuffer
   //   where the element under that offset describes 'ro'
   u32 writeConstants(const RenderObject& ro);
+
+  void initLuts();
+
+  // m_blur_ubo must be allocated before
+  void initBlurKernelTexture();
 
   using RenderFn = void (RenderView::*)(const RenderObject&, gx::CommandBuffer&);
   static const RenderFn RenderFns[NumViewTypes][NumRenderTypes];
@@ -196,6 +211,10 @@ private:
 
   u32 m_scene_ubo_id;
   u32 m_object_ubo_id;
+
+  u32 m_blur_kernel_id;
+
+  RenderViewData *m_data;
 
   // Used by writeConstants() to find the new RenderObject's constants
   //   offset in the current block

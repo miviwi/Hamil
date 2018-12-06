@@ -1,6 +1,7 @@
 #include <mesh/util.h>
 
 #include <cmath>
+#include "..\..\include\math\util.h"
 
 namespace mesh {
 

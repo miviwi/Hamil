@@ -45,13 +45,13 @@ public:
   ResourceManager(std::initializer_list<ResourceLoader *> loader_chain);
 
   template <typename T>
-  Resource::Id guid(const std::string& name, const std::string& path)
+  static Resource::Id guid(const std::string& name, const std::string& path)
   {
     Resource::is_resource<T>();
 
     return guid(T::tag(), name, path);
   }
-  Resource::Id guid(Resource::Tag tag, const std::string& name, const std::string& path) const;
+  static Resource::Id guid(Resource::Tag tag, const std::string& name, const std::string& path);
 
   ResourceHandle load(Resource::Id id, LoadFlags flags = LoadDefault);
   // Gets handle to an already loaded resource

@@ -31,7 +31,7 @@ enum Format {
   r16f = GL_R16F, r32f = GL_R32F,
   rg16f = GL_RG16F, rg32f = GL_RG32F,
   rgb16f = GL_RGB16F, rgb32f = GL_RGB32F,
-  rgba16f = GL_RGBA16F, rgbaf32 = GL_RGBA32F,
+  rgba16f = GL_RGBA16F, rgba32f = GL_RGBA32F,
 
   depth16 = GL_DEPTH_COMPONENT16,
   depth24 = GL_DEPTH_COMPONENT24,

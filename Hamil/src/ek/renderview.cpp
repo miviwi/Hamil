@@ -18,6 +18,7 @@
 #include <cassert>
 #include <cstring>
 #include <algorithm>
+#include <optional>
 
 namespace ek {
 
@@ -89,6 +90,14 @@ struct ObjectShadowConstants {
 };
 #pragma pack(pop)
 
+class RenderViewData {
+public:
+  // Make SURE to unmap this before rednering
+  std::optional<gx::BufferView> object_ubo_view = std::nullopt;
+
+  std::vector<u32> samplers;
+};
+
 RenderView::RenderView(ViewType type) :
   m_type(type),
   m_render((RenderType)~0u),
@@ -100,6 +109,8 @@ RenderView::RenderView(ViewType type) :
   m_renderpass_id(gx::ResourcePool::Invalid),
   m_scene_ubo_id(gx::ResourcePool::Invalid),
   m_object_ubo_id(gx::ResourcePool::Invalid),
+  m_blur_kernel_id(gx::ResourcePool::Invalid),
+  m_data(new RenderViewData),
   m_objects_rover(nullptr, 1)
 {
   m_ubo_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
@@ -108,12 +119,20 @@ RenderView::RenderView(ViewType type) :
 
 RenderView::~RenderView()
 {
+  if(deref()) return;
+
   for(auto rt : m_rts) renderer().releaseRenderTarget(*rt);
 
   if(m_renderpass_id != gx::ResourcePool::Invalid) m_pool->release<gx::RenderPass>(m_renderpass_id);
-  if(m_scene_ubo_id != gx::ResourcePool::Invalid)  m_pool->releaseBuffer(m_scene_ubo_id);
-  if(m_object_ubo_id != gx::ResourcePool::Invalid) m_pool->releaseBuffer(m_object_ubo_id);
 
+  releaseConstantBuffer(m_scene_ubo_id);
+  releaseConstantBuffer(m_object_ubo_id);
+
+  if(m_blur_kernel_id != gx::ResourcePool::Invalid) m_pool->releaseTexture(m_blur_kernel_id);
+
+  for(auto sampler : m_data->samplers) m_pool->release<gx::Sampler>(sampler);
+
+  delete m_data;
   delete m_mempool;
 }
 
@@ -197,6 +216,8 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
 
   initConstantBuffers(objects.size());
 
+  initLuts();
+
   auto cmd = gx::CommandBuffer::begin()
     .bindResourcePool(pool)
     .bindMemoryPool(m_mempool)
@@ -210,6 +231,9 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
  
     advanceConstantBlockBinding(cmd);
   }
+
+  // Unmap the ObjectConstants UniformBuffer
+  m_data->object_ubo_view = std::nullopt;
 
   return cmd.end();
 }
@@ -245,7 +269,7 @@ u32 RenderView::createFramebuffer()
   case DepthOnly:
     switch(m_type) {
     case CameraView: config = RenderTargetConfig::depth_prepass(m_samples); break;
-    case ShadowView: config = RenderTargetConfig::msm_shadowmap(m_samples); break;
+    case ShadowView: config = RenderTargetConfig::moment_shadow_map(m_samples); break;
     }
     break;
 
@@ -297,8 +321,20 @@ u32 RenderView::createForwardRenderPass()
 
   const auto& shadow_rt = m_inputs.at(0)->presentRenderTarget();
 
+#define USE_MSM
+
+#if defined(USE_MSM)
   auto shadow_map = shadow_rt.textureId(RenderTarget::Moments);
   auto shadow_map_sampler = m_pool->create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
+#else
+  auto shadow_map = shadow_rt.textureId(RenderTarget::Depth);
+  auto shadow_map_sampler = m_pool->create<gx::Sampler>(
+    gx::Sampler::edgeclamp2d_linear()
+      .compareRef(gx::Less)
+  );
+#endif
+
+  m_data->samplers.push_back(shadow_map_sampler);
 
   // Bind the ShadowMap to a tex unit
   pass
@@ -319,7 +355,7 @@ u32 RenderView::createShadowRenderPass()
   pass
     .framebuffer(framebuffer_id)
     .pipeline(pipeline
-      .clear({ 1.0f, 1.0f, 1.0f, 1.0f }, 1.0f))
+      .clear({ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f))
     .clearOp(gx::RenderPass::ClearColorDepth);
 
   return id;
@@ -333,6 +369,13 @@ u32 RenderView::createConstantBuffer(u32 sz)
   buf().init(constantBlockSizeAlign(sz), 1);
 
   return id;
+}
+
+void RenderView::releaseConstantBuffer(u32 id)
+{
+  if(id == gx::ResourcePool::Invalid) return;
+
+  m_pool->releaseBuffer(id);
 }
 
 u32 RenderView::constantBlockSizeAlign(u32 sz)
@@ -349,6 +392,7 @@ void RenderView::initConstantBuffers(size_t num_ros)
 {
   const u32 ObjectConstantsSize = constantBlockSizeAlign(sizeof(ObjectConstants));
   const u32 SceneConstantsSize  = constantBlockSizeAlign(sizeof(SceneConstants));
+  const u32 BlurConstantsSize   = constantBlockSizeAlign(sizeof(BlurConstantsSize));
 
   // Unaligned size of ObjectConstants UniformBuffer
   const size_t ObjectConstantBufferUASize = num_ros * ObjectConstantsSize;
@@ -366,9 +410,11 @@ void RenderView::initConstantBuffers(size_t num_ros)
   auto object_ubo = m_pool->getBuffer(m_object_ubo_id);
   object_ubo().init(ObjectConstantBufferSize, 1);
 
-  auto object_ubo_view = object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate);
+  m_data->object_ubo_view.emplace(
+    object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate)
+  );
 
-  m_objects = object_ubo_view.get<ObjectConstants>();
+  m_objects = m_data->object_ubo_view->get<ObjectConstants>();
   m_objects_rover = StridePtr<ObjectConstants>(m_objects, ObjectConstantsSize);
   m_objects_end = (ObjectConstants *)((byte *)m_objects + ObjectConstantBufferSize);
 
@@ -419,13 +465,11 @@ ShaderConstants RenderView::generateSceneConstants()
 
   // TODO: pass these in as a parameter...
   vec4 ambient_basis[6] = {
-    { 1.0f, 1.0f, 1.0f, 1.0f },
-    { 1.0f, 1.0f, 1.0f, 1.0f },
-    { 1.0f, 1.0f, 1.0f, 1.0f },
-    { 1.0f, 1.0f, 1.0f, 1.0f },
-    { 1.0f, 1.0f, 1.0f, 1.0f },
-    { 1.0f, 1.0f, 1.0f, 1.0f },
+    vec4(0.0f, 0.25f, 0.25f, 1.0f),  vec4(0.5f, 0.5f, 0.0f, 1.0f),
+    vec4(0.25f, 0.25f, 0.25f, 1.0f), vec4(0.7f, 0.7f, 0.7f, 1.0f),
+    vec4(0.1f, 0.1f, 0.1f, 1.0f),    vec4(0.1f, 0.1f, 0.1f, 1.0f),
   };
+  memcpy(scene->ambient_basis, ambient_basis, sizeof(SceneConstants::ambient_basis));
 
   memset(scene->light_types, 0, sizeof(SceneConstants::light_types));
 
@@ -486,6 +530,30 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   return block_off;
 }
 
+void RenderView::initLuts()
+{
+  auto& renderpass = getRenderpass();
+
+  m_blur_kernel_id = m_pool->createTexture<gx::Texture1D>(gx::r32f);
+  auto blur_kernel_sampler = m_pool->create<gx::Sampler>(gx::Sampler::edgeclamp1d());
+
+  m_data->samplers.push_back(blur_kernel_sampler);
+
+  initBlurKernelTexture();
+
+  renderpass
+    .texture(BlurKernelTexImageUnit, m_blur_kernel_id, blur_kernel_sampler);
+}
+
+void RenderView::initBlurKernelTexture()
+{
+  auto kernel = gaussian_kernel(GaussianBlurRadius);
+
+  auto blur_kernel = m_pool->getTexture(m_blur_kernel_id);
+  blur_kernel()
+    .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
+}
+
 // TODO
 void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 {
@@ -500,7 +568,8 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
       .uniformBlockBinding("ObjectConstantsBlock", ObjectConstantsBinding)
 
       .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit)
-      .uniformSampler(U.forward.uShadowMap, ShadowMapTexImageUnit);
+      .uniformSampler(U.forward.uShadowMap, ShadowMapTexImageUnit)
+      .uniformSampler(U.forward.uGaussianKernel, BlurKernelTexImageUnit);
 
     m_init_programs.insert(program_id);
   }

@@ -17,6 +17,8 @@ struct ForwardUniforms : gx::Uniforms {
 
   Sampler uShadowMap;
 
+  Sampler uGaussianKernel;
+
   int uObjectConstantsOffset;
 };
 

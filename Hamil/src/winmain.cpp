@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -203,9 +203,9 @@ int main(int argc, char *argv[])
   tex.generateMipmaps();
 
   byte cubemap_colors[][3] = {
-    { 0x00, 0xFF, 0xFF, }, { 0xFF, 0xFF, 0x00, },
-    { 0xFF, 0xFF, 0xFF, }, { 0x00, 0x00, 0x00, },
-    { 0xFF, 0xFF, 0xFF, }, { 0xFF, 0xFF, 0xFF, },
+    { 0x00, 0x20, 0x20, }, { 0x20, 0x20, 0x00, },
+    { 0x20, 0x20, 0x20, }, { 0x00, 0x00, 0x00, },
+    { 0x20, 0x20, 0x20, }, { 0x20, 0x20, 0x20, },
 
 #if 0
     vec4(0.0f, 0.25f, 0.25f, 1.0f), vec4(0.5f, 0.5f, 0.0f, 1.0f),
@@ -409,6 +409,7 @@ int main(int argc, char *argv[])
   ao_ubo.init(ao_kernel.data(), ao_kernel.size());
 
   skybox_program.use()
+    .uniformBlockBinding("SceneConstants", 0)
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
 
   auto scene_pass_id = pool.create<gx::RenderPass>();
@@ -781,6 +782,7 @@ int main(int argc, char *argv[])
   hm::Entity bunny;
 
   auto cmd_skybox = gx::CommandBuffer::begin()
+    .renderpass(scene_pass_id)
     .subpass(0)
     .program(skybox_program_id)
     .uniformMatrix4x4(U.skybox.uView, skybox_uniforms_handle)
@@ -946,7 +948,7 @@ int main(int argc, char *argv[])
     mat4 model = mat4::identity();
 
     auto persp = xform::perspective(70.0f,
-      16.0f/9.0f, 50.0f, 1e6);
+      16.0f/9.0f, 30.0f, 1e6);
 
     auto view = xform::look_at(eye.xyz(), pos, vec3{ 0, 1, 0 });
 
@@ -960,13 +962,13 @@ int main(int argc, char *argv[])
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
 
-    ivec2 shadowmap_size = { 1024, 1024 };
+    ivec2 shadowmap_size = { 512, 512 };
 
     auto timef = time.elapsedSecondsf() * 0.1;
     vec3 shadow_pos = vec3(50.0f)*vec3(cos(timef), 1.0f, sin(timef));
 
     auto shadow_view_mtx = xform::look_at(shadow_pos, vec3::zero(), vec3::up());
-    auto shadow_proj = xform::ortho(60, -60, -60, 60, 0.1, 100);
+    auto shadow_proj = xform::ortho(60, -60, -60, 60, -10, 150);
 
     auto shadow_view = ek::RenderView(ek::RenderView::ShadowView)
       .depthOnlyRender()
@@ -1058,9 +1060,8 @@ int main(int argc, char *argv[])
       .uniformFloat(U.skybox.uExposure, exp_slider.value())
       ;
 
-    cmd_skybox
-      .activeRenderPass(scene_pass_id)
-      .execute();
+   // cmd_skybox
+   //   .execute();
 
     if(picked_entity && picked_entity.alive()) {
       if(picked_entity.gameObject().parent() == scene) {

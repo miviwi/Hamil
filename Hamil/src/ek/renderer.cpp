@@ -29,7 +29,9 @@ Renderer& Renderer::cachePrograms(gx::ResourcePool& pool)
 {
   if(!m_programs.empty()) return *this; // Already cached
 
+  res::load(R.shader.shaders.util);
   res::load(R.shader.shaders.ubo);
+  res::load(R.shader.shaders.blur);
   res::load(R.shader.shaders.msm);
 
   res::load(R.shader.shaders.ids);

@@ -23,6 +23,28 @@ Texture::~Texture()
   glDeleteTextures(1, &m);
 }
 
+void Texture::init(unsigned w)
+{
+  use();
+  glTexImage1D(m_target, 0, m_format, w, 0, GL_UNSIGNED_BYTE, GL_RGBA, nullptr);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::init(const void *data, unsigned mip, unsigned w, Format format, Type type)
+{
+  use();
+  glTexImage1D(m_target, mip, m_format, w, 0, format, type, data);
+
+  setDefaultParameters(m_target);
+}
+
+void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned w, Format format, Type type)
+{
+  use();
+  glTexSubImage1D(m_target, mip, x, w, format, type, data);
+}
+
 void Texture::use()
 {
   glBindTexture(m_target, m);
@@ -139,6 +161,12 @@ void Texture::label(const char *lbl)
 
   glObjectLabel(GL_TEXTURE, m, -1, lbl);
 #endif
+}
+
+
+Texture1D::Texture1D(Format format) :
+  Texture(GL_TEXTURE_1D, format)
+{
 }
 
 Texture2D::Texture2D(Format format, Flags flags) :
@@ -262,11 +290,82 @@ Sampler::~Sampler()
   glDeleteSamplers(1, &m);
 }
 
+Sampler Sampler::repeat1d()
+{
+  return Sampler()
+    .param(WrapS, Repeat)
+    .param(MinFilter, Nearest)
+    .param(MagFilter, Nearest);
+}
+
+Sampler Sampler::repeat1d_linear()
+{
+  return Sampler()
+    .param(WrapS, Repeat)
+    .param(MinFilter, Linear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::repeat1d_mipmap()
+{
+  return Sampler()
+    .param(WrapS, Repeat)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::edgeclamp1d()
+{
+  return Sampler()
+    .param(WrapS, EdgeClamp)
+    .param(MinFilter, Nearest)
+    .param(MagFilter, Nearest);
+}
+
+Sampler Sampler::edgeclamp1d_linear()
+{
+  return Sampler()
+    .param(WrapS, EdgeClamp)
+    .param(MinFilter, Linear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::edgeclamp1d_mipmap()
+{
+  return Sampler()
+    .param(WrapS, EdgeClamp)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::borderclamp1d()
+{
+  return Sampler()
+    .param(WrapS, BorderClamp)
+    .param(MinFilter, Nearest)
+    .param(MagFilter, Nearest);
+}
+
+Sampler Sampler::borderclamp1d_linear()
+{
+  return Sampler()
+    .param(WrapS, BorderClamp)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
+Sampler Sampler::borderclamp1d_mipmap()
+{
+  return Sampler()
+    .param(WrapS, BorderClamp)
+    .param(MinFilter, LinearMipmapLinear)
+    .param(MagFilter, Linear);
+}
+
 Sampler Sampler::repeat2d()
 {
   return Sampler()
     .param(WrapS, Repeat)
-    .param(WrapT, Repeat)
     .param(MinFilter, Nearest)
     .param(MagFilter, Nearest);
 }

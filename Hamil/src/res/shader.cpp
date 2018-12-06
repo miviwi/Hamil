@@ -5,6 +5,7 @@
 #include <util/format.h>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <sstream>
 
@@ -41,6 +42,9 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
   auto& geometry_sources = shader->m_sources[Geometry];
   auto& fragment_sources = shader->m_sources[Fragment];
 
+  std::unordered_set<std::string> global_imports,
+    vertex_imports, geometry_imports, fragment_imports;
+
   auto& inline_sources = shader->m_inline;
 
   auto get_ptr = [&](const yaml::Node::Ptr& src_node) -> const char *
@@ -71,10 +75,17 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     p_library.set(lib_name, ss.str());
   };
 
-  auto do_stage = [&](const char *stage_name, std::vector<const char *>& dst) -> void
+  auto do_stage = [&](const char *stage_name,
+    std::unordered_set<std::string>& imports, std::vector<const char *>& dst) -> void
   {
     if(auto stage = doc(stage_name)) {
       for(const auto& src : *stage->as<yaml::Sequence>()) {
+        // Prevent importing the same source multiple times
+        if(src->tag() == ImportSource) {
+          auto imported = imports.insert(src->as<yaml::Scalar>()->str());
+          if(!imported.second) continue;
+        }
+
         auto ptr = get_ptr(src);
         dst.push_back(ptr);
       }
@@ -91,10 +102,10 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     }
   };
 
-  do_stage("glsl", global_sources);
-  do_stage("vertex", vertex_sources);
-  do_stage("geometry", geometry_sources);
-  do_stage("fragment", fragment_sources);
+  do_stage("glsl", global_imports, global_sources);
+  do_stage("vertex", vertex_imports, vertex_sources);
+  do_stage("geometry", geometry_imports, geometry_sources);
+  do_stage("fragment", fragment_imports, fragment_sources);
 
   shader->m_loaded = true;
 

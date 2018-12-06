@@ -28,7 +28,7 @@ public:
     DepthPrepass,
     Forward, Deffered,
     LightPropagationVolume,
-    ShadowMap,
+    MomentShadowMap,
     ReflectiveShadowMap,
   };
 
@@ -41,6 +41,8 @@ public:
   std::optional<u32 /* gx::Format */> linearz = std::nullopt;
 
   std::optional<u32 /* gx::Format */> moments = std::nullopt;
+
+  bool depth_texture = true;
   u32 depth = 0;
 
   // 0 == no MSAA
@@ -51,7 +53,7 @@ public:
   static RenderTargetConfig forward_linearz(uint samples = 0);
 
   // 0 == no MSAA
-  static RenderTargetConfig msm_shadowmap(uint samples = 0);
+  static RenderTargetConfig moment_shadow_map(uint samples = 0);
 
   // Returns 'true' when 'other' is compatible
   bool operator==(const RenderTargetConfig& other) const;
@@ -64,8 +66,11 @@ public:
     Accumulation = 0,
     LinearZ = 1,
 
-    // ShadowMap
+    // MomentShadowMap
     Moments = 0,
+
+    // Depth texture for all BaseTypes
+    Depth = ~0,
   };
 
   struct Error { };
@@ -96,8 +101,10 @@ private:
   // Stores the Id in 'm_fb_id'
   gx::Framebuffer& createFramebuffer();
 
-  gx::TextureHandle createTexMultisample(gx::Format fmt, uint samples);
-  gx::TextureHandle createTex(gx::Format fmt);
+  gx::TextureHandle createTexMultisample(u32 /* gx::Format */ fmt, uint samples);
+  gx::TextureHandle createTex(u32 /* gx::Format */ fmt);
+
+  void initDepth();
 
   void initForward();
   void initDepthPrepass();
