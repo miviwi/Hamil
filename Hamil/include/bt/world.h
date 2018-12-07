@@ -22,6 +22,11 @@ class RayClosestHit;
 class DynamicsWorldConfig;
 class DynamicsWorldData;
 
+// - <add,remove>RigidBody(), rayTestClosest() and step()
+//   are all thread-safe with relation to each other,
+//   HOWEVER the actual RigidBodies themselves are NOT
+//   so care must be taken to not read-from or write-to
+//   ones in use
 class DynamicsWorld : public Ref {
 public:
   static constexpr float SimulationRate = 60.0f /* Hz */;
@@ -38,7 +43,11 @@ public:
   //   to a btDynamicsWorld as a void *
   void *get() const;
 
+  // If this method is called from a secondary thread
+  //   during simulation adding the body will be deferred
+  //   until it ends
   void addRigidBody(RigidBody rb);
+  // Same as addRigidBody() (see note above)
   void removeRigidBody(RigidBody rb);
 
   RayClosestHit rayTestClosest(Ray ray);

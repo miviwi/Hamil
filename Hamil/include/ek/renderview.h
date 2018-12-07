@@ -118,7 +118,7 @@ private:
     BlurKernelTexImageUnit = 2,
   };
 
-  constexpr static int GaussianBlurRadius = 3;  // See math/util.h
+  constexpr static int GaussianBlurRadius = 1;  // See math/util.h
 
   // m_renderer->pool()
   gx::ResourcePool& pool();

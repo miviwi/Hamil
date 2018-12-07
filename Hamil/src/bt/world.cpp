@@ -92,20 +92,22 @@ void DynamicsWorldData::queueAppend(QueueEntry e)
   uint head = queue_head.load();
   if(head+1 < queue.size()) {  // The queue still has space
     if(!queue_head.compare_exchange_strong(head, head+1)) {
-      // Somebody raced us - retry
-      queueAppend(e);
+      queueAppend(e);    // Somebody raced us - retry
+    } else {
+      queue[head] = e;   // 'head' is where we put our request
     }
+  } else {
+    // No space in the queue - must stall
+    //   - The AddRemoveQueueDepth should be tuned so that
+    //     this is a VERY cold path because this stall could
+    //     last a looong ime if we're in the middle of
+    //     simulation
+    lock.acquireExclusive();
 
-    // 'head' is where we put our request
-    queue[head] = e;
-    return;
+    queueAppend(e); // Retry
+
+    lock.releaseExclusive();
   }
-
-  // No space in the queue - must stall
-  lock.acquireExclusive();
-  lock.releaseExclusive();
-
-  queueAppend(e); // Retry
 }
 
 DynamicsWorldData::QueueEntry DynamicsWorldData::queuePop()
@@ -164,12 +166,11 @@ void DynamicsWorld::addRigidBody(RigidBody rb)
     m_world->addRigidBody(rb.m);
 
     lock().releaseExclusive();
-    return;
+  } else {
+    // The world is being mutated/inspected - add the
+    //   RigidBody to the queue
+    m_data->queueAppend({ DynamicsWorldData::QueueAdd, rb.m });
   }
-
-  // The world is being mutated/inspected - add the
-  //   RigidBody to the queue
-  m_data->queueAppend({ DynamicsWorldData::QueueAdd, rb.m });
 #else
   m_world->addRigidBody(rb.m);
 #endif
@@ -183,10 +184,9 @@ void DynamicsWorld::removeRigidBody(RigidBody rb)
     m_world->removeRigidBody(rb.m);
 
     lock().releaseExclusive();
-    return;
+  } else {
+    m_data->queueAppend({ DynamicsWorldData::QueueRemove, rb.m });
   }
-
-  m_data->queueAppend({ DynamicsWorldData::QueueRemove, rb.m });
 #else
   m_world->removeRigidBody(rb.m);
 #endif
