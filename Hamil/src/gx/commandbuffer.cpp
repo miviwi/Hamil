@@ -136,6 +136,13 @@ CommandBuffer& CommandBuffer::fenceWait(ResourceId fence)
   return appendCommand(OpFence, data);
 }
 
+CommandBuffer& CommandBuffer::generateMipmaps(ResourceId texture)
+{
+  checkResourceId(texture);
+
+  return appendCommand(OpGenerateMipmaps, texture);
+}
+
 CommandBuffer& CommandBuffer::end()
 {
   return appendCommand(OpEnd);
@@ -285,6 +292,11 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
 
   case OpFence:
     fenceCommand(data);
+    break;
+
+  case OpGenerateMipmaps:
+    m_pool->getTexture(data).get()
+      .generateMipmaps();
     break;
 
   case OpEnd:

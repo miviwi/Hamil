@@ -16,6 +16,7 @@ class RenderPass;
 class CommandBuffer;
 class ResourcePool;
 class MemoryPool;
+class UniformBuffer;
 }
 
 namespace ek {
@@ -23,6 +24,7 @@ namespace ek {
 class Renderer;
 class RenderObject;
 class RenderTarget;
+class ConstantBuffer;
 
 // Stores a MemoryPool Handle and a size
 struct ShaderConstants;
@@ -94,8 +96,7 @@ public:
   // Make SURE to specify the ResourcePool used to create
   //   the hm::Mesh Components of the extracted Entities!
   gx::CommandBuffer render(Renderer& renderer,
-    const std::vector<RenderObject>& objects,
-    gx::ResourcePool *pool);
+    const std::vector<RenderObject>& objects);
 
   // Returns a reference to the RenderTarget which holds
   //   the rendered view
@@ -106,16 +107,21 @@ public:
 private:
   friend Renderer;
 
-  enum {
+  enum : u32 {
     SceneConstantsBinding  = 0,
     ObjectConstantsBinding = 1,
+
+    NumConstantBufferBindings = 2,
 
     DiffuseTexImageUnit    = 0,
     ShadowMapTexImageUnit  = 1,
     BlurKernelTexImageUnit = 2,
   };
 
-  constexpr static int GaussianBlurRadius = 2;  // See math/util.h
+  constexpr static int GaussianBlurRadius = 3;  // See math/util.h
+
+  // m_renderer->pool()
+  gx::ResourcePool& pool();
 
   gx::Pipeline createPipeline();
 
@@ -125,18 +131,15 @@ private:
   u32 createForwardRenderPass();
   u32 createShadowRenderPass();
 
-  // Aligns 'sz' appropriately
-  u32 createConstantBuffer(u32 sz);
-
-  // No-op when id == gx::ResourcePool::Invalid
-  void releaseConstantBuffer(u32 id);
+  u32 constantBufferId(u32 which);
+  gx::UniformBuffer& constantBuffer(u32 which);
 
   // Aligns 'sz' to gx::info().minUniformBindAlignment()
   //   (i.e. the minimum required alignment of a uniform
   //    block's bind range)
   u32 constantBlockSizeAlign(u32 sz);
 
-  // m_pool->get<gx::RenderPass>(m_renderpass_id)
+  // pool().get<gx::RenderPass>(m_renderpass_id)
   gx::RenderPass& getRenderpass();
 
   // Initializes:
@@ -159,10 +162,8 @@ private:
   //   where the element under that offset describes 'ro'
   u32 writeConstants(const RenderObject& ro);
 
+  // Calls Renderer::queryLUT()
   void initLuts();
-
-  // m_blur_ubo must be allocated before
-  void initBlurKernelTexture();
 
   using RenderFn = void (RenderView::*)(const RenderObject&, gx::CommandBuffer&);
   static const RenderFn RenderFns[NumViewTypes][NumRenderTypes];
@@ -190,14 +191,18 @@ private:
   // 0 == no MSAA
   uint m_samples;
 
-  mat4 m_view;
-  mat4 m_projection;
+  mat4 m_view;     // View matrix
+  mat4 m_projection;  // Projection matrix (ViewType dependent)
 
+  // Stores mapped BufferViews and allocated Samplers
+  RenderViewData *m_data;
+
+  // Assigned in render()
   Renderer *m_renderer;
-
+  // Allocated in render()
   gx::MemoryPool *m_mempool;
-  gx::ResourcePool *m_pool;
 
+  // Provided by the user (see the addInput() method)
   std::vector<const RenderView *> m_inputs;
 
   // Stores the currently used render tagrets
@@ -207,14 +212,10 @@ private:
   //   uniformBlockBindings, samplers, etc. set
   std::set<u32> m_init_programs;
 
+  // Indexed via <...>ConstantsBinding enum values
+  std::vector<const ConstantBuffer *> m_const_bufs;
+
   u32 m_renderpass_id;
-
-  u32 m_scene_ubo_id;
-  u32 m_object_ubo_id;
-
-  u32 m_blur_kernel_id;
-
-  RenderViewData *m_data;
 
   // Used by writeConstants() to find the new RenderObject's constants
   //   offset in the current block

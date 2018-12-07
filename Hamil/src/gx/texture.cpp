@@ -151,6 +151,7 @@ void Texture::swizzle(Component r, Component g, Component b, Component a)
 
 void Texture::generateMipmaps()
 {
+  use();
   glGenerateMipmap(m_target);
 }
 

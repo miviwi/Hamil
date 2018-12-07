@@ -1,6 +1,7 @@
 #include <ek/renderview.h>
 #include <ek/renderer.h>
 #include <ek/renderobject.h>
+#include <ek/constbuffer.h>
 
 #include <math/util.h>
 #include <gx/gx.h>
@@ -76,13 +77,11 @@ struct ObjectConstants {
   vec4 /* vec3 */ diff_color;
   vec4 /* vec3 */ ior;
 
-  // Driver issiues force this to be an ivec4
-  ivec4 /* int */ material_id;
+  // Packed object material properties
+  //   (uint(material_id), metalness, roughness, 0.0f)
+  vec4 material_id__metalness__roughness__0;
 
-  float metalness;
-  float roughness;
-
-  float pad_[2];
+  vec4 pad_;
 };
 
 struct ObjectShadowConstants {
@@ -92,25 +91,21 @@ struct ObjectShadowConstants {
 
 class RenderViewData {
 public:
-  // Make SURE to unmap this before rednering
+  // Make SURE to unmap this before rendering
   std::optional<gx::BufferView> object_ubo_view = std::nullopt;
 
   std::vector<u32> samplers;
 };
 
 RenderView::RenderView(ViewType type) :
-  m_type(type),
-  m_render((RenderType)~0u),
-  m_viewport(0, 0, 0, 0),
-  m_samples(0),
+  m_type(type), m_render((RenderType)~0u),
+  m_viewport(0, 0, 0, 0), m_samples(0),
   m_view(mat4::identity()), m_projection(mat4::identity()),
-  m_renderer(nullptr),
-  m_mempool(nullptr), m_pool(nullptr),
-  m_renderpass_id(gx::ResourcePool::Invalid),
-  m_scene_ubo_id(gx::ResourcePool::Invalid),
-  m_object_ubo_id(gx::ResourcePool::Invalid),
-  m_blur_kernel_id(gx::ResourcePool::Invalid),
   m_data(new RenderViewData),
+  m_renderer(nullptr),
+  m_mempool(nullptr),
+  m_const_bufs(NumConstantBufferBindings, nullptr),
+  m_renderpass_id(gx::ResourcePool::Invalid),
   m_objects_rover(nullptr, 1)
 {
   m_ubo_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
@@ -122,15 +117,10 @@ RenderView::~RenderView()
   if(deref()) return;
 
   for(auto rt : m_rts) renderer().releaseRenderTarget(*rt);
+  for(auto buf : m_const_bufs) renderer().releaseConstantBuffer(*buf);
+  for(auto sampler : m_data->samplers) pool().release<gx::Sampler>(sampler);
 
-  if(m_renderpass_id != gx::ResourcePool::Invalid) m_pool->release<gx::RenderPass>(m_renderpass_id);
-
-  releaseConstantBuffer(m_scene_ubo_id);
-  releaseConstantBuffer(m_object_ubo_id);
-
-  if(m_blur_kernel_id != gx::ResourcePool::Invalid) m_pool->releaseTexture(m_blur_kernel_id);
-
-  for(auto sampler : m_data->samplers) m_pool->release<gx::Sampler>(sampler);
+  if(m_renderpass_id != gx::ResourcePool::Invalid)  pool().release<gx::RenderPass>(m_renderpass_id);
 
   delete m_data;
   delete m_mempool;
@@ -198,14 +188,11 @@ const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] =
 };
 
 gx::CommandBuffer RenderView::render(Renderer& renderer,
-  const std::vector<RenderObject>& objects,
-  gx::ResourcePool *pool)
+  const std::vector<RenderObject>& objects)
 {
   // Used by internal methods
   m_renderer = &renderer;
 
-  // Used by internal methods
-  m_pool = pool;
   // Internal to this RenderView
   m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
 
@@ -219,10 +206,10 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   initLuts();
 
   auto cmd = gx::CommandBuffer::begin()
-    .bindResourcePool(pool)
+    .bindResourcePool(&pool())
     .bindMemoryPool(m_mempool)
     .renderpass(m_renderpass_id)
-    .bufferUpload(m_scene_ubo_id, scene_constants.h, scene_constants.sz);
+    .bufferUpload(constantBufferId(SceneConstantsBinding), scene_constants.h, scene_constants.sz);
 
   auto render_one = RenderFns[m_type][m_render];
 
@@ -234,6 +221,12 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
 
   // Unmap the ObjectConstants UniformBuffer
   m_data->object_ubo_view = std::nullopt;
+
+  if(m_type == ShadowView) {
+    auto shadow_map = presentRenderTarget().textureId(RenderTarget::Moments);
+
+    cmd.generateMipmaps(shadow_map);
+  }
 
   return cmd.end();
 }
@@ -248,6 +241,11 @@ RenderView& RenderView::addInput(const RenderView *input)
   m_inputs.push_back(input);
 
   return *this;
+}
+
+gx::ResourcePool& RenderView::pool()
+{
+  return renderer().pool();
 }
 
 gx::Pipeline RenderView::createPipeline()
@@ -285,7 +283,7 @@ u32 RenderView::createFramebuffer()
 
   config.viewport = m_viewport;
 
-  const auto& rt = renderer().queryRenderTarget(config, *m_pool);
+  const auto& rt = renderer().queryRenderTarget(config);
   m_rts.emplace_back(&rt);
 
   return rt.framebufferId();
@@ -303,12 +301,12 @@ u32 RenderView::createRenderPass()
 
 u32 RenderView::createForwardRenderPass()
 {
-  auto id = m_pool->create<gx::RenderPass>();
+  auto id = pool().create<gx::RenderPass>();
 
   auto framebuffer_id = createFramebuffer();
   auto pipeline = createPipeline();
 
-  auto& pass = m_pool->get<gx::RenderPass>(id);
+  auto& pass = pool().get<gx::RenderPass>(id);
 
   pass
     .framebuffer(framebuffer_id)
@@ -325,10 +323,12 @@ u32 RenderView::createForwardRenderPass()
 
 #if defined(USE_MSM)
   auto shadow_map = shadow_rt.textureId(RenderTarget::Moments);
-  auto shadow_map_sampler = m_pool->create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
+  auto shadow_map_sampler = pool().create<gx::Sampler>(
+    gx::Sampler::edgeclamp2d_mipmap()
+  );
 #else
   auto shadow_map = shadow_rt.textureId(RenderTarget::Depth);
-  auto shadow_map_sampler = m_pool->create<gx::Sampler>(
+  auto shadow_map_sampler = pool().create<gx::Sampler>(
     gx::Sampler::edgeclamp2d_linear()
       .compareRef(gx::Less)
   );
@@ -345,12 +345,12 @@ u32 RenderView::createForwardRenderPass()
 
 u32 RenderView::createShadowRenderPass()
 {
-  auto id = m_pool->create<gx::RenderPass>();
+  auto id = pool().create<gx::RenderPass>();
 
   auto framebuffer_id = createFramebuffer();
   auto pipeline = createPipeline();
 
-  auto& pass = m_pool->get<gx::RenderPass>(id);
+  auto& pass = pool().get<gx::RenderPass>(id);
 
   pass
     .framebuffer(framebuffer_id)
@@ -361,21 +361,14 @@ u32 RenderView::createShadowRenderPass()
   return id;
 }
 
-u32 RenderView::createConstantBuffer(u32 sz)
+u32 RenderView::constantBufferId(u32 which)
 {
-  auto id = m_pool->createBuffer<gx::UniformBuffer>(gx::Buffer::Dynamic);
-  auto buf = m_pool->getBuffer(id);
-
-  buf().init(constantBlockSizeAlign(sz), 1);
-
-  return id;
+  return m_const_bufs.at(which)->id();
 }
 
-void RenderView::releaseConstantBuffer(u32 id)
+gx::UniformBuffer& RenderView::constantBuffer(u32 which)
 {
-  if(id == gx::ResourcePool::Invalid) return;
-
-  m_pool->releaseBuffer(id);
+  return m_const_bufs.at(which)->get(pool());
 }
 
 u32 RenderView::constantBlockSizeAlign(u32 sz)
@@ -385,14 +378,13 @@ u32 RenderView::constantBlockSizeAlign(u32 sz)
 
 gx::RenderPass& RenderView::getRenderpass()
 {
-  return m_pool->get<gx::RenderPass>(m_renderpass_id);
+  return pool().get<gx::RenderPass>(m_renderpass_id);
 }
 
 void RenderView::initConstantBuffers(size_t num_ros)
 {
   const u32 ObjectConstantsSize = constantBlockSizeAlign(sizeof(ObjectConstants));
   const u32 SceneConstantsSize  = constantBlockSizeAlign(sizeof(SceneConstants));
-  const u32 BlurConstantsSize   = constantBlockSizeAlign(sizeof(BlurConstantsSize));
 
   // Unaligned size of ObjectConstants UniformBuffer
   const size_t ObjectConstantBufferUASize = num_ros * ObjectConstantsSize;
@@ -402,16 +394,15 @@ void RenderView::initConstantBuffers(size_t num_ros)
   const size_t ObjectConstantBufferSize = ObjectConstantBufferUASize +
     /* align */ (m_constant_block_sz - (ObjectConstantBufferUASize % m_constant_block_sz));
 
-  m_scene_ubo_id  = createConstantBuffer(SceneConstantsSize);
-  m_object_ubo_id = createConstantBuffer(ObjectConstantsSize);
+  m_const_bufs[SceneConstantsBinding] = &renderer().queryConstantBuffer(
+    constantBlockSizeAlign(SceneConstantsSize));
+  m_const_bufs[ObjectConstantsBinding] = &renderer().queryConstantBuffer(
+    constantBlockSizeAlign((u32)ObjectConstantBufferSize));
 
-  m_num_objects_per_block = m_constant_block_sz / ObjectConstantsSize;
-
-  auto object_ubo = m_pool->getBuffer(m_object_ubo_id);
-  object_ubo().init(ObjectConstantBufferSize, 1);
+  m_num_objects_per_block = std::min(m_constant_block_sz / ObjectConstantsSize, 256u);
 
   m_data->object_ubo_view.emplace(
-    object_ubo().map(gx::Buffer::Write, gx::Buffer::MapInvalidate)
+    constantBuffer(ObjectConstantsBinding).map(gx::Buffer::Write, gx::Buffer::MapInvalidate)
   );
 
   m_objects = m_data->object_ubo_view->get<ObjectConstants>();
@@ -419,8 +410,10 @@ void RenderView::initConstantBuffers(size_t num_ros)
   m_objects_end = (ObjectConstants *)((byte *)m_objects + ObjectConstantBufferSize);
 
   getRenderpass()
-    .uniformBufferRange(SceneConstantsBinding, m_scene_ubo_id, 0, SceneConstantsSize)
-    .uniformBufferRange(ObjectConstantsBinding, m_object_ubo_id, 0, m_constant_block_sz);
+    .uniformBufferRange(SceneConstantsBinding, constantBufferId(SceneConstantsBinding),
+       0, SceneConstantsSize)
+    .uniformBufferRange(ObjectConstantsBinding, constantBufferId(ObjectConstantsBinding),
+      0, m_constant_block_sz);
 }
 
 void RenderView::advanceConstantBlockBinding(gx::CommandBuffer& cmd)
@@ -436,7 +429,7 @@ void RenderView::advanceConstantBlockBinding(gx::CommandBuffer& cmd)
   // We need to advance to a new part of the UniformBuffer
   auto next_subpass = renderpass.nextSubpassId();
   auto subpass = gx::RenderPass::Subpass()
-    .uniformBufferRange(ObjectConstantsBinding, m_object_ubo_id,
+    .uniformBufferRange(ObjectConstantsBinding, constantBufferId(ObjectConstantsBinding),
       current_rover_off, m_constant_block_sz);
 
   renderpass.subpass(subpass);
@@ -506,18 +499,21 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   object.normal  = model_matrix.inverse().transpose();
   object.texture = mat4::identity();
 
+  uint material_id = 0;
   switch(material.diff_type) {
-  case hm::Material::DiffuseConstant: object.material_id.x = ConstantColor; break;
-  case hm::Material::DiffuseTexture:  object.material_id.x = Textured; break;
-  case hm::Material::Other:           object.material_id.x = ProceduralColor; break;
+  case hm::Material::DiffuseConstant: material_id = ConstantColor; break;
+  case hm::Material::DiffuseTexture:  material_id = Textured; break;
+  case hm::Material::Other:           material_id = ProceduralColor; break;
 
-  default: object.material_id.x = Unshaded; break;
+  default: material_id = Unshaded; break;
   }
 
   object.diff_color = material.diff_color;
   object.ior = vec4(material.ior, 1.0f);
-  object.metalness = material.metalness;
-  object.roughness = material.roughness;
+
+  object.material_id__metalness__roughness__0 = vec4(
+    (float)material_id, material.metalness, material.roughness, 0.0f
+  );
 
   size_t buffer_off = &object - m_objects;
 
@@ -532,26 +528,13 @@ u32 RenderView::writeConstants(const RenderObject& ro)
 
 void RenderView::initLuts()
 {
-  auto& renderpass = getRenderpass();
+  auto blur_lut_id = renderer().queryLUT(RenderLUT::GaussianKernel, GaussianBlurRadius);
+  auto blur_sampler_id = m_data->samplers.emplace_back(
+    pool().create<gx::Sampler>(gx::Sampler::borderclamp1d())
+  );
 
-  m_blur_kernel_id = m_pool->createTexture<gx::Texture1D>(gx::r32f);
-  auto blur_kernel_sampler = m_pool->create<gx::Sampler>(gx::Sampler::edgeclamp1d());
-
-  m_data->samplers.push_back(blur_kernel_sampler);
-
-  initBlurKernelTexture();
-
-  renderpass
-    .texture(BlurKernelTexImageUnit, m_blur_kernel_id, blur_kernel_sampler);
-}
-
-void RenderView::initBlurKernelTexture()
-{
-  auto kernel = gaussian_kernel(GaussianBlurRadius);
-
-  auto blur_kernel = m_pool->getTexture(m_blur_kernel_id);
-  blur_kernel()
-    .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
+  getRenderpass()
+    .texture(BlurKernelTexImageUnit, blur_lut_id, blur_sampler_id);
 }
 
 // TODO
@@ -559,8 +542,8 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
 {
   auto constants_offset = writeConstants(ro);
 
-  auto program_id = renderer().queryProgram(*this, ro, *m_pool);
-  auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.forward
+  auto program_id = renderer().queryProgram(*this, ro);
+  auto& program = pool().get<gx::Program>(program_id);  // R.shader.shaders.forward
 
   if(m_init_programs.find(program_id) == m_init_programs.end()) {
     program.use()
@@ -600,8 +583,8 @@ void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 {
   auto constants_offset = writeConstants(ro);
 
-  auto program_id = renderer().queryProgram(*this, ro, *m_pool);
-  auto& program = m_pool->get<gx::Program>(program_id);  // R.shader.shaders.rendermsm
+  auto program_id = renderer().queryProgram(*this, ro);
+  auto& program = pool().get<gx::Program>(program_id);  // R.shader.shaders.rendermsm
 
   if(m_init_programs.find(program_id) == m_init_programs.end()) {
     program.use()

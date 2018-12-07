@@ -126,6 +126,8 @@ public:
     // The MSB of OpData encodes the FenceOp - sync()/wait()
     OpFence,
 
+    OpGenerateMipmaps,
+
     // OpData is ignored
     OpEnd,
 
@@ -171,6 +173,8 @@ public:
 
   CommandBuffer& fenceSync(ResourceId fence);
   CommandBuffer& fenceWait(ResourceId fence);
+
+  CommandBuffer& generateMipmaps(ResourceId texture);
 
   // Must be called after the last recorded command!
   CommandBuffer& end();

@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 
   win32::init();
 
-  constexpr ivec2 WindowSize       = { 1600, 900 };
+  constexpr ivec2 WindowSize      = { 1600, 900 };
   constexpr ivec2 FramebufferSize = { 1280, 720 };
 
   using win32::Window;
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
   printf("numPhysicalProcessors(): %2u\n", win32::cpuinfo().numPhysicalProcessors());
   printf("numLogicalProcessors():  %2u\n", win32::cpuinfo().numLogicalProcessors());
 
-  gx::ResourcePool pool(64);
+  auto& pool = ek::renderer().pool();
   gx::MemoryPool memory(4096);
 
   sched::WorkerPool worker_pool;
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     .acquireWorkerGlContexts(window)
     .kickWorkers();
 
-  ek::renderer().cachePrograms(pool);
+  ek::renderer().cachePrograms();
 
   auto world = bt::DynamicsWorld();
 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -979,11 +979,11 @@ int main(int argc, char *argv[])
 
     worker_pool.waitJob(extract_for_shadows_job_id);
     auto& shadow_objects = extract_for_shadows_job->result();
-    shadow_view.render(ek::renderer(), shadow_objects, &pool).execute();
+    shadow_view.render(ek::renderer(), shadow_objects).execute();
 
     worker_pool.waitJob(extract_for_view_job_id);
     auto& render_objects = extract_for_view_job->result();
-    render_view.render(ek::renderer(), render_objects, &pool).execute();
+    render_view.render(ek::renderer(), render_objects).execute();
 
     skybox_uniforms = { view, persp };
     skybox_program.use()

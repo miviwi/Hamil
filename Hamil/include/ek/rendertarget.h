@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ek/euklid.h>
+#include <ek/sharedobject.h>
 
 #include <util/ref.h>
 #include <util/smallvector.h>
@@ -59,7 +60,7 @@ public:
   bool operator==(const RenderTargetConfig& other) const;
 };
 
-class RenderTarget : public Ref {
+class RenderTarget : public SharedObject, public Ref {
 public:
   enum TextureType {
     // Forward
@@ -117,20 +118,12 @@ private:
   u32 forwardTextureId(TextureType type) const;
   u32 shadowMapTexureId(TextureType type) const;
 
-  // Returns 'true' if the RenderTarget was locked successfully
-  //   i.e. wasn't already in use before the call
-  bool lock() const;
-  // Marks the RenderTarget as no longer in use
-  void unlock() const;
-
   RenderTargetConfig m_config;
 
   gx::ResourcePool *m_pool;
 
   u32 m_fb_id;
   TextureIds m_texture_ids;
-
-  mutable std::atomic<bool> m_in_use;
 };
 
 }

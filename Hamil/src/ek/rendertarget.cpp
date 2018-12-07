@@ -177,18 +177,6 @@ u32 RenderTarget::shadowMapTexureId(TextureType type) const
   return ~0u;
 }
 
-bool RenderTarget::lock() const
-{
-  bool locked = false;
-
-  return m_in_use.compare_exchange_strong(locked, false);
-}
-
-void RenderTarget::unlock() const
-{
-  m_in_use.store(false);
-}
-
 u32 RenderTarget::framebufferId() const
 {
   return m_fb_id;
@@ -197,8 +185,7 @@ u32 RenderTarget::framebufferId() const
 RenderTarget::RenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool) :
   m_config(config),
   m_pool(&pool),
-  m_fb_id(~0u),
-  m_in_use(false)
+  m_fb_id(~0u)
 {
 }
 
@@ -206,8 +193,7 @@ RenderTarget::RenderTarget(const RenderTarget& other) :
   Ref(other),
   m_config(other.m_config),
   m_pool(other.m_pool),
-  m_fb_id(other.m_fb_id), m_texture_ids(other.m_texture_ids),
-  m_in_use(other.m_in_use.load())
+  m_fb_id(other.m_fb_id), m_texture_ids(other.m_texture_ids)
 {
 }
 

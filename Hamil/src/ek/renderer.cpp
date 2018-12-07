@@ -1,5 +1,6 @@
 #include <ek/renderer.h>
 
+#include <math/util.h>
 #include <hm/component.h>
 #include <hm/componentman.h>
 #include <hm/components/gameobject.h>
@@ -20,15 +21,52 @@
 
 namespace ek {
 
-Renderer::Renderer()
+RenderLUT::RenderLUT() :
+  type(NumTypes), param(-1),
+  tex_id(gx::ResourcePool::Invalid)
 {
-  m_rts.reserve(InitialRenderTargets);
 }
 
-Renderer& Renderer::cachePrograms(gx::ResourcePool& pool)
+void RenderLUT::generate(gx::ResourcePool& pool)
+{
+  switch(type) {
+  case GaussianKernel: generateGaussian(pool); break;
+
+  default: assert(0);  // unreachable
+  }
+}
+
+void RenderLUT::generateGaussian(gx::ResourcePool& pool)
+{
+  auto kernel = gaussian_kernel(param);
+
+  tex_id = pool.createTexture<gx::Texture1D>(gx::r32f);
+  auto blur_kernel = pool.getTexture(tex_id);
+  blur_kernel()
+    .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
+}
+
+class RendererData {
+public:
+  enum { InitialResourcePoolAlloc = 2048, };
+
+  RendererData() : pool(InitialResourcePoolAlloc) { }
+
+  gx::ResourcePool pool;
+};
+
+Renderer::Renderer() :
+  m_data(new RendererData)
+{
+  m_rts.reserve(InitialRenderTargets);
+  m_const_buffers.reserve(InitialConstantBuffers);
+}
+
+Renderer& Renderer::cachePrograms()
 {
   if(!m_programs.empty()) return *this; // Already cached
 
+  // Load dependencies
   res::load(R.shader.shaders.util);
   res::load(R.shader.shaders.ubo);
   res::load(R.shader.shaders.blur);
@@ -39,9 +77,9 @@ Renderer& Renderer::cachePrograms(gx::ResourcePool& pool)
   res::Handle<res::Shader> f_forward = R.shader.shaders.forward;
   res::Handle<res::Shader> f_rendermsm = R.shader.shaders.rendermsm;
 
-  auto forward = pool.create<gx::Program>(gx::make_program(
+  auto forward = pool().create<gx::Program>(gx::make_program(
     f_forward->source(res::Shader::Vertex), f_forward->source(res::Shader::Fragment), U.forward));
-  auto rendermsm = pool.create<gx::Program>(gx::make_program(
+  auto rendermsm = pool().create<gx::Program>(gx::make_program(
     f_rendermsm->source(res::Shader::Vertex), f_rendermsm->source(res::Shader::Fragment), U.rendermsm));
 
   // Writing to 'm_programs'
@@ -64,7 +102,7 @@ Renderer::ExtractObjectsJob Renderer::extractForView(hm::Entity scene, RenderVie
   ));
 }
 
-const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool)
+const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config)
 {
   // Initially we only need to read from the vector
   m_rts_lock.acquireShared();
@@ -83,6 +121,9 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
 
       return *it;
     }
+
+    // Keep on searching
+    it++;
   }
 
   // Need to create a new RenderTarget which means
@@ -90,7 +131,7 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
   m_rts_lock.releaseShared();
   m_rts_lock.acquireExclusive();
 
-  auto& result = m_rts.emplace_back(RenderTarget::from_config(config, pool));
+  auto& result = m_rts.emplace_back(RenderTarget::from_config(config, pool()));
 
   // Done writing
   m_rts_lock.releaseExclusive();
@@ -107,9 +148,9 @@ void Renderer::releaseRenderTarget(const RenderTarget& rt)
 }
 
 // TODO: Select the program based on the RenderObject
-u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro, gx::ResourcePool& pool)
+u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro)
 {
-  if(m_programs.empty()) cachePrograms(pool);
+  if(m_programs.empty()) cachePrograms();
 
   // Reading from 'm_programs'
   m_programs_lock.acquireShared();
@@ -123,6 +164,91 @@ u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro, gx::R
   m_programs_lock.releaseShared();
 
   return program;
+}
+
+const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz)
+{
+  m_const_buffers_lock.acquireShared();
+
+  auto it = m_const_buffers.begin();
+  while(it != m_const_buffers.end()) {
+    it = std::find_if(it, m_const_buffers.end(), [&](const ConstantBuffer& buf) {
+      return buf.size() >= sz;
+    });
+
+    if(it == m_const_buffers.end()) break;
+
+    if(it->lock()) {
+      m_const_buffers_lock.releaseShared();
+
+      return *it;
+    }
+
+    // Keep on searching
+    it++;
+  }
+
+  m_const_buffers_lock.releaseShared();
+
+  auto id = pool().createBuffer<gx::UniformBuffer>(gx::Buffer::Dynamic);
+  auto buf = pool().getBuffer(id);
+
+  buf().init(sz, 1);
+
+  m_const_buffers_lock.acquireExclusive();
+  auto& const_buf = m_const_buffers.emplace_back(ConstantBuffer(id, sz));
+  m_const_buffers_lock.releaseExclusive();
+
+  auto result = const_buf.lock();
+  assert(result && "failed to lock() ConstantBuffer!");
+
+  return const_buf;
+}
+
+void Renderer::releaseConstantBuffer(const ConstantBuffer& buf)
+{
+  buf.unlock();
+}
+
+u32 Renderer::queryLUT(RenderLUT::Type type, int param)
+{
+  m_luts_lock.acquireShared();
+
+  auto it = m_luts.begin();
+  while(it != m_luts.end()) {
+    it = std::find_if(it, m_luts.end(), [&](const RenderLUT& lut) {
+      return lut.type == type && lut.param == param;
+    });
+
+    // No compatible RenderLUT found...
+    if(it == m_luts.end()) break;
+
+    // Found one!
+    return it->tex_id;
+  }
+
+  m_luts_lock.releaseShared();
+  m_luts_lock.acquireExclusive();
+
+  // Generate a new RenderLUT
+  auto& lut = m_luts.emplace_back();
+  lut.type = type; lut.param = param;
+
+  // No longer need to hold the lock,
+  //   so release it here because the
+  //   following call can potentially
+  //   be time-consuming
+  m_luts_lock.releaseExclusive();
+
+  // Generate and upload the texture
+  lut.generate(pool());
+
+  return lut.tex_id;
+}
+
+gx::ResourcePool& Renderer::pool()
+{
+  return m_data->pool;
 }
 
 Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& view)

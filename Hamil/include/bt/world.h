@@ -8,13 +8,19 @@
 
 #include <functional>
 
+namespace win32 {
+class ReaderWriterLock;
+}
+
 namespace bt {
 
 class Ray;
 class RayClosestHit;
 
-// PIMPL class
+// PIMPL classes
+
 class DynamicsWorldConfig;
+class DynamicsWorldData;
 
 class DynamicsWorld : public Ref {
 public:
@@ -43,11 +49,15 @@ private:
   using BtCollisionObjectIter = std::function<void(btCollisionObject *)>;
   using BtRigidBodyIter       = std::function<void(btRigidBody *)>;
 
+  win32::ReaderWriterLock& lock();
+
   // Iterates BACKWARDS
   void foreachObject(BtCollisionObjectIter fn);
 
   // Iterates BACKWARDS
   void foreachRigidBody(BtRigidBodyIter fn);
+
+  DynamicsWorldData *m_data;
 
   DynamicsWorldConfig *m_config;
   btDynamicsWorld *m_world;
