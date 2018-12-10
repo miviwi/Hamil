@@ -16,7 +16,7 @@ void LTC::compute()
     0.0f, 0.0f, 1.0f,
   };
 
-  M = mat3::from_columns(X, Y, Z) * coeffs_M;
+  M = coeffs_M * mat3::from_columns(X, Y, Z);
 
   inv_M = M.inverse();
   det_M = abs(M.det());
@@ -169,7 +169,7 @@ LTC_CoeffsTable& LTC_CoeffsTable::fit(const brdf::BRDF_GGX& brdf)
   static constexpr unsigned N = TableSize.x;
   for(int a = N-1; a >= 0; a--) {
     for(int t = 0; t <= N-1; t++) {
-      float x = 1.0f / float(N-1);
+      float x = t / float(N-1);
       float ct = 1.0f - x*x;
       float theta = std::min(PIf/2.0f, acosf(ct));
 
@@ -263,7 +263,7 @@ void LTC_CoeffsTable::averageTerms(const brdf::BRDF_GGX& brdf, const vec3& V, fl
       // Sample
       vec3 L = brdf.sample(V, alpha, U1, U2);
 
-      auto [pdf, eval] = brdf.eval(V, L, alpha);
+      auto [eval, pdf] = brdf.eval(V, L, alpha);
       if(pdf == 0.0f) continue;
 
       float weight = eval / pdf;
@@ -304,8 +304,8 @@ float LTC_CoeffsTable::computeError(const LTC& ltc, const brdf::BRDF_GGX& brdf,
 
   for(int j = 0; j < NumSamples; j++) {
     for(int i = 0; i < NumSamples; i++) {
-      auto U1 = ((float)i + 0.5f) / (float)NumSamples;
-      auto U2 = ((float)j + 0.5f) / (float)NumSamples;
+      auto U1 = ((float)i + 0.5f) / NumSamples;
+      auto U2 = ((float)j + 0.5f) / NumSamples;
 
       {      // LTC importance sampling
         vec3 L = ltc.sample(U1, U2);

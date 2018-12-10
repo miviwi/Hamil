@@ -49,9 +49,13 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
     .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
 }
 
+// TODO!
+//   - Cannot generate this table at runtime as it takes
+//     very long (esp. in Debug builds...)
 void RenderLUT::generateLTC(gx::ResourcePool& pool)
 {
-  return;
+  //return;
+
   auto brdf_ggx = brdf::BRDF_GGX();
   auto ltc_coeffs = ltc::LTC_CoeffsTable();
 
@@ -63,9 +67,11 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
   auto ltc = pool.getTexture(tex_id);
 
   ltc().init(tex_size.s, tex_size.t, 2);
-  ltc().upload(ltc_coeffs.coeffs1().data(), 0, 0, 0, 0, tex_size.s, tex_size.t, 1,
+  ltc().upload(ltc_coeffs.coeffs1().data(), /* mip */ 0,
+    /* x */ 0, /* y */ 0, /* z */ 0, tex_size.s, tex_size.t, 1,
     gx::rgba, gx::f32);
-  ltc().upload(ltc_coeffs.coeffs1().data(), 0, 0, 0, 1, tex_size.s, tex_size.t, 1,
+  ltc().upload(ltc_coeffs.coeffs1().data(), /* mip */ 0,
+    /* x */ 0, /* y */ 0, /* z */ 0, tex_size.s, tex_size.t, 1,
     gx::rgba, gx::f32);
 }
 
