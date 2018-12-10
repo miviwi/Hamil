@@ -196,7 +196,7 @@ struct Vector3 {
       st = sin(theta),
       sp = sin(phi);
 
-    return { sp*ct, sp*st, cp };
+    return { st*cp, st*sp, ct };
   }
 
   Vector2<T> xy() const { return Vector2<T>{ x, y }; }
@@ -574,9 +574,12 @@ struct Matrix2 {
     };
   }
 
-  T operator()(unsigned col, unsigned row) const { return d[col + row*2]; }
+  const T& operator()(unsigned col, unsigned row) const { return d[col + row*2]; }
+  T& operator()(unsigned col, unsigned row) { return d[col + row*2]; }
 
   Matrix2& operator *=(Matrix2& b) { *this = *this * b; return *this; }
+
+  T det() const { return d[1]*d[2] - d[0]*d[3]; }
 
   operator float *() { return d; }
   operator const float *() const { return d; }
@@ -609,6 +612,15 @@ struct Matrix3 {
     };
   }
 
+  static Matrix3 from_columns(const Vector& a, const Vector& b, const Vector& c)
+  {
+    return {
+      a.x, b.x, c.x,
+      a.y, b.y, c.y,
+      a.z, b.z, c.z,
+    };
+  }
+
   static Matrix3 identity()
   {
     return {
@@ -618,22 +630,116 @@ struct Matrix3 {
     };
   }
 
-  T operator()(unsigned col, unsigned row) const { return d[col + row*3]; }
+  const T& operator()(unsigned col, unsigned row) const { return d[col + row*3]; }
+  T& operator()(unsigned col, unsigned row) { return d[col + row*3]; }
+
+  Vector row(unsigned row) const
+  {
+    return { d[row*3 + 0], d[row*3 + 1], d[row*3 + 2] };
+  }
+
+  Vector column(unsigned col) const
+  {
+    return { d[col + 0], d[col + 3], d[col + 6] };
+  }
 
   Matrix3& operator *=(Matrix3& b) { *this = *this * b; return *this; }
+  Matrix3& operator *=(float u) { *this = *this * u; return *this; }
+
+  Matrix3 transpose() const
+  {
+    return Matrix3::from_columns(row(0), row(1), row(2));
+  }
+
+  T minor(unsigned col_, unsigned row_) const
+  {
+    // Select rows
+    Vector rows[2];
+    if(row_ == 0) {
+      rows[0] = row(1); rows[1] = row(2);
+    } else if(row_ == 1) {
+      rows[0] = row(0); rows[1] = row(2);
+    } else if(row_ == 2) {
+      rows[0] = row(0); rows[1] = row(1);
+    }
+
+    // Select columns
+    Matrix2<T> M;
+    if(col_ == 0) {
+      M = {
+        rows[0].y, rows[0].z,
+        rows[1].y, rows[1].z,
+      };
+    } else if(col_ == 1) {
+       M = {
+        rows[0].x, rows[0].z,
+        rows[1].x, rows[1].z,
+      };
+    } else if(col_ == 2) {
+       M = {
+        rows[0].x, rows[0].y,
+        rows[1].x, rows[1].y,
+      };
+    }
+
+    return M.det();
+  }
+
+  T det() const
+  {
+    return d[0]*minor(0, 0) - d[1]*minor(1, 0) + d[2]*minor(2, 0);
+  }
+
+  Matrix3 inverse() const
+  {
+    T inv_det = (T)1 / det();
+    Matrix3 M = {
+      +minor(0, 0), -minor(1, 0), +minor(2, 0)
+      -minor(0, 1), +minor(1, 1), -minor(2, 1)
+      +minor(0, 2), -minor(1, 2), +minor(2, 2)
+    };
+
+    return inv_det * M.transpose();
+  }
 
   operator float *() { return d; }
   operator const float *() const { return d; }
 };
 
 template <typename T>
-inline Matrix3<T> operator*(Matrix3<T> a, Matrix3<T> b)
+inline Matrix3<T> operator*(const Matrix3<T>& a, const Matrix3<T>& b)
 {
   return Matrix3<T>{
       a.d[0]*b.d[0]+a.d[1]*b.d[3]+a.d[2]*b.d[6], a.d[0]*b.d[1]+a.d[1]*b.d[4]+a.d[2]*b.d[7], a.d[0]*b.d[2]+a.d[1]*b.d[5]+a.d[2]*b.d[8],
       a.d[3]*b.d[0]+a.d[4]*b.d[3]+a.d[5]*b.d[6], a.d[3]*b.d[1]+a.d[4]*b.d[4]+a.d[5]*b.d[7], a.d[3]*b.d[2]+a.d[4]*b.d[5]+a.d[5]*b.d[8],
       a.d[6]*b.d[0]+a.d[7]*b.d[3]+a.d[8]*b.d[6], a.d[6]*b.d[1]+a.d[7]*b.d[4]+a.d[8]*b.d[7], a.d[6]*b.d[2]+a.d[7]*b.d[5]+a.d[8]*b.d[8],
   };
+}
+
+template <typename T>
+inline Vector3<T> operator*(const Matrix3<T>& a, const Vector3<T>& b)
+{
+  return {
+    a.row(0).dot(b),
+    a.row(1).dot(b),
+    a.row(2).dot(b),
+  };
+}
+
+template <typename T>
+inline Matrix3<T> operator*(float u, const Matrix3<T>& a)
+{
+  return {
+    a.d[0]*u, a.d[1]*u, a.d[2]*u,
+    a.d[3]*u, a.d[4]*u, a.d[5]*u,
+    a.d[6]*u, a.d[7]*u, a.d[8]*u,
+  };
+}
+
+template <typename T>
+inline Matrix3<T> operator*(const Matrix3<T>& a, float u)
+{
+  return u * a;
 }
 
 using mat3  = Matrix3<float>;
@@ -655,7 +761,8 @@ struct alignas(16) Matrix4 {
     };
   }
 
-  T operator()(unsigned col, unsigned row) const { return d[row*4 + col]; }
+  const T& operator()(unsigned col, unsigned row) const { return d[row*4 + col]; }
+  T& operator()(unsigned col, unsigned row) { return d[row*4 + col]; }
 
   Vector column(unsigned col) const
   {

@@ -421,13 +421,13 @@ int main(int argc, char *argv[])
   };
 
   std::vector<FloorVtx> floor_vtxs = {
-    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 0.0f, 1.0f } },
-    { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 0.0f, 0.0f } },
-    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 1.0f, 0.0f } },
+    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f } },
+    { { -1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f } },
+    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f } },
 
-    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 1.0f, 0.0f } },
-    { {  1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 1.0f, 1.0f } },
-    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f,  1.0f }, { 0.0f, 1.0f } },
+    { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f } },
+    { {  1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f } },
+    { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f } },
 
     { { -1.0f,  1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f } },
     { {  1.0f, -1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f } },
@@ -632,7 +632,8 @@ int main(int argc, char *argv[])
 
     floor.addComponent<hm::Transform>(
       origin + vec3{ 0.0f, 0.5f, 0.0f },
-      quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
+      //quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
+      quat::from_axis(vec3::right(), PIf/2.0f),
       vec3(50.0f),
       body.aabb()
     );
@@ -646,9 +647,9 @@ int main(int argc, char *argv[])
     material().diff_tex.id = tex_id;
     material().diff_tex.sampler_id = floor_sampler_id;
 
-    material().metalness = 1.0f;
-    material().roughness = 0.2f;
-    material().ior = vec3(14.7f);
+    material().metalness = 0.0f;
+    material().roughness = 0.0f;
+    material().ior = vec3(1.7f);
 
     world.addRigidBody(body);
 
@@ -689,11 +690,38 @@ int main(int argc, char *argv[])
     return entity;
   };
 
+  unsigned num_light_spheres = 0;
+  const float LightSphereRadius = 4.5;
+  auto create_light_sphere = [&](vec3 origin, vec3 color)
+  {
+    auto name = util::fmt("light%u", num_light_spheres);
+    num_light_spheres++;
+
+    auto entity = hm::entities().createGameObject(name, scene);
+
+    auto transform = entity.addComponent<hm::Transform>(
+      xform::Transform(origin, quat(), vec3(LightSphereRadius))
+    );
+    entity.addComponent<hm::Mesh>(sphere_mesh);
+
+    transform().aabb = AABB(
+      origin - vec3(LightSphereRadius),
+      origin + vec3(LightSphereRadius)
+    );
+
+    auto material = entity.addComponent<hm::Material>();
+
+    material().diff_type = (hm::Material::DiffuseType)(hm::Material::Other | 1);
+    material().diff_color = color;
+
+    return entity;
+  };
+
   auto model_shape = bt::shapes().box({ 2.0f, 2.0f, 2.0f });
   auto create_model = [&](const mesh::Mesh& mesh,
     const std::string& name = "bunny")
   {
-    vec3 origin = { 0.0f, -1.0f, -10.0f };
+    vec3 origin = { 0.0f, -1.0f, -30.0f };
     auto body = bt::RigidBody::create(model_shape, origin);
 
     auto entity = hm::entities().createGameObject(name, scene);
@@ -713,9 +741,9 @@ int main(int argc, char *argv[])
     material().diff_type = hm::Material::DiffuseConstant;
     material().diff_color = { 0.53f, 0.8f, 0.94f };
 
-    material().metalness = 0.1f;
-    material().roughness = 0.9f;
-    material().ior = vec3(1.47f);
+    material().metalness = 1.0f;
+    material().roughness = 0.0f;
+    material().ior = vec3(10.47f);
 
     return entity;
   };
@@ -771,6 +799,10 @@ int main(int argc, char *argv[])
 
   win32::DeltaTimer time;
   time.reset();
+
+  create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(1.0f));
+  create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(1.0f, 1.0f, 0.0f));
+  create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 1.0f, 1.0f));
 
   while(window.processMessages()) {
     using hm::entities;
@@ -833,6 +865,10 @@ int main(int argc, char *argv[])
 
           win32::File screenshot("screenshot.bin", win32::File::Write, win32::File::CreateAlways);
           screenshot.write(pbo_view.get(), (win32::File::Size)PboSize);
+        } else if(kb->key == Keyboard::Up) {
+          zoom = clamp(zoom+0.05f, 0.01f, INFINITY);
+        } else if(kb->key == Keyboard::Down) {
+          zoom = clamp(zoom-0.05f, 0.01f, INFINITY);
         }
       } else if(auto mouse = input->get<win32::Mouse>()) {
         using win32::Mouse;

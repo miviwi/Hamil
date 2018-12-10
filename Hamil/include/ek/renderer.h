@@ -30,6 +30,7 @@ class RendererData;
 struct RenderLUT {
   enum Type : size_t {
     GaussianKernel,
+    LTC_Coeffs,
 
     NumTypes
   };
@@ -49,6 +50,11 @@ struct RenderLUT {
 
 private:
   void generateGaussian(gx::ResourcePool& pool);
+  void generateLTC(gx::ResourcePool& pool);
+};
+
+class RenderLight {
+
 };
 
 class Renderer {
@@ -56,6 +62,11 @@ public:
   using ObjectVector = std::vector<RenderObject>;
   using ExtractObjectsJob = std::unique_ptr<
     sched::Job<ObjectVector, hm::Entity, RenderView *>
+  >;
+
+  using LightVector = std::vector<RenderLight>;
+  using ExtractLightsJob = std::unique_ptr<
+    sched::Job<LightVector, hm::Entity, RenderView *>
   >;
 
   enum {

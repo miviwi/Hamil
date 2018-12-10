@@ -1,6 +1,8 @@
 #include <ek/renderer.h>
 
 #include <math/util.h>
+#include <math/brdf.h>
+#include <math/ltc.h>
 #include <hm/component.h>
 #include <hm/componentman.h>
 #include <hm/components/gameobject.h>
@@ -31,6 +33,7 @@ void RenderLUT::generate(gx::ResourcePool& pool)
 {
   switch(type) {
   case GaussianKernel: generateGaussian(pool); break;
+  case LTC_Coeffs:     generateLTC(pool); break;
 
   default: assert(0);  // unreachable
   }
@@ -44,6 +47,26 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
   auto blur_kernel = pool.getTexture(tex_id);
   blur_kernel()
     .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
+}
+
+void RenderLUT::generateLTC(gx::ResourcePool& pool)
+{
+  return;
+  auto brdf_ggx = brdf::BRDF_GGX();
+  auto ltc_coeffs = ltc::LTC_CoeffsTable();
+
+  static constexpr auto tex_size =  ltc::LTC_CoeffsTable::TableSize;
+
+  ltc_coeffs.fit(brdf_ggx);
+
+  tex_id = pool.createTexture<gx::Texture2DArray>(gx::rgba32f);
+  auto ltc = pool.getTexture(tex_id);
+
+  ltc().init(tex_size.s, tex_size.t, 2);
+  ltc().upload(ltc_coeffs.coeffs1().data(), 0, 0, 0, 0, tex_size.s, tex_size.t, 1,
+    gx::rgba, gx::f32);
+  ltc().upload(ltc_coeffs.coeffs1().data(), 0, 0, 0, 1, tex_size.s, tex_size.t, 1,
+    gx::rgba, gx::f32);
 }
 
 class RendererData {
@@ -60,6 +83,11 @@ Renderer::Renderer() :
 {
   m_rts.reserve(InitialRenderTargets);
   m_const_buffers.reserve(InitialConstantBuffers);
+
+  auto& lut = m_luts.emplace_back();
+  lut.type = RenderLUT::LTC_Coeffs;
+
+  lut.generate(pool());
 }
 
 Renderer& Renderer::cachePrograms()

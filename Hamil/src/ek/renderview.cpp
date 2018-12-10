@@ -469,15 +469,15 @@ ShaderConstants RenderView::generateSceneConstants()
   scene->num_lights.x = 3;
   scene->lights[0] = {
     m_view * vec4(0.0f, 6.0f, 0.0f, 1.0f),
-    vec3{ 1.0f, 1.0f, 1.0f }
+    vec3{ 20.0f, 20.0f, 20.0f }
   };
   scene->lights[1] = {
     m_view * vec4(-10.0f, 6.0f, -10.0f, 1.0f),
-    vec3{ 1.0f, 1.0f, 0.0f }
+    vec3{ 20.0f, 20.0f, 0.0f }
   };
   scene->lights[2] = {
     m_view * vec4(20.0f, 6.0f, 0.0f, 1.0f),
-    vec3{ 0.0f, 1.0f, 1.0f }
+    vec3{ 0.0f, 20.0f, 20.0f }
   };
 
   memcpy(scene->ambient_basis, ambient_basis, sizeof(SceneConstants::ambient_basis));
