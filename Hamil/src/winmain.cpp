@@ -140,6 +140,12 @@ int main(int argc, char *argv[])
     .acquireWorkerGlContexts(window)
     .kickWorkers();
 
+  std::random_device dev_random;
+  std::mt19937 random_generator;
+  std::uniform_real_distribution<float> random_floats(0.0f, 1.0f);
+
+  random_generator.seed(dev_random());
+
   ek::renderer().cachePrograms();
 
   auto world = bt::DynamicsWorld();
@@ -277,74 +283,6 @@ int main(int argc, char *argv[])
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
   auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
-  std::random_device dev_random;
-  std::mt19937 random_generator;
-  random_generator.seed(dev_random());
-
-  std::uniform_real_distribution<float> random_floats(0.0f, 1.0f);
-
-  static constexpr uint AoKernelSize = 64;
-  std::array<vec4, AoKernelSize> ao_kernel;
-  for(size_t i = 0; i < AoKernelSize; i++) {
-    float x = random_floats(random_generator) * 2.0f - 1.0f;
-    float y = random_floats(random_generator) * 2.0f - 1.0f;
-    float z = random_floats(random_generator);
-
-    auto s = vec4{ x, y, z, 0.0f };
-    s = s.normalize() * random_floats(random_generator);
-
-    float scale = (float)i / (float)AoKernelSize;
-    scale = lerp(0.1f, 1.0f, scale*scale);
-
-    s *= scale;
-
-    ao_kernel[i] = s;
-  }
-
-  static constexpr uint AoNoiseSize = 4;
-  static constexpr float AoNumDirections = 8.0f;
-  std::array<vec3, AoNoiseSize*AoNoiseSize> ao_noise;
-  for(auto& sample : ao_noise) {
-    /*
-    float x = random_floats(random_generator)*2.0f - 1.0f;
-    float y = random_floats(random_generator)*2.0f - 1.0f;
-
-    sample = {
-      x, y, 0.0f
-    };
-    */
-    float r0 = random_floats(random_generator),
-      r1 = random_floats(random_generator);
-
-    float angle = 2.0f*PIf*r0 / AoNumDirections;
-
-    sample = {
-      cosf(angle),
-      sinf(angle),
-      r1
-    };
-  }
-
-  auto ao_noise_tex_id = pool.createTexture<gx::Texture2D>("t2dAoNoise",
-    gx::rgb16f);
-  auto& ao_noise_tex = pool.getTexture<gx::Texture2D>(ao_noise_tex_id);
-  auto ao_noise_sampler_id = pool.create<gx::Sampler>(gx::Sampler::repeat2d());
-  ao_noise_tex.init(ao_noise.data(), 0, AoNoiseSize, AoNoiseSize, gx::rgb, gx::f32);
-
-  auto ao_id = pool.createTexture<gx::Texture2D>("t2dFramebufferAo",
-    gx::rg16f);
-  auto& ao = pool.getTexture<gx::Texture2D>(ao_id);
-  auto ao_sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d_linear());
-  ao.swizzle(gx::Red, gx::Green, gx::Zero, gx::Zero);
-
-  auto fb_ao_id = pool.create<gx::Framebuffer>("fbAo");
-  auto& fb_ao = pool.get<gx::Framebuffer>(fb_ao_id);
-
-  ao.init(FramebufferSize.x/2, FramebufferSize.y/2);
-
-  fb_ao.use()
-    .tex(ao, 0, gx::Framebuffer::Color(0));
-  
   auto fb_composite_id = pool.create<gx::Framebuffer>("fbComposite");
   auto& fb_composite = pool.get<gx::Framebuffer>(fb_composite_id);
 
@@ -370,11 +308,6 @@ int main(int argc, char *argv[])
   auto ubo_align = [&](uint sz) {
     return pow2_align(sz, ubo_block_alignment);
   };
-
-  auto ao_ubo_id = pool.createBuffer<gx::UniformBuffer>("buAo", gx::Buffer::Static);
-  auto& ao_ubo = pool.getBuffer<gx::UniformBuffer>(ao_ubo_id);
-
-  ao_ubo.init(ao_kernel.data(), ao_kernel.size());
 
   skybox_program.use()
     .uniformBlockBinding("SceneConstants", 0)
@@ -691,7 +624,7 @@ int main(int argc, char *argv[])
   };
 
   unsigned num_light_spheres = 0;
-  const float LightSphereRadius = 4.5;
+  const float LightSphereRadius = 0.5;
   auto create_light_sphere = [&](vec3 origin, vec3 color)
   {
     auto name = util::fmt("light%u", num_light_spheres);
@@ -741,7 +674,7 @@ int main(int argc, char *argv[])
     material().diff_type = hm::Material::DiffuseConstant;
     material().diff_color = { 0.53f, 0.8f, 0.94f };
 
-    material().metalness = 1.0f;
+    material().metalness = 0.0f;
     material().roughness = 0.0f;
     material().ior = vec3(10.47f);
 

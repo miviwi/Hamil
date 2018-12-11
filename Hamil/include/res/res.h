@@ -24,5 +24,4 @@ ResourceManager& load(const std::array<size_t, N> ids)
   return load(ids.data(), ids.size());
 }
 
-
 }

@@ -1,5 +1,6 @@
 #include <ek/renderer.h>
 
+#include <util/format.h>
 #include <math/util.h>
 #include <math/brdf.h>
 #include <math/ltc.h>
@@ -21,6 +22,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <random>
 
 namespace ek {
 
@@ -35,6 +37,7 @@ void RenderLUT::generate(gx::ResourcePool& pool)
   switch(type) {
   case GaussianKernel: generateGaussian(pool); break;
   case LTC_Coeffs:     generateLTC(pool); break;
+  case HBAO_Noise:     generateHBAONoise(pool); break;
 
   default: assert(0);  // unreachable
   }
@@ -44,7 +47,9 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
 {
   auto kernel = gaussian_kernel(param);
 
-  tex_id = pool.createTexture<gx::Texture1D>(gx::r32f);
+  auto tex_label = util::fmt("t2dGaussianKernel%d", param);
+
+  tex_id = pool.createTexture<gx::Texture1D>(tex_label.data(), gx::r32f);
   auto blur_kernel = pool.getTexture(tex_id);
   blur_kernel()
     .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
@@ -52,23 +57,54 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
 
 void RenderLUT::generateLTC(gx::ResourcePool& pool)
 {
-  static constexpr auto tex_size = ltc::LTC_CoeffsTable::TableSize;
+  static constexpr auto TexSize = ltc::LTC_CoeffsTable::TableSize;
 
   res::Handle<res::LookupTable> r_lut = R.lut.ltc_lut;
 
   auto coeffs1 = (float *)r_lut->data();
-  auto coeffs2 = coeffs1 + tex_size.area();
+  auto coeffs2 = coeffs1 + TexSize.area();
 
-  tex_id = pool.createTexture<gx::Texture2DArray>(gx::rgba32f);
+  std::string tex_label = "t2daLTC_Coefficients";
+
+  tex_id = pool.createTexture<gx::Texture2DArray>(tex_label.data(), gx::rgba32f);
   auto ltc = pool.getTexture(tex_id);
 
-  ltc().init(tex_size.s, tex_size.t, 2);
+  ltc().init(TexSize.s, TexSize.t, 2);
   ltc().upload(coeffs1, /* mip */ 0,
-    /* x */ 0, /* y */ 0, /* z */ 0, tex_size.s, tex_size.t, 1,
+    /* x */ 0, /* y */ 0, /* z */ 0, TexSize.s, TexSize.t, 1,
     gx::rgba, gx::f32);
   ltc().upload(coeffs2, /* mip */ 0,
-    /* x */ 0, /* y */ 0, /* z */ 1, tex_size.s, tex_size.t, 1,
+    /* x */ 0, /* y */ 0, /* z */ 1, TexSize.s, TexSize.t, 1,
     gx::rgba, gx::f32);
+}
+
+void RenderLUT::generateHBAONoise(gx::ResourcePool& pool)
+{
+  static constexpr uvec2 NoiseSize = { 4, 4 };
+  const float NumDirections = param > 0 ? (float)param : 8.0f;
+
+  // Generate random rotations and offsets for HBAO kernel
+
+  std::mt19937 rd;
+  std::uniform_real_distribution<float> floats(0.0f, 1.0f);
+  std::array<vec3, NoiseSize.area()> noise;
+  for(auto& sample : noise) {
+    float r0 = floats(rd),
+      r1 = floats(rd);
+
+    float angle = 2.0f*PIf*r0 / NumDirections;
+
+    // sample = vec3(cos(rotation), sin(rotation), start_offset)
+    sample = vec3(cosf(angle), sinf(angle), r1);
+  }
+
+  auto tex_label = util::fmt("t2dHBAO_Noise%d", (int)NumDirections);
+
+  tex_id = pool.createTexture<gx::Texture2D>(tex_label.data(), gx::rgb32f);
+  auto noise_tex = pool.getTexture(tex_id);
+
+  noise_tex()
+    .init(noise.data(), 0, NoiseSize.s, NoiseSize.t, gx::rgb, gx::f32);
 }
 
 class RendererData {
@@ -86,8 +122,7 @@ Renderer::Renderer() :
   m_rts.reserve(InitialRenderTargets);
   m_const_buffers.reserve(InitialConstantBuffers);
 
-  // Cache pre-computed LUTs
-  res::load(R.lut.ids);
+  precacheLUTs();
 }
 
 Renderer& Renderer::cachePrograms()
@@ -105,9 +140,9 @@ Renderer& Renderer::cachePrograms()
   res::Handle<res::Shader> f_forward = R.shader.shaders.forward;
   res::Handle<res::Shader> f_rendermsm = R.shader.shaders.rendermsm;
 
-  auto forward = pool().create<gx::Program>(gx::make_program(
+  auto forward = pool().create<gx::Program>("pForward", gx::make_program(
     f_forward->source(res::Shader::Vertex), f_forward->source(res::Shader::Fragment), U.forward));
-  auto rendermsm = pool().create<gx::Program>(gx::make_program(
+  auto rendermsm = pool().create<gx::Program>("pRenderMSM", gx::make_program(
     f_rendermsm->source(res::Shader::Vertex), f_rendermsm->source(res::Shader::Fragment), U.rendermsm));
 
   // Writing to 'm_programs'
@@ -194,7 +229,7 @@ u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro)
   return program;
 }
 
-const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz)
+const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, const std::string& label)
 {
   m_const_buffers_lock.acquireShared();
 
@@ -218,7 +253,14 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz)
 
   m_const_buffers_lock.releaseShared();
 
-  auto id = pool().createBuffer<gx::UniformBuffer>(gx::Buffer::Dynamic);
+  std::string buf_label = "buConstantBuffer";
+  if(!label.empty()) {
+    buf_label += label;
+  } else {  // Use the size as the suffix if one wasn't provided
+    buf_label += std::to_string(sz);
+  }
+
+  auto id = pool().createBuffer<gx::UniformBuffer>(buf_label.data(), gx::Buffer::Dynamic);
   auto buf = pool().getBuffer(id);
 
   buf().init(sz, 1);
@@ -277,6 +319,25 @@ u32 Renderer::queryLUT(RenderLUT::Type type, int param)
 gx::ResourcePool& Renderer::pool()
 {
   return m_data->pool;
+}
+
+void Renderer::precacheLUTs()
+{
+  // Load pre-computed LUTs
+  res::load(R.lut.ids);
+
+  auto& gauss_lut = m_luts.emplace_back();
+  gauss_lut.type = RenderLUT::GaussianKernel;
+  gauss_lut.param = RenderView::GaussianBlurRadius;
+  gauss_lut.generate(pool());
+
+  auto& ltc_lut = m_luts.emplace_back();
+  ltc_lut.type = RenderLUT::LTC_Coeffs;
+  ltc_lut.generate(pool());
+
+  auto& hbao_nosie_lut = m_luts.emplace_back();
+  hbao_nosie_lut.type = RenderLUT::HBAO_Noise;
+  hbao_nosie_lut.generate(pool());
 }
 
 Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& view)

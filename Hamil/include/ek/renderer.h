@@ -29,8 +29,24 @@ class RendererData;
 
 struct RenderLUT {
   enum Type : size_t {
+    // param == radius
+    // gx::Texture1D where the first param*2 + 1 texels
+    //   are the kernel itself and the last texel is the
+    //   normalization factor
     GaussianKernel,
+
+    // gx::Texture2DArray, where:
+    //   - Layer 0 containts the inverse transform
+    //     matrix coefficients
+    //        vec4(m11, m13, m31, m33)
+    //   - Layer 1 contains a
+    //        vec4(norm_factor, fresnel, 0, clipped_form_factor)
     LTC_Coeffs,
+
+    // param == number of kernel directions (defaults to 8)
+    // gx::Texture2D, which stores:
+    //    vec3(cos(rotation), sin(rotation), start_offset)
+    HBAO_Noise,
 
     NumTypes
   };
@@ -51,6 +67,7 @@ struct RenderLUT {
 private:
   void generateGaussian(gx::ResourcePool& pool);
   void generateLTC(gx::ResourcePool& pool);
+  void generateHBAONoise(gx::ResourcePool& pool);
 };
 
 class RenderLight {
@@ -114,7 +131,7 @@ public:
   // Returns a ConstantBuffer with size() >= sz, recycling one
   //   used previously if possible
   // - Remeber to call releaseConstantBuffer()!
-  const ConstantBuffer& queryConstantBuffer(size_t sz);
+  const ConstantBuffer& queryConstantBuffer(size_t sz, const std::string& label = "");
   // Remeber to call this after a ConstantBuffer is no longer in use
   //   so they can be recycled
   void releaseConstantBuffer(const ConstantBuffer& buf);
@@ -127,6 +144,11 @@ public:
   u32 queryLUT(RenderLUT::Type type, int param = -1);
 
 private:
+  // Fill 'm_luts' with commonly used RenderLUTs
+  //   - m_data->pool must be initialized before calling
+  //     this method!
+  void precacheLUTs();
+
   // ExtractObjectsJob entry point
   ObjectVector doExtractForView(hm::Entity scene, RenderView& view);
 

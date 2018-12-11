@@ -23,6 +23,8 @@
 
 namespace ek {
 
+#define USE_MSM
+
 struct ShaderConstants {
   gx::MemoryPool::Handle h = gx::MemoryPool::Invalid;
   uint sz = ~0u;
@@ -224,11 +226,13 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Unmap the ObjectConstants UniformBuffer
   m_data->object_ubo_view = std::nullopt;
 
+#if defined USE_MSM
   if(m_type == ShadowView) {
     auto shadow_map = presentRenderTarget().textureId(RenderTarget::Moments);
 
     cmd.generateMipmaps(shadow_map);
   }
+#endif
 
   return cmd.end();
 }
@@ -243,6 +247,19 @@ RenderView& RenderView::addInput(const RenderView *input)
   m_inputs.push_back(input);
 
   return *this;
+}
+
+std::string RenderView::labelPrefix() const
+{
+#if !defined(NDEBUG)
+  switch(m_type) {
+  case CameraView: return "CameraView";
+  case LightView:  return "LightView";
+  case ShadowView: return "ShadowView";
+  }
+#endif
+
+  return "";
 }
 
 gx::ResourcePool& RenderView::pool()
@@ -321,16 +338,16 @@ u32 RenderView::createForwardRenderPass()
 
   const auto& shadow_rt = m_inputs.at(0)->presentRenderTarget();
 
-#define USE_MSM
-
 #if defined(USE_MSM)
   auto shadow_map = shadow_rt.textureId(RenderTarget::Moments);
   auto shadow_map_sampler = pool().create<gx::Sampler>(
+    "sShadowMapMoments",
     gx::Sampler::edgeclamp2d_mipmap()
   );
 #else
   auto shadow_map = shadow_rt.textureId(RenderTarget::Depth);
   auto shadow_map_sampler = pool().create<gx::Sampler>(
+    "sShadowMapDepth",
     gx::Sampler::edgeclamp2d_linear()
       .compareRef(gx::Less)
   );
@@ -397,9 +414,13 @@ void RenderView::initConstantBuffers(size_t num_ros)
     /* align */ (m_constant_block_sz - (ObjectConstantBufferUASize % m_constant_block_sz));
 
   m_const_bufs[SceneConstantsBinding] = &renderer().queryConstantBuffer(
-    constantBlockSizeAlign(SceneConstantsSize));
+    constantBlockSizeAlign(SceneConstantsSize),
+    labelPrefix() + "SceneConstants"
+  );
   m_const_bufs[ObjectConstantsBinding] = &renderer().queryConstantBuffer(
-    constantBlockSizeAlign((u32)ObjectConstantBufferSize));
+    constantBlockSizeAlign((u32)ObjectConstantBufferSize),
+    labelPrefix() + "ObjectConstants"
+  );
 
   m_num_objects_per_block = std::min(m_constant_block_sz / ObjectConstantsSize, 256u);
 
@@ -532,7 +553,7 @@ void RenderView::initLuts()
 {
   auto blur_lut_id = renderer().queryLUT(RenderLUT::GaussianKernel, GaussianBlurRadius);
   auto blur_sampler_id = m_data->samplers.emplace_back(
-    pool().create<gx::Sampler>(gx::Sampler::borderclamp1d())
+    pool().create<gx::Sampler>("sGaussianKernel", gx::Sampler::borderclamp1d())
   );
 
   getRenderpass()

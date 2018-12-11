@@ -99,6 +99,13 @@ public:
     return id;
   }
 
+  // See gx.h for notes on 'label' strings
+  template <typename T, typename... Args>
+  Id create(char *label, Args... args)
+  {
+    return create<T>((const char *)label, std::forward<Args>(args)...);
+  }
+
   template <typename T>
   void release(Id id)
   {
@@ -140,6 +147,13 @@ public:
     return create<TextureHandle>(label, TextureHandle::create<T>(std::forward<Args>(args)...));
   }
 
+   // See gx.h for notes on 'label' strings
+  template <typename T, typename... Args>
+  Id createTexture(char *label, Args... args)
+  {
+    return createTexture<T>((const char *)label, std::forward<Args>(args)...);
+  }
+
   template <typename T, typename... Args>
   Id createBuffer(Args... args)
   {
@@ -151,6 +165,13 @@ public:
   Id createBuffer(const char *label, Args... args)
   {
     return create<BufferHandle>(label, BufferHandle::create<T>(std::forward<Args>(args)...));
+  }
+
+  // See gx.h for notes on 'label' strings
+  template <typename T, typename... Args>
+  Id createBuffer(char *label, Args... args)
+  {
+    return createBuffer<T>((const char *)label, std::forward<Args>(args)...);
   }
 
   template <typename T> T& get(Id id)

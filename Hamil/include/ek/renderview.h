@@ -120,6 +120,8 @@ private:
 
   constexpr static int GaussianBlurRadius = 1;  // See math/util.h
 
+  std::string labelPrefix() const;
+
   // m_renderer->pool()
   gx::ResourcePool& pool();
 

@@ -27,7 +27,7 @@ class RenderTargetConfig {
 public:
   enum BaseType : u32 {
     DepthPrepass,
-    Forward, Deffered,
+    Forward, Deferred,
     LightPropagationVolume,
     MomentShadowMap,
     ReflectiveShadowMap,
@@ -99,11 +99,15 @@ private:
 
   RenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);
 
+  std::string labelSuffix() const;
+
   // Stores the Id in 'm_fb_id'
   gx::Framebuffer& createFramebuffer();
 
-  gx::TextureHandle createTexMultisample(u32 /* gx::Format */ fmt, uint samples);
-  gx::TextureHandle createTex(u32 /* gx::Format */ fmt);
+  gx::TextureHandle createTexMultisample(u32 /* gx::Format */ fmt, uint samples,
+    const std::string& label);
+  gx::TextureHandle createTex(u32 /* gx::Format */ fmt,
+    const std::string& label);
 
   void initDepth();
 

@@ -7,6 +7,9 @@
 
 namespace ltc {
 
+// All LTC fitting related code (so ltc.h, brdf.h and neldermead.h) based on:
+//   https://github.com/selfshadow/ltc_code/
+
 // Linearly transformed cosine
 struct LTC {
   // Lobe magnitude
