@@ -2,45 +2,40 @@
 
 namespace ek {
 
-RenderObject::RenderObject(hm::Entity e) :
-  m_entity(e)
+RenderObject::RenderObject(Type t, hm::Entity e) :
+  m_entity(e),
+  m_data(std::monostate())
 {
+  switch(t) {
+  case Mesh:  m_data.emplace<Mesh>(); break;
+  case Light: m_data.emplace<Light>(); break;
+  }
 }
 
-RenderObject& RenderObject::model(const mat4& m)
+RenderObject::Type RenderObject::type() const
 {
-  m_model = m;
-
-  return *this;
+  return (Type)m_data.index();
 }
 
-const mat4& RenderObject::model() const
+RenderMesh& RenderObject::mesh()
 {
-  return m_model;
+  return std::get<Mesh>(m_data);
 }
 
-RenderObject& RenderObject::mesh(hm::ComponentRef<hm::Mesh> mesh)
+const RenderMesh& RenderObject::mesh() const
 {
-  m_mesh = mesh;
-
-  return *this;
+  return std::get<Mesh>(m_data);
 }
 
-const hm::Mesh& RenderObject::mesh() const
+RenderLight& RenderObject::light()
 {
-  return m_mesh();
+  return std::get<Light>(m_data);
 }
 
-RenderObject& RenderObject::material(hm::ComponentRef<hm::Material> material)
+const RenderLight& RenderObject::light() const
 {
-  m_material = material;
-
-  return *this;
+  return std::get<Light>(m_data);
 }
 
-const hm::Material& RenderObject::material() const
-{
-  return m_material();
-}
 
 }

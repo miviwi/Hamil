@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ek/euklid.h>
+#include <ek/renderobject.h>
 
 #include <util/ref.h>
 #include <math/geometry.h>
@@ -22,7 +23,6 @@ class UniformBuffer;
 namespace ek {
 
 class Renderer;
-class RenderObject;
 class RenderTarget;
 class ConstantBuffer;
 
@@ -93,10 +93,9 @@ public:
   // Used by Renderer::extractForView()
   frustum3 constructFrustum();
 
-  // Make SURE to specify the ResourcePool used to create
-  //   the hm::Mesh Components of the extracted Entities!
+  // 'objects' will be altered by this method
   gx::CommandBuffer render(Renderer& renderer,
-    const std::vector<RenderObject>& objects);
+    std::vector<RenderObject>& objects);
 
   // Returns a reference to the RenderTarget which holds
   //   the rendered view
@@ -177,7 +176,7 @@ private:
   void shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd);
 
   // Emits the draw command for ro.mesh()
-  void emitDraw(const RenderObject& ro, gx::CommandBuffer& cmd);
+  void emitDraw(const RenderMesh& ro, gx::CommandBuffer& cmd);
 
   ViewType m_type;
   RenderType m_render;
@@ -195,6 +194,8 @@ private:
 
   mat4 m_view;     // View matrix
   mat4 m_projection;  // Projection matrix (ViewType dependent)
+
+  std::array<size_t, RenderObject::NumTypes> m_num_objects_per_type;
 
   // Stores mapped BufferViews and allocated Samplers
   RenderViewData *m_data;

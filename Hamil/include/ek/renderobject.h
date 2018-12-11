@@ -8,32 +8,89 @@
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
 
+#include <variant>
+
 namespace ek {
+
+class RenderMesh {
+public:
+  RenderMesh() { }
+
+  // Model matrix extracted at the beginning of rendering
+  mat4 model;
+
+  // Cached at the start of rendering
+  hm::ComponentRef<hm::Mesh> mesh = nullptr;
+  // Cached at the start of rendering
+  hm::ComponentRef<hm::Material> material = nullptr;
+};
+
+class RenderLight {
+public:
+  enum Type {
+    Directional, Spot,
+    Line, Rectangle, Quad, Sphere, Disk,
+    ImageBasedLight,
+  };
+
+  RenderLight() :
+    directional({ vec3::zero() })  // Need to have this...
+  { }
+
+  Type type;
+
+  float radius;
+  vec3 color;
+
+  union {
+    struct {
+      vec3 direction;
+    } directional;
+
+    struct {
+      vec3 origin;
+      vec3 direction;
+      float angle;
+    } spot;
+
+    struct {
+      vec3 v1, v2;
+    } line;
+
+    struct {
+      vec3 center;
+      float radius;
+    } sphere;
+  };
+};
+
 
 class RenderObject {
 public:
-  RenderObject(hm::Entity e);
+  enum Type {
+    // Used as 'm_data' std::variant indices
 
-  RenderObject& model(const mat4& m);
-  const mat4& model() const;
+    Mesh = 1, Light = 2,
+    NumTypes
+  };
 
-  RenderObject& mesh(hm::ComponentRef<hm::Mesh> mesh);
-  const hm::Mesh& mesh() const;
+  RenderObject(Type t, hm::Entity e);
 
-  RenderObject& material(hm::ComponentRef<hm::Material> material);
-  const hm::Material& material() const;
+  Type type() const;
+
+  RenderMesh& mesh();
+  const RenderMesh& mesh() const;
+
+  RenderLight& light();
+  const RenderLight& light() const;
 
 private:
-  // Model matrix extracted at the beginning of rendering
-  mat4 m_model;
-
   // The Entity which this RenderObject represents
   hm::Entity m_entity;
 
-  // Cached at the start of rendering
-  hm::ComponentRef<hm::Mesh> m_mesh = nullptr;
-  // Cached at the start of rendering
-  hm::ComponentRef<hm::Material> m_material = nullptr;
+  std::variant<std::monostate,
+    RenderMesh,
+    RenderLight> m_data;
 };
 
 }

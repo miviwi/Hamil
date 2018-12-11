@@ -10,6 +10,7 @@
 #include <hm/components/transform.h>
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
+#include <hm/components/light.h>
 #include <gx/resourcepool.h>
 #include <gx/program.h>
 #include <res/res.h>
@@ -350,7 +351,7 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
 
   auto transform_matrix = scene.component<hm::Transform>().get().matrix();
   scene.gameObject().foreachChild([&](hm::Entity e) {
-    extractOne(objects, frustum, e, transform_matrix);
+    extractOne(view, objects, frustum, e, transform_matrix);
   });
 
   // Done reading components
@@ -359,30 +360,36 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   return objects;
 }
 
-void Renderer::extractOne(ObjectVector& objects,
+void Renderer::extractOne(RenderView& view, ObjectVector& objects,
   const frustum3& frustum, hm::Entity e, const mat4& parent)
 {
   auto transform = e.component<hm::Transform>();
 
-  auto model_matrix = parent * transform().matrix();
-  auto aabb = transform().aabb;
+  if(auto mesh = e.component<hm::Mesh>()) {
+    auto model_matrix = parent * transform().matrix();
+    auto aabb = transform().aabb;
 
-  // Cull the object and it's children
-  if(!frustum.aabbInside(aabb)) return;
+    // Cull the object and it's children
+    if(!frustum.aabbInside(aabb)) return;
 
-  auto mesh = e.component<hm::Mesh>();
-  auto material = e.component<hm::Material>();
+    auto material = e.component<hm::Material>();
 
-  // Extract the object
-  objects.emplace_back(e)
-    .model(model_matrix)
-    .mesh(mesh)
-    .material(material);
+    // Extract the object
+    auto& ro = objects.emplace_back(RenderObject::Mesh, e).mesh();
 
-  // ...and it's children
-  e.gameObject().foreachChild([&](hm::Entity child) {
-    extractOne(objects, frustum, child, model_matrix);
-  });
+    ro.model    = model_matrix;
+    ro.mesh     = mesh;
+    ro.material = material;
+
+    view.m_num_objects_per_type.at(RenderObject::Mesh)++;
+
+    // ...and it's children
+    e.gameObject().foreachChild([&](hm::Entity child) {
+      extractOne(view, objects, frustum, child, model_matrix);
+    });
+  } else if(auto light = e.component<hm::Light>()) {
+    auto& ro = objects.emplace_back(RenderObject::Light, e).light();
+  }
 }
 
 }

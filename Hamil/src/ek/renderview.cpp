@@ -112,6 +112,8 @@ RenderView::RenderView(ViewType type) :
 {
   m_ubo_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
   m_constant_block_sz = (u32)gx::info().maxUniformBlockSize();
+
+  std::fill(m_num_objects_per_type.begin(), m_num_objects_per_type.end(), 0);
 }
 
 RenderView::~RenderView()
@@ -190,7 +192,7 @@ const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] =
 };
 
 gx::CommandBuffer RenderView::render(Renderer& renderer,
-  const std::vector<RenderObject>& objects)
+  std::vector<RenderObject>& objects)
 {
   // Used by internal methods
   m_renderer = &renderer;
@@ -215,11 +217,17 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
     .renderpass(m_renderpass_id)
     .bufferUpload(constantBufferId(SceneConstantsBinding), scene_constants.h, scene_constants.sz);
 
+  std::sort(objects.begin(), objects.end(), [](const RenderObject& a, const RenderObject& b) {
+    return a.type() < b.type();
+  });
+
   auto render_one = RenderFns[m_type][m_render];
 
-  for(const auto& ro : objects) {
+  size_t num_meshes = m_num_objects_per_type.at(RenderObject::Mesh);
+  for(size_t i = 0; i < num_meshes; i++) {
+    const auto& ro = objects[i];
+
     (this->*render_one)(ro, cmd);
- 
     advanceConstantBlockBinding(cmd);
   }
 
@@ -515,8 +523,10 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   // Move the rover forward
   ObjectConstants& object = *m_objects_rover++;
 
-  const auto& model_matrix = ro.model();
-  const auto& material = ro.material();
+  auto& mesh = ro.mesh();
+
+  const auto& model_matrix = mesh.model;
+  const auto& material = mesh.material();
 
   object.model   = model_matrix;
   object.normal  = model_matrix.inverse().transpose();
@@ -586,7 +596,7 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
 
   auto& renderpass = getRenderpass();
 
-  const auto& material = ro.material();
+  const auto& material = ro.mesh().material();
 
   // TODO!
   //   - Batch RenderObject by Diffuse texture
@@ -599,7 +609,7 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
     cmd.subpass(next_subpass);
   }
 
-  emitDraw(ro, cmd);
+  emitDraw(ro.mesh(), cmd);
 }
 
 void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
@@ -621,10 +631,10 @@ void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
     .program(program_id)
     .uniformInt(U.rendermsm.uObjectConstantsOffset, constants_offset);
 
-  emitDraw(ro, cmd);
+  emitDraw(ro.mesh(), cmd);
 }
 
-void RenderView::emitDraw(const RenderObject& ro, gx::CommandBuffer& cmd)
+void RenderView::emitDraw(const RenderMesh& ro, gx::CommandBuffer& cmd)
 {
   const auto& mesh = ro.mesh().m;
 

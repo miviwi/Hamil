@@ -20,6 +20,7 @@ class ResourcePool;
 
 namespace hm {
 struct Transform;
+struct Light;
 }
 
 namespace ek {
@@ -70,20 +71,11 @@ private:
   void generateHBAONoise(gx::ResourcePool& pool);
 };
 
-class RenderLight {
-
-};
-
 class Renderer {
 public:
   using ObjectVector = std::vector<RenderObject>;
   using ExtractObjectsJob = std::unique_ptr<
     sched::Job<ObjectVector, hm::Entity, RenderView *>
-  >;
-
-  using LightVector = std::vector<RenderLight>;
-  using ExtractLightsJob = std::unique_ptr<
-    sched::Job<LightVector, hm::Entity, RenderView *>
   >;
 
   enum {
@@ -111,7 +103,8 @@ public:
   //     avoid stuttering when encountering a new shader
   Renderer& cachePrograms();
 
-  // Generates the data stream for RenderView::render()
+  // Generates the data stream for RenderView::render(),
+  //   and populates it with RenderLights
   ExtractObjectsJob extractForView(hm::Entity scene, RenderView& view);
 
   // Returns a RenderTarget compatible with 'config', recycling one
@@ -154,7 +147,8 @@ private:
 
   // Extracts an Entity and all it's children and appends
   //   them to 'objects'
-  void extractOne(ObjectVector& objects, const frustum3& frustum,
+  void extractOne(RenderView& view,
+    ObjectVector& objects, const frustum3& frustum,
     hm::Entity e, const mat4& parent);
 
   // Stores the gx::ResourcePool of the Renderer
