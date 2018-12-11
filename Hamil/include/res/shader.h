@@ -14,6 +14,8 @@ class Document;
 
 namespace res {
 
+class ResourceManager;
+
 class Shader : public Resource {
 public:
   static constexpr Tag tag() { return "shader"; }
@@ -51,7 +53,7 @@ protected:
   using Resource::Resource;
 
 private:
-  friend class ResourceManager;
+  friend ResourceManager;
   
   Sources m_sources;
   std::vector<std::string> m_inline;

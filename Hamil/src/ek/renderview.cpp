@@ -193,6 +193,8 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Used by internal methods
   m_renderer = &renderer;
 
+  auto ltc = m_renderer->queryLUT(RenderLUT::LTC_Coeffs);
+
   // Internal to this RenderView
   m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
 

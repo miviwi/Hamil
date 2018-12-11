@@ -18,6 +18,8 @@ int args(int argc, char *argv[])
     .boolean("resource-gen", "generate *.meta files (resource descriptors) from images, sound files etc.")
     .list("resources", "list of resource files for resource-gen")
     .list("types", "list of resource file types to be processed by resource-gen")
+
+    .boolean("ltc-lut-gen", "generate fitted LTC look-up table resource")
     ;
 
   int exit_code = 0;
@@ -47,6 +49,10 @@ int args(int argc, char *argv[])
 
       return -1;
     }
+
+    exit_code = 1;
+  } else if(opts("ltc-lut-gen")->b()) {
+    ltc_lut_gen();
 
     exit_code = 1;
   }

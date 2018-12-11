@@ -3,6 +3,7 @@
 #include <res/shader.h>
 #include <res/image.h>
 #include <res/mesh.h>
+#include <res/lut.h>
 
 #include <util/hash.h>
 #include <yaml/node.h>
@@ -110,6 +111,7 @@ static const std::map<std::string, res::Resource::Tag> p_tags = {
   { Shader::tag().get(), Shader::tag() },
   { Image::tag().get(),  Image::tag()  },
   { Mesh::tag().get(),   Mesh::tag()   },
+  { LookupTable::tag().get(), LookupTable::tag() },
 };
 
 std::optional<Resource::Tag> ResourceManager::make_tag(const char *tag)

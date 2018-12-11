@@ -7,6 +7,8 @@
 #include <util/format.h>
 #include <mesh/mesh.h>
 #include <mesh/obj.h>
+#include <math/brdf.h>
+#include <math/ltc.h>
 
 #include <res/res.h>
 #include <res/manager.h>
@@ -15,6 +17,7 @@
 #include <res/shader.h>
 #include <res/image.h>
 #include <res/mesh.h>
+#include <res/lut.h>
 
 #include <string>
 #include <vector>
@@ -377,6 +380,42 @@ static yaml::Document meshgen(win32::File& file,
   );
 
   return yaml::Node::Ptr(meta);
+}
+
+void ltc_lut_gen()
+{
+  auto meta_mapping = make_meta<res::LookupTable>("ltc_lut", "")->append(
+    yaml::Scalar::from_str("location"),
+    yaml::Scalar::from_str("ltc_fitted.bin", yaml::Node::Tag("!file"))
+  )->append(
+    yaml::Scalar::from_str("type"),
+    yaml::Scalar::from_str("rgba32f")
+  );
+
+  yaml::Document meta = yaml::Node::Ptr(meta_mapping);
+  auto meta_data = meta.toString();
+
+  auto ggx = brdf::BRDF_GGX();
+  auto ltc_lut = ltc::LTC_CoeffsTable();
+
+  ltc_lut.fit(ggx);
+
+  auto f_name = util::fmt("./%s/%s.meta",
+    meta("path")->as<yaml::Scalar>()->str(),
+    meta("name")->as<yaml::Scalar>()->str());
+
+  win32::File f_meta(f_name.data(), win32::File::Write, win32::File::CreateAlways);
+
+  // If there's more than ULONG_MAX bytes of data - oh well
+  f_meta.write(meta_data.data(), (ulong)meta_data.size());
+
+  win32::File f_lut("ltc_fitted.bin", win32::File::Write, win32::File::CreateAlways);
+
+  const auto& coeffs1 = ltc_lut.coeffs1();
+  const auto& coeffs2 = ltc_lut.coeffs2();
+
+  f_lut.write(coeffs1.data(), (ulong)coeffs1.size());
+  f_lut.write(coeffs2.data(), (ulong)coeffs2.size());
 }
 
 }

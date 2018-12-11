@@ -15,7 +15,8 @@ struct GenError {
   { }
 };
 
-
 void resourcegen(std::vector<std::string> resources, std::set<std::string> types);
+
+void ltc_lut_gen();
 
 }

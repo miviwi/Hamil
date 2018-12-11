@@ -5,6 +5,7 @@
 #include <res/shader.h>
 #include <res/image.h>
 #include <res/mesh.h>
+#include <res/lut.h>
 
 #include <util/format.h>
 #include <win32/file.h>
@@ -74,6 +75,9 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
                              .mapping("vertex")
                              .scalar("indexed", yaml::Scalar::Boolean)
                              .scalar("primitive", yaml::Scalar::String) },
+  { LookupTable::tag(), yaml::Schema()
+                             .scalar("location", yaml::Scalar::Tagged)
+                             .scalar("type", yaml::Scalar::String) },
 };
 
 const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> SimpleFsLoader::loader_fns = {
@@ -81,6 +85,7 @@ const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> SimpleFsLoader
   { Shader::tag(), &SimpleFsLoader::loadShader },
   { Image::tag(),  &SimpleFsLoader::loadImage  },
   { Mesh::tag(),   &SimpleFsLoader::loadMesh   },
+  { LookupTable::tag(), &SimpleFsLoader::loadLUT },
 };
 
 void SimpleFsLoader::doInit()
@@ -229,8 +234,7 @@ Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& me
 {
   // execution only reaches here when 'meta' has passed validation
   // so we can assume it's valid
-  const yaml::Scalar *name, *path, *location;
-  std::tie(name, path, location) = name_path_location(meta);
+  auto [name, path, location] = name_path_location(meta);
 
   auto req = IORequest::read_file(location->str());
   manager().requestIo(req);
@@ -242,8 +246,7 @@ Resource::Ptr SimpleFsLoader::loadText(Resource::Id id, const yaml::Document& me
 
 Resource::Ptr SimpleFsLoader::loadShader(Resource::Id id, const yaml::Document& meta)
 {
-  const yaml::Scalar *name, *path;
-  std::tie(name, path) = name_path(meta);
+  auto [name, path] = name_path(meta);
 
   return Shader::from_yaml(meta, id, name->str(), path->str());
 }
@@ -257,8 +260,7 @@ static const std::map<std::string, unsigned> p_num_channels = {
 
 Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& meta)
 {
-  const yaml::Scalar *name, *path, *location;
-  std::tie(name, path, location) = name_path_location(meta);
+  auto [name, path, location] = name_path_location(meta);
 
   auto channels_node = meta("channels");
   auto dims          = meta("dimensions");
@@ -293,8 +295,7 @@ Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& m
 
 Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& meta)
 {
-  const yaml::Scalar *name, *path, *location;
-  std::tie(name, path, location) = name_path_location(meta);
+  auto [name, path, location] = name_path_location(meta);
 
   auto req = IORequest::read_file(location->str());
   manager().requestIo(req);
@@ -302,6 +303,18 @@ Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& me
   auto& mesh_data = manager().waitIo(req);
 
   return Mesh::from_yaml(std::move(mesh_data), meta, id, name->str(), path->str());
+}
+
+Resource::Ptr SimpleFsLoader::loadLUT(Resource::Id id, const yaml::Document& meta)
+{
+  auto [name, path, location] = name_path_location(meta);
+
+  auto req = IORequest::read_file(location->str());
+  manager().requestIo(req);
+
+  auto& lut_data = manager().waitIo(req);
+
+  return LookupTable::from_yaml(std::move(lut_data), meta, id, name->str(), path->str());
 }
 
 }

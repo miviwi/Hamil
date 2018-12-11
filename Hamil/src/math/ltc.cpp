@@ -1,8 +1,12 @@
 #include <math/ltc.h>
 #include <math/neldermead.h>
+#include <math/util.h>
+
+#include <util/format.h>
 
 #include <cmath>
 #include <cstring>
+#include <cstdio>
 #include <algorithm>
 #include <functional>
 
@@ -171,7 +175,10 @@ LTC_CoeffsTable& LTC_CoeffsTable::fit(const brdf::BRDF_GGX& brdf)
     for(int t = 0; t <= N-1; t++) {
       float x = t / float(N-1);
       float ct = 1.0f - x*x;
-      float theta = std::min(PIf/2.0f, acosf(ct));
+
+      // cosf() below returns -0.0f when theta == PIf/2
+      //   which is undesired, a small bias fixes this
+      float theta = std::min(PIf/2.0f - 1e-7f, acosf(ct));
 
       vec3 V = { sinf(theta), 0.0f, cosf(theta) };
 
@@ -231,6 +238,17 @@ LTC_CoeffsTable& LTC_CoeffsTable::fit(const brdf::BRDF_GGX& brdf)
 
       // Zero-out useless coefficients
       M(0, 1) = M(1, 0) = M(2, 1) = M(1, 2) = 0.0f;
+
+      auto str = util::fmt("a = %d t = %d\n"
+        "roghness = %f (alpha, theta) = (%f, %f)\n"
+        "V = %s \t average_dir = %s\n"
+        "%s\nmagnitude = %f fresnel = %f\n\n",
+        a, t,
+        roughness, alpha, theta,
+        math::to_str(V), math::to_str(avg_dir),
+        math::to_str(M), ltc.magnitude, ltc.fresnel);
+
+      printf(str.data());
     }
   }
 
@@ -257,8 +275,8 @@ void LTC_CoeffsTable::averageTerms(const brdf::BRDF_GGX& brdf, const vec3& V, fl
 
   for(int j = 0; j < NumSamples; j++) {
     for(int i = 0; i < NumSamples; i++) {
-      auto U1 = ((float)i + 0.5f) / (float)NumSamples;
-      auto U2 = ((float)j + 0.5f) / (float)NumSamples;
+      auto U1 = ((float)i + 0.5f) / NumSamples;
+      auto U2 = ((float)j + 0.5f) / NumSamples;
 
       // Sample
       vec3 L = brdf.sample(V, alpha, U1, U2);
@@ -336,9 +354,9 @@ void LTC_CoeffsTable::fitOne(LTC& ltc, const brdf::BRDF_GGX& brdf,
   float start[] = { ltc.m11, ltc.m22, ltc.m13 };
   float result[3];
 
-  auto update = [&](const float *params) {
+  auto update = [&](LTC& ltc, const float *params) {
     float m11 = std::max(params[0], 1e-7f);
-    float m22 = std::max(params[0], 1e-7f);
+    float m22 = std::max(params[1], 1e-7f);
     float m13 = params[2];
 
     if(isotropic) {
@@ -353,14 +371,14 @@ void LTC_CoeffsTable::fitOne(LTC& ltc, const brdf::BRDF_GGX& brdf,
     ltc.compute();
   };
 
-  auto get_error = std::bind(&LTC_CoeffsTable::computeError, this, (LTC&)ltc, brdf, V, alpha);
+  auto get_error = std::bind(&LTC_CoeffsTable::computeError, this, std::placeholders::_1, brdf, V, alpha);
 
-  float error = nedler_mead<3>(result, start, eps, 1e-5, 100, [&](const float *params) -> float {
-    update(params);
-    return get_error();
+  float error = nedler_mead<3>(result, start, eps, 1e-5f, 100, [&](const float *params) -> float {
+    update(ltc, params);
+    return get_error(ltc);
   });
 
-  update(result);
+  update(ltc, result);
 }
 
 }

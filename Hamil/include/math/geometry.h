@@ -579,7 +579,7 @@ struct Matrix2 {
 
   Matrix2& operator *=(Matrix2& b) { *this = *this * b; return *this; }
 
-  T det() const { return d[1]*d[2] - d[0]*d[3]; }
+  T det() const { return d[0]*d[3] - d[1]*d[2]; }
 
   operator float *() { return d; }
   operator const float *() const { return d; }
@@ -694,9 +694,9 @@ struct Matrix3 {
   {
     T inv_det = (T)1 / det();
     Matrix3 M = {
-      +minor(0, 0), -minor(1, 0), +minor(2, 0)
-      -minor(0, 1), +minor(1, 1), -minor(2, 1)
-      +minor(0, 2), -minor(1, 2), +minor(2, 2)
+      +minor(0, 0), -minor(1, 0), +minor(2, 0),
+      -minor(0, 1), +minor(1, 1), -minor(2, 1),
+      +minor(0, 2), -minor(1, 2), +minor(2, 2),
     };
 
     return inv_det * M.transpose();

@@ -105,6 +105,7 @@ private:
   Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadImage(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadMesh(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadLUT(Resource::Id id, const yaml::Document& meta);
 
   std::string m_path;
 

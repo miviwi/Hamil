@@ -14,6 +14,7 @@
 #include <res/res.h>
 #include <res/handle.h>
 #include <res/shader.h>
+#include <res/lut.h>
 
 #include <resources.h>
 #include <uniforms.h>
@@ -49,29 +50,24 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
     .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
 }
 
-// TODO!
-//   - Cannot generate this table at runtime as it takes
-//     very long (esp. in Debug builds...)
 void RenderLUT::generateLTC(gx::ResourcePool& pool)
 {
-  //return;
+  static constexpr auto tex_size = ltc::LTC_CoeffsTable::TableSize;
 
-  auto brdf_ggx = brdf::BRDF_GGX();
-  auto ltc_coeffs = ltc::LTC_CoeffsTable();
+  res::Handle<res::LookupTable> r_lut = R.lut.ltc_lut;
 
-  static constexpr auto tex_size =  ltc::LTC_CoeffsTable::TableSize;
-
-  ltc_coeffs.fit(brdf_ggx);
+  auto coeffs1 = (float *)r_lut->data();
+  auto coeffs2 = coeffs1 + tex_size.area();
 
   tex_id = pool.createTexture<gx::Texture2DArray>(gx::rgba32f);
   auto ltc = pool.getTexture(tex_id);
 
   ltc().init(tex_size.s, tex_size.t, 2);
-  ltc().upload(ltc_coeffs.coeffs1().data(), /* mip */ 0,
+  ltc().upload(coeffs1, /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 0, tex_size.s, tex_size.t, 1,
     gx::rgba, gx::f32);
-  ltc().upload(ltc_coeffs.coeffs1().data(), /* mip */ 0,
-    /* x */ 0, /* y */ 0, /* z */ 0, tex_size.s, tex_size.t, 1,
+  ltc().upload(coeffs2, /* mip */ 0,
+    /* x */ 0, /* y */ 0, /* z */ 1, tex_size.s, tex_size.t, 1,
     gx::rgba, gx::f32);
 }
 
@@ -90,10 +86,8 @@ Renderer::Renderer() :
   m_rts.reserve(InitialRenderTargets);
   m_const_buffers.reserve(InitialConstantBuffers);
 
-  auto& lut = m_luts.emplace_back();
-  lut.type = RenderLUT::LTC_Coeffs;
-
-  lut.generate(pool());
+  // Cache pre-computed LUTs
+  res::load(R.lut.ids);
 }
 
 Renderer& Renderer::cachePrograms()

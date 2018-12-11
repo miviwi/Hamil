@@ -21,9 +21,12 @@ BRDF_GGX::EvalResult BRDF_GGX::eval(const vec3& V, const vec3& L, const float al
   const vec3 H = (V + L).normalize();
   const vec2 slope = { H.x/H.z, H.y/H.z };
 
+  const float Hz2 = H.z*H.z;
+  const float Hz4 = Hz2*Hz2;
+
   float D = 1.0f / (1.0f + slope.length2() / alpha / alpha);
   D = D*D;
-  D = D / (PIf * alpha*alpha * H.z*H.z*H.z);
+  D = D / (PIf * alpha*alpha * Hz4);
 
   float brdf = D * G2 / 4.0f / V.z;
   float pdf = fabsf(D*H.z / 4.0f / V.dot(H));
