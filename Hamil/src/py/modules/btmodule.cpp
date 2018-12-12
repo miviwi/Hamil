@@ -11,6 +11,8 @@
 #include <bt/collisionshape.h>
 #include <bt/world.h>
 
+#include <new>
+
 namespace py {
 
 struct RigidBodyToken;
@@ -95,7 +97,7 @@ int RigidBody_Check(PyObject *obj)
 PyObject *RigidBody_FromRigidBody(bt::RigidBody rb)
 {
   auto self = RigidBodyType.newObject<RigidBody>();
-  self->m = rb;
+  new(&self->m) bt::RigidBody(rb);
 
   return (PyObject *)self;
 }
@@ -155,7 +157,7 @@ int CollisionShape_Check(PyObject *obj)
 PyObject *CollisionShape_FromCollisionShape(bt::CollisionShape shape)
 {
   auto self = CollisionShapeType.newObject<CollisionShape>();
-  self->m = shape;
+  new(&self->m) bt::CollisionShape(shape);
 
   return (PyObject *)self;
 }
@@ -235,7 +237,7 @@ int DynamicsWorld_Check(PyObject *obj)
 PyObject *DynamicsWorld_FromDynamicsWorld(bt::DynamicsWorld world)
 {
   auto self = DynamicsWorldType.newObject<DynamicsWorld>();
-  self->m = world;
+  new(&self->m) bt::DynamicsWorld(world);
 
   return (PyObject *)self;
 }

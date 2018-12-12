@@ -1,10 +1,17 @@
 #pragma once
 
 // Base class for ref-counted objects
-//   - must put
+//   - Must put
 //       if(deref()) return;
 //     into the destructor so it's body is run
 //     only when the ref-count reaches 0
+//   - The ref-counter is only allocated
+//     when the object is copied, which
+//     costs a few branches when copies
+//     occur, but should prevent cache
+//     thrashing when the object is never
+//     copied (which is the common case,
+//     so performance win overall)
 class Ref {
 public:
   Ref();
@@ -27,5 +34,5 @@ protected:
   ~Ref();
 
 private:
-  unsigned *m_ref;
+  mutable unsigned *m_ref;
 };

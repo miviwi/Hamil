@@ -13,6 +13,7 @@
 #include <hm/componentref.h>
 #include <hm/components/all.h>
 
+#include <new>
 #include <string>
 #include <unordered_map>
 #include <functional>
@@ -231,10 +232,10 @@ int Entity_Check(PyObject *obj)
 
 PyObject *Entity_FromEntity(hm::Entity e)
 {
-  auto obj = EntityType.newObject<Entity>();
-  obj->m = e;
+  auto self = EntityType.newObject<Entity>();
+  new(&self->m) hm::Entity(e);
 
-  return (PyObject *)obj;
+  return (PyObject *)self;
 }
 
 struct GameObjectToken;
@@ -319,7 +320,7 @@ int GameObject_Check(PyObject *obj)
 PyObject *GameObject_FromRef(hm::ComponentRef<hm::GameObject> ref)
 {
   auto self = GameObjectType.newObject<GameObject>();
-  self->m = ref;
+  new(&self->m) hmRef<hm::GameObject>(ref);
 
   return (PyObject *)self;
 }
@@ -359,7 +360,7 @@ static int GameObjectIterator_Check(PyObject *obj)
 static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it)
 {
   auto self = GameObjectIteratorType.newObject<GameObjectIterator>();
-  self->m = it;
+  new(&self->m) hm::GameObjectIterator(it);
 
   return (PyObject *)self;
 }
@@ -418,7 +419,7 @@ static int HmTransform_Check(PyObject *obj)
 static PyObject *HmTransform_FromRef(hmRef<hm::Transform> ref)
 {
   auto self = HmTransformType.newObject<HmTransform>();
-  self->m = ref;
+  new(&self->m) hmRef<hm::Transform>(ref);
 
   return (PyObject *)self;
 }
@@ -480,7 +481,7 @@ static int HmRigidBody_Check(PyObject *obj)
 static PyObject *HmRigidBody_FromRef(hmRef<hm::RigidBody> ref)
 {
   auto self = HmRigidBodyType.newObject<HmRigidBody>();
-  self->m = ref;
+  new(&self->m) hmRef<hm::RigidBody>(ref);
 
   return (PyObject *)self;
 }
