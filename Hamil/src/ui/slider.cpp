@@ -163,7 +163,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   Color value_color = slider.color[1].lightenf(0.1);
 
   auto pipeline = gx::Pipeline()
-    .alphaBlend()
+    .premultAlphaBlend()
     .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;

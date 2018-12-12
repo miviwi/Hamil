@@ -75,7 +75,7 @@ void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
   };
 
   auto pipeline = gx::Pipeline()
-    .alphaBlend()
+    .premultAlphaBlend()
     .scissor(ui().scissorRect(parent.clip({ g.x, g.y, g.w+1, g.h+1 })))
     .primitiveRestart(Vertex::RestartIndex)
     ;
@@ -217,7 +217,7 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   auto pipeline = gx::Pipeline()
     .scissor(ui().scissorRect(parent.clip(g)))
-    .alphaBlend()
+    .premultAlphaBlend()
     .primitiveRestart(Vertex::RestartIndex)
     ;
 

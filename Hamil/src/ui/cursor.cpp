@@ -144,7 +144,7 @@ const gx::VertexFormat pCursorDriver::Fmt =
 
 static const auto pipeline =
   gx::Pipeline()
-    .alphaBlend();
+    .premultAlphaBlend();
 
 static std::vector<Vertex> generate_verts(const Cursor *cursors)
 {
@@ -210,7 +210,7 @@ void CursorDriver::init()
   p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::u8);
   p->tex.swizzle(gx::Red, gx::Red, gx::Red, gx::Green);
 
-  p->tex.label("t2dcursor");
+  p->tex.label("t2dCursor");
 
   cursor_program = std::make_unique<gx::Program>(gx::make_program(
     { vs_src }, { fs_src }, U.cursor

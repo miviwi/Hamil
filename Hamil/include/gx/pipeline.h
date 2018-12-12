@@ -38,6 +38,7 @@ public:
   Pipeline& scissor(int x, int y, int w, int h);
   Pipeline& scissor(ivec4 rect);
   Pipeline& alphaBlend();
+  Pipeline& premultAlphaBlend();
   Pipeline& additiveBlend();
   Pipeline& subtractiveBlend();
   Pipeline& multiplyBlend();

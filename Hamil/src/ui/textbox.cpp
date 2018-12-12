@@ -108,7 +108,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
   };
 
   auto text_pipeline = gx::Pipeline()
-    .alphaBlend()
+    .premultAlphaBlend()
     .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;

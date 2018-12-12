@@ -41,6 +41,7 @@
 #include <gx/memorypool.h>
 #include <gx/commandbuffer.h>
 #include <gx/fence.h>
+#include <gx/query.h>
 
 #include <ft/font.h>
 
@@ -753,6 +754,8 @@ int main(int argc, char *argv[])
   win32::DeltaTimer time;
   time.reset();
 
+  size_t gpu_frametime = 0;
+
   create_lights();
 
   while(window.processMessages()) {
@@ -859,6 +862,9 @@ int main(int argc, char *argv[])
         }
       }
     }
+
+    gx::Query query(gx::Query::TimeElapsed);
+    auto query_scope = query.begin();
 
     // All the input has been processed - schedule a Ui paint
     auto ui_paint_job_id = worker_pool.scheduleJob(ui_paint_job.withParams());
@@ -1033,11 +1039,13 @@ int main(int argc, char *argv[])
     // Display the statistics
     stats.caption(util::fmt(
       "Frametime: %.3lfms\n"
+      "GPU Frametime: %.3lfms\n"
       "Scene triangles: %zu\n"
       "Physics update: %.3lfms\n"
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",
       step_dt*1000.0,
+      gpu_frametime*1e-6,
       (size_t)0,
       physics_step_job.dbg_ElapsedTime()*1000.0,
       ui_paint_job.dbg_ElapsedTime()*1000.0,
@@ -1120,6 +1128,9 @@ int main(int argc, char *argv[])
       .uniformSampler(U.composite.uUi, UiTexImageUnit)
       .uniformSampler(U.composite.uScene, SceneTexImageUnit)
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
+
+    query_scope.end();
+    gpu_frametime = query.resultsz();
 
     fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },

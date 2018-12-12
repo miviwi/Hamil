@@ -20,6 +20,7 @@ Style Style::basic_style()
 
   s.window.radius = 3.0f;
   s.window.margin = { 5.0f, 2.0f };
+  s.window.bg = color_a.opacity(0.01);
 
   s.border.color[0] = s.border.color[3] = ui::white();
   s.border.color[1] = s.border.color[2] = ui::transparent();

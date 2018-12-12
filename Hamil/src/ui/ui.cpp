@@ -177,7 +177,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
     .pipeline(gx::Pipeline()
       .viewport(0, 0, FramebufferSize.s, FramebufferSize.t)
       .noDepthTest()
-      .alphaBlend()
+      .premultAlphaBlend()
       .clearColor(transparent().normalize()))
     .textures({
       { DrawableManager::TexImageUnit, { m_drawable.atlasId(), m_drawable.samplerId() } },

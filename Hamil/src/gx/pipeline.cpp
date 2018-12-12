@@ -150,6 +150,15 @@ Pipeline& Pipeline::alphaBlend()
   return *this;
 }
 
+Pipeline& Pipeline::premultAlphaBlend()
+{
+  m_enabled[Blend] = true;
+  m_blend.mode = GL_FUNC_ADD;
+  m_blend.sfactor = GL_ONE; m_blend.dfactor = GL_ONE_MINUS_SRC_ALPHA;
+
+  return *this;
+}
+
 Pipeline& Pipeline::additiveBlend()
 {
   m_enabled[Blend] = true;

@@ -254,11 +254,11 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, const std::string
 
   m_const_buffers_lock.releaseShared();
 
-  std::string buf_label = "buConstantBuffer";
+  std::string buf_label = "bu";
   if(!label.empty()) {
     buf_label += label;
   } else {  // Use the size as the suffix if one wasn't provided
-    buf_label += std::to_string(sz);
+    buf_label += util::fmt("ConstantBuffer%zu", sz);
   }
 
   auto id = pool().createBuffer<gx::UniformBuffer>(buf_label.data(), gx::Buffer::Dynamic);

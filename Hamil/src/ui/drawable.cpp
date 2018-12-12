@@ -246,7 +246,7 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
   m_sampler_id = m_pool.create<gx::Sampler>("sUiDrawable",
     gx::Sampler::edgeclamp2d());
 
-  m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("t2dUiDrawableAtlas",
+  m_atlas_id = m_pool.createTexture<gx::Texture2DArray>("t2daUiDrawableAtlas",
     gx::srgb_alpha);
   atlas().get()
     .init(AtlasSize.s, AtlasSize.t, numAtlasPages());

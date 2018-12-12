@@ -27,7 +27,7 @@ void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
   reflow();
 
   auto pipeline = gx::Pipeline()
-    .alphaBlend()
+    .premultAlphaBlend()
     .primitiveRestart(Vertex::RestartIndex)
     .noScissor()
     ;

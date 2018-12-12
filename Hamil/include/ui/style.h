@@ -38,6 +38,7 @@ struct Style {
   struct {
     float radius;
     vec2 margin;
+    Color bg;
   } window;
 
   struct {

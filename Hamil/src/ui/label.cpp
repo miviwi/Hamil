@@ -24,7 +24,7 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
   vec2 center = g.center();
 
   auto pipeline = gx::Pipeline()
-    .alphaBlend()
+    .premultAlphaBlend()
     .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;

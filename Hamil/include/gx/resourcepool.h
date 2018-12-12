@@ -8,6 +8,7 @@
 #include <gx/vertex.h>
 #include <gx/renderpass.h>
 #include <gx/fence.h>
+#include <gx/query.h>
 
 #include <util/smallvector.h>
 #include <util/tupleindex.h>

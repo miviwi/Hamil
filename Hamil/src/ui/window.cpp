@@ -45,10 +45,10 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
   uint decor_corners = VertexPainter::TopLeft|VertexPainter::TopRight;
   Color decor_color = style.bg.color[2].darkenf(0.1);
 
-  Color bg = m_bg ? *m_bg : decor_color.darkenf(0.2).opacity(0.4);
+  Color bg = m_bg ? *m_bg : style.window.bg;
 
   auto pipeline = gx::Pipeline()
-    .alphaBlend()
+    .premultAlphaBlend()
     .scissor(ui().scissorRect(parent.clip(g)))
     .primitiveRestart(Vertex::RestartIndex)
     ;
