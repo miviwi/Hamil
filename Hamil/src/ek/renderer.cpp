@@ -388,11 +388,19 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
     // Check if this view needs to have RenderLights extracted
     if(view.m_type != RenderView::CameraView) return;
 
-    // TODO: Light culling
+    vec3 position = model_matrix.translation();
+
+    float radius = light().radius;
+    float radius2 = radius*radius;
+    float distance2 = view.eyePosition().distance2(position);
+
+    // TODO: Better light culling
+    if(!frustum.sphereInside(position, radius) &&
+      distance2 > radius2) return;
 
     auto& ro = objects.emplace_back(RenderObject::Light, e).light();
 
-    ro.position = model_matrix.translation();
+    ro.position = position;
     ro.light = light;
   }
 }

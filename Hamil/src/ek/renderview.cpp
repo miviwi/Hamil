@@ -80,7 +80,7 @@ struct ObjectConstants {
 
   // Packed object material properties
   //   (uint(material_id), metalness, roughness, 0.0f)
-  vec4 material_id__metalness__roughness__0;
+  vec4 materialid_metalness_roughness_0;
 
   vec4 pad_;
 };
@@ -178,6 +178,11 @@ RenderView& RenderView::projection(const mat4& p)
   return *this;
 }
 
+vec3 RenderView::eyePosition() const
+{
+  return m_view.translation();
+}
+
 frustum3 RenderView::constructFrustum()
 {
   return frustum3(m_view, m_projection);
@@ -237,7 +242,7 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Unmap the ObjectConstants UniformBuffer
   m_data->object_ubo_view = std::nullopt;
 
-#if defined USE_MSM
+#if defined(USE_MSM)
   if(m_type == ShadowView) {
     auto shadow_map = presentRenderTarget().textureId(RenderTarget::Moments);
 
@@ -537,7 +542,7 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   object.diff_color = material.diff_color;
   object.ior = vec4(material.ior, 1.0f);
 
-  object.material_id__metalness__roughness__0 = vec4(
+  object.materialid_metalness_roughness_0 = vec4(
     (float)material_id, material.metalness, material.roughness, 0.0f
   );
 

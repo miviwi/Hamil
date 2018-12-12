@@ -92,6 +92,8 @@ public:
   RenderView& view(const mat4& v);
   RenderView& projection(const mat4& p);
 
+  vec3 eyePosition() const;
+
   // Used by Renderer::extractForView()
   frustum3 constructFrustum();
 

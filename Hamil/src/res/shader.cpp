@@ -6,6 +6,8 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include <algorithm>
+#include <iterator>
 #include <utility>
 #include <sstream>
 
@@ -26,8 +28,31 @@ public:
     return result.second;
   }
 
+  void addImports(const std::string& name, const std::string& shader)
+  {
+    auto& imports = m_imports[name];
+    auto import_result = imports.emplace(shader);
+    if(!import_result.second) return;
+
+    auto shader_imports_it = m_imports.find(shader);
+
+    // Check if we need to recurse...
+    if(shader_imports_it == m_imports.end()) return;
+
+    for(auto& shader_import : shader_imports_it->second) {
+      addImports(name, shader_import);  // Recursively import
+    }
+  }
+
+  const std::unordered_set<std::string>& getImports(const std::string& shader)
+  {
+    return m_imports[shader];
+  }
+
 private:
   std::unordered_map<std::string, std::string> m_library;
+  std::unordered_map<std::string,
+    std::unordered_set<std::string>> m_imports;
 };
 
 static pShaderLibrary p_library;
@@ -41,9 +66,6 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
   auto& vertex_sources   = shader->m_sources[Vertex];
   auto& geometry_sources = shader->m_sources[Geometry];
   auto& fragment_sources = shader->m_sources[Fragment];
-
-  std::unordered_set<std::string> global_imports,
-    vertex_imports, geometry_imports, fragment_imports;
 
   auto& inline_sources = shader->m_inline;
 
@@ -75,37 +97,60 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     p_library.set(lib_name, ss.str());
   };
 
-  auto do_stage = [&](const char *stage_name,
-    std::unordered_set<std::string>& imports, std::vector<const char *>& dst) -> void
+  auto do_stage = [&](const char *stage_name, std::vector<const char *>& dst)
   {
-    if(auto stage = doc(stage_name)) {
-      for(const auto& src : *stage->as<yaml::Sequence>()) {
-        // Prevent importing the same source multiple times
-        if(src->tag() == ImportSource) {
-          auto imported = imports.insert(src->as<yaml::Scalar>()->str());
-          if(!imported.second) continue;
-        }
+    auto stage_node = doc(stage_name);
+    if(!stage_node) return;
 
-        auto ptr = get_ptr(src);
-        dst.push_back(ptr);
+    const yaml::Sequence *stage = stage_node->as<yaml::Sequence>();
+
+    // format the name as <program>.(glsl|vert|geom|frag)
+    // ex.
+    //     - wireframe.geom
+    //     - blinnphong.frag
+    std::string full_name = util::fmt("%s.%.4s", name, stage_name);
+
+    // Conservatively allocate buckets
+    std::unordered_set<std::string> imports(stage->size());
+
+    // Resolve imports
+    for(const auto& src : *stage) {
+      if(!(src->tag() == ImportSource)) continue;
+
+      auto import_name = src->as<yaml::Scalar>()->str();
+      const auto& imports_imports = p_library.getImports(import_name);
+
+      imports.emplace(import_name);
+      imports.insert(imports_imports.cbegin(), imports_imports.cend());
+
+      // Avoid double-imports
+      for(auto& i : imports_imports) {
+        if(imports.find(i) != imports.end()) imports.erase(i);
       }
 
-      if(auto tag = stage->tag()) {
-        if(tag == ExportSource) {
-          // format the name as <program>.(glsl|vert|geom|frag)
-          // ex.
-          //     - wireframe.geom
-          //     - blinnphong.frag
-          export_source(util::fmt("%s.%.4s", name, stage_name), dst);
-        }
-      }
+      p_library.addImports(full_name, import_name);
+    }
+
+    // Append all import sources first...
+    for(const auto& import : imports) dst.push_back(p_library.get(import));
+
+    // ...and then the rest
+    for(const auto& src : *stage) {
+      // Imports have already been resolved
+      if(src->tag() == ImportSource) continue;
+
+      dst.push_back(get_ptr(src));
+    }
+
+    if(stage->tag() == ExportSource) {
+      export_source(full_name, dst);
     }
   };
 
-  do_stage("glsl", global_imports, global_sources);
-  do_stage("vertex", vertex_imports, vertex_sources);
-  do_stage("geometry", geometry_imports, geometry_sources);
-  do_stage("fragment", fragment_imports, fragment_sources);
+  do_stage("glsl", global_sources);
+  do_stage("vertex", vertex_sources);
+  do_stage("geometry", geometry_sources);
+  do_stage("fragment", fragment_sources);
 
   shader->m_loaded = true;
 
