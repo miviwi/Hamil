@@ -37,5 +37,4 @@ const RenderLight& RenderObject::light() const
   return std::get<Light>(m_data);
 }
 
-
 }

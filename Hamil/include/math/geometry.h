@@ -86,8 +86,8 @@ struct Vector2 {
     return { std::max(a.x, b.x), std::max(a.y, b.y) };
   }
 
-  operator float *() { return (float *)this; }
-  operator const float *() const { return (float *)this; }
+  operator T *() { return (T *)this; }
+  operator const T *() const { return (const T *)this; }
 };
 
 template <typename T>
@@ -257,8 +257,8 @@ struct Vector3 {
   static Vector3 forward() { return { (T)0, (T)0, (T)1 }; }
   static Vector3 back()    { return { (T)0, (T)0, (T)-1 }; }
 
-  operator float *() { return (float *)this; }
-  operator const float *() const { return (float *)this; }
+  operator T *() { return (T *)this; }
+  operator const T *() const { return (const T *)this; }
 };
 
 template <typename T>
@@ -454,8 +454,8 @@ struct /* alignas(16) for intrin */ Vector4 {
 
   Vector4 operator-() const { return { -x, -y, -z, -w }; }
 
-  operator float *() { return (float *)this; }
-  operator const float *() const { return (float *)this; }
+  operator T *() { return (T *)this; }
+  operator const T *() const { return (const T *)this; }
 };
 
 template <typename T>

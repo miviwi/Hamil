@@ -332,9 +332,9 @@ void Renderer::precacheLUTs()
   gauss_lut.param = RenderView::GaussianBlurRadius;
   gauss_lut.generate(pool());
 
-  auto& ltc_lut = m_luts.emplace_back();
-  ltc_lut.type = RenderLUT::LTC_Coeffs;
-  ltc_lut.generate(pool());
+  //auto& ltc_lut = m_luts.emplace_back();
+  //ltc_lut.type = RenderLUT::LTC_Coeffs;
+  //ltc_lut.generate(pool());
 
   auto& hbao_nosie_lut = m_luts.emplace_back();
   hbao_nosie_lut.type = RenderLUT::HBAO_Noise;
@@ -364,31 +364,36 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
   const frustum3& frustum, hm::Entity e, const mat4& parent)
 {
   auto transform = e.component<hm::Transform>();
+  auto model_matrix = parent * transform().matrix();
+  auto aabb = transform().aabb;
 
+  // Extract children
+  e.gameObject().foreachChild([&](hm::Entity child) {
+    extractOne(view, objects, frustum, child, model_matrix);
+  });
+
+  // Extract the object
   if(auto mesh = e.component<hm::Mesh>()) {
-    auto model_matrix = parent * transform().matrix();
-    auto aabb = transform().aabb;
-
-    // Cull the object and it's children
+    // Cull it
     if(!frustum.aabbInside(aabb)) return;
 
     auto material = e.component<hm::Material>();
 
-    // Extract the object
     auto& ro = objects.emplace_back(RenderObject::Mesh, e).mesh();
 
     ro.model    = model_matrix;
     ro.mesh     = mesh;
     ro.material = material;
-
-    view.m_num_objects_per_type.at(RenderObject::Mesh)++;
-
-    // ...and it's children
-    e.gameObject().foreachChild([&](hm::Entity child) {
-      extractOne(view, objects, frustum, child, model_matrix);
-    });
   } else if(auto light = e.component<hm::Light>()) {
+    // Check if this view needs to have RenderLights extracted
+    if(view.m_type != RenderView::CameraView) return;
+
+    // TODO: Light culling
+
     auto& ro = objects.emplace_back(RenderObject::Light, e).light();
+
+    ro.position = model_matrix.translation();
+    ro.light = light;
   }
 }
 

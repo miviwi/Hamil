@@ -624,30 +624,43 @@ int main(int argc, char *argv[])
   };
 
   unsigned num_light_spheres = 0;
-  const float LightSphereRadius = 0.5;
   auto create_light_sphere = [&](vec3 origin, vec3 color)
   {
-    auto name = util::fmt("light%u", num_light_spheres);
+    const float LightSphereRadius = random_floats(random_generator)*10.0f;
+
+    origin += vec3(LightSphereRadius);
+
+    auto name = util::fmt("light_sphere%u", num_light_spheres);
+    auto light_name = util::fmt("light%u", num_light_spheres);
     num_light_spheres++;
 
-    auto entity = hm::entities().createGameObject(name, scene);
+    auto sphere_entity = hm::entities().createGameObject(name, scene);
+    auto light_entity = hm::entities().createGameObject(light_name, sphere_entity);
 
-    auto transform = entity.addComponent<hm::Transform>(
+    auto transform = sphere_entity.addComponent<hm::Transform>(
       xform::Transform(origin, quat(), vec3(LightSphereRadius))
     );
-    entity.addComponent<hm::Mesh>(sphere_mesh);
+    sphere_entity.addComponent<hm::Mesh>(sphere_mesh);
 
     transform().aabb = AABB(
       origin - vec3(LightSphereRadius),
       origin + vec3(LightSphereRadius)
     );
 
-    auto material = entity.addComponent<hm::Material>();
+    auto material = sphere_entity.addComponent<hm::Material>();
 
     material().diff_type = (hm::Material::DiffuseType)(hm::Material::Other | 1);
     material().diff_color = color;
 
-    return entity;
+    light_entity.addComponent<hm::Transform>(xform::Transform());
+    auto light = light_entity.addComponent<hm::Light>();
+
+    light().type = hm::Light::Sphere;
+    light().color = color;
+    light().radius = 100.0f;
+    light().sphere.radius = LightSphereRadius;
+
+    return sphere_entity;
   };
 
   auto model_shape = bt::shapes().box({ 2.0f, 2.0f, 2.0f });
@@ -679,6 +692,13 @@ int main(int argc, char *argv[])
     material().ior = vec3(10.47f);
 
     return entity;
+  };
+
+  auto create_lights = [&]()
+  {
+    create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(10.0f));
+    create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
+    create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
   };
 
   auto floor = create_floor();
@@ -733,9 +753,7 @@ int main(int argc, char *argv[])
   win32::DeltaTimer time;
   time.reset();
 
-  create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(1.0f));
-  create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(1.0f, 1.0f, 0.0f));
-  create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 1.0f, 1.0f));
+  create_lights();
 
   while(window.processMessages()) {
     using hm::entities;
@@ -778,6 +796,7 @@ int main(int argc, char *argv[])
           scene.addComponent<hm::Transform>(xform::Transform());
 
           floor = create_floor();
+          create_lights();
         } else if(kb->keyDown('Q')) {
           window.quit();
         } else if(kb->keyDown('A')) {
@@ -989,7 +1008,7 @@ int main(int argc, char *argv[])
 
       auto transform = entity.component<hm::Transform>();
 
-      small_face.draw(util::fmt("%s(0x%.8x) at: %s",
+      small_face.draw(util::fmt("%.20s(0x%.8x) at: %s",
         entity.gameObject().name(), entity.id(), math::to_str(transform().t.translation())),
         { x, y }, { 1.0f, 1.0f, 1.0f });
       y += small_face.height();

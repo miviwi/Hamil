@@ -7,6 +7,7 @@
 #include <hm/component.h>
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
+#include <hm/components/light.h>
 
 #include <variant>
 
@@ -27,50 +28,19 @@ public:
 
 class RenderLight {
 public:
-  enum Type {
-    Directional, Spot,
-    Line, Rectangle, Quad, Sphere, Disk,
-    ImageBasedLight,
-  };
+  // Position/direction extracted at the beginning of rendering
+  vec3 position;
 
-  RenderLight() :
-    directional({ vec3::zero() })  // Need to have this...
-  { }
-
-  Type type;
-
-  float radius;
-  vec3 color;
-
-  union {
-    struct {
-      vec3 direction;
-    } directional;
-
-    struct {
-      vec3 origin;
-      vec3 direction;
-      float angle;
-    } spot;
-
-    struct {
-      vec3 v1, v2;
-    } line;
-
-    struct {
-      vec3 center;
-      float radius;
-    } sphere;
-  };
+  // Cached at the start of rendering
+  hm::ComponentRef<hm::Light> light = nullptr;
 };
-
 
 class RenderObject {
 public:
   enum Type {
     // Used as 'm_data' std::variant indices
 
-    Mesh = 1, Light = 2,
+    Light = 1, Mesh = 2,
     NumTypes
   };
 
@@ -89,8 +59,8 @@ private:
   hm::Entity m_entity;
 
   std::variant<std::monostate,
-    RenderMesh,
-    RenderLight> m_data;
+    RenderLight,
+    RenderMesh> m_data;
 };
 
 }

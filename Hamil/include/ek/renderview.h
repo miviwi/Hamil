@@ -1,7 +1,6 @@
 #pragma once
 
 #include <ek/euklid.h>
-#include <ek/renderobject.h>
 
 #include <util/ref.h>
 #include <math/geometry.h>
@@ -24,6 +23,9 @@ namespace ek {
 
 class Renderer;
 class RenderTarget;
+class RenderObject;
+class RenderMesh;
+class RenderLight;
 class ConstantBuffer;
 
 // Stores a MemoryPool Handle and a size
@@ -144,7 +146,6 @@ private:
   gx::RenderPass& getRenderpass();
 
   // Initializes:
-  //   - m_scene_ubo_id, m_object_ubo_id
   //   - m_num_objects_per_block, m_constant_block_sz
   //   - m_objects, m_objects_rover, m_objects_end
   //   - UniformBuffer bindings on the current RenderPass,
@@ -165,6 +166,14 @@ private:
 
   // Calls Renderer::queryLUT()
   void initLuts();
+
+  // Returns the number of processed lights (i.e. the starting
+  //  index of the RenderMeshes in 'objects')
+  // - 'objects' MUST have been sorted before calling
+  //   this method!
+  // - generateSceneConstants() MUST have been called
+  //   before this method!
+  size_t processLights(const std::vector<RenderObject>& objects);
 
   using RenderFn = void (RenderView::*)(const RenderObject&, gx::CommandBuffer&);
   static const RenderFn RenderFns[NumViewTypes][NumRenderTypes];
@@ -194,8 +203,6 @@ private:
 
   mat4 m_view;     // View matrix
   mat4 m_projection;  // Projection matrix (ViewType dependent)
-
-  std::array<size_t, RenderObject::NumTypes> m_num_objects_per_type;
 
   // Stores mapped BufferViews and allocated Samplers
   RenderViewData *m_data;

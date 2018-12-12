@@ -13,6 +13,9 @@
 #include <gx/renderpass.h>
 #include <gx/vertex.h>
 #include <gx/texture.h>
+#include <hm/components/mesh.h>
+#include <hm/components/material.h>
+#include <hm/components/light.h>
 
 #include <uniforms.h>
 
@@ -34,10 +37,6 @@ enum : uint {
   MaxForwardPassLights = 8,
 };
 
-enum LightType : uint {
-  Directional, Spot, Point,
-};
-
 enum MaterialId : u32 {
   Unshaded,
   ConstantColor,
@@ -47,8 +46,8 @@ enum MaterialId : u32 {
 
 #pragma pack(push, 1)
 struct LightConstants {
-  vec4 /* vec3 */ position;
-  vec4 /* vec3 */ color;
+  vec4 v1;   // vec4(position.xyz, radius)
+  vec4 v2;   // vec4(color.rgb, sphere_radius)
 };
 
 struct SceneConstants {
@@ -67,7 +66,7 @@ struct SceneConstants {
   // - Each vector stores 4 adjacent LightTypes which
   //   correspond to the lights[] array
   // - Packed to save memory used for alignment padding
-  ivec4 light_types[MaxForwardPassLights / 4];
+  uvec4 light_types[MaxForwardPassLights / 4];
   LightConstants lights[MaxForwardPassLights];
 };
 
@@ -97,6 +96,8 @@ public:
   std::optional<gx::BufferView> object_ubo_view = std::nullopt;
 
   std::vector<u32> samplers;
+
+  SceneConstants *scene = nullptr;
 };
 
 RenderView::RenderView(ViewType type) :
@@ -112,8 +113,6 @@ RenderView::RenderView(ViewType type) :
 {
   m_ubo_alignment = pow2_round((uint)gx::info().minUniformBindAlignment());
   m_constant_block_sz = (u32)gx::info().maxUniformBlockSize();
-
-  std::fill(m_num_objects_per_type.begin(), m_num_objects_per_type.end(), 0);
 }
 
 RenderView::~RenderView()
@@ -202,14 +201,24 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Internal to this RenderView
   m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
 
-  auto scene_constants = generateSceneConstants();
-
   m_renderpass_id = createRenderPass();
   auto& renderpass = getRenderpass();
 
-  initConstantBuffers(objects.size());
+  // The integer values of RenderObject::Type are arranged in such a way that after
+  //   sorting them the RenderLights will come first, which means that after skipping
+  //   them all that remains is the RenderMeshes
+  std::sort(objects.begin(), objects.end(), [](const RenderObject& a, const RenderObject& b) {
+    return a.type() < b.type();   // Sort the RenderObjects according to their type()
+  });
 
+  initConstantBuffers(objects.size());  // Allocate the UniformBuffers
   initLuts();
+
+  // Fill in m_data->scene and return a (gx::MemoryPool::Handle, size)
+  auto scene_constants = generateSceneConstants();
+
+  // Number of processed lights == Offset of the RenderMeshes
+  auto meshes_off = processLights(objects);
 
   auto cmd = gx::CommandBuffer::begin()
     .bindResourcePool(&pool())
@@ -217,14 +226,8 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
     .renderpass(m_renderpass_id)
     .bufferUpload(constantBufferId(SceneConstantsBinding), scene_constants.h, scene_constants.sz);
 
-  std::sort(objects.begin(), objects.end(), [](const RenderObject& a, const RenderObject& b) {
-    return a.type() < b.type();
-  });
-
   auto render_one = RenderFns[m_type][m_render];
-
-  size_t num_meshes = m_num_objects_per_type.at(RenderObject::Mesh);
-  for(size_t i = 0; i < num_meshes; i++) {
+  for(size_t i = meshes_off; i < objects.size(); i++) {
     const auto& ro = objects[i];
 
     (this->*render_one)(ro, cmd);
@@ -245,6 +248,7 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   return cmd.end();
 }
 
+// TODO
 const RenderTarget& RenderView::presentRenderTarget() const
 {
   return *m_rts.at(0);
@@ -474,7 +478,8 @@ ShaderConstants RenderView::generateSceneConstants()
   constants.sz = constantBlockSizeAlign(sizeof(SceneConstants));
   constants.h  = m_mempool->alloc(constants.sz);
 
-  SceneConstants *scene = m_mempool->ptr<SceneConstants>(constants.h);
+  m_data->scene = m_mempool->ptr<SceneConstants>(constants.h);
+  SceneConstants *scene = m_data->scene;
 
   scene->view = m_view;
   scene->projection = m_projection;
@@ -495,21 +500,9 @@ ShaderConstants RenderView::generateSceneConstants()
   };
   memcpy(scene->ambient_basis, ambient_basis, sizeof(SceneConstants::ambient_basis));
 
+  scene->num_lights.x = 0;
   memset(scene->light_types, 0, sizeof(SceneConstants::light_types));
-
-  scene->num_lights.x = 3;
-  scene->lights[0] = {
-    m_view * vec4(0.0f, 6.0f, 0.0f, 1.0f),
-    vec3{ 20.0f, 20.0f, 20.0f }
-  };
-  scene->lights[1] = {
-    m_view * vec4(-10.0f, 6.0f, -10.0f, 1.0f),
-    vec3{ 20.0f, 20.0f, 0.0f }
-  };
-  scene->lights[2] = {
-    m_view * vec4(20.0f, 6.0f, 0.0f, 1.0f),
-    vec3{ 0.0f, 20.0f, 20.0f }
-  };
+  memset(scene->lights, 0, sizeof(SceneConstants::lights));
 
   memcpy(scene->ambient_basis, ambient_basis, sizeof(SceneConstants::ambient_basis));
 
@@ -568,6 +561,47 @@ void RenderView::initLuts()
 
   getRenderpass()
     .texture(BlurKernelTexImageUnit, blur_lut_id, blur_sampler_id);
+}
+
+// TODO!
+size_t RenderView::processLights(const std::vector<RenderObject>& objects)
+{
+  LightConstants *consts = m_data->scene->lights;
+  uvec4 *types = m_data->scene->light_types;
+
+  // The number of lights is stored as a uvec4
+  //   for proper alignment
+  int& num_lights = m_data->scene->num_lights[0];
+
+  size_t i;
+  for(i = 0; i < objects.size(); i++) {
+    const auto& ro = objects[i];
+    if(ro.type() != RenderObject::Light) break;
+
+    // Skip lights over the limit
+    // TODO: use lights which most contribute to the
+    //       scene instead of cutting off arbitrarily
+    if(num_lights >= MaxForwardPassLights) continue;
+
+    auto light = ro.light().light;
+
+    // Types are encoded in uvec4's
+    types[num_lights>>2][num_lights&3] = light().type;
+
+    // Transform the light's position into view space
+    auto center = vec4(ro.light().position, 1.0f);
+    center = m_view * center;
+
+    // Pack the light data
+    consts->v1 = vec4(center.xyz(), light().radius);
+    consts->v2 = vec4(light().color, light().sphere.radius);
+
+    num_lights++;
+
+    consts++;
+  }
+
+  return i;  // Number of processed lights
 }
 
 // TODO
