@@ -255,7 +255,8 @@ private:
     Sampler,
     BufferHandle,
     RenderPass,
-    Fence
+    Fence,
+    Query
   > m_resources;
 
   enum {

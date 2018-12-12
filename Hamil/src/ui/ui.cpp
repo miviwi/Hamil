@@ -194,7 +194,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_vtx_id = m_pool.create<gx::IndexedVertexArray>("iaUi",
     VertexPainter::Fmt, m_buf, m_ind);
 
-  m_fence_id = m_pool.create<gx::Fence>();
+  m_fence_id = m_pool.create<gx::Fence>("fUiPaintDone");
 }
 
 Ui::~Ui()

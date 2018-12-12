@@ -91,6 +91,7 @@ GxInfo& info();
 //       * s  - gx::Sampler
 //       * t  - gx::Texture
 //       * f  - gx::Fence
+//       * q  - gx::Query
 //       * a  - gx::VertexArray, ia - gx::IndexedVertexArray
 //       * fb - gx::Framebuffer
 //       * rb - gx::Framebuffer::renderbuffer<Multisample>()

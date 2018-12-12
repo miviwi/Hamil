@@ -29,7 +29,7 @@ public:
     DepthPrepass,
     Forward, Deferred,
     LightPropagationVolume,
-    MomentShadowMap,
+    ShadowMap,
     ReflectiveShadowMap,
   };
 

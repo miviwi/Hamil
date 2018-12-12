@@ -241,7 +241,7 @@ DrawableManager::DrawableManager(gx::ResourcePool& pool) :
 {
   m_staging_id = createStaging(numAtlasPages());
 
-  m_fence_id = m_pool.create<gx::Fence>();
+  m_fence_id = m_pool.create<gx::Fence>("fUiDrawableAtlas");
 
   m_sampler_id = m_pool.create<gx::Sampler>("sUiDrawable",
     gx::Sampler::edgeclamp2d());

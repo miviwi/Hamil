@@ -68,6 +68,13 @@ ConditionalRenderScope Query::conditionalRender(ConditionalMode mode)
   return ConditionalRenderScope(*this, mode);
 }
 
+void Query::label(const char *label)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_QUERY, m, -1, label);
+#endif
+}
+
 QueryScope::QueryScope(Query& q) :
   m(&q)
 {

@@ -17,12 +17,12 @@ public:
   enum Type {
     // The result is the number of samples
     //   which passed the depth test
-    SamplesPassed        = GL_SAMPLES_PASSED,
+    SamplesPassed = GL_SAMPLES_PASSED,
 
     // The result is a bool which is == false when no
     //   generated samples have passed the depth test
     //   and 'true' otherwise
-    AnySamplesPassed     = GL_ANY_SAMPLES_PASSED,
+    AnySamplesPassed = GL_ANY_SAMPLES_PASSED,
 
     // The result is the number of primitives sent
     //   to the Geometry Shader by the scoped commands
@@ -35,21 +35,27 @@ public:
     //   - MUST be used with queryCounter()
     //     instead of begin() to generate the
     //     result
-    Timestamp   = GL_TIMESTAMP,
+    Timestamp = GL_TIMESTAMP,
   };
 
   enum ConditionalMode {
     // Render if and only if the Query result
     //   is 'true' (i.e. stall when it isn't
     //   available)
-    Wait   = GL_QUERY_WAIT,
+    Wait = GL_QUERY_WAIT,
     // Skip rendering if the Query result is
     //   available and == false, when it's
     //   not available or the result is 'true'
     //   the scoped commands will be executed
     NoWait = GL_QUERY_NO_WAIT,
 
-    ByRegionWait   = GL_QUERY_BY_REGION_WAIT,
+    // Same as 'Wait' except the rendered samples
+    //   will get clipped to the region rasterized
+    //   by the Query
+    ByRegionWait = GL_QUERY_BY_REGION_WAIT,
+    // Same as 'ByRegionWait' except the rendering
+    //   may not stall to wait on the Query,
+    //   however the clipping rule still holds
     ByRegionNoWait = GL_QUERY_BY_REGION_NO_WAIT,
   };
 
@@ -81,6 +87,8 @@ public:
   size_t resultsz();
 
   ConditionalRenderScope conditionalRender(ConditionalMode mode);
+
+  void label(const char *label);
 
 private:
   friend QueryScope;

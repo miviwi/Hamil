@@ -1,9 +1,12 @@
 #include <gx/fence.h>
 
+#include <cassert>
+
 namespace gx {
 
 Fence::Fence() :
-  m(nullptr)
+  m(nullptr),
+  m_label(nullptr)
 {
 }
 
@@ -16,11 +19,21 @@ Fence::~Fence()
 
 Fence& Fence::sync()
 {
+#if !defined(NDEBUG)
+  assert(m_waited && "Fence::sync() called without a previous wait()/block()!");
+#endif
+
   if(m) { // Fence objects are reusable
     glDeleteSync((GLsync)m);
   }
 
   m = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+#if !defined(NDEBUG)
+  if(m_label) glObjectPtrLabel(m, -1, m_label);
+
+  m_waited = false;
+#endif
+
   glFlush();  // Have to flush here to ensure consistency across
               //   threads (and their associated contexts)
 
@@ -32,6 +45,10 @@ bool Fence::signaled()
   auto result = glClientWaitSync((GLsync)m, 0, 0);
   if(result == GL_WAIT_FAILED) throw WaitFailedError();
 
+#if !defined(NDEBUG)
+  m_waited = true;
+#endif
+
   return result == GL_ALREADY_SIGNALED || result == GL_CONDITION_SATISFIED;
 }
 
@@ -41,6 +58,10 @@ Fence::Status Fence::block(u64 timeout)
 
   auto result = glClientWaitSync((GLsync)m, GL_SYNC_FLUSH_COMMANDS_BIT, timeout);
   if(result == GL_WAIT_FAILED) throw WaitFailedError();
+
+#if !defined(NDEBUG)
+  m_waited = true;
+#endif
 
   Status status = Invalid;
   switch(result) {
@@ -58,10 +79,17 @@ void Fence::wait()
   if(!m) return;
 
   glWaitSync((GLsync)m, 0, GL_TIMEOUT_IGNORED);
+
+#if !defined(NDEBUG)
+  m_waited = true;
+#endif
 }
 
 void Fence::label(const char *lbl)
 {
+#if !defined(NDEBUG)
+  m_label = lbl;
+#endif
 }
 
 }

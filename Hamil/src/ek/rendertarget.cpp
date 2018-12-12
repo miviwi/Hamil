@@ -39,7 +39,7 @@ RenderTargetConfig RenderTargetConfig::moment_shadow_map(uint samples)
 {
   RenderTargetConfig self;
 
-  self.type = MomentShadowMap;
+  self.type = ShadowMap;
   self.samples = samples;
 
   self.moments.emplace(gx::rgba32f);
@@ -59,9 +59,9 @@ RenderTarget RenderTarget::from_config(const RenderTargetConfig& config, gx::Res
 
   // TODO!
   switch(config.type) {
-  case RenderTargetConfig::DepthPrepass:    rt.initDepthPrepass(); break;
-  case RenderTargetConfig::Forward:         rt.initForward(); break;
-  case RenderTargetConfig::MomentShadowMap: rt.initShadowMap(); break;
+  case RenderTargetConfig::DepthPrepass: rt.initDepthPrepass(); break;
+  case RenderTargetConfig::Forward:      rt.initForward(); break;
+  case RenderTargetConfig::ShadowMap:    rt.initShadowMap(); break;
 
   default: assert(0); // unreachable
   }
@@ -83,8 +83,8 @@ u32 RenderTarget::textureId(TextureType type) const
   }
 
   switch(m_config.type) {
-  case RenderTargetConfig::Forward:         return forwardTextureId(type);
-  case RenderTargetConfig::MomentShadowMap: return shadowMapTexureId(type);
+  case RenderTargetConfig::Forward:   return forwardTextureId(type);
+  case RenderTargetConfig::ShadowMap: return shadowMapTexureId(type);
   }
 
   return ~0u;
@@ -227,7 +227,7 @@ std::string RenderTarget::labelSuffix() const
   case RenderTargetConfig::Deferred:     return "Deferred";
 
   case RenderTargetConfig::LightPropagationVolume: return "LightPropagationVolume";
-  case RenderTargetConfig::MomentShadowMap:        return "MomentShadowMap";
+  case RenderTargetConfig::ShadowMap:              return "ShadowMap";
   case RenderTargetConfig::ReflectiveShadowMap:    return "ReflectiveShadowMap";
   }
 #endif

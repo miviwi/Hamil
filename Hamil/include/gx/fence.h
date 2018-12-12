@@ -51,6 +51,11 @@ public:
 
 private:
   void /* GLsync */ *m;
+  const char *m_label;
+
+#if !defined(NDEBUG)
+  bool m_waited = true;
+#endif
 };
 
 }

@@ -57,6 +57,7 @@ bool Ref::deref()
   } else {
     return 0;  // If the ref-counter was never allocated it
                //   means we were the only Ref to this object
+               //   or the object was move-constructed
   }
 
   return *m_ref;

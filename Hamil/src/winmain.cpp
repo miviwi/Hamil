@@ -666,12 +666,14 @@ int main(int argc, char *argv[])
 
   auto model_shape = bt::shapes().box({ 2.0f, 2.0f, 2.0f });
   auto create_model = [&](const mesh::Mesh& mesh,
-    const std::string& name = "bunny")
+    const std::string& name = "")
   {
     vec3 origin = { 0.0f, -1.0f, -30.0f };
     auto body = bt::RigidBody::create(model_shape, origin);
 
-    auto entity = hm::entities().createGameObject(name, scene);
+    auto entity = hm::entities().createGameObject(
+      !name.empty() ? name : r_bunny0->name(),
+      scene);
 
     entity.addComponent<hm::Transform>(
       xform::Transform(origin, quat(), vec3(4.0f))
@@ -688,9 +690,9 @@ int main(int argc, char *argv[])
     material().diff_type = hm::Material::DiffuseConstant;
     material().diff_color = { 0.53f, 0.8f, 0.94f };
 
-    material().metalness = 0.0f;
+    material().metalness = 1.0f;
     material().roughness = 0.0f;
-    material().ior = vec3(10.47f);
+    material().ior = vec3(1.47f);
 
     return entity;
   };
@@ -864,6 +866,7 @@ int main(int argc, char *argv[])
     }
 
     gx::Query query(gx::Query::TimeElapsed);
+    query.label("qFrametime");
     auto query_scope = query.begin();
 
     // All the input has been processed - schedule a Ui paint
@@ -1038,7 +1041,7 @@ int main(int argc, char *argv[])
 
     // Display the statistics
     stats.caption(util::fmt(
-      "Frametime: %.3lfms\n"
+      "CPU Frametime: %.3lfms\n"
       "GPU Frametime: %.3lfms\n"
       "Scene triangles: %zu\n"
       "Physics update: %.3lfms\n"
@@ -1130,7 +1133,6 @@ int main(int argc, char *argv[])
       .draw(gx::TriangleFan, fullscreen_quad_arr, fullscreen_quad.size());
 
     query_scope.end();
-    gpu_frametime = query.resultsz();
 
     fb_composite.blitToWindow(
       ivec4{ 0, 0, FramebufferSize.x, FramebufferSize.y },
@@ -1143,6 +1145,9 @@ int main(int argc, char *argv[])
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
+
+    // The result should be ready here...
+    gpu_frametime = query.resultsz();
   }
 
   worker_pool.killWorkers();
