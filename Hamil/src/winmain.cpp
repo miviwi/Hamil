@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
     .attrAlias(0, gx::f32, 3)
     .attrAlias(0, gx::f32, 2);
 
-  auto line = mesh::box(0.05f, 0.5f, 0.05f);
+  auto line = mesh::box(0.5f, 0.05f, 0.05f);
   auto line_vtxs = std::get<0>(line);
   auto line_inds = std::get<1>(line);
 
@@ -408,7 +408,8 @@ int main(int argc, char *argv[])
   line_vbuf.init(line_vtxs.data(), line_vtxs.size());
   line_ibuf.init(line_inds.data(), line_inds.size());
 
-  gx::IndexedVertexArray line_arr(line_fmt, line_vbuf, line_ibuf);
+  auto line_arr_id = pool.create<gx::IndexedVertexArray>("iaLine",
+    line_fmt, line_vbuf, line_ibuf);
   ui::Ui iface(pool, ui::Geometry(vec2(), WindowSize.cast<float>()), ui::Style::basic_style());
 
   composite_pass.texture(5, iface.framebufferTextureId(), resolve_sampler_id);
@@ -474,31 +475,6 @@ int main(int argc, char *argv[])
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
 
-  res::Handle<res::Image> r_hahabenis = R.image.hahabenis,
-    r_logo = R.image.logo,
-    r_benis = R.image.benis;
-
-  auto hahabenis = iface.drawable().fromImage(r_hahabenis->data(),
-    r_hahabenis->width(), r_hahabenis->height());
-  auto logo = iface.drawable().fromImage(r_logo->data(),
-    r_logo->width(), r_logo->height());
-  auto benis = iface.drawable().fromImage(r_benis->data(),
-    r_benis->width(), r_benis->height());
-
-  for(int i = 0; i < 4; i++) {
-    iface.drawable().fromImage(r_texture->data(), r_texture->width(), r_texture->height());
-  }
-
-  auto& hamil_layout = ui::create<ui::RowLayoutFrame>(iface)
-    //.frame(ui::create<ui::LabelFrame>(iface)
-    //  .drawable(hahabenis)
-    //  .padding({ 256.0f, 256.0f }))
-    //.frame(ui::create<ui::LabelFrame>(iface)
-    //  .drawable(logo))
-    .frame(ui::create<ui::LabelFrame>(iface)
-      .drawable(benis))
-    ;
-
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Window")
@@ -508,11 +484,6 @@ int main(int argc, char *argv[])
       .title("Statistics")
       .content(stats_layout)
       .position({ 1000.0f, 100.0f }))
-    .frame(ui::create<ui::WindowFrame>(iface)
-      .title("Hamil")
-      .content(hamil_layout)
-      .background(ui::white())
-      .position({ 800.0f, 400.0f }))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
 
@@ -632,21 +603,20 @@ int main(int argc, char *argv[])
     origin += vec3(LightSphereRadius);
 
     auto name = util::fmt("light_sphere%u", num_light_spheres);
-    auto light_name = util::fmt("light%u", num_light_spheres);
+    auto light_name = util::fmt("lights%u", num_light_spheres);
     num_light_spheres++;
 
     auto sphere_entity = hm::entities().createGameObject(name, scene);
     auto light_entity = hm::entities().createGameObject(light_name, sphere_entity);
 
-    auto transform = sphere_entity.addComponent<hm::Transform>(
-      xform::Transform(origin, quat(), vec3(LightSphereRadius))
+    sphere_entity.addComponent<hm::Transform>(
+      xform::Transform(origin, quat(), vec3(LightSphereRadius)),
+      AABB(
+        origin - vec3(LightSphereRadius),
+        origin + vec3(LightSphereRadius)
+      )
     );
     sphere_entity.addComponent<hm::Mesh>(sphere_mesh);
-
-    transform().aabb = AABB(
-      origin - vec3(LightSphereRadius),
-      origin + vec3(LightSphereRadius)
-    );
 
     auto material = sphere_entity.addComponent<hm::Material>();
 
@@ -662,6 +632,43 @@ int main(int argc, char *argv[])
     light().sphere.radius = LightSphereRadius;
 
     return sphere_entity;
+  };
+
+  auto line_mesh = mesh::Mesh()
+    .withIndexedArray(line_arr_id)
+    .withNum((u32)sphere_inds.size());
+  unsigned num_light_lines = 0;
+  auto create_light_line = [&](vec3 center, float length, vec3 color)
+  {
+    auto name = util::fmt("light_line%u", num_light_lines);
+    auto light_name = util::fmt("lightl%u", num_light_lines);
+    num_light_lines++;
+
+    auto line_entity = hm::entities().createGameObject(name, scene);
+    auto light_entity = hm::entities().createGameObject(light_name, line_entity);
+
+    auto scale = vec3(length, 1.0f, 1.0f);
+    auto transform = line_entity.addComponent<hm::Transform>(
+      xform::Transform(center, quat(), scale),
+      AABB(center - scale, center + scale)
+    );
+    line_entity.addComponent<hm::Mesh>(line_mesh);
+
+    auto material = line_entity.addComponent<hm::Material>();
+
+    material().diff_type = (hm::Material::DiffuseType)(hm::Material::Other | 1);
+    material().diff_color = color;
+
+    light_entity.addComponent<hm::Transform>(xform::Transform());
+    auto light = light_entity.addComponent<hm::Light>();
+
+    light().type = hm::Light::Line;
+    light().color = color;
+    light().radius = 100.0f;
+    light().line.tangent = vec3::right();
+    light().line.length = length;
+
+    return line_entity;
   };
 
   auto model_shape = bt::shapes().box({ 2.0f, 2.0f, 2.0f });
@@ -702,6 +709,8 @@ int main(int argc, char *argv[])
     create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(10.0f));
     create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
     create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
+
+    create_light_line({ 0.0f, 3.0f, 2.0f }, 20.0f, vec3(1.0f));
   };
 
   auto floor = create_floor();

@@ -32,6 +32,7 @@ class ConstantBuffer;
 struct ShaderConstants;
 
 struct ObjectConstants;
+struct LightConstants;
 
 // PIMPL class
 class RenderViewData;
@@ -177,6 +178,11 @@ private:
   // - generateSceneConstants() MUST have been called
   //   before this method!
   size_t processLights(const std::vector<RenderObject>& objects);
+
+  // Returns LightConstants for a RenderLight with type Light::Sphere
+  LightConstants generateSphereLightConstants(const RenderObject& ro);
+  // Returns LightConstants for a RenderLight with type Light::Line
+  LightConstants generateLineLightConstants(const RenderObject& ro);
 
   using RenderFn = void (RenderView::*)(const RenderObject&, gx::CommandBuffer&);
   static const RenderFn RenderFns[NumViewTypes][NumRenderTypes];

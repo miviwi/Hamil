@@ -44,7 +44,8 @@ struct Light : public Component {
     } spot;
 
     struct {
-      float half_extent;
+      vec3 tangent;
+      float length;
     } line;
 
     struct {

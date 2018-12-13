@@ -56,9 +56,9 @@ struct LightConstants {
   //   v2 = vec4(color.rgb, sphere_radius)
 
   // LineLight:
-  //  v1 = vec4(p1.xyz, radius)
-  //  v2 = vec4(p2.xyz, line_radius)
-  //  v3 = vec4(color.rgb, 1.0)
+  //   v1 = vec4(p1.xyz, radius)
+  //   v2 = vec4(p2.xyz, line_radius)
+  //   v3 = vec4(color.rgb, 1.0)
 };
 
 struct SceneConstants {
@@ -577,24 +577,6 @@ size_t RenderView::processLights(const std::vector<RenderObject>& objects)
   //   for proper alignment
   int& num_lights = m_data->scene->num_lights[0];
 
-#if 0
-  vec3 P[2] = {
-    { -13.0f, 3.0f, -12.0f },
-    {  13.0f, 3.0f, 2.0f },
-  };
-
-  P[0] = (m_view * vec4(P[0], 1.0)).xyz();
-  P[1] = (m_view * vec4(P[1], 1.0)).xyz();
-
-  types[num_lights>>2][num_lights&3] = hm::Light::Line;
-  consts->v1 = vec4(P[0], 100.0f);
-  consts->v2 = vec4(P[1], 10.0f);
-  consts->v3 = vec4(1.0f, 1.0f, 1.0f, 0.0f);
-
-  num_lights++;
-  consts++;
-#endif
-
   size_t i;
   for(i = 0; i < objects.size(); i++) {
     const auto& ro = objects[i];
@@ -605,25 +587,57 @@ size_t RenderView::processLights(const std::vector<RenderObject>& objects)
     //       scene instead of cutting off arbitrarily
     if(num_lights >= MaxForwardPassLights) continue;
 
-    auto light = ro.light().light;
+    auto light_type = ro.light().light().type;
 
     // Types are encoded in uvec4's
-    types[num_lights>>2][num_lights&3] = light().type;
+    types[num_lights>>2][num_lights&3] = light_type;
 
-    // Transform the light's position into view space
-    auto center = vec4(ro.light().position, 1.0f);
-    center = m_view * center;
-
-    // Pack the light data
-    consts->v1 = vec4(center.xyz(), light().radius);
-    consts->v2 = vec4(light().color, light().sphere.radius);
+    switch(light_type) {
+    case hm::Light::Sphere: *consts++ = generateSphereLightConstants(ro); break;
+    case hm::Light::Line:   *consts++ = generateLineLightConstants(ro); break;
+    }
 
     num_lights++;
-
-    consts++;
   }
 
   return i;  // Number of processed lights
+}
+
+LightConstants RenderView::generateSphereLightConstants(const RenderObject& ro)
+{
+  LightConstants consts;
+  auto light = ro.light().light;
+
+  // Transform the light's position into view space
+  auto center = vec4(ro.light().position, 1.0f);
+  center = m_view * center;
+
+  // Pack the light data
+  consts.v1 = vec4(center.xyz(), light().radius);
+  consts.v2 = vec4(light().color, light().sphere.radius);
+
+  return consts;
+}
+
+LightConstants RenderView::generateLineLightConstants(const RenderObject& ro)
+{
+  LightConstants consts;
+  auto light = ro.light().light;
+
+  auto center = ro.light().position;
+  auto tangent = light().line.tangent * light().line.length*0.5f;
+
+  auto p1 = vec4(center+tangent, 1.0f);
+  auto p2 = vec4(center-tangent, 1.0f);
+
+  p1 = m_view * p1;
+  p2 = m_view * p2;
+
+  consts.v1 = vec4(p1.xyz(), light().radius);
+  consts.v2 = vec4(p2.xyz(), 1.0f);
+  consts.v3 = vec4(light().color, 1.0f);
+
+  return consts;
 }
 
 // TODO
