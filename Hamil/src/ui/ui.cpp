@@ -167,7 +167,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
     win32::panic("Couldn't create UI Framebuffer!", win32::FramebufferError);
   }
 
-  m_program_id = m_pool.create<gx::Program>("pUi", gx::make_program(
+  m_program_id = m_pool.create<gx::Program>(gx::make_program("pUi",
     { shader_uType_defs, vs_src }, { ft::Font::frag_shader, shader_uType_defs, fs_src }, U.ui
   ));
 
@@ -185,7 +185,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
       // The default font is most likely to be used first
       //   TODO: pack them into a Texture2DArray maybe?
       { ft::TexImageUnit,              { m_style.font->atlasId(), m_drawable.samplerId() } },
-     })
+    })
     .clearOp(gx::RenderPass::ClearColor);
 
   m_buf.label("bvUi");

@@ -15,13 +15,16 @@ namespace res {
 
 class pShaderLibrary {
 public:
+  using ImportSet = std::unordered_set<std::string>;
+
   const char *get(const std::string& name) const
   {
     auto it = m_library.find(name);
     return it != m_library.end() ? it->second.data() : nullptr;
   }
 
-  bool set(const std::string& name, std::string shader)
+  // Returns 'true' when 'name' was never exported before
+  bool exportSource(const std::string& name, std::string shader)
   {
     auto result = m_library.emplace(name, std::move(shader));
 
@@ -44,15 +47,22 @@ public:
     }
   }
 
-  const std::unordered_set<std::string>& getImports(const std::string& shader)
+  const ImportSet& getImports(const std::string& shader)
   {
     return m_imports[shader];
   }
 
 private:
+  // Stores concatenated inline (non-imported) sources
+  //   whose parent stage is marked as !export
   std::unordered_map<std::string, std::string> m_library;
-  std::unordered_map<std::string,
-    std::unordered_set<std::string>> m_imports;
+
+  // std::unordered_set is used here because addImports()
+  //   calls itself recursively to add all dependencies
+  //   of a given Shader which could result in duplicates.
+  //   Sets store only unique keys which prevents this from
+  //   happening
+  std::unordered_map<std::string, ImportSet> m_imports;
 };
 
 static pShaderLibrary p_library;
@@ -62,95 +72,81 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
 {
   auto shader = new Shader(id, Shader::tag(), name, File, path);
 
-  auto& global_sources   = shader->m_sources[Global];
-  auto& vertex_sources   = shader->m_sources[Vertex];
-  auto& geometry_sources = shader->m_sources[Geometry];
-  auto& fragment_sources = shader->m_sources[Fragment];
-
-  auto& inline_sources = shader->m_inline;
-
-  auto get_ptr = [&](const yaml::Node::Ptr& src_node) -> const char *
-  {
-    auto src = src_node->as<yaml::Scalar>();
-
-    const char *ptr = nullptr;
-    if(src->tag() == InlineSource) {
-      inline_sources.emplace_back(src->str());
-
-      ptr = inline_sources.back().data();
-    } else {
-      throw Error(util::fmt("unknown shader source type '%s'", src->tag().value()));
-    }
-
-    return ptr;
-  };
-
-  auto export_source = [&](const std::string& lib_name, std::vector<std::string>& src) -> void
-  {
-    std::ostringstream ss;
-    for(const auto& s : src) ss << s;
-
-    p_library.set(lib_name, ss.str());
-  };
-
-  auto do_stage = [&](const char *stage_name, std::vector<const char *>& dst)
-  {
-    auto stage_node = doc(stage_name);
-    if(!stage_node) return;
-
-    const yaml::Sequence *stage = stage_node->as<yaml::Sequence>();
-
-    // format the name as <program>.(glsl|vert|geom|frag)
-    // ex.
-    //     - wireframe.geom
-    //     - blinnphong.frag
-    std::string full_name = util::fmt("%s.%.4s", name, stage_name);
-
-    // Conservatively allocate buckets
-    std::unordered_set<std::string> imports(stage->size());
-
-    // Resolve imports
-    for(const auto& src : *stage) {
-      if(!(src->tag() == ImportSource)) continue;
-
-      auto import_name = src->as<yaml::Scalar>()->str();
-      const auto& imports_imports = p_library.getImports(import_name);
-
-      imports.emplace(import_name);
-      imports.insert(imports_imports.cbegin(), imports_imports.cend());
-
-      p_library.addImports(full_name, import_name);
-    }
-
-    // Append all import sources first...
-    for(const auto& import : imports) {
-      auto ptr = p_library.get(import);
-
-      if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", import));
-      dst.push_back(ptr);
-    }
-
-    // ...and then the rest
-    for(const auto& src : *stage) {
-      // Imports have already been resolved
-      if(src->tag() == ImportSource) continue;
-
-      dst.push_back(get_ptr(src));
-    }
-
-    if(stage->tag() == ExportSource) {
-      export_source(full_name, inline_sources);
-    }
-  };
-
-  do_stage("glsl", global_sources);
-  do_stage("vertex", vertex_sources);
-  do_stage("geometry", geometry_sources);
-  do_stage("fragment", fragment_sources);
+  // Process all possible shader stages and the 'Global'
+  //   pseudo-stage used for imports/exports
+  shader->doStage(doc, Global, "glsl")
+    .doStage(doc, Vertex, "vertex")
+    .doStage(doc, Geometry, "geometry")
+    .doStage(doc, Fragment, "fragment");
 
   shader->m_loaded = true;
 
   return Resource::Ptr(shader);
+}
+
+Shader& Shader::doStage(const yaml::Document& doc, Stage stage_id, const char *stage_name)
+{
+  auto stage_node = doc(stage_name);
+  if(!stage_node) return *this;
+
+  const yaml::Sequence *stage = stage_node->as<yaml::Sequence>();
+  auto& dst = m_sources[stage_id];
+  auto& inline_src = m_inline[stage_id];
+
+  // format the name as
+  //      <program>.(glsl|vert|geom|frag)
+  // ex.
+  //   wireframe.geom, blinnphong.frag, util.glsl, ...
+  std::string full_name = util::fmt("%s.%.4s", name(), stage_name);
+
+  // Conservatively allocate buckets
+  pShaderLibrary::ImportSet imports(stage->size());
+
+  // Resolve imports
+  for(const auto& src : *stage) {
+    if(!(src->tag() == ImportSource)) continue;
+
+    auto import_name = src->as<yaml::Scalar>()->str();
+    const auto& imports_imports = p_library.getImports(import_name);
+
+    // Import the requested source
+    imports.emplace(import_name);
+    // ...and it's dependencies - the container (std::unordered_set)
+    //    ensures that a given source gets included only once
+    imports.insert(imports_imports.cbegin(), imports_imports.cend());
+
+    // pShaderLibrary::addImports() adds 'import_name' and
+    //   all of it's dependencies recursively into our
+    //   std::unordered_set of imports
+    p_library.addImports(full_name, import_name);
+  }
+
+  for(const auto& import : imports) {   // Append all import sources first...
+    auto ptr = p_library.get(import);
+
+    if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", import));
+    dst.push_back(ptr);
+  }
+
+  for(const auto& src : *stage) {       // ...then stitch together !inline nodes
+    bool is_inline = (src->tag() == InlineSource);
+    if(!is_inline) continue;
+
+    auto str = src->as<yaml::Scalar>()->str();
+    inline_src += str;
+  }
+
+  if(stage->tag() == ExportSource) {
+    // Only our inline sources (!inline nodes) are
+    //   exported to the library, so that importing
+    //   Shaders can avoid double-includes when
+    //   they share dependencies with the importee
+    p_library.exportSource(full_name, inline_src);
+  }
+
+  dst.push_back(inline_src.data());     // ...and finally append them as well
+
+  return *this;
 }
 
 bool Shader::hasStage(Stage stage) const

@@ -2,8 +2,9 @@
 
 #include <gx/gx.h>
 
-#include <math/geometry.h>
 #include <util/ref.h>
+#include <util/format.h>
+#include <math/geometry.h>
 
 #include <string>
 #include <vector>
@@ -50,6 +51,9 @@ public:
   Shader(Type type, const char *const sources[], size_t count);
   Shader(const Shader&) = delete;
   ~Shader();
+
+  void label(const char *label);
+  void label(const std::string& label_);
 
 private:
   friend class Program;
@@ -146,23 +150,39 @@ private:
   std::optional<DescriptorMapVector> m_ubo_descs = std::nullopt;
 };
 
+// 'label' is optional (can be == nullptr), when given the
+//   returned Program will have it set as it's label,
+//   while the Shaders it's composed of will have the labels
+//      label+"VS"   and   label+"FS"
+//   respectively
 template <typename T>
-static Program make_program(
+static Program make_program(const char *label,
   Shader::SourcesList vs_src, Shader::SourcesList fs_src,
   T& uniforms)
 {
   Shader vs(gx::Shader::Vertex,   vs_src);
   Shader fs(gx::Shader::Fragment, fs_src);
 
+  if(label) {
+    vs.label(util::fmt("%sVS", label));
+    fs.label(util::fmt("%sFS", label));
+  }
+
   Program prog(vs, fs);
 
+  if(label) prog.label(label);
   prog.getUniformsLocations(uniforms);
 
   return prog;
 }
 
+// 'label' is optional (can be == nullptr)
+//    - See note above:
+//          make_program(label, vs, fs, uniforms)
+//      for info on how Shader labels are created
+//      from 'label'
 template <typename T>
-static Program make_program(
+static Program make_program(const char *label,
   Shader::SourcesList vs_src, Shader::SourcesList gs_src, Shader::SourcesList fs_src,
   T& uniforms)
 {
@@ -170,8 +190,15 @@ static Program make_program(
   Shader gs(gx::Shader::Geometry, gs_src);
   Shader fs(gx::Shader::Fragment, fs_src);
 
+  if(label) {
+    vs.label(util::fmt("%sVS", label));
+    gs.label(util::fmt("%sGS", label));
+    fs.label(util::fmt("%sFS", label));
+  }
+
   Program prog(vs, gs, fs);
 
+  if(label) prog.label(label);
   prog.getUniformsLocations(uniforms);
 
   return prog;

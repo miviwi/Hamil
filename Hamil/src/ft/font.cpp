@@ -210,9 +210,9 @@ void init()
   p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
 
   font_program = std::make_unique<gx::Program>(gx::make_program(
+    "pFt",
     { vs_src }, { Font::frag_shader, fs_src }, U.font
   ));
-  font_program->label("pFt");
 
   font_program->use()
     .uniformSampler(U.font.uAtlas, TexImageUnit);

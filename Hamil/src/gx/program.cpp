@@ -380,4 +380,16 @@ Shader::~Shader()
   glDeleteShader(m);
 }
 
+void Shader::label(const char *label)
+{
+#if !defined(NDEBUG)
+  glObjectLabel(GL_SHADER, m, -1, label);
+#endif
+}
+
+void Shader::label(const std::string& label_)
+{
+  label(label_.data());
+}
+
 }

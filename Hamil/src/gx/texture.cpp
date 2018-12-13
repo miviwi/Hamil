@@ -367,6 +367,7 @@ Sampler Sampler::repeat2d()
 {
   return Sampler()
     .param(WrapS, Repeat)
+    .param(WrapT, Repeat)
     .param(MinFilter, Nearest)
     .param(MagFilter, Nearest);
 }

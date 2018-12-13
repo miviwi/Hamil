@@ -106,8 +106,6 @@ public:
   // Make SURE to unmap this before rendering
   std::optional<gx::BufferView> object_ubo_view = std::nullopt;
 
-  std::vector<u32> samplers;
-
   SceneConstants *scene = nullptr;
 };
 
@@ -132,7 +130,6 @@ RenderView::~RenderView()
 
   for(auto rt : m_rts) renderer().releaseRenderTarget(*rt);
   for(auto buf : m_const_bufs) renderer().releaseConstantBuffer(*buf);
-  for(auto sampler : m_data->samplers) pool().release<gx::Sampler>(sampler);
 
   if(m_renderpass_id != gx::ResourcePool::Invalid)  pool().release<gx::RenderPass>(m_renderpass_id);
 
@@ -212,7 +209,7 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Used by internal methods
   m_renderer = &renderer;
 
-  auto ltc = m_renderer->queryLUT(RenderLUT::LTC_Coeffs);
+  auto ltc = m_renderer->queryLUT(RenderLUT::LTCCoeffs);
 
   // Internal to this RenderView
   m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
@@ -368,20 +365,11 @@ u32 RenderView::createForwardRenderPass()
 
 #if defined(USE_MSM)
   auto shadow_map = shadow_rt.textureId(RenderTarget::Moments);
-  auto shadow_map_sampler = pool().create<gx::Sampler>(
-    "sShadowMapMoments",
-    gx::Sampler::edgeclamp2d_mipmap()
-  );
+  auto shadow_map_sampler = renderer().querySampler(MSMTrilinearSampler);
 #else
   auto shadow_map = shadow_rt.textureId(RenderTarget::Depth);
-  auto shadow_map_sampler = pool().create<gx::Sampler>(
-    "sShadowMapDepth",
-    gx::Sampler::edgeclamp2d_linear()
-      .compareRef(gx::Less)
-  );
+  auto shadow_map_sampler = renderer().querySampler(PCFShadowMapSampler);
 #endif
-
-  m_data->samplers.push_back(shadow_map_sampler);
 
   // Bind the ShadowMap to a tex unit
   pass
@@ -569,18 +557,14 @@ u32 RenderView::writeConstants(const RenderObject& ro)
 void RenderView::initLuts()
 {
   auto blur_lut_id = renderer().queryLUT(RenderLUT::GaussianKernel, GaussianBlurRadius);
-  auto blur_sampler_id = m_data->samplers.emplace_back(
-    pool().create<gx::Sampler>("sGaussianKernel", gx::Sampler::borderclamp1d())
-  );
+  auto blur_sampler_id = renderer().querySampler(LUT1DNearestSampler);
 
-  auto ltc_lut_id = renderer().queryLUT(RenderLUT::LTC_Coeffs);
-  auto ltc_sampler_id = m_data->samplers.emplace_back(
-    pool().create<gx::Sampler>("sLTC_Coeffs", gx::Sampler::edgeclamp1d_linear())
-  );
+  auto ltc_lut_id = renderer().queryLUT(RenderLUT::LTCCoeffs);
+  auto ltc_sampler_id = renderer().querySampler(LUT2DLinearSampler);
 
   getRenderpass()
     .texture(BlurKernelTexImageUnit, blur_lut_id, blur_sampler_id)
-    .texture(LTC_CoeffsTexImageUnit, ltc_lut_id, ltc_sampler_id);
+    .texture(LTCCoeffsTexImageUnit, ltc_lut_id, ltc_sampler_id);
 }
 
 // TODO!
@@ -608,6 +592,7 @@ size_t RenderView::processLights(const std::vector<RenderObject>& objects)
   consts->v3 = vec4(1.0f, 1.0f, 1.0f, 0.0f);
 
   num_lights++;
+  consts++;
 #endif
 
   size_t i;
@@ -657,7 +642,7 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
       .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit)
       .uniformSampler(U.forward.uShadowMap, ShadowMapTexImageUnit)
       .uniformSampler(U.forward.uGaussianKernel, BlurKernelTexImageUnit)
-      .uniformSampler(U.forward.uLTC_Coeffs, LTC_CoeffsTexImageUnit);
+      .uniformSampler(U.forward.uLTC_Coeffs, LTCCoeffsTexImageUnit);
 
     m_init_programs.insert(program_id);
   }

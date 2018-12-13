@@ -213,9 +213,9 @@ void CursorDriver::init()
   p->tex.label("t2dCursor");
 
   cursor_program = std::make_unique<gx::Program>(gx::make_program(
+    "pCursor",
     { vs_src }, { fs_src }, U.cursor
   ));
-  cursor_program->label("pCursor");
 
   cursor_program->use()
     .uniformSampler(U.cursor.uTex, pCursorDriver::TexImageUnit);

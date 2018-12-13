@@ -39,7 +39,7 @@ public:
   };
 
   // the const char *'s refer to an internal data structure which stores
-  //   unique copies of shader sources (which are stiched together by gx::Shader)
+  //   unique copies of shader sources (which are stitched together by gx::Shader)
   using Sources = std::array<std::vector<const char *>, NumStages>;
 
   bool hasStage(Stage stage) const;
@@ -54,9 +54,11 @@ protected:
 
 private:
   friend ResourceManager;
+
+  Shader& doStage(const yaml::Document& doc, Stage stage_id, const char *stage_name);
   
   Sources m_sources;
-  std::vector<std::string> m_inline;
+  std::array<std::string, NumStages> m_inline;
 };
 
 }

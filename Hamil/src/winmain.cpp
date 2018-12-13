@@ -276,11 +276,11 @@ int main(int argc, char *argv[])
     r_skybox = R.shader.shaders.skybox,
     r_composite = R.shader.shaders.composite;
 
-  auto skybox_program_id = pool.create<gx::Program>("pSkybox", gx::make_program(
+  auto skybox_program_id = pool.create<gx::Program>(gx::make_program("pSkybox",
     r_skybox->source(res::Shader::Vertex), r_skybox->source(res::Shader::Fragment), U.skybox));
   auto& skybox_program = pool.get<gx::Program>(skybox_program_id);
 
-  auto composite_program_id = pool.create<gx::Program>("pComposite", gx::make_program(
+  auto composite_program_id = pool.create<gx::Program>(gx::make_program("pComposite",
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
   auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
@@ -974,9 +974,14 @@ int main(int argc, char *argv[])
 
     std::vector<hm::Entity> dead_entities;
 
+    gx::Query shadowmap_rendertime(gx::Query::TimeElapsed);
+    auto shadowmap_rendertime_scope = shadowmap_rendertime.begin();
+
     worker_pool.waitJob(extract_for_shadows_job_id);
     auto& shadow_objects = extract_for_shadows_job->result();
     shadow_view.render(ek::renderer(), shadow_objects).execute();
+
+    shadowmap_rendertime_scope.end();
 
     worker_pool.waitJob(extract_for_view_job_id);
     auto& render_objects = extract_for_view_job->result();
@@ -1043,13 +1048,13 @@ int main(int argc, char *argv[])
     stats.caption(util::fmt(
       "CPU Frametime: %.3lfms\n"
       "GPU Frametime: %.3lfms\n"
-      "Scene triangles: %zu\n"
       "Physics update: %.3lfms\n"
+      "ShadowMap render: %.3lfms\n"
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",
       step_dt*1000.0,
       gpu_frametime*1e-6,
-      (size_t)0,
+      shadowmap_rendertime.resultsz()*1e-6,
       physics_step_job.dbg_ElapsedTime()*1000.0,
       ui_paint_job.dbg_ElapsedTime()*1000.0,
       transforms_extract_dt*1000.0)

@@ -98,6 +98,7 @@ GxInfo& info();
 //   - Suffixes must be appended to the above depending on the particular
 //     type of object:
 //       * Textures:
+//           1d  - gx::Texture1D
 //           2d  - gx::Texture2D
 //           2da - gx::Texture2DArray
 //           c   - gx::TextureCubeMap
@@ -108,11 +109,21 @@ GxInfo& info();
 //           u - gx::UniformBuffer
 //           t - gx::TexelBuffer
 //           p - gx::PixelBuffer
+//   - gx::Shader labels should be the same as the parent Program's, but
+//     with a suffix appended depending on the type of the Shader:
+//       * 'VS' - gx::Shader::Vertex
+//       * 'GS' - gx::Shader::Geometry
+//       * 'FS' - gx::Shader::Fragment
 // Examples:
 //   gx::Texture2D texture           -> "t2dTexture"
 //   gx::IndexBuffer some_index_buf  -> "biSomeIndexBuf"
 //   gx::Framebuffer ui              -> "fbUi"
+//     gx::Framebuffer::renderbuffer(..., "rbUi")
 //   gx::IndexedVertexArray teapot   -> "iaTeapot"
+//   gx::Program skybox              -> "pSkybox"
+//     gx::Shader skybox_vs -> "pSkyboxVS"
+//     gx::Shader skybox_fs -> "pSkyboxFS"
+//   gx::Query sun_occlusion         -> "qSunOcclusion"
 
 void p_bind_VertexArray(unsigned array);
 unsigned p_unbind_VertexArray();

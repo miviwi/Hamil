@@ -12,6 +12,7 @@
 #include <hm/componentref.h>
 
 #include <vector>
+#include <map>
 #include <memory>
 
 namespace gx {
@@ -42,12 +43,12 @@ struct RenderLUT {
     //        vec4(m11, m13, m31, m33)
     //   - Layer 1 contains a
     //        vec4(norm_factor, fresnel, 0, clipped_form_factor)
-    LTC_Coeffs,
+    LTCCoeffs,
 
     // param == number of kernel directions (defaults to 8)
     // gx::Texture2D, which stores:
     //    vec3(cos(rotation), sin(rotation), start_offset)
-    HBAO_Noise,
+    HBAONoise,
 
     NumTypes
   };
@@ -69,6 +70,15 @@ private:
   void generateGaussian(gx::ResourcePool& pool);
   void generateLTC(gx::ResourcePool& pool);
   void generateHBAONoise(gx::ResourcePool& pool);
+};
+
+enum SamplerClass {
+  MSMTrilinearSampler,
+  PCFShadowMapSampler,
+  HBAONoiseSampler,  // gx::Sampler::repeat2d()
+
+  LUT1DNearestSampler,
+  LUT2DLinearSampler,
 };
 
 class Renderer {
@@ -136,11 +146,20 @@ public:
   //     (same as queryProgram())
   u32 queryLUT(RenderLUT::Type type, int param = -1);
 
+  // Samplers can be use concurrently so there is no
+  //   need to release them
+  u32 querySampler(SamplerClass sampler);
+
 private:
   // Fill 'm_luts' with commonly used RenderLUTs
   //   - m_data->pool must be initialized before calling
   //     this method!
   void precacheLUTs();
+
+  // Fill 'm_luts' with commonly used gx::Samplers
+  //   - m_data->pool must be initialized before calling
+  //     this method!
+  void precacheSamplers();
 
   // ExtractObjectsJob entry point
   ObjectVector doExtractForView(hm::Entity scene, RenderView& view);
@@ -169,6 +188,10 @@ private:
   //   RenderLUTs
   win32::ReaderWriterLock m_luts_lock;
   std::vector<RenderLUT> m_luts;
+
+  //   Samplers
+  win32::ReaderWriterLock m_samplers_lock;
+  std::map<SamplerClass, u32> m_samplers;
 };
 
 }

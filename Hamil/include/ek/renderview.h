@@ -119,7 +119,7 @@ private:
     DiffuseTexImageUnit    = 0,
     ShadowMapTexImageUnit  = 1,
     BlurKernelTexImageUnit = 2,
-    LTC_CoeffsTexImageUnit = 3,
+    LTCCoeffsTexImageUnit = 3,
   };
 
   constexpr static int GaussianBlurRadius = 1;  // See math/util.h
@@ -207,7 +207,7 @@ private:
   mat4 m_view;     // View matrix
   mat4 m_projection;  // Projection matrix (ViewType dependent)
 
-  // Stores mapped BufferViews and allocated Samplers
+  // Stores mapped BufferViews and other working data
   RenderViewData *m_data;
 
   // Assigned in render()

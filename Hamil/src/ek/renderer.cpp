@@ -37,8 +37,8 @@ void RenderLUT::generate(gx::ResourcePool& pool)
 {
   switch(type) {
   case GaussianKernel: generateGaussian(pool); break;
-  case LTC_Coeffs:     generateLTC(pool); break;
-  case HBAO_Noise:     generateHBAONoise(pool); break;
+  case LTCCoeffs:     generateLTC(pool); break;
+  case HBAONoise:     generateHBAONoise(pool); break;
 
   default: assert(0);  // unreachable
   }
@@ -48,7 +48,8 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
 {
   auto kernel = gaussian_kernel(param);
 
-  auto tex_label = util::fmt("t2dGaussianKernel%d", param);
+  auto kernel_dims = param*2 + 1;
+  auto tex_label = util::fmt("t1dGaussianKernel%dx%d", kernel_dims, kernel_dims);
 
   tex_id = pool.createTexture<gx::Texture1D>(tex_label.data(), gx::r32f);
   auto blur_kernel = pool.getTexture(tex_id);
@@ -65,7 +66,7 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
   auto coeffs1 = (float *)r_lut->data();
   auto coeffs2 = coeffs1 + TexSize.area();
 
-  std::string tex_label = "t2daLTC_Coefficients";
+  std::string tex_label = "t2daLTCCoefficients";
 
   tex_id = pool.createTexture<gx::Texture2DArray>(tex_label.data(), gx::rgba32f);
   auto ltc = pool.getTexture(tex_id);
@@ -99,7 +100,7 @@ void RenderLUT::generateHBAONoise(gx::ResourcePool& pool)
     sample = vec3(cosf(angle), sinf(angle), r1);
   }
 
-  auto tex_label = util::fmt("t2dHBAO_Noise%d", (int)NumDirections);
+  auto tex_label = util::fmt("t2dHBAONoise%d", (int)NumDirections);
 
   tex_id = pool.createTexture<gx::Texture2D>(tex_label.data(), gx::rgb32f);
   auto noise_tex = pool.getTexture(tex_id);
@@ -124,6 +125,7 @@ Renderer::Renderer() :
   m_const_buffers.reserve(InitialConstantBuffers);
 
   precacheLUTs();
+  precacheSamplers();
 }
 
 Renderer& Renderer::cachePrograms()
@@ -142,9 +144,9 @@ Renderer& Renderer::cachePrograms()
   res::Handle<res::Shader> f_forward = R.shader.shaders.forward;
   res::Handle<res::Shader> f_rendermsm = R.shader.shaders.rendermsm;
 
-  auto forward = pool().create<gx::Program>("pForward", gx::make_program(
+  auto forward = pool().create<gx::Program>(gx::make_program("pForward",
     f_forward->source(res::Shader::Vertex), f_forward->source(res::Shader::Fragment), U.forward));
-  auto rendermsm = pool().create<gx::Program>("pRenderMSM", gx::make_program(
+  auto rendermsm = pool().create<gx::Program>(gx::make_program("pMSM",
     f_rendermsm->source(res::Shader::Vertex), f_rendermsm->source(res::Shader::Fragment), U.rendermsm));
 
   // Writing to 'm_programs'
@@ -318,6 +320,59 @@ u32 Renderer::queryLUT(RenderLUT::Type type, int param)
   return lut.tex_id;
 }
 
+u32 Renderer::querySampler(SamplerClass sampler)
+{
+  m_samplers_lock.acquireShared();
+
+  auto it = m_samplers.find(sampler);
+  if(it != m_samplers.end()) {
+    m_samplers_lock.releaseShared();
+
+    return it->second;
+  }
+
+  // The requested gx::Sampler hasn't been
+  //   created yet
+  m_samplers_lock.releaseShared();
+
+  u32 id = gx::ResourcePool::Invalid;
+  switch(sampler) {
+  case MSMTrilinearSampler: id = pool().create<gx::Sampler>(
+      "sMSMTrilinear", gx::Sampler::edgeclamp2d_mipmap()
+    );
+    break;
+
+  case PCFShadowMapSampler: id = pool().create<gx::Sampler>(
+      "sPCFShadowMap",
+      gx::Sampler::edgeclamp2d_linear()
+        .compareRef(gx::Less)
+    );
+    break;
+
+  case HBAONoiseSampler: id = pool().create<gx::Sampler>(
+      "sHBAONoise", gx::Sampler::repeat2d()
+    );
+    break;
+
+  case LUT1DNearestSampler: id = pool().create<gx::Sampler>(
+      "sLUT1DNearest", gx::Sampler::edgeclamp1d()
+    );
+    break;
+
+  case LUT2DLinearSampler: id = pool().create<gx::Sampler>(
+      "sLUT2DBilinear", gx::Sampler::edgeclamp2d_linear()
+    );
+    break;
+  }
+
+  // Write to the std::map
+  m_samplers_lock.acquireExclusive();
+  m_samplers.emplace(sampler, id);
+  m_samplers_lock.releaseExclusive();
+
+  return id;
+}
+
 gx::ResourcePool& Renderer::pool()
 {
   return m_data->pool;
@@ -338,8 +393,19 @@ void Renderer::precacheLUTs()
   //ltc_lut.generate(pool());
 
   auto& hbao_nosie_lut = m_luts.emplace_back();
-  hbao_nosie_lut.type = RenderLUT::HBAO_Noise;
+  hbao_nosie_lut.type = RenderLUT::HBAONoise;
   hbao_nosie_lut.generate(pool());
+}
+
+void Renderer::precacheSamplers()
+{
+  // The following method calls are here for
+  //   their side-effects only
+
+  querySampler(HBAONoiseSampler);
+
+  querySampler(LUT1DNearestSampler);
+  querySampler(LUT2DLinearSampler);
 }
 
 Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& view)
