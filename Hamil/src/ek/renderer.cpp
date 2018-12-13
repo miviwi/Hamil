@@ -135,6 +135,7 @@ Renderer& Renderer::cachePrograms()
   res::load(R.shader.shaders.ubo);
   res::load(R.shader.shaders.blur);
   res::load(R.shader.shaders.msm);
+  res::load(R.shader.shaders.ltc);
 
   res::load(R.shader.shaders.ids);
 

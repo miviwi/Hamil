@@ -78,10 +78,6 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
       inline_sources.emplace_back(src->str());
 
       ptr = inline_sources.back().data();
-    } else if(src->tag() == ImportSource) {
-      ptr = p_library.get(src->str());
-
-      if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", src->str()));
     } else {
       throw Error(util::fmt("unknown shader source type '%s'", src->tag().value()));
     }
@@ -89,7 +85,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     return ptr;
   };
 
-  auto export_source = [&](const std::string& lib_name, std::vector<const char *>& src) -> void
+  auto export_source = [&](const std::string& lib_name, std::vector<std::string>& src) -> void
   {
     std::ostringstream ss;
     for(const auto& s : src) ss << s;
@@ -123,16 +119,16 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
       imports.emplace(import_name);
       imports.insert(imports_imports.cbegin(), imports_imports.cend());
 
-      // Avoid double-imports
-      for(auto& i : imports_imports) {
-        if(imports.find(i) != imports.end()) imports.erase(i);
-      }
-
       p_library.addImports(full_name, import_name);
     }
 
     // Append all import sources first...
-    for(const auto& import : imports) dst.push_back(p_library.get(import));
+    for(const auto& import : imports) {
+      auto ptr = p_library.get(import);
+
+      if(!ptr) throw Error(util::fmt("shader '%s' doesn't exist!", import));
+      dst.push_back(ptr);
+    }
 
     // ...and then the rest
     for(const auto& src : *stage) {
@@ -143,7 +139,7 @@ Resource::Ptr Shader::from_yaml(const yaml::Document& doc, Id id,
     }
 
     if(stage->tag() == ExportSource) {
-      export_source(full_name, dst);
+      export_source(full_name, inline_sources);
     }
   };
 

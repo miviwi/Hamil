@@ -109,6 +109,8 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
     auto it = p_gen_fns.find(extension);
     if(it == p_gen_fns.end()) continue; // No handler for this file type
 
+    printf("processing ./%s...\n", resource.data());
+
     win32::File f(resource.data(), win32::File::Read, win32::File::OpenExisting);
 
     auto meta = it->second(f, name, path, extension);
@@ -165,7 +167,7 @@ struct PragmaInfo {
 
   PragmaInfo(PragmaType type_, const std::string& name, const std::string& args_regex) :
     type(type_),
-    r("^#pragma\\s+" + name + "\\s*\\(\\s*" + args_regex + "\\s*\\)$", std::regex::optimize)
+    r("^#pragma\\s+" + name + "\\s*(?:\\(\\s*" + args_regex + "\\s*\\))?$", std::regex::optimize)
   { }
 };
 
@@ -300,8 +302,6 @@ static yaml::Document imagegen(win32::File& file,
   auto location = util::fmt(".%s/%s.%s", path, name, extension);
   std::optional<yaml::Document> params = std::nullopt;
 
-  printf("processing image: .%s...\n", location.data());
-
   try {
     auto fname = util::fmt(".%s/%s.imageparams", path, name);
     win32::File f_params(fname.data(), win32::File::Read, win32::File::OpenExisting);
@@ -346,8 +346,6 @@ static yaml::Document meshgen(win32::File& file,
 {
   auto location = util::fmt(".%s/%s.%s", path, name, extension);
 
-  printf("processing mesh: .%s...\n", location.data());
-
   auto mesh_view = file.map(win32::File::ProtectRead);
 
   auto obj_loader = mesh::ObjLoader().load(mesh_view.get<const char>(), file.size());
@@ -382,11 +380,13 @@ static yaml::Document meshgen(win32::File& file,
   return yaml::Node::Ptr(meta);
 }
 
+static const char *p_ltc_ggx_lut = "ltc_ggx.bin";
+
 void ltc_lut_gen()
 {
   auto meta_mapping = make_meta<res::LookupTable>("ltc_lut", "")->append(
     yaml::Scalar::from_str("location"),
-    yaml::Scalar::from_str("ltc_fitted.bin", yaml::Node::Tag("!file"))
+    yaml::Scalar::from_str(p_ltc_ggx_lut, yaml::Node::Tag("!file"))
   )->append(
     yaml::Scalar::from_str("type"),
     yaml::Scalar::from_str("rgba32f")
@@ -409,13 +409,13 @@ void ltc_lut_gen()
   // If there's more than ULONG_MAX bytes of data - oh well
   f_meta.write(meta_data.data(), (ulong)meta_data.size());
 
-  win32::File f_lut("ltc_fitted.bin", win32::File::Write, win32::File::CreateAlways);
+  win32::File f_lut(p_ltc_ggx_lut, win32::File::Write, win32::File::CreateAlways);
 
   const auto& coeffs1 = ltc_lut.coeffs1();
   const auto& coeffs2 = ltc_lut.coeffs2();
 
-  f_lut.write(coeffs1.data(), (ulong)coeffs1.size());
-  f_lut.write(coeffs2.data(), (ulong)coeffs2.size());
+  f_lut.write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(vec4));
+  f_lut.write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(vec4));
 }
 
 }

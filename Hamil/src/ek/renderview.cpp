@@ -46,8 +46,19 @@ enum MaterialId : u32 {
 
 #pragma pack(push, 1)
 struct LightConstants {
-  vec4 v1;   // vec4(position.xyz, radius)
-  vec4 v2;   // vec4(color.rgb, sphere_radius)
+  vec4 v1;
+  vec4 v2;
+  vec4 v3;
+  vec4 v4;
+
+  // SphereLight:
+  //   v1 = vec4(position.xyz, radius)
+  //   v2 = vec4(color.rgb, sphere_radius)
+
+  // LineLight:
+  //  v1 = vec4(p1.xyz, radius)
+  //  v2 = vec4(p2.xyz, line_radius)
+  //  v3 = vec4(color.rgb, 1.0)
 };
 
 struct SceneConstants {
@@ -66,7 +77,7 @@ struct SceneConstants {
   // - Each vector stores 4 adjacent LightTypes which
   //   correspond to the lights[] array
   // - Packed to save memory used for alignment padding
-  uvec4 light_types[MaxForwardPassLights / 4];
+  ivec4 light_types[MaxForwardPassLights / 4];
   LightConstants lights[MaxForwardPassLights];
 };
 
@@ -509,8 +520,6 @@ ShaderConstants RenderView::generateSceneConstants()
   memset(scene->light_types, 0, sizeof(SceneConstants::light_types));
   memset(scene->lights, 0, sizeof(SceneConstants::lights));
 
-  memcpy(scene->ambient_basis, ambient_basis, sizeof(SceneConstants::ambient_basis));
-
   return constants;
 }
 
@@ -564,19 +573,42 @@ void RenderView::initLuts()
     pool().create<gx::Sampler>("sGaussianKernel", gx::Sampler::borderclamp1d())
   );
 
+  auto ltc_lut_id = renderer().queryLUT(RenderLUT::LTC_Coeffs);
+  auto ltc_sampler_id = m_data->samplers.emplace_back(
+    pool().create<gx::Sampler>("sLTC_Coeffs", gx::Sampler::edgeclamp1d_linear())
+  );
+
   getRenderpass()
-    .texture(BlurKernelTexImageUnit, blur_lut_id, blur_sampler_id);
+    .texture(BlurKernelTexImageUnit, blur_lut_id, blur_sampler_id)
+    .texture(LTC_CoeffsTexImageUnit, ltc_lut_id, ltc_sampler_id);
 }
 
 // TODO!
 size_t RenderView::processLights(const std::vector<RenderObject>& objects)
 {
   LightConstants *consts = m_data->scene->lights;
-  uvec4 *types = m_data->scene->light_types;
+  ivec4 *types = m_data->scene->light_types;
 
   // The number of lights is stored as a uvec4
   //   for proper alignment
   int& num_lights = m_data->scene->num_lights[0];
+
+#if 0
+  vec3 P[2] = {
+    { -13.0f, 3.0f, -12.0f },
+    {  13.0f, 3.0f, 2.0f },
+  };
+
+  P[0] = (m_view * vec4(P[0], 1.0)).xyz();
+  P[1] = (m_view * vec4(P[1], 1.0)).xyz();
+
+  types[num_lights>>2][num_lights&3] = hm::Light::Line;
+  consts->v1 = vec4(P[0], 100.0f);
+  consts->v2 = vec4(P[1], 10.0f);
+  consts->v3 = vec4(1.0f, 1.0f, 1.0f, 0.0f);
+
+  num_lights++;
+#endif
 
   size_t i;
   for(i = 0; i < objects.size(); i++) {
@@ -624,7 +656,8 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
 
       .uniformSampler(U.forward.uDiffuseTex, DiffuseTexImageUnit)
       .uniformSampler(U.forward.uShadowMap, ShadowMapTexImageUnit)
-      .uniformSampler(U.forward.uGaussianKernel, BlurKernelTexImageUnit);
+      .uniformSampler(U.forward.uGaussianKernel, BlurKernelTexImageUnit)
+      .uniformSampler(U.forward.uLTC_Coeffs, LTC_CoeffsTexImageUnit);
 
     m_init_programs.insert(program_id);
   }

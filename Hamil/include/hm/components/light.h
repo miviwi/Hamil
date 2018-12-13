@@ -12,7 +12,7 @@ struct Light : public Component {
 
   static Tag tag() { return "Light"; }
 
-  enum Type : u16 {
+  enum Type : i16 {
     Invalid,
 
     // The Entities position == direction

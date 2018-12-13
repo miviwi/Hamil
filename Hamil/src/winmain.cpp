@@ -690,8 +690,8 @@ int main(int argc, char *argv[])
     material().diff_type = hm::Material::DiffuseConstant;
     material().diff_color = { 0.53f, 0.8f, 0.94f };
 
-    material().metalness = 1.0f;
-    material().roughness = 0.0f;
+    material().metalness = 0.0f;
+    material().roughness = 0.4f;
     material().ior = vec3(1.47f);
 
     return entity;

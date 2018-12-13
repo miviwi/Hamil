@@ -119,6 +119,7 @@ private:
     DiffuseTexImageUnit    = 0,
     ShadowMapTexImageUnit  = 1,
     BlurKernelTexImageUnit = 2,
+    LTC_CoeffsTexImageUnit = 3,
   };
 
   constexpr static int GaussianBlurRadius = 1;  // See math/util.h
