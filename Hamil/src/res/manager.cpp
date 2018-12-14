@@ -2,6 +2,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/texture.h>
 #include <res/mesh.h>
 #include <res/lut.h>
 
@@ -107,10 +108,11 @@ IOBuffer ResourceManager::mapLocation(const yaml::Scalar *location,
 }
 
 static const std::map<std::string, res::Resource::Tag> p_tags = {
-  { Text::tag().get(),   Text::tag()   },
-  { Shader::tag().get(), Shader::tag() },
-  { Image::tag().get(),  Image::tag()  },
-  { Mesh::tag().get(),   Mesh::tag()   },
+  { Text::tag().get(),    Text::tag()   },
+  { Shader::tag().get(),  Shader::tag() },
+  { Image::tag().get(),   Image::tag()  },
+  { Texture::tag().get(), Texture::tag() },
+  { Mesh::tag().get(),    Mesh::tag()   },
   { LookupTable::tag().get(), LookupTable::tag() },
 };
 

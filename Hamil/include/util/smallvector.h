@@ -51,6 +51,27 @@ public:
     }
   }
 
+  SmallVector(SmallVector&& other) :
+    m_sz(other.m_sz),
+    m_heap(other.m_heap)
+  {
+    if(m_sz <= InlineElems) {
+      // Need to move construct inline elements
+      auto src = other.data();
+      auto dst = data();
+      for(u32 i = 0; i < m_sz; i++) {
+        new(dst + i) T(std::move(src[i]));
+      }
+    }
+
+    // If the elements were heap-allocated
+    //   only need to move the pointer
+
+    other.m_sz = 0;
+    other.m_heap.ptr = nullptr;
+    other.m_heap.capacity = 0;
+  }
+
   ~SmallVector()
   {
     dealloc();
@@ -60,6 +81,14 @@ public:
   {
     this->~SmallVector();
     new(this) SmallVector(other);
+
+    return *this;
+  }
+
+  SmallVector& operator=(SmallVector&& other)
+  {
+    this->~SmallVector();
+    new(this) SmallVector(std::move(other));
 
     return *this;
   }

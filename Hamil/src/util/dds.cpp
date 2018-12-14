@@ -72,7 +72,30 @@ struct DDSHeader {
 };
 #pragma pack(pop)
 
-DDSImage& DDSImage::load(const void *data, size_t data_sz)
+DDSImage::DDSImage(DDSImage&& other) :
+  m_type(other.m_type),
+  m_format(other.m_format),
+  m_compressed(other.m_compressed),
+  m_pitch(other.m_pitch),
+  m_mips(other.m_mips),
+  m_images(std::move(other.m_images))
+{
+  other.m_type = Invalid;
+  other.m_format = Unknown;
+  other.m_compressed = false;
+  other.m_pitch = 0;
+  other.m_mips = 0;
+}
+
+DDSImage& DDSImage::operator=(DDSImage&& other)
+{
+  this->~DDSImage();
+  new(this) DDSImage(std::move(other));
+
+  return *this;
+}
+
+DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
 {
   auto ptr = (byte *)data;
 
@@ -162,6 +185,9 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz)
   }
 
   m_pitch = (header.flags & SurfaceDescriptionFlags::Pitch) ? header.pitch_or_linear_sz : 0;
+  if(!m_pitch) {
+    m_pitch = header.width * bytesPerPixel();
+  }
 
   // Fill in the mipmap count if provided
   m_mips = (header.flags & SurfaceDescriptionFlags::MipmapCount) ? header.mipmap_count : 1;
@@ -191,7 +217,7 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz)
     img.sz   = sz;
 
     check_size(sz);
-    memcpy(img.data.get(), ptr, sz);
+    copyData(img.data.get(), ptr, h, flags);
     ptr += sz;
 
     for(uint i = 0; i < (m_mips-1) && (w || h); i++) {
@@ -212,7 +238,7 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz)
       img.sz = sz;
 
       check_size(sz);
-      memcpy(img.data.get(), ptr, sz);
+      copyData(img.data.get(), ptr, h, flags);
       ptr += sz;
     }
   }
@@ -401,6 +427,17 @@ void *DDSImage::releaseData(CubemapFace face, uint level)
   return img.data.release();
 }
 
+size_t DDSImage::byteSize(ulong w, ulong h)
+{
+  if(!m_compressed) return w*h * bytesPerPixel();
+
+  // Divide by the block size rounding up
+  w = (w+3) / 4;
+  h = (h+3) / 4;
+
+  return w*h * bytesPerPixel();
+}
+
 uint DDSImage::bytesPerPixelDX10() const
 {
   switch(m_format & ~IsDX10) {
@@ -410,7 +447,8 @@ uint DDSImage::bytesPerPixelDX10() const
   case RGBA32I: return 16;
 
   case RGB32:
-  case RGB32F:  case RGB32U:
+  case RGB32F:
+  case RGB32U:
   case RGB32I: return 12;
 
   case RGBA16:
@@ -425,22 +463,36 @@ uint DDSImage::bytesPerPixelDX10() const
 
   case RGB10A2:
   case RGB10A2U:
-  case RGB10A2I: 
+  case RGB10A2I:
   case R11G11B10F: return 4;
   }
 
   return ~0u;
 }
 
-size_t DDSImage::byteSize(ulong w, ulong h)
+void DDSImage::copyData(void *dst, void *src, ulong num_rows, uint flags)
 {
-  if(!m_compressed) return w*h * bytesPerPixel();
+  if(flags == LoadDefault) {
+    memcpy(dst, src, num_rows*m_pitch);
+  } else if(flags & FlipV) {
+    copyDataFlipV(dst, src, num_rows);
+  }
+}
 
-  // Divide by the block size rounding up
-  w = (w+3) / 4;
-  h = (h+3) / 4;
+void DDSImage::copyDataFlipV(void *dst, void *src, ulong num_rows)
+{
+  // Start at the top
+  auto dst_row = (byte *)dst;
 
-  return w*h * bytesPerPixel();
+  // Start at the bottom (last_row == num_rows-1)
+  auto src_row = (byte *)src + (num_rows-1)*m_pitch;
+
+  for(ulong y = num_rows; y > 0; y--) {
+    memcpy(dst_row, src_row, m_pitch);
+
+    dst_row += m_pitch;
+    src_row -= m_pitch;
+  }
 }
 
 }

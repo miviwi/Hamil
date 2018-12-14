@@ -104,6 +104,7 @@ private:
   Resource::Ptr loadText(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadShader(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadImage(Resource::Id id, const yaml::Document& meta);
+  Resource::Ptr loadTexture(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadMesh(Resource::Id id, const yaml::Document& meta);
   Resource::Ptr loadLUT(Resource::Id id, const yaml::Document& meta);
 

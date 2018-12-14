@@ -4,6 +4,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/texture.h>
 #include <res/mesh.h>
 #include <res/lut.h>
 
@@ -70,6 +71,8 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
                              .scalar("channels", yaml::Scalar::String, yaml::Optional)
                              .scalar("flip_vertical", yaml::Scalar::Boolean, yaml::Optional)
                              .scalarSequence("dimensions", yaml::Scalar::Int) },
+  { Texture::tag(),  yaml::Schema()
+                             .scalar("location", yaml::Scalar::Tagged) },
   { Mesh::tag(),   yaml::Schema()
                              .scalar("location", yaml::Scalar::Tagged)
                              .mapping("vertex")
@@ -81,11 +84,12 @@ static const std::unordered_map<Resource::Tag, yaml::Schema> p_meta_schemas = {
 };
 
 const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> SimpleFsLoader::loader_fns = {
-  { Text::tag(),   &SimpleFsLoader::loadText   },
-  { Shader::tag(), &SimpleFsLoader::loadShader },
-  { Image::tag(),  &SimpleFsLoader::loadImage  },
-  { Mesh::tag(),   &SimpleFsLoader::loadMesh   },
-  { LookupTable::tag(), &SimpleFsLoader::loadLUT },
+  { Text::tag(),        &SimpleFsLoader::loadText    },
+  { Shader::tag(),      &SimpleFsLoader::loadShader  },
+  { Image::tag(),       &SimpleFsLoader::loadImage   },
+  { Texture::tag(),     &SimpleFsLoader::loadTexture },
+  { Mesh::tag(),        &SimpleFsLoader::loadMesh    },
+  { LookupTable::tag(), &SimpleFsLoader::loadLUT     },
 };
 
 void SimpleFsLoader::doInit()
@@ -291,6 +295,18 @@ Resource::Ptr SimpleFsLoader::loadImage(Resource::Id id, const yaml::Document& m
   }
 
   return img;
+}
+
+Resource::Ptr SimpleFsLoader::loadTexture(Resource::Id id, const yaml::Document& meta)
+{
+  auto [name, path, location] = name_path_location(meta);
+
+  auto req = IORequest::read_file(location->str());
+  manager().requestIo(req);
+
+  auto& image_data = manager().waitIo(req);
+
+  return Texture::from_yaml(std::move(image_data), meta, id, name->str(), path->str());
 }
 
 Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& meta)

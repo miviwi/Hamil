@@ -16,6 +16,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/texture.h>
 #include <res/mesh.h>
 #include <res/lut.h>
 
@@ -34,6 +35,9 @@ static yaml::Document shadergen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
 static yaml::Document imagegen(win32::File& file,
+  const std::string& name, const std::string& path, const std::string& extension);
+
+static yaml::Document texturegen(win32::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
 static yaml::Document meshgen(win32::File& file,
@@ -61,6 +65,9 @@ static const std::map<std::string, GenFunc> p_gen_fns = {
 
   { "tif",  imagegen },  // TIFF Image
   { "tiff", imagegen },  // -- || -- 
+
+  // ------------------ Textures -----------------------------
+  { "dds", texturegen },
 
   // ------------------ Meshes  -----------------------------
   { "obj", meshgen },
@@ -337,6 +344,19 @@ static yaml::Document imagegen(win32::File& file,
   if(params) meta->concat(params->get());
 
   printf("        ...done!\n\n");
+
+  return yaml::Node::Ptr(meta);
+}
+
+static yaml::Document texturegen(win32::File& file,
+  const std::string& name, const std::string& path, const std::string& extension)
+{
+  auto location = util::fmt(".%s/%s.%s", path, name, extension);
+
+  auto meta = make_meta<res::Texture>(name, path)->append(
+    yaml::Scalar::from_str("location"),
+    yaml::Scalar::from_str(location, yaml::Node::Tag("!file"))
+  );
 
   return yaml::Node::Ptr(meta);
 }

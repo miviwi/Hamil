@@ -1,6 +1,7 @@
 #include <ek/renderer.h>
 
 #include <util/format.h>
+#include <util/dds.h>
 #include <math/util.h>
 #include <math/brdf.h>
 #include <math/ltc.h>
@@ -16,6 +17,7 @@
 #include <res/res.h>
 #include <res/handle.h>
 #include <res/shader.h>
+#include <res/texture.h>
 #include <res/lut.h>
 
 #include <resources.h>
@@ -61,23 +63,26 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
 {
   static constexpr auto TexSize = ltc::LTC_CoeffsTable::TableSize;
 
-  res::Handle<res::LookupTable> r_lut = R.lut.ltc_lut;
+  res::load(R.texture.ids);
 
-  auto coeffs1 = (float *)r_lut->data();
-  auto coeffs2 = coeffs1 + TexSize.area();
+  res::Handle<res::Texture> r_ltc_1 = R.texture.ltc_1,
+    r_ltc_2 = R.texture.ltc_2;
+
+  auto& coeffs1 = r_ltc_1->get().image();
+  auto& coeffs2 = r_ltc_2->get().image();
 
   std::string tex_label = "t2daLTCCoefficients";
 
-  tex_id = pool.createTexture<gx::Texture2DArray>(tex_label.data(), gx::rgba32f);
+  tex_id = pool.createTexture<gx::Texture2DArray>(tex_label.data(), gx::rgba16f);
   auto ltc = pool.getTexture(tex_id);
 
   ltc().init(TexSize.s, TexSize.t, 2);
-  ltc().upload(coeffs1, /* mip */ 0,
+  ltc().upload(coeffs1.data.get(), /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 0, TexSize.s, TexSize.t, 1,
-    gx::rgba, gx::f32);
-  ltc().upload(coeffs2, /* mip */ 0,
+    gx::rgba, gx::f16);
+  ltc().upload(coeffs2.data.get(), /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 1, TexSize.s, TexSize.t, 1,
-    gx::rgba, gx::f32);
+    gx::rgba, gx::f16);
 }
 
 void RenderLUT::generateHBAONoise(gx::ResourcePool& pool)

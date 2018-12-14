@@ -109,6 +109,11 @@ public:
     NumFaces,
   };
 
+  enum LoadFlags : uint {
+    LoadDefault = 0,
+    FlipV   = 1<<0,
+  };
+
   struct Image {
     ulong width, height, depth;
 
@@ -122,7 +127,13 @@ public:
   struct InvalidDDSError : public Error { };
   struct InvalidCubemapError : public Error { };
 
-  DDSImage& load(const void *data, size_t sz);
+  DDSImage() = default;
+  DDSImage(const DDSImage& other) = delete;
+  DDSImage(DDSImage&& other);
+
+  DDSImage& operator=(DDSImage&& other);
+
+  DDSImage& load(const void *data, size_t sz, uint flags = LoadDefault);
 
   Type type() const;
   Format format() const;
@@ -196,17 +207,25 @@ public:
   void *releaseData(CubemapFace face, uint level = 0);
 
 private:
+  // Size in bytes of an image of size WxH
+  //   with format == m_format
+  size_t byteSize(ulong w, ulong h);
+
   uint bytesPerPixelDX10() const;
 
-  Type m_type = Invalid;
+  // m_pitch must be filled before calling this method!
+  void copyData(void *dst, void *src, ulong num_rows, uint flags);
+
+  // Copies 'src' to 'dst' flipping it vertically
+  void copyDataFlipV(void *dst, void *src, ulong num_rows);
+
+  Type m_type    = Invalid;
   ulong m_format = Unknown;
-  bool m_compressed;
-  ulong m_pitch;
-  ulong m_mips;
+  bool m_compressed = false;
+  ulong m_pitch = 0;
+  ulong m_mips  = 0;
 
   std::array<MipChain, NumFaces> m_images;
-
-  size_t byteSize(ulong w, ulong h);
 };
 
 }

@@ -150,12 +150,6 @@ int main(int argc, char *argv[])
 
   ek::renderer().cachePrograms();
 
-  win32::File ltc_1("ltc_1.dds", win32::File::Read, win32::File::OpenExisting);
-  auto ltc_1_view = ltc_1.map(win32::File::ProtectRead);
-
-  auto dds = util::DDSImage();
-  dds.load(ltc_1_view.get(), ltc_1.size());
-
   auto world = bt::DynamicsWorld();
 
   py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
@@ -318,7 +312,6 @@ int main(int argc, char *argv[])
   };
 
   skybox_program.use()
-    .uniformBlockBinding("SceneConstants", 0)
     .uniformSampler(U.skybox.uEnvironmentMap, 1);
 
   auto composite_pass_id = pool.create<gx::RenderPass>();
@@ -717,7 +710,7 @@ int main(int argc, char *argv[])
     //create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
     //create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
 
-    create_light_line({ 0.0f, 20.0f, 2.0f }, 20.0f, vec3(1.0f));
+    create_light_line({ 0.0f, 5.0f, 2.0f }, 20.0f, vec3(1.0f));
   };
 
   auto floor = create_floor();
@@ -990,14 +983,10 @@ int main(int argc, char *argv[])
 
     std::vector<hm::Entity> dead_entities;
 
-    gx::Query shadowmap_rendertime(gx::Query::TimeElapsed);
-    auto shadowmap_rendertime_scope = shadowmap_rendertime.begin();
 
     worker_pool.waitJob(extract_for_shadows_job_id);
     auto& shadow_objects = extract_for_shadows_job->result();
     shadow_view.render(ek::renderer(), shadow_objects).execute();
-
-    shadowmap_rendertime_scope.end();
 
     worker_pool.waitJob(extract_for_view_job_id);
     auto& render_objects = extract_for_view_job->result();
@@ -1065,12 +1054,10 @@ int main(int argc, char *argv[])
       "CPU Frametime: %.3lfms\n"
       "GPU Frametime: %.3lfms\n"
       "Physics update: %.3lfms\n"
-      "ShadowMap render: %.3lfms\n"
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",
       step_dt*1000.0,
       gpu_frametime*1e-6,
-      shadowmap_rendertime.resultsz()*1e-6,
       physics_step_job.dbg_ElapsedTime()*1000.0,
       ui_paint_job.dbg_ElapsedTime()*1000.0,
       transforms_extract_dt*1000.0)
