@@ -46,6 +46,16 @@ enum Caps2Flags : ulong {
   Volume      = 0x00200000l,    // Set when the image has depth
 };
 
+enum DX10MiscFlags {
+  DX10_Cubemap = 0x00000004u,
+};
+
+enum DX10ResDimensions {
+  Texture1D = 2,
+  Texture2D = 3,
+  Texture3D = 4,
+};
+
 #pragma pack(push, 1)
 struct DDSPixelFormat {
   u32 size;    // Size of the structure
@@ -70,6 +80,14 @@ struct DDSHeader {
   u32 caps2;         // Bitwise OR of Caps2Flags
   u32 reserved2_[3];
 };
+
+struct DDSHeaderDX10 {
+  u32 dxgi_format;
+  u32 res_dimensions;
+  u32 misc_flag;
+  u32 array_size;
+  u32 reserved_;
+};
 #pragma pack(pop)
 
 DDSImage::DDSImage(DDSImage&& other) :
@@ -78,13 +96,15 @@ DDSImage::DDSImage(DDSImage&& other) :
   m_compressed(other.m_compressed),
   m_pitch(other.m_pitch),
   m_mips(other.m_mips),
-  m_images(std::move(other.m_images))
+  m_num_layers(other.m_num_layers),
+  m_layers(std::move(other.m_layers))
 {
   other.m_type = Invalid;
   other.m_format = Unknown;
   other.m_compressed = false;
   other.m_pitch = 0;
   other.m_mips = 0;
+  other.m_num_layers = 0;
 }
 
 DDSImage& DDSImage::operator=(DDSImage&& other)
@@ -115,6 +135,7 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
   check_size(sizeof(DDSHeader));
 
   DDSHeader header;
+  DDSHeaderDX10 headerdx10;
   memset(&header, 0, sizeof(header));
 
   auto load = [&]() -> u32 {
@@ -156,7 +177,15 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
     m_format = (Format)header.pf.four_cc;
 
     if(m_format == DX10) {
-      m_format = IsDX10;
+      // Parse extended header
+      headerdx10.dxgi_format    = load();
+      headerdx10.res_dimensions = load();
+      headerdx10.misc_flag      = load();
+      headerdx10.array_size     = load();
+
+      ptr += sizeof(DDSHeaderDX10::reserved_);
+
+      m_format = IsDX10 | headerdx10.dxgi_format;
     }
 
     switch(m_format) {
@@ -192,16 +221,24 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
   // Fill in the mipmap count if provided
   m_mips = (header.flags & SurfaceDescriptionFlags::MipmapCount) ? header.mipmap_count : 1;
 
-  uint num_images = 1;
-  if(header.caps2 & Caps2Flags::Cubemap) {
+  m_num_layers = 1;  // 1 layer by default
+  if(m_format & IsDX10) {   // Use the extended header if it's provided
+    m_num_layers = headerdx10.array_size;
+
+    if(headerdx10.misc_flag & DX10MiscFlags::DX10_Cubemap) m_type = Cubemap;
+    if(headerdx10.res_dimensions & DX10ResDimensions::Texture3D) m_type = Volume;
+  } else if(header.caps2 & Caps2Flags::Cubemap) {
     auto faces = header.caps2 & Caps2Flags::CubemapAll;  // Extract the face flags
     bool has_all_faces = (faces == Caps2Flags::CubemapAll);
 
     if(!has_all_faces || header.width != header.height) throw InvalidCubemapError();
+
+    m_num_layers = 6;
   }
 
-  for(uint n = 0; n < num_images; n++) {
-    auto& chain = m_images.at(n);
+  m_layers = std::make_unique<MipChain[]>(m_num_layers);
+  for(uint n = 0; n < m_num_layers; n++) {
+    auto& chain = m_layers[n];
     auto& img = chain.at(chain.emplace());
 
     auto w = header.width;
@@ -301,7 +338,7 @@ uint DDSImage::bytesPerPixel() const
 {
   if(m_format & IsDX10) return bytesPerPixelDX10();
 
-  switch(m_format) {
+  switch(m_format & ~IsDX10) {
   case RGB8: return 3;
 
   case ARGB8:
@@ -389,6 +426,11 @@ ulong DDSImage::depth() const
   return image().depth;
 }
 
+ulong DDSImage::numLayers() const
+{
+  return m_num_layers;
+}
+
 ivec2 DDSImage::size2d() const
 {
   return uvec2(width(), height()).cast<int>();
@@ -401,28 +443,35 @@ ivec3 DDSImage::size3d() const
 
 const DDSImage::Image& DDSImage::image(uint level) const
 {
-  const auto& chain = m_images.front();
+  const auto& chain = m_layers[0];
 
   return chain.at(level);
 }
 
 const DDSImage::Image& DDSImage::image(CubemapFace face, uint level) const
 {
-  const auto& chain = m_images.at(face);
+  const auto& chain = m_layers[face];
+
+  return chain.at(level);
+}
+
+const DDSImage::Image& DDSImage::imageLayer(uint layer, uint level) const
+{
+  const auto& chain = m_layers[layer];
 
   return chain.at(level);
 }
 
 void *DDSImage::releaseData(uint level)
 {
-  auto& img = m_images.front().at(level);
+  auto& img = m_layers[0].at(level);
 
   return img.data.release();
 }
 
 void *DDSImage::releaseData(CubemapFace face, uint level)
 {
-  auto& img = m_images.at(face).at(level);
+  auto& img = m_layers[face].at(level);
 
   return img.data.release();
 }
@@ -441,12 +490,10 @@ size_t DDSImage::byteSize(ulong w, ulong h)
 uint DDSImage::bytesPerPixelDX10() const
 {
   switch(m_format & ~IsDX10) {
-  case RGBA32:
   case RGBA32F:
   case RGBA32U:
   case RGBA32I: return 16;
 
-  case RGB32:
   case RGB32F:
   case RGB32U:
   case RGB32I: return 12;
@@ -456,15 +503,35 @@ uint DDSImage::bytesPerPixelDX10() const
   case RGBA16U:
   case RGBA16I: return 8;
 
-  case RG32:
   case RG32F:
   case RG32U:
   case RG32I: return 8;
 
   case RGB10A2:
   case RGB10A2U:
-  case RGB10A2I:
   case R11G11B10F: return 4;
+
+  case RGBA8:
+  case BGRA8:
+  case SRGB8_A8:
+  case SBGR8_A8: return 4;
+
+  case DX10_R32F:
+  case R32U:
+  case R32I: return 4;
+
+  case R16:
+  case DX10_R16F:
+  case R16U:
+  case R16I: return 2;
+
+  case R8:
+  case R8U:
+  case R8I: return 1;
+
+  case RG8:
+  case RG8U:
+  case RG8I: return 2;
   }
 
   return ~0u;
@@ -479,6 +546,7 @@ void DDSImage::copyData(void *dst, void *src, ulong num_rows, uint flags)
   }
 }
 
+// TODO: DXT flipping
 void DDSImage::copyDataFlipV(void *dst, void *src, ulong num_rows)
 {
   // Start at the top
