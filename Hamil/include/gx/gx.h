@@ -10,12 +10,12 @@ namespace gx {
 
 class GxInfo;
 
-enum Component {
+enum Component  {
   Zero = GL_ZERO, One = GL_ONE,
   Red = GL_RED, Green = GL_GREEN, Blue  = GL_BLUE, Alpha = GL_ALPHA,
 };
 
-enum Format {
+enum Format : uint {
   r = GL_RED, rg = GL_RG, rgb = GL_RGB, rgba = GL_RGBA,
   bgra = GL_BGRA, bgr = GL_BGR,
   srgb = GL_SRGB, srgb_alpha = GL_SRGB_ALPHA,
@@ -39,7 +39,7 @@ enum Format {
   depth24_stencil8 = GL_DEPTH24_STENCIL8,
 };
 
-enum Type {
+enum Type : uint {
   i8  = GL_BYTE,  u8  = GL_UNSIGNED_BYTE,
   i16 = GL_SHORT, u16 = GL_UNSIGNED_SHORT,
   i32 = GL_INT,   u32 = GL_UNSIGNED_INT,
@@ -48,13 +48,18 @@ enum Type {
   fixed = GL_FIXED,
 
   u16_565 = GL_UNSIGNED_SHORT_5_6_5, u16_5551 = GL_UNSIGNED_SHORT_5_5_5_1,
-  u32_8888 = GL_UNSIGNED_INT_8_8_8_8,
+  u32_8888 = GL_UNSIGNED_INT_8_8_8_8, u32_10_10_10_2 = GL_UNSIGNED_INT_10_10_10_2,
+
+  u16_565r = GL_UNSIGNED_SHORT_5_6_5_REV, u16_1555r = GL_UNSIGNED_SHORT_1_5_5_5_REV,
+  u32_8888r = GL_UNSIGNED_INT_8_8_8_8_REV, u32_2_10_10_10r = GL_UNSIGNED_INT_2_10_10_10_REV,
 };
 
 enum Face {
   PosX = GL_TEXTURE_CUBE_MAP_POSITIVE_X, NegX = GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
   PosY = GL_TEXTURE_CUBE_MAP_POSITIVE_Y, NegY = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
   PosZ = GL_TEXTURE_CUBE_MAP_POSITIVE_Z, NegZ = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+
+  NumFaces = 6,
 };
 
 enum CompareFunc {
@@ -65,15 +70,22 @@ enum CompareFunc {
 };
 
 // Ordered according to CubeMap FBO layer indices
-static constexpr std::array<Face, 6> Faces = {
+static constexpr std::array<Face, NumFaces> Faces = {
   PosX, NegX,
   PosY, NegY,
   PosZ, NegZ,
 };
 
 enum {
+  // Minimum number of available TexImage units
+  //   guaranteed by the OpenGL spec
   NumTexUnits = 16,
+  // Minimum number of available gx::UniformBuffer
+  //   binding points guaranteed by the OpenGL spec
   NumUniformBindings = 36,
+  // Minimum number of Multiple Render Target
+  //   bindings gauranteed by the OpenGL spec
+  NumMRTBindings = 8,
 };
 
 bool is_color_format(Format fmt);

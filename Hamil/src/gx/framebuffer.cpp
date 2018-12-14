@@ -288,17 +288,17 @@ void Framebuffer::setupDrawBuffers()
 {
   if(!(m_draw_buffers & DrawBuffersNeedSetup)) return;
 
-  GLenum bufs[NumDrawBuffers];
-  std::fill(bufs, bufs+NumDrawBuffers, GL_NONE);
+  GLenum bufs[NumMRTBindings];
+  std::fill(bufs, bufs+NumMRTBindings, GL_NONE);
 
-  for(unsigned i = 0; i < NumDrawBuffers; i++) {
+  for(unsigned i = 0; i < NumMRTBindings; i++) {
     bool enabled = (m_draw_buffers>>i) & 1;
     if(!enabled) continue;
 
     bufs[i] = GL_COLOR_ATTACHMENT0 + i;
   }
 
-  glDrawBuffers(NumDrawBuffers, bufs);
+  glDrawBuffers(NumMRTBindings, bufs);
   m_draw_buffers &= ~DrawBuffersNeedSetup;
 }
 

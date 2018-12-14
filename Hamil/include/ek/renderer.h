@@ -170,6 +170,15 @@ private:
     ObjectVector& objects, const frustum3& frustum,
     hm::Entity e, const mat4& parent);
 
+  // Returns 'true' when mesh was culled
+  bool cullMesh(const AABB& aabb,
+    const frustum3& frustum);
+
+  // Returns 'true' when light was culled
+  bool cullLight(RenderView& view,
+    const vec3& pos, const hm::Light& light,
+    const frustum3& frustum);
+
   // Stores the gx::ResourcePool of the Renderer
   RendererData *m_data;
 

@@ -3,6 +3,18 @@
 #include <util/format.h>
 
 #include <cmath>
+#include <immintrin.h>
+
+u32 loadbe_u32(const void *ptr)
+{
+  union {
+    i32 i;
+    u32 u;
+  };
+
+  i = _loadbe_i32(ptr);
+  return u;
+}
 
 std::vector<float> gaussian_kernel(int r)
 {

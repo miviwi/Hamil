@@ -56,7 +56,7 @@ struct LightConstants {
   //   v2 = vec4(color.rgb, sphere_radius)
 
   // LineLight:
-  //   v1 = vec4(p1.xyz, radius)
+  //   v1 = vec4(p1.xyz, 1.0)
   //   v2 = vec4(p2.xyz, line_radius)
   //   v3 = vec4(color.rgb, 1.0)
 };
@@ -189,6 +189,11 @@ RenderView& RenderView::projection(const mat4& p)
 vec3 RenderView::eyePosition() const
 {
   return m_view.translation();
+}
+
+bool RenderView::wantsLights() const
+{
+  return m_type == CameraView;
 }
 
 frustum3 RenderView::constructFrustum()
@@ -633,8 +638,8 @@ LightConstants RenderView::generateLineLightConstants(const RenderObject& ro)
   p1 = m_view * p1;
   p2 = m_view * p2;
 
-  consts.v1 = vec4(p1.xyz(), light().radius);
-  consts.v2 = vec4(p2.xyz(), 1.0f);
+  consts.v1 = p1;
+  consts.v2 = vec4(p2.xyz(), light().radius);
   consts.v3 = vec4(light().color, 1.0f);
 
   return consts;

@@ -95,6 +95,10 @@ public:
 
   vec3 eyePosition() const;
 
+  // Returns 'true' when the RenderObjects vector
+  //   given to render() should constain RenderLights
+  bool wantsLights() const;
+
   // Used by Renderer::extractForView()
   frustum3 constructFrustum();
 

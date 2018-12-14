@@ -442,7 +442,7 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
   // Extract the object
   if(auto mesh = e.component<hm::Mesh>()) {
     // Cull it
-    if(!frustum.aabbInside(aabb)) return;
+    if(cullMesh(aabb, frustum)) return;
 
     auto material = e.component<hm::Material>();
 
@@ -453,23 +453,39 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
     ro.material = material;
   } else if(auto light = e.component<hm::Light>()) {
     // Check if this view needs to have RenderLights extracted
-    if(view.m_type != RenderView::CameraView) return;
+    if(!view.wantsLights()) return;
 
     vec3 position = model_matrix.translation();
 
-    float radius = light().radius;
-    float radius2 = radius*radius;
-    float distance2 = view.eyePosition().distance2(position);
-
-    // TODO: Better light culling
-    if(!frustum.sphereInside(position, radius) &&
-      distance2 > radius2) return;
+    if(cullLight(view, position, light(), frustum)) return;
 
     auto& ro = objects.emplace_back(RenderObject::Light, e).light();
 
     ro.position = position;
     ro.light = light;
   }
+}
+
+// TODO: Better mesh culling
+bool Renderer::cullMesh(const AABB& aabb, const frustum3& frustum)
+{
+  return !frustum.aabbInside(aabb);
+}
+
+// TODO: Better light culling
+bool Renderer::cullLight(RenderView& view, const vec3& pos,
+  const hm::Light& light, const frustum3& frustum)
+{
+  auto eye = view.eyePosition();
+  auto radius = light.radius;
+  auto radius2 = radius * radius;
+  float distance2 = eye.distance2(pos);
+
+  switch(light.type) {
+  case hm::Light::Sphere: return !frustum.sphereInside(pos, radius);
+  }
+
+  return false;
 }
 
 }

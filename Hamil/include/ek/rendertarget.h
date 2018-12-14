@@ -12,7 +12,8 @@
 #include <atomic>
 
 namespace gx {
-enum Format;
+enum Format : uint;
+enum Type : uint;
 
 class ResourcePool;
 class TextureHandle;
@@ -95,7 +96,7 @@ public:
 private:
   friend Renderer;
 
-  using TextureIds = util::SmallVector<u32, sizeof(u32) * /* Minimum required MRTs */ 8>;
+  using TextureIds = util::SmallVector<u32, /* gx::NumMRTBindings */ 8*sizeof(u32)>;
 
   RenderTarget(const RenderTargetConfig& config, gx::ResourcePool& pool);
 

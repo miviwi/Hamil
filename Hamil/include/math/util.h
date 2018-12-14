@@ -28,6 +28,8 @@ static unsigned pow2_align(unsigned x, unsigned alignment)
   return (x + (alignment-1)) & ~(alignment-1);
 }
 
+u32 loadbe_u32(const void *ptr);
+
 template <typename T>
 T lerp(T a, T b, float u)
 {

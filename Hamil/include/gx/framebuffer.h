@@ -93,7 +93,6 @@ private:
   friend class PixelBuffer;
 
   enum {
-    NumDrawBuffers = 8,
     DrawBuffersNeedSetup = 1<<(sizeof(unsigned)*CHAR_BIT - 1),
   };
 

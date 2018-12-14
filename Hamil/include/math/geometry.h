@@ -239,6 +239,12 @@ struct Vector3 {
 
   Vector3 operator-() const { return { -x, -y, -z }; }
 
+  template <typename U>
+  Vector3<U> cast() const
+  {
+    return Vector3<U>{ (U)x, (U)y, (U)z };
+  }
+
   static Vector3 min(const Vector3& a, const Vector3& b)
   {
     return { std::min(a.x, b.x), std::min(a.y, b.y), std::min(a.z, b.z) };

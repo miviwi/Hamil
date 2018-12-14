@@ -1,6 +1,7 @@
 #include <util/format.h>
 #include <util/opts.h>
 #include <util/unit.h>
+#include <util/dds.h>
 
 #include <math/geometry.h>
 #include <math/xform.h>
@@ -148,6 +149,12 @@ int main(int argc, char *argv[])
   random_generator.seed(dev_random());
 
   ek::renderer().cachePrograms();
+
+  win32::File ltc_1("ltc_1.dds", win32::File::Read, win32::File::OpenExisting);
+  auto ltc_1_view = ltc_1.map(win32::File::ProtectRead);
+
+  auto dds = util::DDSImage();
+  dds.load(ltc_1_view.get(), ltc_1.size());
 
   auto world = bt::DynamicsWorld();
 
@@ -398,7 +405,7 @@ int main(int argc, char *argv[])
     .attrAlias(0, gx::f32, 3)
     .attrAlias(0, gx::f32, 2);
 
-  auto line = mesh::box(0.5f, 0.05f, 0.05f);
+  auto line = mesh::box(0.5f, 0.5f, 0.5f);
   auto line_vtxs = std::get<0>(line);
   auto line_inds = std::get<1>(line);
 
@@ -553,8 +560,8 @@ int main(int argc, char *argv[])
     material().diff_tex.sampler_id = floor_sampler_id;
 
     material().metalness = 0.0f;
-    material().roughness = 0.0f;
-    material().ior = vec3(1.7f);
+    material().roughness = 0.4f;
+    material().ior = vec3(0.01f);
 
     world.addRigidBody(body);
 
@@ -664,7 +671,7 @@ int main(int argc, char *argv[])
 
     light().type = hm::Light::Line;
     light().color = color;
-    light().radius = 100.0f;
+    light().radius = 1.0f;
     light().line.tangent = vec3::right();
     light().line.length = length;
 
@@ -698,19 +705,19 @@ int main(int argc, char *argv[])
     material().diff_color = { 0.53f, 0.8f, 0.94f };
 
     material().metalness = 0.0f;
-    material().roughness = 0.4f;
-    material().ior = vec3(1.47f);
+    material().roughness = 0.7f;
+    material().ior = vec3(14.7f);
 
     return entity;
   };
 
   auto create_lights = [&]()
   {
-    create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(10.0f));
-    create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
-    create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
+    //create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(10.0f));
+    //create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
+    //create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
 
-    create_light_line({ 0.0f, 3.0f, 2.0f }, 20.0f, vec3(1.0f));
+    create_light_line({ 0.0f, 20.0f, 2.0f }, 20.0f, vec3(1.0f));
   };
 
   auto floor = create_floor();

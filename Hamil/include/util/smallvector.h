@@ -2,11 +2,11 @@
 
 #include <common.h>
 
+#include <cstdlib>
 #include <new>
 #include <utility>
 #include <algorithm>
-
-#include <cstdlib>
+#include <exception>
 
 namespace util {
 
@@ -64,8 +64,23 @@ public:
     return *this;
   }
 
+#if !defined(NDEBUG)
+  T& at(u32 idx)
+  {
+    if(idx >= size()) throw std::runtime_error("Index out of range!");
+
+    return *(data() + idx);
+  }
+  const T& at(u32 idx) const
+  {
+    if(idx >= size()) throw std::runtime_error("Index out of range!");
+
+    return *(data() + idx);
+  }
+#else
   T& at(u32 idx) { return *(data() + idx); }
   const T& at(u32 idx) const { return *(data() + idx); }
+#endif
 
   T& front() { return *data(); }
   const T& front() const { return *data(); }
@@ -106,6 +121,10 @@ public:
   //   and returns it
   T pop()
   {
+#if !defined(NDEBUG)
+    if(empty()) throw std::runtime_error("Called pop() on empty container!");
+#endif
+
     auto ptr = data();
     m_sz--;
 
