@@ -20,6 +20,8 @@ public:
   // Model matrix extracted at the beginning of rendering
   mat4 model;
 
+  AABB aabb;
+
   // Cached at the start of rendering
   hm::ComponentRef<hm::Mesh> mesh = nullptr;
   // Cached at the start of rendering

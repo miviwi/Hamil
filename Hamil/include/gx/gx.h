@@ -5,6 +5,13 @@
 #include <GL/gl3w.h>
 
 #include <array>
+#include <string>
+
+// extension(EXT::TextureSRGB) constants
+#define GL_COMPRESSED_SRGB_S3TC_DXT1_EXT  0x8C4C
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT 0x8C4D
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT 0x8C4E
+#define GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT 0x8C4F
 
 namespace gx {
 
@@ -21,22 +28,45 @@ enum Format : uint {
   srgb = GL_SRGB, srgb_alpha = GL_SRGB_ALPHA,
   depth = GL_DEPTH_COMPONENT, depth_stencil = GL_DEPTH_STENCIL,
 
-  r8 = GL_R8, r16 = GL_R16,
-  rg8 = GL_RG8, rg16 = GL_RG16,
-  rgb8 = GL_RGB8, rgb10 = GL_RGB10, rgb16 = GL_RGB16,
+  r8    = GL_R8,    r16     = GL_R16,
+  rg8   = GL_RG8,   rg16    = GL_RG16,
+  rgb8  = GL_RGB8,  rgb10   = GL_RGB10,    rgb16 = GL_RGB16,
   rgba8 = GL_RGBA8, rgb10a2 = GL_RGB10_A2, rgba16 = GL_RGBA16,
 
   rgb565 = GL_RGB565, rgb5a1 = GL_RGB5_A1,
 
-  r16f = GL_R16F, r32f = GL_R32F,
-  rg16f = GL_RG16F, rg32f = GL_RG32F,
-  rgb16f = GL_RGB16F, rgb32f = GL_RGB32F,
+  r16f    = GL_R16F,    r32f    = GL_R32F,
+  rg16f   = GL_RG16F,   rg32f   = GL_RG32F,
+  rgb16f  = GL_RGB16F,  rgb32f  = GL_RGB32F,
   rgba16f = GL_RGBA16F, rgba32f = GL_RGBA32F,
 
   depth16 = GL_DEPTH_COMPONENT16,
   depth24 = GL_DEPTH_COMPONENT24,
   depth32 = GL_DEPTH_COMPONENT32, depth32f = GL_DEPTH_COMPONENT32F,
   depth24_stencil8 = GL_DEPTH24_STENCIL8,
+
+  dxt1 = GL_COMPRESSED_RGB_S3TC_DXT1_EXT, dxt1_rgba = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+  dxt1_srgb = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT, dxt1_srgb_alpha = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT,
+  // gx::rgba color storage
+  dxt3 = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, dxt5 = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT,
+  // gx::srgb_alpha color storage
+  dxt3_srgb = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, dxt5_srgb = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT,
+
+  // gx::r color storage
+  rgtc1 = GL_COMPRESSED_RED_RGTC1, rgtc1s = GL_COMPRESSED_SIGNED_RED_RGTC1,
+  // gx::rg color storage
+  rgtc2 = GL_COMPRESSED_RG_RGTC2, rgtc2s = GL_COMPRESSED_SIGNED_RG_RGTC2,
+
+  // extension(ARB::TextureBPTC) formats
+
+  // gx::rgba color storage
+  bptc = GL_COMPRESSED_RGBA_BPTC_UNORM,
+  // gx::srgb_alpha color storage
+  bptc_srgb_alpha = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM,
+  // Unsigned floating point
+  bptc_uf = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT,
+  // Signed floating point
+  bptc_sf = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
 };
 
 enum Type : uint {
@@ -63,10 +93,10 @@ enum Face {
 };
 
 enum CompareFunc {
-  Never = GL_NEVER, Always = GL_ALWAYS,
-  Less = GL_LESS, LessEqual = GL_LEQUAL,
+  Never   = GL_NEVER,   Always       = GL_ALWAYS,
+  Less    = GL_LESS,    LessEqual    = GL_LEQUAL,
   Greater = GL_GREATER, GreaterEqual = GL_GEQUAL,
-  Equal = GL_EQUAL, NotEqual = GL_NOTEQUAL,
+  Equal   = GL_EQUAL,   NotEqual     = GL_NOTEQUAL,
 };
 
 // Ordered according to CubeMap FBO layer indices
@@ -88,7 +118,11 @@ enum {
   NumMRTBindings = 8,
 };
 
+// Returns 'true' when 'fmt' is a color format
 bool is_color_format(Format fmt);
+
+// Returns 'true' when 'fmt' corresponds to a compressed format
+bool is_compressed_format(Format fmt);
 
 // Must be called AFTER creating a win32::Window!
 void init();

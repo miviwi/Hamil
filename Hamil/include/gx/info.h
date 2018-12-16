@@ -2,7 +2,24 @@
 
 #include <gx/gx.h>
 
+#include <string>
+#include <unordered_set>
+
 namespace gx {
+
+// Extension name strings
+namespace EXT {
+static const std::string TextureSRGB   = "GL_EXT_texture_sRGB";
+}
+
+namespace ARB {
+static const std::string BufferStorage       = "GL_ARB_buffer_storage";
+static const std::string ComputeShader       = "GL_ARB_compute_shader";
+static const std::string ShaderStorageBuffer = "GL_ARB_shader_storage_buffer_object";
+static const std::string BindlessTexture     = "GL_ARB_bindless_texture";
+static const std::string TextureBPTC         = "GL_ARB_texture_compression_bptc";
+}
+// ----------------------
 
 // Gives info on GPU resource limits etc.
 //   - use gx::info() (gx/gx.h) to get a global instance
@@ -37,8 +54,17 @@ public:
   //   - glGet(GL_MAX_TEXTURE_IMAGE_UNITS)
   size_t maxTextureUnits() const;
 
+  // Returns 'true' when the extension with the name string 'name'
+  //   is supported on the current system
+  //  - See above for some predefined const name strings
+  bool extension(const std::string& name) const;
+
 protected:
-  GxInfo() = default;
+  // 'num_extensions' is needed to decrease amount of
+  //   std::unordered_set reallocations
+  GxInfo(size_t num_extensions) :
+    m_extensions((3*num_extensions) / 2 /* == num_extensions*1.5 */)
+  { }
 
   static GxInfo *create();
 
@@ -65,6 +91,8 @@ private:
 
   // GL_MAX_TEXTURE_IMAGE_UNITS
   size_t m_max_tex_image_units;
+
+  std::unordered_set<std::string> m_extensions;
 };
 
 }

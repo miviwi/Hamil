@@ -56,7 +56,7 @@ public:
     R16F = 111, GR16F = 112, ABGR16F = 113,
     R32F = 114, GR32F = 115, ABGR32F = 116,
 
-    DX10 = 'D' | ('X'<<8) | ('1'<<16) | ('0' << 24),
+    DX10 = 'D' | ('X'<<8) | ('1'<<16) | ('0'<<24),  // 'DX10'
     IsDX10 = 1ul << (ulong)(sizeof(ulong)*CHAR_BIT - 1),
 
     // DXGI formats
@@ -78,6 +78,22 @@ public:
     R16 = 56, DX10_R16F = 54, R16U = 57, R16I = 59,
     R8  = 61, R8U  = 62, R8I  = 64,
     RG8 = 49, RG8U = 50, RG8I = 52,
+
+    // DXTn
+
+    BC1 = 71, BC1_srgb = 72,
+    BC2 = 74, BC2_srgb = 75,
+    BC3 = 77, BC3_srgb = 78,
+
+    // RGTC
+
+    BC4 = 80, BC4s = 81,
+    BC5 = 83, BC5s = 84,
+
+    // BPTC
+
+    BC6H_uf = 95, BC6H_sf = 96,
+    BC7 = 98, BC7_srgb = 99,
   };
 
   enum CubemapFace {
@@ -87,7 +103,7 @@ public:
 
   enum LoadFlags : uint {
     LoadDefault = 0,
-    FlipV   = 1<<0,
+    FlipV       = 1<<0,
   };
 
   struct Image {
@@ -121,6 +137,10 @@ public:
   // Returns 'true' when the image has more
   //   than one level available
   bool hasMipmaps() const;
+
+  // Returns 'true' when the image is
+  //   in an sRGB color format
+  bool sRGB() const;
 
   // Returns num_mipmaps-1 (i.e. the max value
   //  for the 'mip' parameter of gx::Texture::init())
@@ -209,6 +229,10 @@ private:
   size_t byteSize(ulong w, ulong h);
 
   uint bytesPerPixelDX10() const;
+
+  gx::Format texInternalFormatDX10() const;
+  gx::Format texFormatDX10() const;
+  gx::Type texTypeDX10() const;
 
   // m_pitch must be filled before calling this method!
   void copyData(void *dst, void *src, ulong num_rows, uint flags);

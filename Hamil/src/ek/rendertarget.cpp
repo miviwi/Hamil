@@ -42,7 +42,7 @@ RenderTargetConfig RenderTargetConfig::moment_shadow_map(uint samples)
   self.type = ShadowMap;
   self.samples = samples;
 
-  self.moments.emplace(gx::rgba32f);
+  self.moments.emplace(gx::rgba16);
   self.depth = gx::depth24;
 
   return self;

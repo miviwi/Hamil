@@ -23,6 +23,18 @@ bool is_color_format(Format fmt)
   return true;
 }
 
+bool is_compressed_format(Format fmt)
+{
+  switch(fmt) {
+  case dxt1: case dxt1_rgba: case dxt1_srgb: case dxt1_srgb_alpha:
+  case dxt3: case dxt3_srgb:
+  case dxt5: case dxt5_srgb:
+    return true;
+  }
+
+  return false;
+}
+
 void init()
 {
   // 'p_dummy_vao' is created beacuse the GL spec forbids binding

@@ -454,6 +454,7 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
     auto& ro = objects.emplace_back(RenderObject::Mesh, e).mesh();
 
     ro.model    = model_matrix;
+    ro.aabb     = aabb;
     ro.mesh     = mesh;
     ro.material = material;
   } else if(auto light = e.component<hm::Light>()) {

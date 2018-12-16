@@ -20,7 +20,8 @@ class Texture : public Ref {
 public:
   enum Flags {
     Default = 0,
-    Multisample = (1<<0),
+    Multisample = 1<<0,
+    Compressed  = 1<<1,
   };
 
   virtual ~Texture();
@@ -41,6 +42,8 @@ public:
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type type);
 
+  // Must be used with Texture::Compressed
+  void init(const void *data, unsigned mip, unsigned w, unsigned h, size_t data_size);
 
   /* -------- Texture3D/Texture2DArray init methods -------- */
 
@@ -59,11 +62,17 @@ public:
   void upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type type);
 
+  // Must be used with Texture::Compressed
+  void init(const void *data, unsigned mip, Face face, unsigned l, size_t data_size);
 
+  // Swizzles the Texture's components
+  //   eg. swizzle(gx::red, gx::red, gx::red, gx::one) -> texture(...) == vec4(texture(...).rrr, 1.0)
   void swizzle(Component r, Component g, Component b, Component a);
 
+  // Fills (and optionally creates) all mipmaps for the Texture
   void generateMipmaps();
 
+  // Only for internal use!
   void use();
 
   void label(const char *lbl);
@@ -121,7 +130,7 @@ private:
 
 class TextureCubeMap : public Texture {
 public:
-  TextureCubeMap(Format format);
+  TextureCubeMap(Format format, Flags flags = Default);
   virtual ~TextureCubeMap();
 };
 

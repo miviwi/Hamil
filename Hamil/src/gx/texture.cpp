@@ -8,7 +8,13 @@ namespace gx {
 
 // Even though the code utilizes only glSampler's the texture
 //   parameters must be set or the texture will be 'incomplete'
-static void setDefaultParameters(GLenum target);
+static void set_default_parameters(GLenum target);
+
+// To be used inside Texture::init(...)
+static void init_check_compressed(Format fmt);
+// To be used inside Texture constructors which
+//   accept the Texture::Compressed Flag
+static void ctor_check_compressed(Format fmt);
 
 Texture::Texture(GLenum target, Format format) :
   m_target(target), m_format(format)
@@ -28,7 +34,7 @@ void Texture::init(unsigned w)
   use();
   glTexImage1D(m_target, 0, m_format, w, 0, GL_UNSIGNED_BYTE, GL_RGBA, nullptr);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::init(const void *data, unsigned mip, unsigned w, Format format, Type type)
@@ -36,7 +42,7 @@ void Texture::init(const void *data, unsigned mip, unsigned w, Format format, Ty
   use();
   glTexImage1D(m_target, mip, m_format, w, 0, format, type, data);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned w, Format format, Type type)
@@ -57,7 +63,7 @@ void Texture::init(unsigned w, unsigned h)
   use();
   glTexImage2D(m_target, 0, m_format, w, h, 0, format, GL_UNSIGNED_BYTE, nullptr);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::init(ivec2 sz)
@@ -72,7 +78,7 @@ void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Forma
   use();
   glTexImage2D(m_target, mip, m_format, w, h, 0, format, type, data);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
@@ -82,12 +88,22 @@ void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, uns
   glTexSubImage2D(m_target, mip, x, y, w, h, format, type, data);
 }
 
+void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, size_t data_size)
+{
+  init_check_compressed(m_format);
+
+  use();
+  glCompressedTexImage2D(m_target, mip, m_format, w, h, 0, (GLsizei)data_size, data);
+
+  set_default_parameters(m_target);
+}
+
 void Texture::init(unsigned w, unsigned h, unsigned d)
 {
   use();
   glTexImage3D(m_target, 0, m_format, w, h, d, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d,
@@ -96,7 +112,7 @@ void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsig
   use();
   glTexImage3D(m_target, 0, m_format, w, h, d, 0, format, type, data);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
@@ -111,7 +127,7 @@ void Texture::init(Face face, unsigned l)
   use();
   glTexImage2D(face, 0, m_format, l, l, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::initAllFaces(unsigned l)
@@ -121,7 +137,7 @@ void Texture::initAllFaces(unsigned l)
     glTexImage2D(face, 0, m_format, l, l, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
   }
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::init(const void *data, unsigned mip, Face face, unsigned l, Format format, Type type)
@@ -129,7 +145,7 @@ void Texture::init(const void *data, unsigned mip, Face face, unsigned l, Format
   use();
   glTexImage2D(face, mip, m_format, l, l, 0, format, type, data);
 
-  setDefaultParameters(m_target);
+  set_default_parameters(m_target);
 }
 
 void Texture::upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y,
@@ -137,6 +153,16 @@ void Texture::upload(const void *data, unsigned mip, Face face, unsigned x, unsi
 {
   use();
   glTexSubImage2D(face, mip, x, y, w, h, format, type, data);
+}
+
+void Texture::init(const void *data, unsigned mip, Face face, unsigned l, size_t data_size)
+{
+  init_check_compressed(m_format);
+
+  use();
+  glCompressedTexImage2D(face, mip, m_format, l, l, 0, (GLsizei)data_size, data);
+
+  set_default_parameters(m_target);
 }
 
 void Texture::swizzle(Component r, Component g, Component b, Component a)
@@ -173,6 +199,9 @@ Texture1D::Texture1D(Format format) :
 Texture2D::Texture2D(Format format, Flags flags) :
   Texture(flags & Multisample ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, format), m_samples(0)
 {
+#if !defined(NDEBUG)
+  if(flags & Compressed) ctor_check_compressed(format);
+#endif
 }
 
 Texture2D::~Texture2D()
@@ -226,9 +255,15 @@ void Texture2DArray::assertMultisample()
     "Using a Texture2DArray with multisampling without the 'Multisample' flag!");
 }
 
-TextureCubeMap::TextureCubeMap(Format format) :
+TextureCubeMap::TextureCubeMap(Format format, Flags flags) :
   Texture(GL_TEXTURE_CUBE_MAP, format)
 {
+#if !defined(NDEBUG)
+  if(flags & Compressed) ctor_check_compressed(format);
+
+  assert(!(flags & Multisample) &&
+    "Texture::Multisample cannot be used with a TextureCubemap!");
+#endif
 }
 
 TextureCubeMap::~TextureCubeMap()
@@ -525,7 +560,7 @@ void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler)
   glBindTexture(tex.m_target, tex.m);
 }
 
-static void setDefaultParameters(GLenum target)
+static void set_default_parameters(GLenum target)
 {
   glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -534,6 +569,18 @@ static void setDefaultParameters(GLenum target)
   glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
   glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+}
+
+void init_check_compressed(Format fmt)
+{
+  assert(is_compressed_format(fmt) &&
+    "this version of init() may only be used with Texture::Compressed Textures!");
+}
+
+void ctor_check_compressed(Format fmt)
+{
+  assert(is_compressed_format(fmt) &&
+    "A compressed Format must be used when creating a Texture with Texture::Compressed!");
 }
 
 }

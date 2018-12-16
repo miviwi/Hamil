@@ -131,8 +131,10 @@ int main(int argc, char *argv[])
   hm::init();
   ek::init();
 
-  printf("numPhysicalProcessors(): %2u\n", win32::cpuinfo().numPhysicalProcessors());
-  printf("numLogicalProcessors():  %2u\n", win32::cpuinfo().numLogicalProcessors());
+  printf("extension(EXT::TextureSRGB):      %i\n", gx::info().extension(gx::EXT::TextureSRGB));
+  printf("extension(ARB::ComputeShader):    %i\n", gx::info().extension(gx::ARB::ComputeShader));
+  printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));
+  printf("extension(ARB::TextureBPTC):      %i\n", gx::info().extension(gx::ARB::TextureBPTC));
 
   auto& pool = ek::renderer().pool();
   gx::MemoryPool memory(4096);
@@ -707,8 +709,8 @@ int main(int argc, char *argv[])
   auto create_lights = [&]()
   {
     //create_light_sphere({ 0.0f, 6.0f, 0.0f }, vec3(10.0f));
-    //create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
-    //create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
+    create_light_sphere({ -10.0f, 6.0f, -10.0f }, vec3(10.0f, 10.0f, 0.0f));
+    create_light_sphere({ 20.0f, 6.0f, 0.0f }, vec3(0.0f, 10.0f, 10.0f));
 
     create_light_line({ 0.0f, 5.0f, 2.0f }, 20.0f, vec3(1.0f));
   };

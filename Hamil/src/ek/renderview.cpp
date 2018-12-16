@@ -238,6 +238,18 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Number of processed lights == Offset of the RenderMeshes
   auto meshes_off = processLights(objects);
 
+  // Draw the meshes front to back
+  auto eye = eyePosition();
+  std::sort(objects.begin()+meshes_off, objects.end(), [=](const RenderObject& a, const RenderObject& b) {
+    AABB a_aabb = a.mesh().aabb;
+    AABB b_aabb = b.mesh().aabb;
+
+    vec3 a_pos = (a_aabb.min + a_aabb.max) * 0.5f;
+    vec3 b_pos = (b_aabb.min + b_aabb.max) * 0.5f;
+
+    return eye.distance2(a_pos) > eye.distance2(b_pos);
+  });
+
   auto cmd = gx::CommandBuffer::begin()
     .bindResourcePool(&pool())
     .bindMemoryPool(m_mempool)

@@ -23,7 +23,7 @@ enum SurfaceDescriptionFlags : ulong {
 
 enum PixelFormatFlags : ulong {
   AlphaPixels = 0x00000001l,
-  FourCC      = 0x00000004l,    // Set when DDSPixelFormat::four_cc has a valid value
+  FourCC      = 0x00000004l,    // Set when DDSPixelFormat::fourcc has a valid value
   RGB         = 0x00000040l,
   RGBA        = 0x00000041l,
 };
@@ -60,7 +60,7 @@ enum DX10ResDimensions {
 struct DDSPixelFormat {
   u32 size;    // Size of the structure
   u32 flags;   // Bitwise OR of PixelFormatFlags
-  u32 four_cc; // DDSImage::Format
+  u32 fourcc; // DDSImage::Format
   u32 bpp;     // Bits per pixel
   u32 r_mask, g_mask, b_mask, a_mask;  // Bitmask for the red, green, blue and alpha
                                        //   channels respectively
@@ -155,10 +155,10 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
 
   ptr += sizeof(DDSHeader::reserved1_);
 
-  header.pf.size    = load();
-  header.pf.flags   = load();
-  header.pf.four_cc = load();
-  header.pf.bpp     = load();
+  header.pf.size   = load();
+  header.pf.flags  = load();
+  header.pf.fourcc = load();
+  header.pf.bpp    = load();
   header.pf.r_mask = load(); header.pf.g_mask = load();
   header.pf.b_mask = load(); header.pf.a_mask = load();
   header.caps1 = load();
@@ -170,11 +170,11 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
   if(header.caps2 & Caps2Flags::Cubemap) m_type = Cubemap;
   if((header.caps2 & Caps2Flags::Volume) && (header.depth > 0)) m_type = Volume;
 
-  // Assigned below when format is DXT
+  // Assigned below when format is DXTn/BCPH
   m_compressed = false;
 
   if(header.pf.flags & PixelFormatFlags::FourCC) {
-    m_format = (Format)header.pf.four_cc;
+    m_format = (Format)header.pf.fourcc;
 
     if(m_format == DX10) {
       // Parse extended header
@@ -190,6 +190,12 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
 
     switch(m_format) {
     case DXT1: case DXT2: case DXT3: case DXT4: case DXT5:
+
+    case BC1: case BC1_srgb: case BC2: case BC2_srgb: case BC3: case BC3_srgb:
+    case BC4: case BC4s: case BC5: case BC5s:
+
+    case BC6H_uf: case BC6H_sf:
+    case BC7: case BC7_srgb:
       m_compressed = true;
       break;
     }
@@ -303,6 +309,22 @@ bool DDSImage::hasMipmaps() const
   return m_mips > 1;
 }
 
+bool DDSImage::sRGB() const
+{
+  // Non-DXGI formats have no concept of linear/gamma color spaces
+  if(!(m_format & ~IsDX10)) return false;
+
+  switch(m_format & ~IsDX10) {
+  case SRGB8_A8: case SBGR8_A8:
+
+  case BC1_srgb: case BC2_srgb: case BC3_srgb:
+  case BC7_srgb:
+    return true;
+  }
+
+  return true;
+}
+
 uint DDSImage::maxLevel() const
 {
   return m_mips-1;
@@ -319,19 +341,28 @@ uint DDSImage::numDimensions() const
 // TODO!
 gx::Format DDSImage::texInternalFormat() const
 {
-  return gx::r;
+  if(m_format & IsDX10) return texInternalFormatDX10();
+
+  switch(m_format) {
+  }
+
+  return (gx::Format)~0u;
 }
 
 // TODO!
 gx::Format DDSImage::texFormat() const
 {
-  return gx::r;
+  if(m_format & IsDX10) return texFormatDX10();
+
+  return (gx::Format)~0u;
 }
 
 // TODO!
 gx::Type DDSImage::texType() const
 {
-  return gx::u8;
+  if(m_format & IsDX10) return texTypeDX10();
+
+  return (gx::Type)~0u;
 }
 
 uint DDSImage::bytesPerPixel() const
@@ -339,21 +370,21 @@ uint DDSImage::bytesPerPixel() const
   if(m_format & IsDX10) return bytesPerPixelDX10();
 
   switch(m_format & ~IsDX10) {
-  case RGB8: return 3;
+  case RGB8:     return 3;
 
   case ARGB8:
-  case XRGB8: return 4;
+  case XRGB8:    return 4;
 
   case RGB565:
   case XRGB1555:
   case ARGB1555:
   case ARGB4:    return 2;
 
-  case RGB332: return 1;
+  case RGB332:   return 1;
 
   case A8:
   case L8:
-  case AL4: return 1;
+  case AL4:      return 1;
 
   case ARGB8332: return 2;
   case XRGB4:    return 2;
@@ -362,25 +393,25 @@ uint DDSImage::bytesPerPixel() const
   case ABGR8:
   case XBGR8:
   case GR16:
-  case A2RGB10: return 4;
+  case A2RGB10:  return 4;
 
-  case ABGR16: return 8;
+  case ABGR16:   return 8;
 
   case AL8:
-  case L16: return 2;
+  case L16:      return 2;
 
-  case DXT1:      return 8;
+  case DXT1:     return 8;
   case DXT2:
   case DXT3:
   case DXT4:
-  case DXT5:      return 16;
+  case DXT5:     return 16;
 
-  case R16F:    return 2;
-  case GR16F:   return 4;
-  case ABGR16F: return 8;
-  case R32F:    return 4;
-  case GR32F:   return 8;
-  case ABGR32F: return 16;
+  case R16F:     return 2;
+  case GR16F:    return 4;
+  case ABGR16F:  return 8;
+  case R32F:     return 4;
+  case GR32F:    return 8;
+  case ABGR32F:  return 16;
   }
 
   return ~0u;
@@ -496,7 +527,7 @@ uint DDSImage::bytesPerPixelDX10() const
 
   case RGB32F:
   case RGB32U:
-  case RGB32I: return 12;
+  case RGB32I:  return 12;
 
   case RGBA16:
   case RGBA16F:
@@ -505,16 +536,16 @@ uint DDSImage::bytesPerPixelDX10() const
 
   case RG32F:
   case RG32U:
-  case RG32I: return 8;
+  case RG32I:   return 8;
 
-  case RGB10A2:
   case RGB10A2U:
-  case R11G11B10F: return 4;
+  case R11G11B10F:
+  case RGB10A2: return 4;
 
-  case RGBA8:
-  case BGRA8:
   case SRGB8_A8:
-  case SBGR8_A8: return 4;
+  case SBGR8_A8:
+  case RGBA8:
+  case BGRA8:   return 4;
 
   case DX10_R32F:
   case R32U:
@@ -527,7 +558,7 @@ uint DDSImage::bytesPerPixelDX10() const
 
   case R8:
   case R8U:
-  case R8I: return 1;
+  case R8I:  return 1;
 
   case RG8:
   case RG8U:
@@ -535,6 +566,51 @@ uint DDSImage::bytesPerPixelDX10() const
   }
 
   return ~0u;
+}
+
+gx::Format DDSImage::texInternalFormatDX10() const
+{
+  switch(m_format & ~IsDX10) {
+  case RGBA32F: return gx::rgba32f;
+  case RGB32F:  return gx::rgb32f;
+  case RG32F:   return gx::rg32f;
+
+  case RGBA16:  return gx::rgba16;
+  case RGBA16F: return gx::rgba16f;
+
+  case RGB10A2: return gx::rgb10a2;
+
+  case BC1:      return gx::dxt1;
+  case BC1_srgb: return gx::dxt1_srgb;
+
+  case BC2:      return gx::dxt3;
+  case BC2_srgb: return gx::dxt3_srgb;
+  case BC3:      return gx::dxt5;
+  case BC3_srgb: return gx::dxt5_srgb;
+
+  case BC4:  return gx::rgtc1;
+  case BC4s: return gx::rgtc1s;
+  case BC5:  return gx::rgtc2;
+  case BC5s: return gx::rgtc2s;
+
+  case BC6H_sf: return gx::bptc_sf;
+  case BC6H_uf: return gx::bptc_uf;
+
+  case BC7: return gx::bptc;
+  case BC7_srgb: return gx::bptc_srgb_alpha;
+  }
+
+  return (gx::Format)~0u;
+}
+
+gx::Format DDSImage::texFormatDX10() const
+{
+  return (gx::Format)~0u;
+}
+
+gx::Type DDSImage::texTypeDX10() const
+{
+  return (gx::Type)~0u;
 }
 
 void DDSImage::copyData(void *dst, void *src, ulong num_rows, uint flags)
