@@ -155,9 +155,11 @@ public:
   gx::Format texInternalFormat() const;
   // Returns a gx::Format which can be passed to
   //   Texture::init()/Texture::upload()
+  //  - Valid only when compressed() == false
   gx::Format texFormat() const;
   // Returns a gx::Type which can be passed to
   //   Texture::init()/Texture::upload()
+  //  - Valid only when compressed() == false
   gx::Type texType() const;
 
   // Returns the number of storage required for

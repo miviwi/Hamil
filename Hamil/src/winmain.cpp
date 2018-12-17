@@ -176,7 +176,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -984,7 +984,6 @@ int main(int argc, char *argv[])
     }
 
     std::vector<hm::Entity> dead_entities;
-
 
     worker_pool.waitJob(extract_for_shadows_job_id);
     auto& shadow_objects = extract_for_shadows_job->result();

@@ -270,6 +270,11 @@ TextureCubeMap::~TextureCubeMap()
 {
 }
 
+Texture3D::Texture3D(Format format) :
+  Texture(GL_TEXTURE_3D, format)
+{
+}
+
 TextureBuffer::TextureBuffer(Format format, TexelBuffer& buf) :
   Texture(GL_TEXTURE_BUFFER, format),
   m_buf(buf)

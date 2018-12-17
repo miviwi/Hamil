@@ -1,6 +1,7 @@
 #include <gx/fence.h>
 
 #include <cassert>
+#include <cstring>
 
 namespace gx {
 
@@ -15,6 +16,9 @@ Fence::~Fence()
   if(deref() || !m) return;
 
   glDeleteSync((GLsync)m);
+#if !defined(NDEBUG)
+  delete[] m_label;
+#endif
 }
 
 Fence& Fence::sync()
@@ -90,7 +94,11 @@ void Fence::wait()
 void Fence::label(const char *lbl)
 {
 #if !defined(NDEBUG)
-  m_label = lbl;
+  auto len = strlen(lbl) + 1 /* add space for '\0' */;
+  if(m_label) delete[] m_label;
+
+  m_label = new char[len]();  // initialize to 0
+  memcpy(m_label, lbl, len);
 #endif
 }
 

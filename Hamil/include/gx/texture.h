@@ -144,6 +144,14 @@ private:
   TexelBuffer m_buf;
 };
 
+class Texture3D : public Texture {
+public:
+  Texture3D(Format format);
+
+private:
+  friend Framebuffer;
+};
+
 class TextureHandle : public Ref {
 public:
   TextureHandle() :

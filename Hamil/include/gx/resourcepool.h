@@ -107,6 +107,13 @@ public:
     return create<T>((const char *)label, std::forward<Args>(args)...);
   }
 
+   // See gx.h for notes on 'label' strings
+  template <typename T, typename... Args>
+  Id create(const std::string& label, Args... args)
+  {
+    return create<T>(label.data(), std::forward<Args>(args)...);
+  }
+
   // Passing 'id' == Invalid is a no-op
   template <typename T>
   void release(Id id)
@@ -160,6 +167,13 @@ public:
     return createTexture<T>((const char *)label, std::forward<Args>(args)...);
   }
 
+   // See gx.h for notes on 'label' strings
+  template <typename T, typename... Args>
+  Id createTexture(const std::string& label, Args... args)
+  {
+    return createTexture<T>(label.data(), std::forward<Args>(args)...);
+  }
+
   template <typename T, typename... Args>
   Id createBuffer(Args... args)
   {
@@ -178,6 +192,13 @@ public:
   Id createBuffer(char *label, Args... args)
   {
     return createBuffer<T>((const char *)label, std::forward<Args>(args)...);
+  }
+
+  // See gx.h for notes on 'label' strings
+  template <typename T, typename... Args>
+  Id createBuffer(const std::string& label, Args... args)
+  {
+    return createBuffer<T>(label.data(), std::forward<Args>(args)...);
   }
 
   template <typename T> T& get(Id id)

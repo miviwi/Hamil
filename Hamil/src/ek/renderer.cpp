@@ -404,11 +404,11 @@ u32 Renderer::querySampler(SamplerClass sampler)
   return id;
 }
 
-u32 Renderer::queryFence()
+u32 Renderer::queryFence(const std::string& label)
 {
   m_fences_lock.acquireExclusive();
   auto id = m_fences.emplace(
-    pool().create<gx::Fence>()
+    pool().create<gx::Fence>(label + std::to_string(m_fences.size()))
   );
   m_fences_lock.releaseExclusive();
 

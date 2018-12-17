@@ -73,7 +73,7 @@ struct SceneConstants {
 
   vec4 /* vec3 */ ambient_basis[6];
 
-  // Driver issiues force this to be an ivec4
+  // Driver issues force this to be an ivec4
   ivec4 /* int */ num_lights;
   // - Each vector stores 4 adjacent LightTypes which
   //   correspond to the lights[] array
@@ -426,7 +426,7 @@ u32 RenderView::createShadowRenderPass()
 
 u32 RenderView::createFence()
 {
-  return pool().create<gx::Fence>();
+  return pool().create<gx::Fence>("f" + labelPrefix());
 }
 
 u32 RenderView::constantBufferId(u32 which)

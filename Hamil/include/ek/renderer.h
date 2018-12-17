@@ -161,7 +161,7 @@ public:
   //   - Remeber to call doneFence() once Fence::sync()
   //     has been called on it, so it can be
   //     disposed of!
-  u32 queryFence();
+  u32 queryFence(const std::string& label);
   // Call to mark the Fence referenced by 'id'
   //   for deletion (it will be disposed of
   //   once all SharedObjects guarded by it

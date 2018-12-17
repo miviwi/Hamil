@@ -344,6 +344,43 @@ gx::Format DDSImage::texInternalFormat() const
   if(m_format & IsDX10) return texInternalFormatDX10();
 
   switch(m_format) {
+  case RGB8:
+  case XRGB8:
+  case XBGR8: return gx::rgb8;
+
+  case ARGB8:
+  case ABGR8: return gx::rgba8;
+
+  case RGB565:
+  case XRGB1555: return gx::rgb565;
+
+  case ARGB1555: return gx::rgb5a1;
+
+  case A2BGR10:
+  case A2RGB10: return gx::rgb10a2;
+
+  case GR16:   return gx::rg16;
+  case ABGR16: return gx::rgba16;
+
+  case A8:
+  case L8:  return gx::r8;
+  case L16: return gx::r16;
+  case AL8: return gx::rg8;
+  case AL4: return gx::rg;
+
+  case DXT1: return gx::dxt1;
+  case DXT2: return gx::dxt1_rgba;
+  case DXT3:
+  case DXT4: return gx::dxt3;
+  case DXT5: return gx::dxt5;
+
+  case R16F:    return gx::r16f;
+  case GR16F:   return gx::rg16f;
+  case ABGR16F: return gx::rgba16f;
+
+  case R32F:    return gx::r32f;
+  case GR32F:   return gx::rg32f;
+  case ABGR32F: return gx::rgba32f;
   }
 
   return (gx::Format)~0u;
@@ -354,6 +391,39 @@ gx::Format DDSImage::texFormat() const
 {
   if(m_format & IsDX10) return texFormatDX10();
 
+  switch(m_format) {
+  case RGB8:  return gx::bgr;
+  case XRGB8: return gx::bgra;
+  case XBGR8: return gx::rgba;
+
+  case ARGB8: return gx::bgra;
+  case ABGR8: return gx::rgba;
+
+  case RGB565:   return gx::bgr;
+  case XRGB1555: return gx::bgra;
+
+  case ARGB1555: return gx::bgra;
+
+  case A2BGR10: return gx::rgba;
+  case A2RGB10: return gx::bgra;
+
+  case GR16:   return gx::rg;
+  case ABGR16: return gx::rgba;
+
+  case A8:  return gx::r;
+  case L8:  return gx::r;
+  case L16: return gx::r;
+  case AL8: return gx::rg;
+
+  case R16F:    return gx::r;
+  case GR16F:   return gx::rg;
+  case ABGR16F: return gx::rgba;
+
+  case R32F:    return gx::r;
+  case GR32F:   return gx::rg;
+  case ABGR32F: return gx::rgba;
+  }
+
   return (gx::Format)~0u;
 }
 
@@ -361,6 +431,39 @@ gx::Format DDSImage::texFormat() const
 gx::Type DDSImage::texType() const
 {
   if(m_format & IsDX10) return texTypeDX10();
+
+  switch(m_format) {
+  case RGB8:  return gx::u8;
+  case XRGB8:
+  case XBGR8: return gx::u32;
+
+  case ARGB8: return gx::u8;
+  case ABGR8: return gx::u8;
+
+  case RGB565:   return gx::u16_565;
+  case XRGB1555: return gx::u16_5551;
+
+  case ARGB1555: return gx::u16_5551;
+
+  case A2BGR10: return gx::u32_10_10_10_2;
+  case A2RGB10: return gx::u32_10_10_10_2;
+
+  case GR16:   return gx::u16;
+  case ABGR16: return gx::u16;
+
+  case A8:
+  case L8:  return gx::u8;
+  case L16: return gx::u16;
+  case AL8: return gx::u8;
+
+  case R16F:    return gx::f16;
+  case GR16F:   return gx::f16;
+  case ABGR16F: return gx::f16;
+
+  case R32F:    return gx::f32;
+  case GR32F:   return gx::f32;
+  case ABGR32F: return gx::f32;
+  }
 
   return (gx::Type)~0u;
 }
@@ -420,14 +523,13 @@ uint DDSImage::bytesPerPixel() const
 size_t DDSImage::byteSize() const
 {
   size_t sz = 0;
-  uint is_cubemap = (m_type == Cubemap) ? 6 : 1;
   for(uint level = 0; level < m_mips; level++) {
     auto& img = image(level);
 
     sz += img.width*img.height;
   }
 
-  return sz * bytesPerPixel() * is_cubemap;
+  return sz * m_num_layers * bytesPerPixel();
 }
 
 size_t DDSImage::byteSize(uint level) const
@@ -571,14 +673,24 @@ uint DDSImage::bytesPerPixelDX10() const
 gx::Format DDSImage::texInternalFormatDX10() const
 {
   switch(m_format & ~IsDX10) {
-  case RGBA32F: return gx::rgba32f;
-  case RGB32F:  return gx::rgb32f;
-  case RG32F:   return gx::rg32f;
+  case RGBA32F:   return gx::rgba32f;
+  case RGB32F:    return gx::rgb32f;
+  case RG32F:     return gx::rg32f;
+  case DX10_R32F: return gx::r32f;
 
   case RGBA16:  return gx::rgba16;
   case RGBA16F: return gx::rgba16f;
 
-  case RGB10A2: return gx::rgb10a2;
+  case RGB10A2:    return gx::rgb10a2;
+  case R11G11B10F: return gx::r11g11b10f;
+
+  case RGBA8:     return gx::rgba8;
+  case SRGB8_A8:  return gx::srgb_alpha;
+  case BGRA8:     return gx::rgba;
+  case SBGR8_A8:  return gx::srgb_alpha;
+
+  case R8:  return gx::r8;
+  case RG8: return gx::rg8;
 
   case BC1:      return gx::dxt1;
   case BC1_srgb: return gx::dxt1_srgb;
@@ -605,11 +717,52 @@ gx::Format DDSImage::texInternalFormatDX10() const
 
 gx::Format DDSImage::texFormatDX10() const
 {
+  switch(m_format & ~IsDX10) {
+  case RGBA32F:   return gx::rgba;
+  case RGB32F:    return gx::rgb;
+  case RG32F:     return gx::rg;
+  case DX10_R32F: return gx::r;
+
+  case RGBA16:  return gx::rgba;
+  case RGBA16F: return gx::rgba;
+
+  case RGB10A2:    return gx::rgba;
+  case R11G11B10F: return gx::rgb;
+
+  case RGBA8:     return gx::rgba;
+  case SRGB8_A8:  return gx::rgba;
+  case BGRA8:     return gx::bgra;
+  case SBGR8_A8:  return gx::bgra;
+
+  case R8:  return gx::r;
+  case RG8: return gx::rg;
+  }
+
   return (gx::Format)~0u;
 }
 
 gx::Type DDSImage::texTypeDX10() const
 {
+  switch(m_format & ~IsDX10) {
+  case RGBA32F:
+  case RGB32F:
+  case RG32F:
+  case DX10_R32F: return gx::f32;
+
+  case RGBA16:  return gx::u16;
+  case RGBA16F: return gx::f16;
+
+  case RGB10A2:    return gx::u32_2_10_10_10r;
+  case R11G11B10F: return gx::f10_f10_f11r;
+
+  case RGBA8:
+  case SRGB8_A8:
+  case BGRA8:
+  case SBGR8_A8:
+  case R8:
+  case RG8: return gx::u8;
+  }
+
   return (gx::Type)~0u;
 }
 
