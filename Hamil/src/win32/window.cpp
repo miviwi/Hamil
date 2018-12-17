@@ -58,12 +58,9 @@ Window::Window(int width, int height) :
 
 Window::~Window()
 {
-  if(deref()) return;
+  if(deref() || !m_hwnd) return;
 
-  wglMakeCurrent(nullptr, nullptr);
-  wglDeleteContext(m_hglrc);
-
-  DestroyWindow(m_hwnd);
+  destroy();
 }
 
 bool Window::processMessages()
@@ -232,6 +229,17 @@ GlContext Window::acquireGlContext()
   HGLRC hglrc = CreateContextAttribsARB(hdc, m_hglrc, ContextAttribs);
 
   return GlContext(hdc, hglrc);
+}
+
+void Window::destroy()
+{
+  wglMakeCurrent(nullptr, nullptr);
+  wglDeleteContext(m_hglrc);
+
+  DestroyWindow(m_hwnd);
+
+  m_hwnd = nullptr;
+  m_hglrc = nullptr;
 }
 
 LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)

@@ -107,9 +107,12 @@ public:
     return create<T>((const char *)label, std::forward<Args>(args)...);
   }
 
+  // Passing 'id' == Invalid is a no-op
   template <typename T>
   void release(Id id)
   {
+    if(id == Invalid) return;
+
     m_lock.acquireExclusive();
 
     FreeList& free_list = getFreeList<T>();
@@ -125,11 +128,13 @@ public:
     m_lock.releaseExclusive();
   }
 
+  // Passing 'id' == Invalid is a no-op
   void releaseTexture(Id id)
   {
     release<TextureHandle>(id);
   }
 
+  // Passing 'id' == Invalid is a no-op
   void releaseBuffer(Id id)
   {
     release<BufferHandle>(id);

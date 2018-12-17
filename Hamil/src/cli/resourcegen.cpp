@@ -409,7 +409,7 @@ void ltc_lut_gen()
     yaml::Scalar::from_str(p_ltc_ggx_lut, yaml::Node::Tag("!file"))
   )->append(
     yaml::Scalar::from_str("type"),
-    yaml::Scalar::from_str("rgba32f")
+    yaml::Scalar::from_str("rgba16f")
   );
 
   yaml::Document meta = yaml::Node::Ptr(meta_mapping);
@@ -434,8 +434,8 @@ void ltc_lut_gen()
   const auto& coeffs1 = ltc_lut.coeffs1();
   const auto& coeffs2 = ltc_lut.coeffs2();
 
-  f_lut.write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(vec4));
-  f_lut.write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(vec4));
+  f_lut.write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(u16));
+  f_lut.write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(u16));
 }
 
 }

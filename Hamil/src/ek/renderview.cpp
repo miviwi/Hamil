@@ -13,6 +13,7 @@
 #include <gx/renderpass.h>
 #include <gx/vertex.h>
 #include <gx/texture.h>
+#include <gx/fence.h>
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
 #include <hm/components/light.h>
@@ -107,6 +108,8 @@ public:
   std::optional<gx::BufferView> object_ubo_view = std::nullopt;
 
   SceneConstants *scene = nullptr;
+
+  gx::ResourcePool::Id fence = gx::ResourcePool::Invalid;
 };
 
 RenderView::RenderView(ViewType type) :
@@ -130,8 +133,9 @@ RenderView::~RenderView()
 
   for(auto rt : m_rts) renderer().releaseRenderTarget(*rt);
   for(auto buf : m_const_bufs) renderer().releaseConstantBuffer(*buf);
+  renderer().doneFence(m_data->fence);
 
-  if(m_renderpass_id != gx::ResourcePool::Invalid)  pool().release<gx::RenderPass>(m_renderpass_id);
+  pool().release<gx::RenderPass>(m_renderpass_id);
 
   delete m_data;
   delete m_mempool;
@@ -219,6 +223,11 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   // Internal to this RenderView
   m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
 
+  // Gaurds resources (RenderTargets, ConstantBuffers...) used by
+  //   this RenderView, signaled right before end() in the
+  //   returned gx::CommandBuffer
+  m_data->fence = createFence();
+
   m_renderpass_id = createRenderPass();
   auto& renderpass = getRenderpass();
 
@@ -274,6 +283,8 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
     cmd.generateMipmaps(shadow_map);
   }
 #endif
+
+  cmd.fenceSync(m_data->fence);
 
   return cmd.end();
 }
@@ -344,7 +355,7 @@ u32 RenderView::createFramebuffer()
 
   config.viewport = m_viewport;
 
-  const auto& rt = renderer().queryRenderTarget(config);
+  const auto& rt = renderer().queryRenderTarget(config, m_data->fence);
   m_rts.emplace_back(&rt);
 
   return rt.framebufferId();
@@ -413,6 +424,11 @@ u32 RenderView::createShadowRenderPass()
   return id;
 }
 
+u32 RenderView::createFence()
+{
+  return pool().create<gx::Fence>();
+}
+
 u32 RenderView::constantBufferId(u32 which)
 {
   return m_const_bufs.at(which)->id();
@@ -447,18 +463,21 @@ void RenderView::initConstantBuffers(size_t num_ros)
     /* align */ (m_constant_block_sz - (ObjectConstantBufferUASize % m_constant_block_sz));
 
   m_const_bufs[SceneConstantsBinding] = &renderer().queryConstantBuffer(
-    constantBlockSizeAlign(SceneConstantsSize),
+    constantBlockSizeAlign(SceneConstantsSize), m_data->fence,
     labelPrefix() + "SceneConstants"
   );
   m_const_bufs[ObjectConstantsBinding] = &renderer().queryConstantBuffer(
-    constantBlockSizeAlign((u32)ObjectConstantBufferSize),
+    constantBlockSizeAlign((u32)ObjectConstantBufferSize), m_data->fence,
     labelPrefix() + "ObjectConstants"
   );
 
   m_num_objects_per_block = std::min(m_constant_block_sz / ObjectConstantsSize, 256u);
 
   m_data->object_ubo_view.emplace(
-    constantBuffer(ObjectConstantsBinding).map(gx::Buffer::Write, gx::Buffer::MapInvalidate)
+    constantBuffer(ObjectConstantsBinding).map(gx::Buffer::Write,
+      // ConstantBuffers returned by renderer().queryConstantBuffer() are
+      //   guarded by a gx::Fence so they're guaranteed to NOT be in-use
+      gx::Buffer::MapInvalidate | gx::Buffer::MapUnsynchronized)
   );
 
   m_objects = m_data->object_ubo_view->get<ObjectConstants>();
@@ -466,10 +485,10 @@ void RenderView::initConstantBuffers(size_t num_ros)
   m_objects_end = (ObjectConstants *)((byte *)m_objects + ObjectConstantBufferSize);
 
   getRenderpass()
-    .uniformBufferRange(SceneConstantsBinding, constantBufferId(SceneConstantsBinding),
-       0, SceneConstantsSize)
-    .uniformBufferRange(ObjectConstantsBinding, constantBufferId(ObjectConstantsBinding),
-      0, m_constant_block_sz);
+    .uniformBuffersRange({
+      { SceneConstantsBinding,  { constantBufferId(SceneConstantsBinding), 0, SceneConstantsSize } },
+      { ObjectConstantsBinding, { constantBufferId(ObjectConstantsBinding), 0, m_constant_block_sz } },
+    });
 }
 
 void RenderView::advanceConstantBlockBinding(gx::CommandBuffer& cmd)
@@ -573,15 +592,17 @@ u32 RenderView::writeConstants(const RenderObject& ro)
 
 void RenderView::initLuts()
 {
-  auto blur_lut_id = renderer().queryLUT(RenderLUT::GaussianKernel, GaussianBlurRadius);
+  auto blur_lut_id = renderer().queryLUT(RenderLUT::GaussianKernel, ShadowBlurRadius);
   auto blur_sampler_id = renderer().querySampler(LUT1DNearestSampler);
 
   auto ltc_lut_id = renderer().queryLUT(RenderLUT::LTCCoeffs);
   auto ltc_sampler_id = renderer().querySampler(LUT2DLinearSampler);
 
   getRenderpass()
-    .texture(BlurKernelTexImageUnit, blur_lut_id, blur_sampler_id)
-    .texture(LTCCoeffsTexImageUnit, ltc_lut_id, ltc_sampler_id);
+    .textures({
+      { BlurKernelTexImageUnit, { blur_lut_id, blur_sampler_id } },
+      { LTCCoeffsTexImageUnit,  { ltc_lut_id, ltc_sampler_id } },
+    });
 }
 
 // TODO!

@@ -1162,6 +1162,8 @@ int main(int argc, char *argv[])
 
   worker_pool.killWorkers();
 
+  window.destroy();
+
   ek::finalize();
   hm::finalize();
   res::finalize();

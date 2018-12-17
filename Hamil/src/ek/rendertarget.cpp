@@ -79,7 +79,7 @@ const RenderTargetConfig& RenderTarget::config() const
 u32 RenderTarget::textureId(TextureType type) const
 {
   if(type == Depth) {
-    return m_config.depth_texture ? m_texture_ids.back() : ~0u;
+    return m_config.depth_texture ? m_texture_ids.back() : gx::ResourcePool::Invalid;
   }
 
   switch(m_config.type) {
@@ -87,7 +87,7 @@ u32 RenderTarget::textureId(TextureType type) const
   case RenderTargetConfig::ShadowMap: return shadowMapTexureId(type);
   }
 
-  return ~0u;
+  return gx::ResourcePool::Invalid;
 }
 
 void RenderTarget::initForward()
@@ -175,7 +175,7 @@ u32 RenderTarget::forwardTextureId(TextureType type) const
   case LinearZ:      return m_texture_ids.size() > 1 ? m_texture_ids.at(1) : ~0u;
   }
 
-  return ~0u;
+  return gx::ResourcePool::Invalid;
 }
 
 u32 RenderTarget::shadowMapTexureId(TextureType type) const
@@ -184,7 +184,7 @@ u32 RenderTarget::shadowMapTexureId(TextureType type) const
   case Moments: return m_texture_ids.at(0);
   }
 
-  return ~0u;
+  return gx::ResourcePool::Invalid;
 }
 
 u32 RenderTarget::framebufferId() const

@@ -5,7 +5,7 @@
 
 namespace res {
 
-Resource::Ptr Texture::from_yaml(IOBuffer image,
+Resource::Ptr Texture::from_yaml(IOBuffer& image,
   const yaml::Document& doc, Id id,
   const std::string& name, const std::string& path)
 {

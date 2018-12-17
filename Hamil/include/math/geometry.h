@@ -154,6 +154,7 @@ inline Vector2<T> line_normal(Vector2<T> a, Vector2<T> b)
 }
 
 using vec2  = Vector2<float>;
+using hvec2 = Vector2<intrin::half>;
 using ivec2 = Vector2<int>;
 using uvec2 = Vector2<unsigned>;
 
@@ -331,6 +332,7 @@ inline bool operator!=(Vector3<T> a, Vector3<T> b)
 }
 
 using vec3  = Vector3<float>;
+using hvec3 = Vector3<intrin::half>;
 using ivec3 = Vector3<int>;
 using uvec3 = Vector3<unsigned>;
 
@@ -515,6 +517,7 @@ inline bool operator!=(Vector4<T> a, Vector4<T> b)
 }
 
 using vec4  = Vector4<float>;
+using hvec4 = Vector4<intrin::half>;
 using ivec4 = Vector4<int>;
 using uvec4 = Vector4<unsigned>;
 

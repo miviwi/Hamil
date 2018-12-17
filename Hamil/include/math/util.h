@@ -8,6 +8,7 @@
 #include <vector>
 #include <utility>
 
+// Returns 'v' rounded to the nearest power-of-2
 static unsigned pow2_round(unsigned v)
 {
   v--;
@@ -21,6 +22,8 @@ static unsigned pow2_round(unsigned v)
   return v;
 }
 
+// Aligns 'x' to the power-of-2 passed in 'alignment'
+//   - 'alignment' MUST be a power-of-2!
 static unsigned pow2_align(unsigned x, unsigned alignment)
 {
   assert(pow2_round(alignment) == alignment && "pow2_align() alignment is not a power of 2!");
@@ -28,7 +31,26 @@ static unsigned pow2_align(unsigned x, unsigned alignment)
   return (x + (alignment-1)) & ~(alignment-1);
 }
 
+// Loads the big-endian u32 pointed to by 'ptr'
+//   and returns it
 u32 loadbe_u32(const void *ptr);
+// Stores 'v' as a big-endian u32 in memory
+//   pointed to by 'ptr'
+void storebe_u32(u32 v, void *ptr);
+
+// Does NOT use F16C instructions
+u16 to_f16(float f);
+// Does NOT use F16C instructions
+float from_f16(u16 h);
+
+hvec2 to_f16(const vec2& v);
+vec2 from_f16(const hvec2& v);
+
+hvec3 to_f16(const vec3& v);
+vec3 from_f16(const hvec3& v);
+
+hvec4 to_f16(const vec4& v);
+vec4 from_f16(const hvec4& v);
 
 template <typename T>
 T lerp(T a, T b, float u)
@@ -51,21 +73,21 @@ static vec4 lerp(vec4 a, vec4 b, float u)
 
 static vec3 lerp(vec3 a, vec3 b, float u)
 {
-  alignas(16) vec4 aa(a);
-  alignas(16) vec4 bb(b);
+  alignas(16) intrin_vec3 aa(a);
+  alignas(16) intrin_vec3 bb(b);
 
-  alignas(16) vec4 c;
+  alignas(16) intrin_vec3 c;
 
   intrin::vec4_lerp(aa, bb, u, c);
-  return c.xyz();
+  return c.toVec3();
 }
 
-template <typename T>
-T clamp(T x, T minimum, T maximum)
+template <typename T, typename U>
+T clamp(U x, T minimum, T maximum)
 {
-  if(x <= minimum) return minimum;
+  if(x <= (U)minimum) return minimum;
 
-  return std::min(x, maximum);
+  return (T)std::min<U>(x, maximum);
 }
 
 static vec2 clamp(vec2 x, vec2 minimum, vec2 maximum)
@@ -95,18 +117,28 @@ static vec4 clamp(vec4 x, vec4 minimum, vec4 maximum)
   };
 }
 
+// Returns:
+//    numeric_limits<Limit>::min() when x < min(),
+//    numeric_limits<Limit>::max() when x > max(),
+//    and x otherwise
 template <typename Limit, typename T>
 Limit saturate(T x)
 {
-  static_assert(std::numeric_limits<T>::digits > std::numeric_limits<Limit>::digits,
-    "saturating smaller type with larger!");
-
   using Limits = std::numeric_limits<Limit>;
-  return (Limit)clamp(x, (T)Limits::min(), (T)Limits::max());
+  return clamp<Limit>(x, Limits::min(), Limits::max());
 }
 
+// When x<edge returns 0 and 1 otherwise
 template <typename T>
-float smoothstep(T min, T max, float u)
+T step(T edge, T x)
+{
+  return x < edge ? (T)0 : (T)1;
+}
+
+// Interpolates between min and max using a Hermite curve
+//   with u between [0;1] being analogous to lerp's 'alpha'
+template <typename T>
+T smoothstep(T min, T max, float u)
 {
   u = clamp((u - min) / (max - min), 0.0f, 1.0f);
   return u*u*(3 - 2*u);

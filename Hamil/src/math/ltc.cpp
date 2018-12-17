@@ -1,6 +1,7 @@
 #include <math/ltc.h>
 #include <math/neldermead.h>
 #include <math/util.h>
+#include <math/intrin.h>
 
 #include <util/format.h>
 
@@ -57,8 +58,8 @@ public:
     NumArrayElems = LTC_CoeffsTable::TableSize.area()
   };
 
-  std::array<vec4, NumArrayElems> t1;
-  std::array<vec4, NumArrayElems> t2;
+  std::array<intrin::half, NumArrayElems*4> t1;
+  std::array<intrin::half, NumArrayElems*4> t2;
 
   std::array<mat3, NumArrayElems> M;
   std::array<vec2, NumArrayElems> magnitude_fresnel;
@@ -136,6 +137,8 @@ void LTC_CoeffsTableData::generateSphereArray()
 
 void LTC_CoeffsTableData::pack()
 {
+  auto t1_ptr = t1.data(),
+    t2_ptr = t2.data();
   for(int i = 0; i < NumArrayElems; i++) {
     const auto& m = M[i];
     auto mag_fresnel = magnitude_fresnel[i];
@@ -143,8 +146,14 @@ void LTC_CoeffsTableData::pack()
     auto inv_m = m.inverse();
     inv_m *= 1.0f / inv_m(1, 1);
 
-    t1[i] = vec4(inv_m(0, 0), inv_m(0, 2), inv_m(2, 0), inv_m(2, 2));
-    t2[i] = vec4(mag_fresnel, 0.0f /* unused */, sphere[i]);
+    auto t1 = vec4(inv_m(0, 0), inv_m(0, 2), inv_m(2, 0), inv_m(2, 2)),
+      t2 = vec4(mag_fresnel, 0.0f /* unused */, sphere[i]);
+
+    intrin::stream4_f16(t1, t1_ptr);
+    intrin::stream4_f16(t2, t2_ptr);
+
+    t1_ptr += 4;
+    t2_ptr += 4;
   }
 }
 
@@ -176,7 +185,7 @@ LTC_CoeffsTable& LTC_CoeffsTable::fit(const brdf::BRDF_GGX& brdf)
       float x = t / float(N-1);
       float ct = 1.0f - x*x;
 
-      // cosf() below returns -0.0f when theta == PIf/2
+      // cosf() returns -0.0f when theta == PIf/2
       //   which is undesired, a small bias fixes this
       float theta = std::min(PIf/2.0f - 1e-7f, acosf(ct));
 

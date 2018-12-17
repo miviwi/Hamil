@@ -1,5 +1,7 @@
 #include <res/io.h>
 
+#include <math/util.h>
+
 #include <tuple>
 #include <numeric>
 
@@ -131,6 +133,8 @@ IORequest& IORequest::onCompleted(IOComplete fn)
 
 Unit IORequest::performIo(IOLocation loc)
 {
+  static constexpr size_t FileSizeMax = std::numeric_limits<win32::File::Size>::max();
+
   win32::File f(loc.path.data(), win32::File::Read, win32::File::OpenExisting);
   size_t sz = loc.size ? loc.size : f.size();  // Read the whole file if 'size'
                                                //   wasn't specified
@@ -138,10 +142,10 @@ Unit IORequest::performIo(IOLocation loc)
 
   f.seek(win32::File::SeekBegin, loc.offset);
   do {  // Make sure to read as much requested data as possible
-    auto read = f.read(m_result.get(), (win32::File::Size)sz);
+    auto read = f.read(m_result.get(), saturate<win32::File::Size>(sz));
     sz -= read;
-  } while(sz >= std::numeric_limits<win32::File::Size>::max() &&
-    f.seekOffset() < f.size() /* requested_size > file_size */ );
+  } while(sz >= FileSizeMax &&
+    f.seekOffset() < f.size() /* false when => requested_size > file_size */ );
 
   if(m_complete) m_complete(*this);
 

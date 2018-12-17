@@ -15,7 +15,7 @@ class Texture : public Resource {
 public:
   static constexpr Tag tag() { return "texture"; }
 
-  static Resource::Ptr from_yaml(IOBuffer image,
+  static Resource::Ptr from_yaml(IOBuffer& image,
     const yaml::Document& doc, Id id,
     const std::string& name = "", const std::string& path = "");
 

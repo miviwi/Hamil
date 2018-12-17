@@ -127,7 +127,7 @@ private:
     LTCCoeffsTexImageUnit = 3,
   };
 
-  constexpr static int GaussianBlurRadius = 1;  // See math/util.h
+  constexpr static int ShadowBlurRadius = 1;  // See math/util.h
 
   std::string labelPrefix() const;
 
@@ -141,6 +141,8 @@ private:
   u32 createRenderPass();
   u32 createForwardRenderPass();
   u32 createShadowRenderPass();
+
+  u32 createFence();
 
   u32 constantBufferId(u32 which);
   gx::UniformBuffer& constantBuffer(u32 which);

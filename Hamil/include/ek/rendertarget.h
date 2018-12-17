@@ -110,17 +110,26 @@ private:
   gx::TextureHandle createTex(u32 /* gx::Format */ fmt,
     const std::string& label);
 
+  // Initialize the depth buffer
+  //   - Either as a Texture or Framebuffer::renderbuffer()
+  //     depending on m_config.depth_texture
   void initDepth();
 
+  // m_config.type == Forward
   void initForward();
+  // m_config.type == DepthPrepass
   void initDepthPrepass();
+  // m_config.type == ShadowMap
   void initShadowMap();
 
+  // Check Framebuffer completeness
   void checkComplete();
 
   gx::Framebuffer& getFramebuffer();
 
+  // m_config.type == Forward
   u32 forwardTextureId(TextureType type) const;
+  // m_config.type == ShadowMap
   u32 shadowMapTexureId(TextureType type) const;
 
   RenderTargetConfig m_config;

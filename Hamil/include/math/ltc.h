@@ -52,7 +52,8 @@ public:
     NumSamples = 32,
   };
 
-  using CoeffsArray = std::array<vec4, TableSize.area()>;
+  // Stores half-precision floats
+  using CoeffsArray = std::array<u16, TableSize.area()*4>;
 
   LTC_CoeffsTable();
   LTC_CoeffsTable(const LTC_CoeffsTable& other) = delete;

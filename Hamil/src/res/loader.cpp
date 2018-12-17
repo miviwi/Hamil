@@ -301,12 +301,12 @@ Resource::Ptr SimpleFsLoader::loadTexture(Resource::Id id, const yaml::Document&
 {
   auto [name, path, location] = name_path_location(meta);
 
-  auto req = IORequest::read_file(location->str());
-  manager().requestIo(req);
+  // Texture copies the data so map it to
+  //   prevent unnecessary copying
+  auto view = manager().mapLocation(location);
+  if(!view) throw IOError(location->repr());
 
-  auto& image_data = manager().waitIo(req);
-
-  return Texture::from_yaml(std::move(image_data), meta, id, name->str(), path->str());
+  return Texture::from_yaml(view, meta, id, name->str(), path->str());
 }
 
 Resource::Ptr SimpleFsLoader::loadMesh(Resource::Id id, const yaml::Document& meta)
@@ -325,6 +325,8 @@ Resource::Ptr SimpleFsLoader::loadLUT(Resource::Id id, const yaml::Document& met
 {
   auto [name, path, location] = name_path_location(meta);
 
+  // Read in the file, because the LookupTable stores
+  //   the IOBuffer with the data directly
   auto req = IORequest::read_file(location->str());
   manager().requestIo(req);
 

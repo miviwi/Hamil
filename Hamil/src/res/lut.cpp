@@ -9,7 +9,7 @@ namespace res {
 
 static const std::unordered_map<std::string, LookupTable::DataType> p_datatypes = {
   { "r16f", LookupTable::r16f }, { "r32f", LookupTable::r32f },
-  { "rgba32f", LookupTable::rgba32f },
+  { "rgba16f", LookupTable::rgba16f }, { "rgba32f", LookupTable::rgba32f },
 };
 
 Resource::Ptr LookupTable::from_yaml(IOBuffer lut_data,

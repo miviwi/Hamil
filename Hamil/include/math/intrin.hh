@@ -2,6 +2,7 @@
 
 #include <xmmintrin.h>
 #include <pmmintrin.h>
+#include <emmintrin.h>
 
 #if !defined(NO_AVX)
 #  include <smmintrin.h>
@@ -413,6 +414,22 @@ void quat_to_mat4x3(const float *a, float *out)
   _mm_store_ps(out + (0*4), m[0]);
   _mm_store_ps(out + (1*4), m[1]);
   _mm_store_ps(out + (2*4), m[2]);
+}
+
+void stream4_f16(const float *src, half *dst)
+{
+  __m128 a = _mm_load_ps(src);
+  __m128i ph = _mm_cvtps_ph(a, _MM_FROUND_CUR_DIRECTION);
+
+  _mm_storel_epi64((__m128i *)dst, ph);
+}
+
+void load4_f16(const half *src, float *dst)
+{
+  __m128i a = _mm_loadl_epi64((const __m128i *)src);
+  __m128 ps = _mm_cvtph_ps(a);
+
+  _mm_store_ps(dst, ps);
 }
 
 // Avoid global namespace pollution

@@ -42,6 +42,8 @@ Fence& Fence::sync()
 
 bool Fence::signaled()
 {
+  if(!m) return true;
+
   auto result = glClientWaitSync((GLsync)m, 0, 0);
   if(result == GL_WAIT_FAILED) throw WaitFailedError();
 

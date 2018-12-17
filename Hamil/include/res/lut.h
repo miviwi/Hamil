@@ -21,7 +21,7 @@ public:
 
   enum DataType {
     r16f, r32f,
-    rgba32f,
+    rgba16f, rgba32f,
   };
 
   struct Error { };

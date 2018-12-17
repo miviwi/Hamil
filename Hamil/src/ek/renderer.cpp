@@ -14,6 +14,7 @@
 #include <hm/components/light.h>
 #include <gx/resourcepool.h>
 #include <gx/program.h>
+#include <gx/fence.h>
 #include <res/res.h>
 #include <res/handle.h>
 #include <res/shader.h>
@@ -65,11 +66,18 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
 
   res::load(R.texture.ids);
 
+#if 1
   res::Handle<res::Texture> r_ltc_1 = R.texture.ltc_1,
     r_ltc_2 = R.texture.ltc_2;
 
-  auto& coeffs1 = r_ltc_1->get().image();
-  auto& coeffs2 = r_ltc_2->get().image();
+  auto coeffs1 = r_ltc_1->get().image().data.get();
+  auto coeffs2 = r_ltc_2->get().image().data.get();
+#else
+  res::Handle<res::LookupTable> r_ltc = R.lut.ltc_lut;
+
+  auto coeffs1 = (u16 *)r_ltc->data();
+  auto coeffs2 = coeffs1 + TexSize.area()*4;
+#endif
 
   std::string tex_label = "t2daLTCCoefficients";
 
@@ -77,10 +85,10 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
   auto ltc = pool.getTexture(tex_id);
 
   ltc().init(TexSize.s, TexSize.t, 2);
-  ltc().upload(coeffs1.data.get(), /* mip */ 0,
+  ltc().upload(coeffs1, /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 0, TexSize.s, TexSize.t, 1,
     gx::rgba, gx::f16);
-  ltc().upload(coeffs2.data.get(), /* mip */ 0,
+  ltc().upload(coeffs2, /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 1, TexSize.s, TexSize.t, 1,
     gx::rgba, gx::f16);
 }
@@ -133,6 +141,20 @@ Renderer::Renderer() :
   precacheSamplers();
 }
 
+Renderer::~Renderer()
+{
+  // RenderTargets release their resources in the destructor
+  m_rts.clear();
+
+  for(auto program_id : m_programs) pool().release<gx::Program>(program_id);
+  for(auto& buf : m_const_buffers)  pool().releaseBuffer(buf.id());
+  for(auto render_lut : m_luts)     pool().releaseTexture(render_lut.tex_id);
+  for(auto sampler : m_samplers)    pool().release<gx::Sampler>(sampler.second);
+  for(auto fence_id : m_fences)     pool().release<gx::Fence>(fence_id);
+
+  delete m_data;
+}
+
 Renderer& Renderer::cachePrograms()
 {
   if(!m_programs.empty()) return *this; // Already cached
@@ -174,8 +196,10 @@ Renderer::ExtractObjectsJob Renderer::extractForView(hm::Entity scene, RenderVie
   ));
 }
 
-const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config)
+const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config, u32 fence_id)
 {
+  auto& fence = pool().get<gx::Fence>(fence_id);
+
   // Initially we only need to read from the vector
   m_rts_lock.acquireShared();
 
@@ -188,7 +212,7 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
     if(it == m_rts.end()) break; // No fitting RenderTarget was created
 
     // Check if the RenderTarget isn't already in use
-    if(it->lock()) {
+    if(it->lock(fence)) {
       m_rts_lock.releaseShared();
 
       return *it;
@@ -208,7 +232,7 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
   // Done writing
   m_rts_lock.releaseExclusive();
 
-  auto locked = result.lock();
+  auto locked = result.lock(fence);
   assert(locked && "Failed to lock() the RenderTarget!");
 
   return result;
@@ -238,8 +262,10 @@ u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro)
   return program;
 }
 
-const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, const std::string& label)
+const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, const std::string& label)
 {
+  auto& fence = pool().get<gx::Fence>(fence_id);
+
   m_const_buffers_lock.acquireShared();
 
   auto it = m_const_buffers.begin();
@@ -250,7 +276,7 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, const std::string
 
     if(it == m_const_buffers.end()) break;
 
-    if(it->lock()) {
+    if(it->lock(fence)) {
       m_const_buffers_lock.releaseShared();
 
       return *it;
@@ -278,7 +304,7 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, const std::string
   auto& const_buf = m_const_buffers.emplace_back(ConstantBuffer(id, sz));
   m_const_buffers_lock.releaseExclusive();
 
-  auto result = const_buf.lock();
+  auto result = const_buf.lock(fence);
   assert(result && "failed to lock() ConstantBuffer!");
 
   return const_buf;
@@ -343,7 +369,7 @@ u32 Renderer::querySampler(SamplerClass sampler)
   u32 id = gx::ResourcePool::Invalid;
   switch(sampler) {
   case MSMTrilinearSampler: id = pool().create<gx::Sampler>(
-      "sMSMTrilinear", gx::Sampler::edgeclamp2d_mipmap()
+      "sMomentsShadowMap", gx::Sampler::edgeclamp2d_mipmap()
     );
     break;
 
@@ -378,6 +404,49 @@ u32 Renderer::querySampler(SamplerClass sampler)
   return id;
 }
 
+u32 Renderer::queryFence()
+{
+  m_fences_lock.acquireExclusive();
+  auto id = m_fences.emplace(
+    pool().create<gx::Fence>()
+  );
+  m_fences_lock.releaseExclusive();
+
+  auto& fence = pool().get<gx::Fence>(*id.first);
+  fence.ref();  // doneFence() will decrement it
+
+  return *id.first;
+}
+
+void Renderer::doneFence(u32 id)
+{
+  if(id == gx::ResourcePool::Invalid) return;
+
+  auto& fence = pool().get<gx::Fence>(id);
+  fence.deref();   // queryFence() calls ref()
+
+  // Garbage collect 'm_fences'
+  util::SmallVector<u32> release_list;
+  m_fences_lock.acquireShared();
+  for(auto fence_id : m_fences) {
+    auto& fence = pool().get<gx::Fence>(fence_id);
+    if(fence.refs() > 1) continue;
+
+    release_list.append(fence_id);
+  }
+  m_fences_lock.releaseShared();
+
+  // All Fences are in use
+  if(release_list.empty()) return;
+
+  m_fences_lock.acquireExclusive();
+  for(auto fence_id : release_list) {
+    m_fences.erase(fence_id);
+    pool().release<gx::Fence>(fence_id);
+  }
+  m_fences_lock.releaseExclusive();
+}
+
 gx::ResourcePool& Renderer::pool()
 {
   return m_data->pool;
@@ -390,12 +459,12 @@ void Renderer::precacheLUTs()
 
   auto& gauss_lut = m_luts.emplace_back();
   gauss_lut.type = RenderLUT::GaussianKernel;
-  gauss_lut.param = RenderView::GaussianBlurRadius;
+  gauss_lut.param = RenderView::ShadowBlurRadius;
   gauss_lut.generate(pool());
 
-  //auto& ltc_lut = m_luts.emplace_back();
-  //ltc_lut.type = RenderLUT::LTC_Coeffs;
-  //ltc_lut.generate(pool());
+  auto& ltc_lut = m_luts.emplace_back();
+  ltc_lut.type = RenderLUT::LTCCoeffs;
+  ltc_lut.generate(pool());
 
   auto& hbao_nosie_lut = m_luts.emplace_back();
   hbao_nosie_lut.type = RenderLUT::HBAONoise;

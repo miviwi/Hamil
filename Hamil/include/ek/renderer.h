@@ -13,6 +13,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 #include <memory>
 
 namespace gx {
@@ -31,7 +32,7 @@ class RendererData;
 
 struct RenderLUT {
   enum Type : size_t {
-    // param == radius
+    // 1D separable Gaussian kernel => param == radius
     // gx::Texture1D where the first param*2 + 1 texels
     //   are the kernel itself and the last texel is the
     //   normalization factor
@@ -101,7 +102,7 @@ public:
   };
 
   Renderer();
-  // TODO (!): ~Renderer();
+  ~Renderer();
 
   // ResourcePool used by all RenderViews
   //   - Put all VertexArrays, Textures, etc. used for rendering
@@ -120,7 +121,10 @@ public:
   // Returns a RenderTarget compatible with 'config', recycling one
   //   used previously if possible
   //  - Remeber to call releaseRenderTarget()!
-  const RenderTarget& queryRenderTarget(const RenderTargetConfig& config);
+  //  - The gx::Fence referenced by 'fence_id' will be used to
+  //    guard the returned RenderTarget so it's not reused
+  //    before Fence::signaled() == true
+  const RenderTarget& queryRenderTarget(const RenderTargetConfig& config, u32 fence_id);
   // Remeber to call this after a RenderTarget is no longer in use
   //   so they can be recycled
   void releaseRenderTarget(const RenderTarget& rt);
@@ -133,8 +137,11 @@ public:
 
   // Returns a ConstantBuffer with size() >= sz, recycling one
   //   used previously if possible
-  // - Remeber to call releaseConstantBuffer()!
-  const ConstantBuffer& queryConstantBuffer(size_t sz, const std::string& label = "");
+  //  - Remeber to call releaseConstantBuffer()!
+  //  - The gx::Fence referenced by 'fence_id' will be used to
+  //    guard the returned ConstantBuffer so it's not reused
+  //    before Fence::signaled() == true
+  const ConstantBuffer& queryConstantBuffer(size_t sz, u32 fence_id, const std::string& label = "");
   // Remeber to call this after a ConstantBuffer is no longer in use
   //   so they can be recycled
   void releaseConstantBuffer(const ConstantBuffer& buf);
@@ -149,6 +156,19 @@ public:
   // Samplers can be use concurrently so there is no
   //   need to release them
   u32 querySampler(SamplerClass sampler);
+   
+  // Returns a ResourcePool::Id of a new Fence
+  //   - Remeber to call doneFence() once Fence::sync()
+  //     has been called on it, so it can be
+  //     disposed of!
+  u32 queryFence();
+  // Call to mark the Fence referenced by 'id'
+  //   for deletion (it will be disposed of
+  //   once all SharedObjects guarded by it
+  //   have been re-acquired)
+  //  - Passing in 'id' == gx::ResourcePool::Invalid
+  //    is a no-op
+  void doneFence(u32 id);
 
 private:
   // Fill 'm_luts' with commonly used RenderLUTs
@@ -201,6 +221,10 @@ private:
   //   Samplers
   win32::ReaderWriterLock m_samplers_lock;
   std::map<SamplerClass, u32> m_samplers;
+
+  //   Fences
+  win32::ReaderWriterLock m_fences_lock;
+  std::set<u32> m_fences;  // std::set for fast removal
 };
 
 }
