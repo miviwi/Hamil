@@ -32,6 +32,8 @@ struct Geometry {
     x(0), y(0), w(w_), h(h_)
   { }
 
+  static Geometry empty() { return { 0.0f, 0.0f, 0.0f, 0.0f }; }
+
   vec2 pos() const;
   vec2 size() const;
 

@@ -57,6 +57,7 @@
 #include <ui/dropdown.h>
 #include <ui/textbox.h>
 #include <ui/console.h>
+#include <ui/scrollframe.h>
 
 #include <py/python.h>
 #include <py/object.h>
@@ -81,6 +82,7 @@
 #include <res/text.h>
 #include <res/shader.h>
 #include <res/image.h>
+#include <res/texture.h>
 #include <res/mesh.h>
 
 #include <mesh/util.h>
@@ -201,15 +203,16 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attrAlias(0, gx::f32, 2);
 
-  res::Handle<res::Image> r_texture = R.image.tex;
+  res::Handle<res::Texture> r_texture = R.texture.desk;
+  const auto& desk = r_texture->get();
 
-  auto tex_id = pool.createTexture<gx::Texture2D>("t2dFloor", gx::rgb);
+  auto tex_id = pool.createTexture<gx::Texture2D>("t2dFloor", desk.texInternalFormat());
   auto& tex = pool.getTexture<gx::Texture2D>(tex_id);
   auto floor_sampler_id = pool.create<gx::Sampler>("sFloor", 
     gx::Sampler::repeat2d_mipmap()
       .param(gx::Sampler::Anisotropy, 16.0f));
 
-  tex.init(r_texture->data(), 0, r_texture->width(), r_texture->height(), gx::rgba, gx::u8);
+  tex.init(desk.image().data.get(), 0, desk.image().width, desk.image().height, desk.image().sz);
   tex.generateMipmaps();
 
   byte cubemap_colors[][3] = {
@@ -470,9 +473,11 @@ int main(int argc, char *argv[])
   });
   ao_bias_slider.value(0.1);
 
-  auto& stats_layout = ui::create<ui::RowLayoutFrame>(iface)
-    .frame(ui::create<ui::LabelFrame>(iface, "stats")
-            .gravity(ui::Frame::Left))
+  auto& stats_layout = ui::create<ui::ScrollFrame>(iface).content(
+    ui::create<ui::RowLayoutFrame>(iface)
+      .frame(ui::create<ui::LabelFrame>(iface, "stats")
+              .gravity(ui::Frame::Left)))
+      .scrollbars(ui::ScrollFrame::AllScrollbars)
     ;
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");

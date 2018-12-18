@@ -35,6 +35,8 @@ struct Vector2 {
     struct { T s, t; };
   };
 
+  static Vector2 zero() { return { (T)0, (T)0 }; }
+
   T length2() const { return dot(*this); }
   T length() const { return (T)sqrt(length2()); }
   T dot(const Vector2& b) const { return (x*b.x) + (y*b.y); }

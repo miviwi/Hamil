@@ -419,7 +419,7 @@ void quat_to_mat4x3(const float *a, float *out)
 void stream4_f16(const float *src, half *dst)
 {
   __m128 a = _mm_load_ps(src);
-  __m128i ph = _mm_cvtps_ph(a, _MM_FROUND_CUR_DIRECTION);
+  __m128i ph = _mm_cvtps_ph(a, _MM_FROUND_TO_ZERO);
 
   _mm_storel_epi64((__m128i *)dst, ph);
 }

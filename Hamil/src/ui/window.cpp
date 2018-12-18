@@ -32,7 +32,7 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
     }
   }
 
-  return m_state != Default;
+  return handled || m_state != Default;
 }
 
 void WindowFrame::paint(VertexPainter& painter, Geometry parent)

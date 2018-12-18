@@ -29,6 +29,11 @@ bool is_compressed_format(Format fmt)
   case dxt1: case dxt1_rgba: case dxt1_srgb: case dxt1_srgb_alpha:
   case dxt3: case dxt3_srgb:
   case dxt5: case dxt5_srgb:
+
+  case rgtc1: case rgtc1s: case rgtc2: case rgtc2s:
+
+  case bptc_uf: case bptc_sf:
+  case bptc: case bptc_srgb_alpha:
     return true;
   }
 

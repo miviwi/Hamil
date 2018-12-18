@@ -188,7 +188,7 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
       m_format = IsDX10 | headerdx10.dxgi_format;
     }
 
-    switch(m_format) {
+    switch(m_format & ~IsDX10) {
     case DXT1: case DXT2: case DXT3: case DXT4: case DXT5:
 
     case BC1: case BC1_srgb: case BC2: case BC2_srgb: case BC3: case BC3_srgb:
@@ -219,10 +219,9 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
     throw InvalidDDSError();
   }
 
-  m_pitch = (header.flags & SurfaceDescriptionFlags::Pitch) ? header.pitch_or_linear_sz : 0;
-  if(!m_pitch) {
-    m_pitch = header.width * bytesPerPixel();
-  }
+  checkFormatSupported(); // Can throw UnsupportedFormatError
+
+  m_pitch = header.pitch_or_linear_sz;
 
   // Fill in the mipmap count if provided
   m_mips = (header.flags & SurfaceDescriptionFlags::MipmapCount) ? header.mipmap_count : 1;
@@ -260,7 +259,7 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
     img.sz   = sz;
 
     check_size(sz);
-    copyData(img.data.get(), ptr, h, flags);
+    copyData(img, ptr, flags);
     ptr += sz;
 
     for(uint i = 0; i < (m_mips-1) && (w || h); i++) {
@@ -281,7 +280,7 @@ DDSImage& DDSImage::load(const void *data, size_t data_sz, uint flags)
       img.sz = sz;
 
       check_size(sz);
-      copyData(img.data.get(), ptr, h, flags);
+      copyData(img, ptr, flags);
       ptr += sz;
     }
   }
@@ -338,7 +337,6 @@ uint DDSImage::numDimensions() const
   return 1 /* must be at least 1D */ + has_height + has_depth;
 }
 
-// TODO!
 gx::Format DDSImage::texInternalFormat() const
 {
   if(m_format & IsDX10) return texInternalFormatDX10();
@@ -386,7 +384,6 @@ gx::Format DDSImage::texInternalFormat() const
   return (gx::Format)~0u;
 }
 
-// TODO!
 gx::Format DDSImage::texFormat() const
 {
   if(m_format & IsDX10) return texFormatDX10();
@@ -427,7 +424,6 @@ gx::Format DDSImage::texFormat() const
   return (gx::Format)~0u;
 }
 
-// TODO!
 gx::Type DDSImage::texType() const
 {
   if(m_format & IsDX10) return texTypeDX10();
@@ -665,6 +661,27 @@ uint DDSImage::bytesPerPixelDX10() const
   case RG8:
   case RG8U:
   case RG8I: return 2;
+
+  // Bytes per BLOCK follow
+
+  case BC1:
+  case BC1_srgb: return 8;
+
+  case BC2:
+  case BC2_srgb:
+  case BC3:
+  case BC3_srgb: return 16;
+
+  case BC4:
+  case BC4s: return 8;
+  case BC5:
+  case BC5s: return 16;
+
+  case BC6H_sf:
+  case BC6H_uf: return 16;
+
+  case BC7:
+  case BC7_srgb: return 16;
   }
 
   return ~0u;
@@ -729,10 +746,10 @@ gx::Format DDSImage::texFormatDX10() const
   case RGB10A2:    return gx::rgba;
   case R11G11B10F: return gx::rgb;
 
-  case RGBA8:     return gx::rgba;
-  case SRGB8_A8:  return gx::rgba;
-  case BGRA8:     return gx::bgra;
-  case SBGR8_A8:  return gx::bgra;
+  case RGBA8:    return gx::rgba;
+  case SRGB8_A8: return gx::rgba;
+  case BGRA8:    return gx::bgra;
+  case SBGR8_A8: return gx::bgra;
 
   case R8:  return gx::r;
   case RG8: return gx::rg;
@@ -766,29 +783,42 @@ gx::Type DDSImage::texTypeDX10() const
   return (gx::Type)~0u;
 }
 
-void DDSImage::copyData(void *dst, void *src, ulong num_rows, uint flags)
+void DDSImage::copyData(Image& img, void *src, uint flags)
 {
   if(flags == LoadDefault) {
-    memcpy(dst, src, num_rows*m_pitch);
+    memcpy(img.data.get(), src, img.sz);
   } else if(flags & FlipV) {
-    copyDataFlipV(dst, src, num_rows);
+    copyDataFlipV(img, src);
   }
 }
 
 // TODO: DXT flipping
-void DDSImage::copyDataFlipV(void *dst, void *src, ulong num_rows)
+void DDSImage::copyDataFlipV(Image& img, void *src)
 {
   // Start at the top
-  auto dst_row = (byte *)dst;
+  auto dst_row = (byte *)img.data.get();
 
   // Start at the bottom (last_row == num_rows-1)
-  auto src_row = (byte *)src + (num_rows-1)*m_pitch;
+  auto src_row = (byte *)src + (img.height-1)*m_pitch;
 
-  for(ulong y = num_rows; y > 0; y--) {
+  for(ulong y = img.height; y > 0; y--) {
     memcpy(dst_row, src_row, m_pitch);
 
     dst_row += m_pitch;
     src_row -= m_pitch;
+  }
+}
+
+void DDSImage::checkFormatSupported()
+{
+  if(m_format & IsDX10) return;   // All DX10 formats supported
+
+  switch(m_format) {
+  case AL4:
+  case ARGB4: case XRGB4:
+  case RGB332:
+  case ARGB8332:
+    throw UnsupportedFormatError();
   }
 }
 

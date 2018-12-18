@@ -118,6 +118,7 @@ public:
   struct Error { };
   struct InvalidDDSError : public Error { };
   struct InvalidCubemapError : public Error { };
+  struct UnsupportedFormatError : public Error { };
 
   DDSImage() = default;
   DDSImage(const DDSImage& other) = delete;
@@ -237,10 +238,14 @@ private:
   gx::Type texTypeDX10() const;
 
   // m_pitch must be filled before calling this method!
-  void copyData(void *dst, void *src, ulong num_rows, uint flags);
+  void copyData(Image& img, void *src, uint flags);
 
   // Copies 'src' to 'dst' flipping it vertically
-  void copyDataFlipV(void *dst, void *src, ulong num_rows);
+  void copyDataFlipV(Image& img, void *src);
+
+  // Throws UnsupportedFormatError if the image is
+  //   in an unsuported format
+  void checkFormatSupported();
 
   Type m_type    = Invalid;
   ulong m_format = Unknown;

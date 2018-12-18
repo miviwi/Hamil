@@ -23,7 +23,7 @@ Geometry Geometry::translate(vec2 t) const
 Geometry Geometry::clip(const Geometry& g) const
 {
   vec2 gb = { g.x+g.w, g.y+g.h };
-  if(gb.x > (x+w) && gb.y > (y+h)) return Geometry{ 0, 0, 0, 0 };
+  if(g.x > (x+w) && g.y > (y+h)) return Geometry::empty();
 
   vec2 da = clamp(g.pos(), { x, y }, { x+w, y+h });
   vec2 db = clamp(gb, { x, y }, { x+w, y+h });

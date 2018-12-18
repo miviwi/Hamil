@@ -202,6 +202,8 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width, LineCap ca
 
 VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color d)
 {
+  if(g.size().isZero()) return *this;   // Nothing to paint
+
   auto offset = currentOffset();
 
   appendVertices({
