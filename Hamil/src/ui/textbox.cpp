@@ -76,11 +76,12 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  Geometry g = geometry();
-
   const auto& style = ownStyle();
   const auto& textbox = style.textbox;
   auto& fnt = *font();
+
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
 
   Color cursor_color = textbox.cursor;
   auto cursor_alpha = m_cursor_blink.channel<float>(0);
@@ -107,11 +108,7 @@ void TextBoxFrame::paint(VertexPainter& painter, Geometry parent)
     1.0f, g.h - TextPixelMargin
   };
 
-  auto text_pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto text_pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(text_pipeline)

@@ -173,6 +173,8 @@ public:
 
   VertexPainter();
 
+  static gx::Pipeline defaultPipeline(ivec4 scissor);
+
   // Must be called before painting anything after calling end()
   VertexPainter& begin(Vertex *verts, size_t num_verts, u16 *inds, size_t num_inds);
 

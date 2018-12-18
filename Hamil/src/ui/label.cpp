@@ -18,16 +18,13 @@ void LabelFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = ownStyle();
   auto& font = *ownFont();
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
   auto caption_sz = m_caption.size();
 
   vec2 center = g.center();
 
-  auto pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)

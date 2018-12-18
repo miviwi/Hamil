@@ -57,7 +57,8 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = ownStyle();
   const auto& combobox = style.combobox;
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
 
   Geometry button_g = buttonGeometry();
   Geometry highlight_g = {
@@ -82,11 +83,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
     VertexPainter::TopRight|VertexPainter::BottomRight,
   };
 
-  auto pipeline = gx::Pipeline()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .premultAlphaBlend()
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)
@@ -108,11 +105,7 @@ void DropDownFrame::paint(VertexPainter& painter, Geometry parent)
 
     Color dropdown_color = black().opacity(0.9);
 
-    auto pipeline = gx::Pipeline()
-      .scissor(ui().scissorRect(dropdown_g))
-      .premultAlphaBlend()
-      .primitiveRestart(Vertex::RestartIndex)
-      ;
+    auto pipeline = painter.defaultPipeline(ui().scissorRect(dropdown_g));
 
     painter
       .beginOverlay()

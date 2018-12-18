@@ -54,7 +54,8 @@ void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
 
   auto margin = button.margin;
 
-  Geometry g = geometry().contract(margin);
+  Geometry g = geometry().contract(margin),
+    clipped_g = parent.clip({ g.x, g.y, g.w+1, g.h+1 });
 
   auto luminance = button.color[1].luminance().r;
   byte factor = 0;
@@ -74,11 +75,7 @@ void ButtonFrame::captionPaint(const Drawable& caption, VertexPainter& painter,
     g.w*0.96f, g.h*0.5f
   };
 
-  auto pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(ui().scissorRect(parent.clip({ g.x, g.y, g.w+1, g.h+1 })))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)
@@ -197,7 +194,8 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = ownStyle();
   const auto& button = style.button;
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
   vec2 center = g.center();
 
   Geometry box = getSolidGeometry();
@@ -215,11 +213,7 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
     button.color[1].lighten(luminance * (m_state == Pressed ? 4 : 2)),
   };
 
-  auto pipeline = gx::Pipeline()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .premultAlphaBlend()
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)

@@ -97,7 +97,7 @@ private:
 
   WorkerPoolData *m_data;
 
-  uint m_num_workers;
+  int m_num_workers; // set to the number of HW threads by default
   WorkerVector m_workers;
 };
 

@@ -795,6 +795,8 @@ void DDSImage::copyData(Image& img, void *src, uint flags)
 // TODO: DXT flipping
 void DDSImage::copyDataFlipV(Image& img, void *src)
 {
+  assert(!compressed() && "flipping compressed formats unimplemented1");
+
   // Start at the top
   auto dst_row = (byte *)img.data.get();
 

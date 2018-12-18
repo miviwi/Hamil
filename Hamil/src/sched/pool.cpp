@@ -80,7 +80,7 @@ WorkerPool::WorkerPool(int num_workers) :
   m_data(new WorkerPoolData())
 {
   // Default number of workers == number of hardware threads
-  m_num_workers = num_workers > 0 ? (uint)num_workers : win32::cpuinfo().numLogicalProcessors();
+  m_num_workers = num_workers;
 }
 
 WorkerPool::~WorkerPool()
@@ -177,7 +177,10 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
 
   if(!name) name = "WorkerPool_Worker";
 
-  for(size_t i = 0; i < m_num_workers; i++) {
+  bool set_affinity = m_num_workers > 0;
+  uint num_workers = m_num_workers > 0 ? (uint)m_num_workers : num_cores;
+
+  for(size_t i = 0; i < num_workers; i++) {
     // ulong (WorkerPool::*fn)() -> ulong (*fn)()
     auto fn = std::bind(&WorkerPool::doWork, this);
     auto worker = new win32::Thread(fn, /* suspended = */ true);
@@ -187,13 +190,15 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
     // Give each worker a nice name
     worker->dbg_SetName(util::fmt("%s%zu", name, i).data());
 
-    // Lock each worker to a given thread
+#if !defined(NO_SET_AFFINITY)
+    // Lock each worker to a given thread when the
+    //  number of workers == number of HW threads
     //   - When the system has hyperthreading (SMT)
     //     sequential processor numbers signify
     //     hyperthreads, in that case group the
     //     workers into 2 sets
     uintptr_t thread = i;
-    if(hyperthreading) {
+    if(hyperthreading && set_affinity) {
       // The hyperthreads will be the 2nd group
       uintptr_t thread_group = i >= num_cores;
 
@@ -205,7 +210,6 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
       thread = (i % num_cores)*2ull | thread_group;
     }
 
-#if !defined(NO_SET_AFFINITY)
     worker->affinity(1ull << thread);
 #endif
   }

@@ -26,11 +26,7 @@ void LayoutFrame::paint(VertexPainter& painter, Geometry parent)
   Geometry g = parent.clip(geometry());
   reflow();
 
-  auto pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .primitiveRestart(Vertex::RestartIndex)
-    .noScissor()
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(g));
 
   if(m_dbg_bboxes) {
     painter

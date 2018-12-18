@@ -39,7 +39,8 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 {
   const Style& style = ownStyle();
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
 
   Geometry decor_g = decorationsGeometry();
   uint decor_corners = VertexPainter::TopLeft|VertexPainter::TopRight;
@@ -47,11 +48,7 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
 
   Color bg = m_bg ? *m_bg : style.window.bg;
 
-  auto pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)

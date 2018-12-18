@@ -38,9 +38,11 @@ public:
   virtual vec2 sizeHint() const;
 
 private:
-  static constexpr float ScrollbarSize = 5.0f;
-  static constexpr float ScrollbarMargin = 2.0f;
-  static constexpr float ScrollbarClickMargin = 10.0f;
+  static constexpr float
+    ScrollSpeed = 8.0f,
+    ScrollbarSize = 5.0f,
+    ScrollbarMargin = 2.0f,
+    ScrollbarClickMargin = 10.0f;
 
   bool hasVScrollbar() const;
   bool hasHScrollbar() const;

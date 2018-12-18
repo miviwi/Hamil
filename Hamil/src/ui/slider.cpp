@@ -125,7 +125,8 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   const Style& style = ownStyle();
   const auto& slider = style.slider;
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
 
   float w = width();
   vec2 center = g.center();
@@ -162,11 +163,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
 
   Color value_color = slider.color[1].lightenf(0.1);
 
-  auto pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)

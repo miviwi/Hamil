@@ -477,7 +477,7 @@ int main(int argc, char *argv[])
     ui::create<ui::RowLayoutFrame>(iface)
       .frame(ui::create<ui::LabelFrame>(iface, "stats")
               .gravity(ui::Frame::Left)))
-      .scrollbars(ui::ScrollFrame::AllScrollbars)
+      .size({ 170.0f, 50.0f })
     ;
 
   auto& stats = *iface.getFrameByName<ui::LabelFrame>("stats");
@@ -485,7 +485,9 @@ int main(int argc, char *argv[])
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Window")
-      .content(layout)
+      .content(ui::create<ui::ScrollFrame>(iface)
+        .content(layout)
+        .size({ 150.0f, 100.0f }))
       .position({ 30.0f, 500.0f }))
     .frame(ui::create<ui::WindowFrame>(iface)
       .title("Statistics")
@@ -628,7 +630,7 @@ int main(int argc, char *argv[])
     auto material = sphere_entity.addComponent<hm::Material>();
 
     material().diff_type = (hm::Material::DiffuseType)(hm::Material::Other | 1);
-    material().diff_color = color;
+    material().diff_color = color * 100.0f;
 
     light_entity.addComponent<hm::Transform>(xform::Transform());
     auto light = light_entity.addComponent<hm::Light>();
@@ -664,7 +666,7 @@ int main(int argc, char *argv[])
     auto material = line_entity.addComponent<hm::Material>();
 
     material().diff_type = (hm::Material::DiffuseType)(hm::Material::Other | 1);
-    material().diff_color = color;
+    material().diff_color = color * 100.0f;
 
     light_entity.addComponent<hm::Transform>(xform::Transform());
     auto light = light_entity.addComponent<hm::Light>();
@@ -985,7 +987,7 @@ int main(int argc, char *argv[])
     if(draw_nudge_line && 0) {
       float force_factor = 1.0f + pow(nudge_timer.elapsedSecondsf(), 3.0f);
 
-      auto q = quat::rotation_between(vec3::up(), hit_normal);
+      quat q = quat::rotation_between(vec3::up(), hit_normal);
     }
 
     std::vector<hm::Entity> dead_entities;

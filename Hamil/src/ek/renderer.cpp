@@ -150,7 +150,8 @@ Renderer::~Renderer()
   for(auto& buf : m_const_buffers)  pool().releaseBuffer(buf.id());
   for(auto render_lut : m_luts)     pool().releaseTexture(render_lut.tex_id);
   for(auto sampler : m_samplers)    pool().release<gx::Sampler>(sampler.second);
-  for(auto fence_id : m_fences)     pool().release<gx::Fence>(fence_id);
+  //  TODO: this causes a segfault (?)
+  //for(auto fence_id : m_fences)     pool().release<gx::Fence>(fence_id);
 
   delete m_data;
 }

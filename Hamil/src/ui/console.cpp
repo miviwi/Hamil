@@ -276,7 +276,8 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
 {
   auto& font = *ownStyle().monospace;
 
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
 
   float content_height = (float)m_buffer.size(),
     visible_content = std::min(rows() / content_height, 1.0f),
@@ -287,11 +288,7 @@ void ConsoleBufferFrame::paint(VertexPainter& painter, Geometry parent)
     ScrollBarWidth, scrollbar_height,
   };
 
-  auto pipeline = gx::Pipeline()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .premultAlphaBlend()
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   painter
     .pipeline(pipeline)

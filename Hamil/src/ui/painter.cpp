@@ -40,6 +40,14 @@ VertexPainter::VertexPainter() :
   m_commands.reserve(32);
 }
 
+gx::Pipeline VertexPainter::defaultPipeline(ivec4 scissor)
+{
+  return gx::Pipeline()
+    .premultAlphaBlend()
+    .scissor(scissor)
+    .primitiveRestart(Vertex::RestartIndex);
+}
+
 VertexPainter& VertexPainter::begin(Vertex *verts, size_t num_verts, u16 *inds, size_t num_inds)
 {
   m_buf = m_buf_rover = verts;

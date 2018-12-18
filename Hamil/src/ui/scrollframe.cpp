@@ -24,7 +24,7 @@ bool ScrollFrame::input(CursorDriver& cursor, const InputPtr& input)
     } else if(mouse->buttons & Mouse::Left) {
       if(scrollbarClicked(cursor, mouse)) return true;
     } else if(mouse->buttonUp(Mouse::Left)) {
-      m_ui->capture(nullptr);    // scrollBarClicked() calls m_ui->capture(this)
+      //m_ui->capture(nullptr);    // scrollBarClicked() calls m_ui->capture(this)
     }
   }
 
@@ -33,23 +33,21 @@ bool ScrollFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void ScrollFrame::paint(VertexPainter& painter, Geometry parent)
 {
-  Geometry g = geometry();
+  Geometry g = geometry(),
+    clipped_g = parent.clip(g);
 
-  auto pipeline = gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(ui().scissorRect(parent.clip(g)))
-    .primitiveRestart(Vertex::RestartIndex)
-    ;
+  // Draw the content below the scrollbars
+  if(m_content) m_content->paint(painter, clipped_g);
+
+  auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 
   if(m_content) {  // Paint the scrollbars
     painter
       .pipeline(pipeline)
-      .rect(getVScrollbarGeometry(), grey().opacity(0.8))
-      .rect(getHScrollbarGeometry(), grey().opacity(0.8))
+      .rect(getVScrollbarGeometry(), grey().opacity(0.4))
+      .rect(getHScrollbarGeometry(), grey().opacity(0.4))
       ;
   }
-
-  if(m_content) m_content->paint(painter, parent.clip(g));
 }
 
 ScrollFrame& ScrollFrame::scrollbars(uint sb)
@@ -75,7 +73,7 @@ ScrollFrame& ScrollFrame::content(Frame& frame)
 
 vec2 ScrollFrame::sizeHint() const
 {
-  return { 100.0f, 50.0f };
+  return m_content ? m_content->sizeHint() : vec2{ 100.0f, 50.0f };
 }
 
 bool ScrollFrame::hasVScrollbar() const
@@ -170,7 +168,7 @@ void ScrollFrame::scrollContentX(float x)
 
 bool ScrollFrame::scrollMousewheel(const win32::Mouse *mouse)
 {
-  float y = m_scroll.y + (5.0f*mouse->ev_data / 120.0f);
+  float y = m_scroll.y + (ScrollSpeed*mouse->ev_data / 120.0f);
   scrollContentY(y);
 
   return true;
@@ -192,7 +190,7 @@ bool ScrollFrame::scrollbarClicked(CursorDriver& cursor, const win32::Mouse *mou
     return false;
   }
 
-  m_ui->capture(this);
+  //m_ui->capture(this);
   return true;
 }
 
