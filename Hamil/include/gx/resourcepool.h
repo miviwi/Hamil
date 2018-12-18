@@ -45,69 +45,20 @@ public:
   template <typename T, typename... Args>
   Id create(Args... args)
   {
-    m_lock.acquireExclusive();
-
-    FreeList& free_list = getFreeList<T>();
-    auto& vec = getVector<T>();
-
-    T *resource = nullptr;
-    Id id = Invalid;
-
-    if(free_list.empty()) {
-      id = (Id)vec.size();
-
-      vec.emplace_back(std::forward<Args>(args)...);
-    } else {
-      id = free_list.pop();
-      resource = vec.data() + id;
-
-      resource->~T();
-      new(resource) T(std::forward<Args>(args)...);
-    }
-
-    m_lock.releaseExclusive();
-
-    return id;
+    return doCreate<T>(std::forward<Args>(args)...).first;
   }
 
   // See gx.h for notes on 'label' strings
   template <typename T, typename... Args>
   Id create(const char *label, Args... args)
   {
-    m_lock.acquireExclusive();
-
-    FreeList& free_list = getFreeList<T>();
-    auto& vec = getVector<T>();
-
-    T *resource = nullptr;
-    Id id = Invalid;
-
-    if(free_list.empty()) {
-      id = (Id)vec.size();
-
-      resource = &vec.emplace_back(std::forward<Args>(args)...);
-    } else {
-      id = free_list.pop();
-      resource = vec.data() + id;
-
-      resource->~T();
-      new(resource) T(std::forward<Args>(args)...);
-    }
+    auto [id, resource] = doCreate<T>(std::forward<Args>(args)...);
     resource->label(label);
-
-    m_lock.releaseExclusive();
 
     return id;
   }
 
   // See gx.h for notes on 'label' strings
-  template <typename T, typename... Args>
-  Id create(char *label, Args... args)
-  {
-    return create<T>((const char *)label, std::forward<Args>(args)...);
-  }
-
-   // See gx.h for notes on 'label' strings
   template <typename T, typename... Args>
   Id create(const std::string& label, Args... args)
   {
@@ -162,13 +113,6 @@ public:
 
    // See gx.h for notes on 'label' strings
   template <typename T, typename... Args>
-  Id createTexture(char *label, Args... args)
-  {
-    return createTexture<T>((const char *)label, std::forward<Args>(args)...);
-  }
-
-   // See gx.h for notes on 'label' strings
-  template <typename T, typename... Args>
   Id createTexture(const std::string& label, Args... args)
   {
     return createTexture<T>(label.data(), std::forward<Args>(args)...);
@@ -185,13 +129,6 @@ public:
   Id createBuffer(const char *label, Args... args)
   {
     return create<BufferHandle>(label, BufferHandle::create<T>(std::forward<Args>(args)...));
-  }
-
-  // See gx.h for notes on 'label' strings
-  template <typename T, typename... Args>
-  Id createBuffer(char *label, Args... args)
-  {
-    return createBuffer<T>((const char *)label, std::forward<Args>(args)...);
   }
 
   // See gx.h for notes on 'label' strings
@@ -268,6 +205,34 @@ private:
     auto idx = util::tuple_index_v<std::vector<T>, decltype(m_resources)>;
 
     return m_free_lists.at(idx);
+  }
+
+  template <typename T, typename... Args>
+  inline std::pair<Id, T*> doCreate(Args... args)
+  {
+    m_lock.acquireExclusive();
+
+    FreeList& free_list = getFreeList<T>();
+    auto& vec = getVector<T>();
+
+    T *resource = nullptr;
+    Id id = Invalid;
+
+    if(free_list.empty()) {
+      id = (Id)vec.size();
+
+      resource = &vec.emplace_back(std::forward<Args>(args)...);
+    } else {
+      id = free_list.pop();
+      resource = vec.data() + id;
+
+      resource->~T();
+      new(resource) T(std::forward<Args>(args)...);
+    }
+
+    m_lock.releaseExclusive();
+
+    return std::make_pair(id, resource);
   }
 
   mutable win32::ReaderWriterLock m_lock;

@@ -237,15 +237,14 @@ std::string RenderTarget::labelSuffix() const
 
 gx::Framebuffer& RenderTarget::createFramebuffer()
 {
-  auto label = "fb" + labelSuffix();
-  m_fb_id = m_pool->create<gx::Framebuffer>(label.data());
+  m_fb_id = m_pool->create<gx::Framebuffer>("fb" + labelSuffix());
 
   return m_pool->get<gx::Framebuffer>(m_fb_id);
 }
 
 gx::TextureHandle RenderTarget::createTexMultisample(u32 fmt, uint samples, const std::string& label)
 {
-  auto id = m_pool->createTexture<gx::Texture2D>(label.data(), (gx::Format)fmt, gx::Texture::Multisample);
+  auto id = m_pool->createTexture<gx::Texture2D>(label, (gx::Format)fmt, gx::Texture::Multisample);
   auto tex = m_pool->getTexture(id);
 
   tex.get<gx::Texture2D>().initMultisample(samples, m_config.viewport.z, m_config.viewport.w);
@@ -257,7 +256,7 @@ gx::TextureHandle RenderTarget::createTexMultisample(u32 fmt, uint samples, cons
 
 gx::TextureHandle RenderTarget::createTex(u32 fmt, const std::string& label)
 {
-  auto id = m_pool->createTexture<gx::Texture2D>(label.data(), (gx::Format)fmt);
+  auto id = m_pool->createTexture<gx::Texture2D>(label, (gx::Format)fmt);
   auto tex = m_pool->getTexture(id);
 
   tex().init(m_config.viewport.z, m_config.viewport.w);

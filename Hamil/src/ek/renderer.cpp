@@ -52,9 +52,10 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
   auto kernel = gaussian_kernel(param);
 
   auto kernel_dims = param*2 + 1;
-  auto tex_label = util::fmt("t1dGaussianKernel%dx%d", kernel_dims, kernel_dims);
 
-  tex_id = pool.createTexture<gx::Texture1D>(tex_label.data(), gx::r32f);
+  tex_id = pool.createTexture<gx::Texture1D>(
+    util::fmt("t1dGaussianKernel%dx%d", kernel_dims, kernel_dims),
+    gx::r32f);
   auto blur_kernel = pool.getTexture(tex_id);
   blur_kernel()
     .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
@@ -79,9 +80,9 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
   auto coeffs2 = coeffs1 + TexSize.area()*4;
 #endif
 
-  std::string tex_label = "t2daLTCCoefficients";
-
-  tex_id = pool.createTexture<gx::Texture2DArray>(tex_label.data(), gx::rgba16f);
+  tex_id = pool.createTexture<gx::Texture2DArray>(
+    "t2daLTCCoefficients",
+    gx::rgba16f);
   auto ltc = pool.getTexture(tex_id);
 
   ltc().init(TexSize.s, TexSize.t, 2);
@@ -113,9 +114,9 @@ void RenderLUT::generateHBAONoise(gx::ResourcePool& pool)
     sample = vec3(cosf(angle), sinf(angle), r1);
   }
 
-  auto tex_label = util::fmt("t2dHBAONoise%d", (int)NumDirections);
-
-  tex_id = pool.createTexture<gx::Texture2D>(tex_label.data(), gx::rgb32f);
+  tex_id = pool.createTexture<gx::Texture2D>(
+    util::fmt("t2dHBAONoise%d", (int)NumDirections),
+    gx::rgb32f);
   auto noise_tex = pool.getTexture(tex_id);
 
   noise_tex()
@@ -289,14 +290,11 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, con
 
   m_const_buffers_lock.releaseShared();
 
-  std::string buf_label = "bu";
-  if(!label.empty()) {
-    buf_label += label;
-  } else {  // Use the size as the suffix if one wasn't provided
-    buf_label += util::fmt("ConstantBuffer%zu", sz);
-  }
+  auto id = pool().createBuffer<gx::UniformBuffer>(
+    // Use the size as the suffix if one wasn't provided
+    label.empty() ? util::fmt("buConstantBuffer%zu", sz) : "bu"+label,
 
-  auto id = pool().createBuffer<gx::UniformBuffer>(buf_label.data(), gx::Buffer::Dynamic);
+    gx::Buffer::Dynamic);
   auto buf = pool().getBuffer(id);
 
   buf().init(sz, 1);

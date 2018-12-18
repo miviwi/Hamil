@@ -994,6 +994,12 @@ struct AABB {
     vec3 max;
     vec4 pad1_;
   };
+
+  // Scales the AABB uniformly
+  AABB scale(float s) const { return { min*s, max*s }; }
+
+  // Scales the AABB by the vec3
+  AABB scale(vec3 s) const  { return { min*s, max*s }; }
 };
 
 struct Sphere {

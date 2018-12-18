@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.bunny0;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -680,11 +680,15 @@ int main(int argc, char *argv[])
     return line_entity;
   };
 
-  auto model_shape = bt::shapes().box({ 2.0f, 2.0f, 2.0f });
   auto create_model = [&](const mesh::Mesh& mesh,
     const std::string& name = "")
   {
     vec3 origin = { 0.0f, -1.0f, -30.0f };
+
+    AABB aabb = obj_loader.mesh().aabb().scale(4.0f);
+    vec3 extents = aabb.max - aabb.min;
+
+    auto model_shape = bt::shapes().box(extents * 0.5f);
     auto body = bt::RigidBody::create(model_shape, origin);
 
     auto entity = hm::entities().createGameObject(
@@ -692,14 +696,13 @@ int main(int argc, char *argv[])
       scene);
 
     entity.addComponent<hm::Transform>(
-      xform::Transform(origin, quat(), vec3(4.0f))
+      xform::Transform(origin, quat(), vec3(4.0f)),
+      aabb
     );
     entity.addComponent<hm::RigidBody>(body);
     entity.addComponent<hm::Mesh>(mesh);
 
     world.addRigidBody(body);
-
-    entity.component<hm::Transform>().get().aabb = body.aabb();
 
     auto material = entity.addComponent<hm::Material>();
 

@@ -35,8 +35,12 @@ public:
 
   const std::vector<Triangle>& faces() const;
 
+  AABB aabb() const;
+
 private:
   friend class ObjLoader;
+
+  AABB m_aabb = { vec3(INFINITY), vec3(-INFINITY) };
 
   std::vector<vec3> m_v;
   std::vector<vec3> m_vt;

@@ -10,17 +10,15 @@ Style Style::basic_style()
   s.font_style.font = { ft::FontFamily("segoeui"), 12 };
   s.font_style.monospace = { ft::FontFamily("consola"), 12 };
 
-  auto alpha = (byte)(255*0.95);
-
-  auto color_a = Color{ 150, 150, 45, alpha }.darken(40),
-    color_b = Color{ 66, 66, 20, alpha }.darken(40);
+  auto color_a = Color{ 150, 150, 45 }.opacity(0.95).darken(40),
+    color_b = Color{ 66, 66, 20 }.opacity(0.95).darken(40);
 
   s.bg.color[0] = s.bg.color[3] = color_b;
   s.bg.color[1] = s.bg.color[2] = color_a;
 
   s.window.radius = 3.0f;
   s.window.margin = { 5.0f, 2.0f };
-  s.window.bg = color_a.opacity(0.01);
+  s.window.bg = color_a.darkenf(0.4).opacity(0.01);
 
   s.border.color[0] = s.border.color[3] = ui::white();
   s.border.color[1] = s.border.color[2] = ui::transparent();

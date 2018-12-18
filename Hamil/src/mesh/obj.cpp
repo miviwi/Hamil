@@ -175,7 +175,13 @@ void ObjLoader::parseLine(std::string::const_iterator it)
   switch(keyword) {
   case Vertex:
     if(isspace(*it)) {
-      m_mesh.m_v.push_back(loadVertex(it));
+      auto& aabb = m_mesh.m_aabb;
+      auto vert = loadVertex(it);
+
+      m_mesh.m_v.push_back(vert);
+      aabb = {   // Compute the AABB
+        vec3::min(aabb.min, vert), vec3::max(aabb.max, vert)
+      };
     } else {
       char ch = *it;
       it++;
@@ -317,6 +323,11 @@ bool ObjMesh::hasTexCoords() const
 const std::vector<ObjMesh::Triangle>& ObjMesh::faces() const
 {
   return m_tris;
+}
+
+AABB ObjMesh::aabb() const
+{
+  return m_aabb;
 }
 
 }
