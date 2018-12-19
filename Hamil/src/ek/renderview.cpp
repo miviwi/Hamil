@@ -426,7 +426,7 @@ u32 RenderView::createShadowRenderPass()
 
 u32 RenderView::createFence()
 {
-  return pool().create<gx::Fence>("f" + labelPrefix());
+  return renderer().queryFence("f" + labelPrefix());
 }
 
 u32 RenderView::constantBufferId(u32 which)

@@ -151,8 +151,14 @@ Renderer::~Renderer()
   for(auto& buf : m_const_buffers)  pool().releaseBuffer(buf.id());
   for(auto render_lut : m_luts)     pool().releaseTexture(render_lut.tex_id);
   for(auto sampler : m_samplers)    pool().release<gx::Sampler>(sampler.second);
-  //  TODO: this causes a segfault (?)
-  //for(auto fence_id : m_fences)     pool().release<gx::Fence>(fence_id);
+
+  for(auto fence_id : m_fences) {
+    auto& fence = pool().get<gx::Fence>(fence_id);
+    while(fence.refs() > 1) fence.deref();   // The Renderer is being destroyed
+                                             //   so nobody should be using the
+                                             //   Fences anyways
+    pool().release<gx::Fence>(fence_id);
+  }
 
   delete m_data;
 }
