@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.dragon;
+  res::Handle<res::Mesh> r_bunny0 = R.mesh.autumn_plains;
 
   auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
 
@@ -680,23 +680,26 @@ int main(int argc, char *argv[])
     return line_entity;
   };
 
-  auto create_model = [&](const mesh::Mesh& mesh,
+  auto create_model = [&](const mesh::Mesh& mesh, const mesh::ObjMesh& obj,
     const std::string& name = "")
   {
-    vec3 origin = { 0.0f, -1.0f, -30.0f };
+    vec3 origin = { 0.0f, 8.0f, -30.0f };
+    vec3 scale(1.0f);
 
-    AABB aabb = obj_loader.mesh().aabb().scale(4.0f);
+    AABB aabb = obj.aabb().scale(scale);
+    aabb.min += origin; aabb.max += origin;
+
     vec3 extents = aabb.max - aabb.min;
 
     auto model_shape = bt::shapes().box(extents * 0.5f);
     auto body = bt::RigidBody::create(model_shape, origin);
 
     auto entity = hm::entities().createGameObject(
-      !name.empty() ? name : r_bunny0->name(),
+      !name.empty() ? name : obj.name(),
       scene);
 
     entity.addComponent<hm::Transform>(
-      xform::Transform(origin, quat(), vec3(4.0f)),
+      xform::Transform(origin, quat(), scale),
       aabb
     );
     entity.addComponent<hm::RigidBody>(body);
@@ -910,7 +913,7 @@ int main(int argc, char *argv[])
     vec4 mouse_ray = xform::unproject({ cursor.pos(), 0.5f }, persp*view, FramebufferSize);
     vec3 mouse_ray_direction = vec4::direction(eye, mouse_ray).xyz();
 
-    ivec2 shadowmap_size = { 512, 512 };
+    ivec2 shadowmap_size = { 1024, 1024 };
 
     auto timef = time.elapsedSecondsf() * 0.1;
     vec3 shadow_pos = vec3(50.0f)*vec3(cos(timef), 1.0f, sin(timef));
@@ -976,13 +979,15 @@ int main(int argc, char *argv[])
 
       hm::components().requireUnlocked();
 
-      auto num_inds = obj_loader.mesh().faces().size() * 3;
+      auto& mesh = *obj_loader.mesh("tex_35.002");
+      auto num_inds = mesh.faces().size() * 3;
       auto bunny_mesh = mesh::Mesh()
         .withNormals()
         .withIndexedArray(bunny_arr_id)
-        .withNum((u32)num_inds);
+        .withNum((u32)num_inds)
+        .withOffset((u32)mesh.offset());
 
-      bunny = create_model(bunny_mesh);
+      bunny = create_model(bunny_mesh, mesh);
 
       hm::components().endRequireUnlocked();
     }

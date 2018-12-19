@@ -751,6 +751,9 @@ void RenderView::emitDraw(const RenderMesh& ro, gx::CommandBuffer& cmd)
     if(mesh.base != mesh::Mesh::None && mesh.offset != mesh::Mesh::None) {
       cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
         mesh.num, mesh.base, mesh.offset);
+    } else if(mesh.offset != mesh::Mesh::None) {
+      cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
+        mesh.num, 0, mesh.offset);
     } else { // Use the shorter command when possible
       cmd.drawIndexed(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
     }

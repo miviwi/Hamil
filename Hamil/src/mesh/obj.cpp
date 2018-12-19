@@ -38,20 +38,31 @@ enum : size_t {
   InitialFaces = 4096,
 };
 
-ObjLoader& ObjLoader::load(const void *data, size_t sz)
+ObjLoader& ObjLoader::load(const void *data, size_t sz, uint flags)
 {
   doLoad(data, sz);
+
+  if(flags & Normalize && !m_normalized) normalizeMeshes();
 
   return *this;
 }
 
+size_t ObjLoader::numMeshes() const
+{
+  return m_meshes.size();
+}
+
 MeshLoader& ObjLoader::doLoad(const void *data, size_t sz)
 {
-  m_mesh.m_v.reserve(InitialVertices);
-  m_mesh.m_vt.reserve(InitialTexCoords);
-  m_mesh.m_vn.reserve(InitialNormals);
+  m_normalized = true;
 
-  m_mesh.m_tris.reserve(InitialVertices);
+  m_v.reserve(InitialVertices);
+  m_vt.reserve(InitialTexCoords);
+  m_vn.reserve(InitialNormals);
+
+  m_current_offset = 0;
+
+  appendMesh();  // Make sure back() doesn't get called when m_meshes is empty
 
   util::splitlines(std::string((const char *)data, sz), [this](const std::string& line) {
     auto it = line.begin();
@@ -78,8 +89,17 @@ MeshLoader& ObjLoader::initBuffers(const gx::VertexFormat& fmt,
   auto vertex_sz = fmt.vertexByteSize();
   auto index_sz = inds.get<gx::IndexBuffer>().elemSize();
 
-  verts().init(vertex_sz, m_mesh.vertices().size());
-  inds().init(index_sz*3 /* each face has 3 vertices */, m_mesh.faces().size());
+  // Calculate the cummulative number of
+  //   vertices and indices
+  size_t num_verts = m_v.size(); // Meshes should be normalized by this point, which implies:
+                                 //       m_v.size() == m_vn.size() == m_vt.size()
+  size_t num_inds  = 0;
+  for(auto& mesh : m_meshes) {
+    num_inds  += mesh.faces().size();
+  }
+
+  verts().init(vertex_sz, num_verts);
+  inds().init(index_sz*3 /* each face has 3 vertices */, num_inds);
 
   return *this;
 }
@@ -94,7 +114,13 @@ MeshLoader& ObjLoader::doStream(const gx::VertexFormat& fmt, gx::BufferHandle ve
 MeshLoader& ObjLoader::doStreamIndexed(const gx::VertexFormat& fmt,
   gx::BufferHandle vert_buf, gx::BufferHandle ind_buf)
 {
-  if(!m_mesh.loaded()) MeshLoader::load();
+  if(m_meshes.empty()) {
+    MeshLoader::load();
+
+    // Meshes must be normalized so they can be
+    //   streamed into the Vertex/IndexBuffers
+    if(!m_normalized) normalizeMeshes();
+  }
 
   initBuffers(fmt, vert_buf, ind_buf);
 
@@ -103,26 +129,26 @@ MeshLoader& ObjLoader::doStreamIndexed(const gx::VertexFormat& fmt,
 
   auto verts = verts_view.get<byte>();
 
-  const vec3 *v_src = m_mesh.vertices().data();
-  const vec3 *vn_src = m_mesh.normals().data();
-  const vec3 *vt_src = m_mesh.texCoords().data();
+  const vec3 *v_src  = vertices().data();
+  const vec3 *vn_src = normals().data();
+  const vec3 *vt_src = texCoords().data();
 
   auto vertex_stride = fmt.vertexByteSize();
   StridePtr<vec3> v_dst(verts + 0, vertex_stride);
   StridePtr<vec3> vn_dst(verts + sizeof(vec3), vertex_stride);
   StridePtr<vec2> vt_dst(verts + sizeof(vec3) + sizeof(vec3), vertex_stride);
 
-  if(!m_mesh.hasNormals() && !m_mesh.hasTexCoords()) {
-    for(size_t i = 0; i < m_mesh.vertices().size(); i++) {
+  if(!hasNormals() && !hasTexCoords()) {
+    for(size_t i = 0; i < vertices().size(); i++) {
       *v_dst++ = *v_src++;
     }
-  } else if(m_mesh.hasNormals() && !m_mesh.hasTexCoords()) {
-    for(size_t i = 0; i < m_mesh.vertices().size(); i++) {
+  } else if(hasNormals() && !hasTexCoords()) {
+    for(size_t i = 0; i < vertices().size(); i++) {
       *v_dst++ = *v_src++;
       *vn_dst++ = *vn_src++;
     }
   } else {
-    for(size_t i = 0; i < m_mesh.vertices().size(); i++) {
+    for(size_t i = 0; i < vertices().size(); i++) {
       auto vt = *vt_src++;
 
       *v_dst++ = *v_src++;
@@ -131,40 +157,88 @@ MeshLoader& ObjLoader::doStreamIndexed(const gx::VertexFormat& fmt,
     }
   }
 
-  switch(ind_buf.get<gx::IndexBuffer>().elemType()) {
-  case gx::u8: {
-    u8 *inds = inds_view.get<u8>();
-    for(const auto& face : m_mesh.faces()) {
-      for(const auto& vert: face) *inds++ = (u8)vert.v;
-    }
-    break;
-  }
+  union {
+    void *inds;
 
-  case gx::u16: {
-    u16 *inds = inds_view.get<u16>();
-    for(const auto& face : m_mesh.faces()) {
-      for(const auto& vert : face) *inds++ = (u16)vert.v;
-    }
-    break;
-  }
+    u8 *bytes;
+    u16 *shorts;
+    u32 *ints;
+  };
+  inds = inds_view.get();
 
-  case gx::u32: {
-    u32 *inds = inds_view.get<u32>();
-    for(const auto& face : m_mesh.faces()) {
-      for(const auto& vert : face) *inds++ = (u32)vert.v;
-    }
-    break;
-  }
+  // Write out all the indices
+  for(auto& mesh : m_meshes) {
+    for(const auto& face : mesh.faces()) {
+      // Loop-invariant code motion should fix this up :)
+      switch(ind_buf.get<gx::IndexBuffer>().elemType()) {
+      case gx::u8:  for(const auto& vert: face) *bytes++  = (u8)vert.v; break;
+      case gx::u16: for(const auto& vert: face) *shorts++ = (u16)vert.v; break;
+      case gx::u32: for(const auto& vert: face) *ints++   = (u32)vert.v; break;
 
-  default: assert(0); // unreachable
+      default: assert(0); // unreachable
+      }
+    }
   }
 
   return *this;
 }
 
-const ObjMesh& ObjLoader::mesh() const
+const ObjMesh& ObjLoader::mesh(uint index) const
 {
-  return m_mesh;
+  return m_meshes.at(index);
+}
+
+const ObjMesh *ObjLoader::mesh(const std::string& name) const
+{
+  auto it = std::find_if(m_meshes.begin(), m_meshes.end(), [&](const ObjMesh& mesh) {
+    return mesh.name() == name;
+  });
+
+  const ObjMesh *ptr = nullptr;
+  if(it != m_meshes.end()) { // We've found it
+    const auto& mesh = *it;
+
+    ptr = &mesh;
+  }
+
+  return ptr;
+}
+
+bool ObjLoader::hasNormals() const
+{
+  return !m_vn.empty();
+}
+
+bool ObjLoader::hasTexCoords() const
+{
+  return !m_vt.empty();
+}
+
+const std::vector<vec3>& ObjLoader::vertices() const
+{
+  return m_v;
+}
+
+const std::vector<vec3>& ObjLoader::normals() const
+{
+  return m_vn;
+}
+
+const std::vector<vec3>& ObjLoader::texCoords() const
+{
+  return m_vt;
+}
+
+ObjMesh *ObjLoader::appendMesh(const std::string& name)
+{
+  auto& mesh = m_meshes.emplace_back();
+
+  mesh.m_name = name;
+
+
+  mesh.m_tris.reserve(InitialVertices);
+
+  return &mesh;
 }
 
 void ObjLoader::parseLine(std::string::const_iterator it)
@@ -172,23 +246,23 @@ void ObjLoader::parseLine(std::string::const_iterator it)
   char keyword = *it;
   it++;
 
+  // Take the current (i.e. most recently added) mesh
+  auto& mesh = m_meshes.back();
+
   switch(keyword) {
   case Vertex:
-    if(isspace(*it)) {
-      auto& aabb = m_mesh.m_aabb;
+    if(isspace(*it)) {  // This is a 'v' command
+      auto& aabb = mesh.m_aabb;
       auto vert = loadVertex(it);
 
-      m_mesh.m_v.push_back(vert);
-      aabb = {   // Compute the AABB
-        vec3::min(aabb.min, vert), vec3::max(aabb.max, vert)
-      };
-    } else {
+      m_v.push_back(vert);
+    } else {            // Either a 'vn' or 'vt'
       char ch = *it;
       it++;
 
       switch(ch) {
-      case TexCoord: m_mesh.m_vt.push_back(loadTexCoord(it)); break;
-      case Normal:   m_mesh.m_vn.push_back(loadNormal(it)); break;
+      case TexCoord: m_vt.push_back(loadTexCoord(it)); break;
+      case Normal:   m_vn.push_back(loadNormal(it)); break;
 
       default: throw ParseError();
       }
@@ -196,18 +270,55 @@ void ObjLoader::parseLine(std::string::const_iterator it)
     break;
 
   case Face:
-    m_mesh.m_tris.push_back(loadTriangle(it));
+    mesh.m_tris.push_back(loadTriangle(it));
     break;
 
-  case Object: break; // TODO
-  case Group: break;
+  case Object:
+  case Group:    // TODO: handle groups differently (?)
+    if(mesh.m_tris.empty()) {
+      // A mesh is always created (in case the .obj
+      //   has no 'o' command), but when objects ARE
+      //   defined, calling appendMesh() here would
+      //   create an empty one at index 0, so use it
+      //   instead of creating a new one
+      mesh.m_name = loadName(it);
+    } else {
+      // When faces have already been appended
+      //   to the current mesh - append a new one
+      //  - Next time parseLine() is called it
+      //    will automatically choose it
+      auto new_mesh = appendMesh(loadName(it));
+
+      new_mesh->m_offset = m_current_offset;
+    }
+    break;
 
   case Shading: break;   //  Ignore
   case Material: break;  // -- || --
   case UseMtl: break;    // -- || -- 
 
+  case Comment: return;   // Nothing to do
+
   default: throw ParseError();
   }
+}
+
+std::string ObjLoader::loadName(std::string::const_iterator it)
+{
+  std::string name;
+
+  while(isspace(*it)) {  // Skip whitespace
+    if(*it == '\n') throw ParseError();  // A name wasn't specified
+
+    it++;
+  }
+
+  // Read the name (this ignores potential
+  //   extreneous characters at the end of
+  //   the line - oh well)
+  while(!isspace(*it)) name.push_back(*it++);
+
+  return std::move(name);
 }
 
 vec3 ObjLoader::loadVec3(std::string::const_iterator it)
@@ -238,6 +349,8 @@ vec3 ObjLoader::loadNormal(std::string::const_iterator it)
 ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
 {
   const char *str = &(*str_it);
+
+  auto& mesh = m_meshes.back();
 
   ObjMesh::Triangle triangle;
 
@@ -272,6 +385,9 @@ ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
       it->vn = read_index();
     }
 
+    // Done appending this vertex
+    m_current_offset++;
+
     pos = end+1;
     it++;
   }
@@ -285,24 +401,77 @@ ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
     if(v.v  != ObjMesh::None) v.v--;
     if(v.vt != ObjMesh::None) v.vt--;
     if(v.vn != ObjMesh::None) v.vn--;
+
+    // Any un-normalized vertex causes all the meshes
+    //   to have to be normalized
+    if(v.needsNormalization()) m_normalized = false;
+
+    // Recompute the AABB (for the current ObjMesh)
+    auto vert = m_v[v.v];
+    mesh.m_aabb = {
+      vec3::min(mesh.m_aabb.min, vert), vec3::max(mesh.m_aabb.max, vert)
+    };
   }
 
   return triangle;
 }
 
-const std::vector<vec3>& ObjMesh::vertices() const
+void ObjLoader::normalizeMeshes()
 {
-  return m_v;
+  if(!hasNormals() && !hasTexCoords()) return;  // Nothing to do
+
+  for(auto& mesh : m_meshes) normalizeOne(mesh);
 }
 
-const std::vector<vec3>& ObjMesh::normals() const
+void ObjLoader::normalizeOne(ObjMesh& mesh)
 {
-  return m_vn;
+  auto num_verts = std::max({ m_v.size(), m_vn.size(), m_vt.size() });
+
+  bool has_normals = hasNormals(),
+    has_texcoords = hasTexCoords();
+
+  // Make sure all attribute array elements have
+  //   corresponding ones in all other arrays - only
+  //   when a given attribute is present, though
+  if(has_normals)   m_vn.resize(num_verts);
+  if(has_texcoords) m_vt.resize(num_verts);
+
+  // When an unnormalized Vertex is found,
+  //   a new v,vn,vt is appended to the attribute
+  //   vectors and the Vertex' indices are updated
+  for(auto& face : mesh.m_tris) {
+    for(auto& vert : face) {
+      if(!vert.needsNormalization()) continue;
+
+      if(has_normals) {
+        auto new_index = (uint)m_vn.size();
+        auto vn = m_vn[vert.vn];
+
+        vert.vn = new_index;
+        m_vn.emplace_back(vn);
+      }
+
+      if(has_texcoords) {
+        auto new_index = (uint)m_vt.size();
+        auto vt = m_vt[vert.vt];
+
+        vert.vt = new_index;
+        m_vt.emplace_back(vt);
+      }
+
+      // Positions are always present
+      auto new_index = (uint)m_v.size();
+      auto v  = m_v[vert.v];
+
+      vert.v  = new_index;
+      m_v.emplace_back(v);
+    }
+  }
 }
 
-const std::vector<vec3>& ObjMesh::texCoords() const
+const std::string& ObjMesh::name() const
 {
-  return m_vt;
+  return m_name;
 }
 
 bool ObjMesh::loaded() const
@@ -310,14 +479,9 @@ bool ObjMesh::loaded() const
   return !m_tris.empty();
 }
 
-bool ObjMesh::hasNormals() const
+size_t ObjMesh::offset() const
 {
-  return !m_vn.empty();
-}
-
-bool ObjMesh::hasTexCoords() const
-{
-  return !m_vt.empty();
+  return m_offset;
 }
 
 const std::vector<ObjMesh::Triangle>& ObjMesh::faces() const

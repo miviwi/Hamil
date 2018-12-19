@@ -121,6 +121,9 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
     win32::File f(resource.data(), win32::File::Read, win32::File::OpenExisting);
 
     auto meta = it->second(f, name, path, extension);
+    // Check if parsing the file succeeded
+    if(!meta.get()) continue;
+
     auto meta_data = meta.toString();
 
     auto inserted = guids.insert(meta("guid")->as<yaml::Scalar>()->ui()).second;
@@ -368,20 +371,33 @@ static yaml::Document meshgen(win32::File& file,
 
   auto mesh_view = file.map(win32::File::ProtectRead);
 
-  auto obj_loader = mesh::ObjLoader().load(mesh_view.get<const char>(), file.size());
-  auto obj_mesh   = obj_loader.mesh();
+  auto obj_loader = mesh::ObjLoader();
+  try {
+    obj_loader.load(mesh_view.get<const char>(), file.size());
+  } catch(const mesh::MeshLoader::NonTriangularFaceError&) {
+    printf("Non triangular face present!\n");
+    printf("    ...skipping\n");
 
+    return yaml::Document();
+  } catch(const mesh::MeshLoader::ParseError&) {
+    printf("Invalid *.obj file!\n");
+    printf("    ...skipping\n");
+
+    return yaml::Document();
+  }
+
+  auto obj_mesh   = obj_loader.mesh();
   size_t num_faces = obj_mesh.faces().size();
 
   auto meta_vertex = new yaml::Mapping();
   meta_vertex->retainOrder()->append(
-    yaml::Scalar::from_str("normals"), yaml::Scalar::from_b(obj_mesh.hasNormals())
+    yaml::Scalar::from_str("normals"), yaml::Scalar::from_b(obj_loader.hasNormals())
   )->append(
     yaml::Scalar::from_str("tangents"), yaml::Scalar::from_b(false)
   )->append(
     yaml::Scalar::from_str("colors"), yaml::Scalar::from_ui(0)
   )->append(
-    yaml::Scalar::from_str("texcoords"), yaml::Scalar::from_ui(obj_mesh.hasTexCoords() ? 1u : 0u)
+    yaml::Scalar::from_str("texcoords"), yaml::Scalar::from_ui(obj_loader.hasTexCoords() ? 1u : 0u)
   )->append(
     yaml::Scalar::from_str("bones"), yaml::Scalar::from_b(false)
   );
