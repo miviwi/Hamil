@@ -373,7 +373,6 @@ ObjMesh::Triangle ObjLoader::loadTriangle(std::string::const_iterator str_it)
     if(*end == '/') {
       pos = end+1;
       if(*pos != '/') {
-        pos = end;
         it->vt = read_index();
       } else {
         end = (char *)pos;
@@ -433,6 +432,7 @@ void ObjLoader::normalizeOne(ObjMesh& mesh)
   // Make sure all attribute array elements have
   //   corresponding ones in all other arrays - only
   //   when a given attribute is present, though
+  if(m_v.size() < num_verts) m_v.resize(num_verts);
   if(has_normals)   m_vn.resize(num_verts);
   if(has_texcoords) m_vt.resize(num_verts);
 

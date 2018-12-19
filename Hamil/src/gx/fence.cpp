@@ -17,7 +17,8 @@ Fence::~Fence()
 
   glDeleteSync((GLsync)m);
 #if !defined(NDEBUG)
-  delete[] m_label;
+  // Seems delete[] doesn't play nice with nullptr?
+  if(m_label) delete[] m_label;
 #endif
 }
 

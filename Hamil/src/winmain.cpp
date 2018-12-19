@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3)
-    .attrAlias(0, gx::f32, 2);
+    .attr(gx::f32, 2);
 
   auto bunny_vbuf_id = pool.createBuffer<gx::VertexBuffer>("bvBunny",
     gx::Buffer::Static);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
     .attr(gx::f32, 3)
     .attrAlias(0, gx::f32, 2);
 
-  res::Handle<res::Texture> r_texture = R.texture.desk;
+  res::Handle<res::Texture> r_texture = R.texture.autumn_plains_tex;
   const auto& desk = r_texture->get();
 
   auto tex_id = pool.createTexture<gx::Texture2D>("t2dFloor", desk.texInternalFormat());
@@ -709,8 +709,10 @@ int main(int argc, char *argv[])
 
     auto material = entity.addComponent<hm::Material>();
 
-    material().diff_type = hm::Material::DiffuseConstant;
-    material().diff_color = { 0.53f, 0.8f, 0.94f };
+    material().diff_type = hm::Material::DiffuseTexture;
+    material().diff_tex.id = tex_id;
+    material().diff_tex.sampler_id = floor_sampler_id;
+    //material().diff_color = { 0.53f, 0.8f, 0.94f };
 
     material().metalness = 0.0f;
     material().roughness = 0.7f;
@@ -979,15 +981,18 @@ int main(int argc, char *argv[])
 
       hm::components().requireUnlocked();
 
-      auto& mesh = *obj_loader.mesh("tex_35.002");
-      auto num_inds = mesh.faces().size() * 3;
-      auto bunny_mesh = mesh::Mesh()
-        .withNormals()
-        .withIndexedArray(bunny_arr_id)
-        .withNum((u32)num_inds)
-        .withOffset((u32)mesh.offset());
+      for(uint i = 0; i < obj_loader.numMeshes(); i++) {
+        auto& mesh = obj_loader.mesh(i);
+        auto num_inds = mesh.faces().size() * 3;
+        auto bunny_mesh = mesh::Mesh()
+          .withNormals()
+          .withTexCoords(1)
+          .withIndexedArray(bunny_arr_id)
+          .withNum((u32)num_inds)
+          .withOffset((u32)mesh.offset());
 
-      bunny = create_model(bunny_mesh, mesh);
+        bunny = create_model(bunny_mesh, mesh);
+      }
 
       hm::components().endRequireUnlocked();
     }
@@ -1032,6 +1037,7 @@ int main(int argc, char *argv[])
     float y = entity_str_origin_y;
     float x = 30.0f;
     scene.gameObject().foreachChild([&](hm::Entity entity) {
+      return;
       if(!entity.hasComponent<hm::Transform>()) return;
 
       if(y > FramebufferSize.y-small_face.height()) {
@@ -1042,7 +1048,6 @@ int main(int argc, char *argv[])
       if(x+entity_str_width > FramebufferSize.x) return; // Cull invisible text
 
       auto transform = entity.component<hm::Transform>();
-
       small_face.draw(util::fmt("%.20s(0x%.8x) at: %s",
         entity.gameObject().name(), entity.id(), math::to_str(transform().t.translation())),
         { x, y }, { 1.0f, 1.0f, 1.0f });

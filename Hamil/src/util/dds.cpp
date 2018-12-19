@@ -88,6 +88,11 @@ struct DDSHeaderDX10 {
   u32 array_size;
   u32 reserved_;
 };
+
+struct DXT1Block {
+  u16 col0, col1;
+  u8 row[4];
+};
 #pragma pack(pop)
 
 DDSImage::DDSImage(DDSImage&& other) :
@@ -795,7 +800,33 @@ void DDSImage::copyData(Image& img, void *src, uint flags)
 // TODO: DXT flipping
 void DDSImage::copyDataFlipV(Image& img, void *src)
 {
-  assert(!compressed() && "flipping compressed formats unimplemented1");
+  if(m_format == DXT1) {
+    auto dst_block = (DXT1Block *)img.data.get();
+    auto src_block = (DXT1Block *)src;
+
+    ulong w = (img.width+3) / 4,
+      h = (img.height+3) / 4;
+
+    // Flip blocks
+    ulong num_blocks = w*h;
+    for(ulong i = 0; i < num_blocks; i++) {
+      memcpy(dst_block, src_block, sizeof(u16)*2); // Copy the colors
+
+      dst_block->row[0] = src_block->row[3];
+      dst_block->row[3] = src_block->row[0];
+
+      dst_block->row[1] = src_block->row[2];
+      dst_block->row[2] = src_block->row[1];
+
+      dst_block++;
+      src_block++;
+    }
+
+    return;
+  }
+
+  //assert(!compressed() && "flipping compressed formats unimplemented!");
+  if(compressed()) return;
 
   // Start at the top
   auto dst_row = (byte *)img.data.get();

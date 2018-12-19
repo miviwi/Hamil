@@ -11,7 +11,7 @@ Resource::Ptr Texture::from_yaml(IOBuffer& image,
 {
   auto self = new Texture(id, Texture::tag(), name, File, path);
 
-  self->m_tex.load(image.get(), image.size());
+  self->m_tex.load(image.get(), image.size(), util::DDSImage::FlipV);
   self->m_loaded = true;
 
   return Resource::Ptr(self);
