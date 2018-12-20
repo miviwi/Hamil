@@ -39,17 +39,20 @@ public:
   void init(ivec2 sz);
 
   void init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type);
+  void init(const void *data, unsigned mip, ivec2 sz, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
               Format format, Type type);
 
   // Must be used with Texture::Compressed
   void init(const void *data, unsigned mip, unsigned w, unsigned h, size_t data_size);
+  void init(const void *data, unsigned mip, ivec2 sz, size_t data_size);
 
   /* -------- Texture3D/Texture2DArray init methods -------- */
 
   void init(unsigned w, unsigned h, unsigned d /* num_layers */); // Initializes MipMap level 0
 
   void init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d, Format format, Type type);
+  void init(const void *data, unsigned mip, ivec3 sz, Format format, Type type);
   void upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
               unsigned w, unsigned h, unsigned d, Format format, Type type);
 

@@ -72,22 +72,29 @@ CollisionShapeManager::~CollisionShapeManager()
 
 CollisionShape CollisionShapeManager::box(vec3 half_extents)
 {
-  CollisionShape self = new btBoxShape(to_btVector3(half_extents));
-  self.m->setUserPointer(this);
-
-  m_shapes.insert(self);
-
-  return self;
+  auto e = to_btVector3(half_extents);
+  return initShape(new btBoxShape(e));
 }
 
 CollisionShape CollisionShapeManager::sphere(float radius)
 {
-  CollisionShape self = new btSphereShape(radius);
-  self.m->setUserPointer(this);
+  return initShape(new btSphereShape(radius));
+}
 
-  m_shapes.insert(self);
+CollisionShape CollisionShapeManager::convexHull(float *verts, size_t num_verts, size_t stride)
+{
+  return initShape(new btConvexHullShape((btScalar *)verts, (int)num_verts, (int)stride));
+}
 
-  return self;
+CollisionShape CollisionShapeManager::convexHull(std::function<bool(vec3& dst)> next_vert)
+{
+  auto self = new btConvexHullShape();
+
+  // Add all the vertices one-by-one
+  vec3 vert;
+  while(next_vert(vert)) self->addPoint(to_btVector3(vert));
+
+  return initShape(self);
 }
 
 void CollisionShapeManager::destroy(CollisionShape& shape)
@@ -100,6 +107,14 @@ void CollisionShapeManager::destroy(CollisionShape& shape)
   shape.deref();
 
   m_shapes.erase(shape); // The final deref() will occur here automatically
+}
+
+CollisionShape CollisionShapeManager::initShape(CollisionShape&& shape)
+{
+  shape.m->setUserPointer(this);
+  m_shapes.insert(shape);
+
+  return std::move(shape);
 }
 
 }

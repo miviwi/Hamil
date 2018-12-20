@@ -3,6 +3,7 @@
 #include <math/util.h>
 #include <gx/gx.h>
 
+#include <cassert>
 #include <cstring>
 #include <algorithm>
 
@@ -94,6 +95,32 @@ struct DXT1Block {
   u8 row[4];
 };
 #pragma pack(pop)
+
+// TODO: support integer formats
+const std::set<ulong> DDSImage::SupportedFormats = {
+    RGB8, ARGB8, XRGB8, ABGR8, XBGR8,
+    RGB565, XRGB1555, ARGB1555,
+    A2BGR10, A2RGB10, GR16, ABGR16,
+    A8, L8, L16, AL8,
+    DXT1, DXT2, DXT3, DXT4, DXT5,
+    R16F, GR16F, ABGR16F, R32F, GR32F, ABGR32F,
+
+    DX10,
+
+    RGBA32F, /*RGBA32U, RGBA32I,*/
+    RGB32F, /*RGB32U, RGB32I,*/
+    RG32F, /*RG32U, RG32I,*/
+    RGBA16, RGBA16F, /*RGBA16U, RGBA16I,*/
+    RGB10A2, /*RGB10A2U,*/
+    R11G11B10F,
+    RGBA8, SRGB8_A8, BGRA8, SBGR8_A8,
+    DX10_R32F, /*R32U, R32I,*/
+    R16, DX10_R16F, /*R16U, R16I,*/
+    R8, /*R8U, R8I,*/ RG8, /*RG8U, RG8I,*/
+    BC1, BC1_srgb, BC2, BC2_srgb, BC3, BC3_srgb,
+    BC4, BC4s, BC5, BC5s,
+    BC6H_uf, BC6H_sf, BC7, BC7_srgb,
+};
 
 DDSImage::DDSImage(DDSImage&& other) :
   m_type(other.m_type),
@@ -371,11 +398,13 @@ gx::Format DDSImage::texInternalFormat() const
   case AL8: return gx::rg8;
   case AL4: return gx::rg;
 
-  case DXT1: return gx::dxt1;
-  case DXT2: return gx::dxt1_rgba;
+  // Assume compressed textures are in sRGB color space
+
+  case DXT1: return gx::dxt1_srgb;
+  case DXT2: return gx::dxt1_srgb_alpha;
   case DXT3:
-  case DXT4: return gx::dxt3;
-  case DXT5: return gx::dxt5;
+  case DXT4: return gx::dxt3_srgb;
+  case DXT5: return gx::dxt5_srgb;
 
   case R16F:    return gx::r16f;
   case GR16F:   return gx::rg16f;
@@ -394,35 +423,33 @@ gx::Format DDSImage::texFormat() const
   if(m_format & IsDX10) return texFormatDX10();
 
   switch(m_format) {
-  case RGB8:  return gx::bgr;
-  case XRGB8: return gx::bgra;
-  case XBGR8: return gx::rgba;
-
-  case ARGB8: return gx::bgra;
+  case XBGR8:
   case ABGR8: return gx::rgba;
 
-  case RGB565:   return gx::bgr;
-  case XRGB1555: return gx::bgra;
+  case RGB565:
+  case RGB8:  return gx::bgr;
 
-  case ARGB1555: return gx::bgra;
+  case ARGB8:
+  case XRGB8:
+  case XRGB1555:
+  case ARGB1555:
+  case A2RGB10:  return gx::bgra;
 
-  case A2BGR10: return gx::rgba;
-  case A2RGB10: return gx::bgra;
+  case A2BGR10:
+  case ABGR16:  return gx::rgba;
 
-  case GR16:   return gx::rg;
-  case ABGR16: return gx::rgba;
+  case GR16: return gx::rg;
 
-  case A8:  return gx::r;
-  case L8:  return gx::r;
+  case A8:
+  case L8:
   case L16: return gx::r;
   case AL8: return gx::rg;
 
-  case R16F:    return gx::r;
-  case GR16F:   return gx::rg;
-  case ABGR16F: return gx::rgba;
-
+  case R16F:
   case R32F:    return gx::r;
+  case GR16F:
   case GR32F:   return gx::rg;
+  case ABGR16F:
   case ABGR32F: return gx::rgba;
   }
 
@@ -434,35 +461,34 @@ gx::Type DDSImage::texType() const
   if(m_format & IsDX10) return texTypeDX10();
 
   switch(m_format) {
-  case RGB8:  return gx::u8;
-  case XRGB8:
-  case XBGR8: return gx::u32;
-
-  case ARGB8: return gx::u8;
+  case RGB8:
+  case ARGB8:
   case ABGR8: return gx::u8;
 
-  case RGB565:   return gx::u16_565;
-  case XRGB1555: return gx::u16_5551;
+  case XRGB8: return gx::u32_8888r;
+  case XBGR8: return gx::u32_8888;
 
+  case RGB565:   return gx::u16_565;
+  case XRGB1555:
   case ARGB1555: return gx::u16_5551;
 
-  case A2BGR10: return gx::u32_10_10_10_2;
+  case A2BGR10:
   case A2RGB10: return gx::u32_10_10_10_2;
 
-  case GR16:   return gx::u16;
+  case GR16:
   case ABGR16: return gx::u16;
 
   case A8:
-  case L8:  return gx::u8;
-  case L16: return gx::u16;
+  case L8:
   case AL8: return gx::u8;
+  case L16: return gx::u16;
 
-  case R16F:    return gx::f16;
-  case GR16F:   return gx::f16;
+  case R16F:
+  case GR16F:
   case ABGR16F: return gx::f16;
 
-  case R32F:    return gx::f32;
-  case GR32F:   return gx::f32;
+  case R32F:
+  case GR32F:
   case ABGR32F: return gx::f32;
   }
 
@@ -745,15 +771,15 @@ gx::Format DDSImage::texFormatDX10() const
   case RG32F:     return gx::rg;
   case DX10_R32F: return gx::r;
 
-  case RGBA16:  return gx::rgba;
+  case RGBA16:
   case RGBA16F: return gx::rgba;
 
   case RGB10A2:    return gx::rgba;
   case R11G11B10F: return gx::rgb;
 
-  case RGBA8:    return gx::rgba;
+  case RGBA8:
   case SRGB8_A8: return gx::rgba;
-  case BGRA8:    return gx::bgra;
+  case BGRA8:
   case SBGR8_A8: return gx::bgra;
 
   case R8:  return gx::r;
@@ -797,62 +823,84 @@ void DDSImage::copyData(Image& img, void *src, uint flags)
   }
 }
 
+static void flip_dxt1_block(void *src_ptr, void *dst_ptr)
+{
+  auto src = (DXT1Block *)src_ptr,
+    dst = (DXT1Block *)dst_ptr;
+
+  memcpy(dst, src, sizeof(u16)*2); // Copy the colors
+
+  // Flip the rows
+  dst->row[0] = src->row[3];
+  dst->row[3] = src->row[0];
+
+  dst->row[1] = src->row[2];
+  dst->row[2] = src->row[1];
+}
+
+const std::map<ulong, std::pair<size_t, DDSImage::FlipBlockFn>> DDSImage::flip_fns = {
+  { DXT1,     { sizeof(DXT1Block), flip_dxt1_block } },
+  { BC1,      { sizeof(DXT1Block), flip_dxt1_block } },
+  { BC1_srgb, { sizeof(DXT1Block), flip_dxt1_block } },
+};
+
 // TODO: DXT flipping
 void DDSImage::copyDataFlipV(Image& img, void *src)
 {
-  if(m_format == DXT1) {
-    auto dst_block = (DXT1Block *)img.data.get();
-    auto src_block = (DXT1Block *)src;
+  if(compressed()) {
+    auto it = flip_fns.find(m_format & ~IsDX10);
+    assert(it != flip_fns.end() && "Invalid format!");
 
-    ulong w = (img.width+3) / 4,
-      h = (img.height+3) / 4;
+    auto [block_sz, flip_block] = it->second;
+    copyDataFlipVCompressed(img, src, block_sz, flip_block);
+  } else {
+    // Start at the top
+    auto dst_row = (byte *)img.data.get();
 
-    // Flip blocks
-    ulong num_blocks = w*h;
-    for(ulong i = 0; i < num_blocks; i++) {
-      memcpy(dst_block, src_block, sizeof(u16)*2); // Copy the colors
+    // Start at the bottom (last_row == num_rows-1)
+    auto src_row = (byte *)src + (img.height-1)*m_pitch;
 
-      dst_block->row[0] = src_block->row[3];
-      dst_block->row[3] = src_block->row[0];
+    for(ulong y = img.height; y > 0; y--) {
+      memcpy(dst_row, src_row, m_pitch);
 
-      dst_block->row[1] = src_block->row[2];
-      dst_block->row[2] = src_block->row[1];
+      dst_row += m_pitch;
+      src_row -= m_pitch;
+    }
+  }
+}
 
-      dst_block++;
-      src_block++;
+void DDSImage::copyDataFlipVCompressed(Image& img, void *src, size_t block_sz, FlipBlockFn flip_block)
+{
+  ulong w = (img.width+3) / 4,
+    h = (img.height+3) / 4;
+
+  auto src_ptr = (byte *)src + w*(h-1)*block_sz;
+
+  StridePtr<byte> src_block(src_ptr, block_sz);         // Bottom
+  StridePtr<byte> dst_block(img.data.get(), block_sz);  // Top
+
+  // Flip block-wise
+  for(ulong y = 0; y < h; y++) {
+    auto src = src_block, dst = dst_block;
+    for(ulong x = 0; x < w; x++) {
+      flip_block(src.get(), dst.get());
+
+      dst++; src++;
     }
 
-    return;
-  }
-
-  //assert(!compressed() && "flipping compressed formats unimplemented!");
-  if(compressed()) return;
-
-  // Start at the top
-  auto dst_row = (byte *)img.data.get();
-
-  // Start at the bottom (last_row == num_rows-1)
-  auto src_row = (byte *)src + (img.height-1)*m_pitch;
-
-  for(ulong y = img.height; y > 0; y--) {
-    memcpy(dst_row, src_row, m_pitch);
-
-    dst_row += m_pitch;
-    src_row -= m_pitch;
+    dst_block += w;
+    src_block -= w;
   }
 }
 
 void DDSImage::checkFormatSupported()
 {
-  if(m_format & IsDX10) return;   // All DX10 formats supported
+  // Check if the format is supported
+  auto supported_it = SupportedFormats.find(m_format & ~IsDX10);
+  if(supported_it != SupportedFormats.end()) return;
 
-  switch(m_format) {
-  case AL4:
-  case ARGB4: case XRGB4:
-  case RGB332:
-  case ARGB8332:
-    throw UnsupportedFormatError();
-  }
+  // Format unsupported...
+  throw UnsupportedFormatError();
 }
 
 }

@@ -464,6 +464,8 @@ struct /* alignas(16) for intrin */ Vector4 {
 
   Vector4 operator-() const { return { -x, -y, -z, -w }; }
 
+  static Vector4 zero() { return { (T)0, (T)0, (T)0, (T)0 }; }
+
   operator T *() { return (T *)this; }
   operator const T *() const { return (const T *)this; }
 };

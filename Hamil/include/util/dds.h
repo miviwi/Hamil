@@ -7,6 +7,8 @@
 
 #include <utility>
 #include <vector>
+#include <map>
+#include <set>
 #include <memory>
 
 namespace gx {
@@ -111,7 +113,15 @@ public:
 
     std::unique_ptr<byte[]> data;
     size_t sz;
+
+    // data.get()
+    byte *getData() const { return data.get(); }
+
+    ivec2 size2d() const { return uvec2(width, height).cast<int>(); }
+    ivec3 size3d() const { return uvec3(width, height, depth).cast<int>(); }
   };
+
+  static const std::set<ulong /* Format */> SupportedFormats;
 
   using MipChain = util::SmallVector<Image, 64>;
 
@@ -242,6 +252,17 @@ private:
 
   // Copies 'src' to 'dst' flipping it vertically
   void copyDataFlipV(Image& img, void *src);
+
+  using FlipBlockFn = void (*)(void *src, void *dst);
+  static const std::map<
+    ulong /* Format */, std::pair<size_t /* block_sz */, FlipBlockFn>
+  > flip_fns;
+
+  // 'flip_block' should take one block from memory
+  //   pointed-to by 'src' flip it and copy it
+  //   to 'dst'
+  void copyDataFlipVCompressed(Image& img, void *src,
+    size_t block_sz, FlipBlockFn flip_block);
 
   // Throws UnsupportedFormatError if the image is
   //   in an unsuported format

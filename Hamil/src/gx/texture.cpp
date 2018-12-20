@@ -16,6 +16,10 @@ static void init_check_compressed(Format fmt);
 //   accept the Texture::Compressed Flag
 static void ctor_check_compressed(Format fmt);
 
+// Ensures all components of 'sz' are >= 0
+static void size_check(ivec2 sz);
+static void size_check(ivec3 sz);
+
 Texture::Texture(GLenum target, Format format) :
   m_target(target), m_format(format)
 {
@@ -68,7 +72,7 @@ void Texture::init(unsigned w, unsigned h)
 
 void Texture::init(ivec2 sz)
 {
-  assert((sz.x >= 0 && sz.y >= 0) && "Attempted to init a Texture with negative size!");
+  size_check(sz);
 
   init((unsigned)sz.x, (unsigned)sz.y);
 }
@@ -79,6 +83,13 @@ void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Forma
   glTexImage2D(m_target, mip, m_format, w, h, 0, format, type, data);
 
   set_default_parameters(m_target);
+}
+
+void Texture::init(const void *data, unsigned mip, ivec2 sz, Format format, Type type)
+{
+  size_check(sz);
+
+  init(data, mip, (unsigned)sz.x, (unsigned)sz.y, format, type);
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
@@ -98,6 +109,13 @@ void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, size_
   set_default_parameters(m_target);
 }
 
+void Texture::init(const void *data, unsigned mip, ivec2 sz, size_t data_size)
+{
+  size_check(sz);
+
+  init(data, mip, (unsigned)sz.x, (unsigned)sz.y, data_size);
+}
+
 void Texture::init(unsigned w, unsigned h, unsigned d)
 {
   use();
@@ -113,6 +131,13 @@ void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsig
   glTexImage3D(m_target, 0, m_format, w, h, d, 0, format, type, data);
 
   set_default_parameters(m_target);
+}
+
+void Texture::init(const void *data, unsigned mip, ivec3 sz, Format format, Type type)
+{
+  size_check(sz);
+
+  init(data, mip, (unsigned)sz.x, (unsigned)sz.y, (unsigned)sz.z, format, type);
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
@@ -219,7 +244,7 @@ void Texture2D::initMultisample(unsigned samples, unsigned w, unsigned h)
 
 void Texture2D::initMultisample(unsigned samples, ivec2 sz)
 {
-  assert((sz.x >= 0 && sz.y >= 0) && "Attempted to initMultisample a Texture with negative size!");
+  size_check(sz);
 
   initMultisample(samples, (unsigned)sz.x, (unsigned)sz.y);
 }
@@ -586,6 +611,18 @@ void ctor_check_compressed(Format fmt)
 {
   assert(is_compressed_format(fmt) &&
     "A compressed Format must be used when creating a Texture with Texture::Compressed!");
+}
+
+void size_check(ivec2 sz)
+{
+  assert((sz.x >= 0 && sz.y >= 0)
+    && "Attempted to init a Texture with negative size!");
+}
+
+void size_check(ivec3 sz)
+{
+  assert((sz.x >= 0 && sz.y >= 0 && sz.z >= 0) &&
+    "Attempted to init a Texture with negative size!");
 }
 
 }

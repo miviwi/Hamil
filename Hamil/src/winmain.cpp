@@ -164,7 +164,8 @@ int main(int argc, char *argv[])
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3)
-    .attr(gx::f32, 2);
+    //.attr(gx::f32, 2);
+    .attrAlias(0, gx::f32, 2);
 
   auto bunny_vbuf_id = pool.createBuffer<gx::VertexBuffer>("bvBunny",
     gx::Buffer::Static);
@@ -178,12 +179,14 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_bunny0 = R.mesh.autumn_plains;
+  res::Handle<res::Mesh> r_model = R.mesh.monkey_cube,
+    r_model_hull = R.mesh.monkey_cube_hulls;
 
-  auto& obj_loader = (mesh::ObjLoader&)r_bunny0->loader();
+  auto& obj_loader = (mesh::ObjLoader&)r_model->loader();
+  auto& obj_hull_loader = (mesh::ObjLoader&)r_model_hull->loader();
 
-  auto bunny_load_job = obj_loader.streamIndexed(bunny_fmt, bunny_vbuf, bunny_ibuf);
-  auto bunny_load_job_id = worker_pool.scheduleJob(bunny_load_job.get());
+  auto model_load_job = obj_loader.streamIndexed(bunny_fmt, bunny_vbuf, bunny_ibuf);
+  auto model_load_job_id = worker_pool.scheduleJob(model_load_job.get());
 
   ft::Font face(ft::FontFamily("georgia"), 35);
   ft::Font small_face(ft::FontFamily("segoeui"), 12);
@@ -208,11 +211,10 @@ int main(int argc, char *argv[])
 
   auto tex_id = pool.createTexture<gx::Texture2D>("t2dFloor", desk.texInternalFormat());
   auto& tex = pool.getTexture<gx::Texture2D>(tex_id);
-  auto floor_sampler_id = pool.create<gx::Sampler>("sFloor", 
-    gx::Sampler::repeat2d_mipmap()
-      .param(gx::Sampler::Anisotropy, 16.0f));
+  auto floor_sampler_id = pool.create<gx::Sampler>("sFloor",
+    gx::Sampler::borderclamp2d());
 
-  tex.init(desk.image().data.get(), 0, desk.image().width, desk.image().height, desk.image().sz);
+  tex.init(desk.image().getData(), 0, desk.image().size2d(), desk.image().sz);
   tex.generateMipmaps();
 
   byte cubemap_colors[][3] = {
@@ -681,6 +683,7 @@ int main(int argc, char *argv[])
   };
 
   auto create_model = [&](const mesh::Mesh& mesh, const mesh::ObjMesh& obj,
+    const mesh::ObjMesh& hull, const vec3 *hull_verts,
     const std::string& name = "")
   {
     vec3 origin = { 0.0f, 8.0f, -30.0f };
@@ -691,8 +694,17 @@ int main(int argc, char *argv[])
 
     vec3 extents = aabb.max - aabb.min;
 
-    auto model_shape = bt::shapes().box(extents * 0.5f);
-    auto body = bt::RigidBody::create(model_shape, origin);
+    uint idx = 0;
+    const auto& faces = hull.faces();
+    auto model_shape = bt::shapes().convexHull([&](vec3 &dst) -> bool {
+      if(idx >= faces.size()*3) return false;
+
+      dst = hull_verts[faces[idx/3][idx%3].v];
+      idx++;
+
+      return true;
+    });
+    auto body = bt::RigidBody::create(model_shape, origin, 1.0f);
 
     auto entity = hm::entities().createGameObject(
       !name.empty() ? name : obj.name(),
@@ -709,10 +721,11 @@ int main(int argc, char *argv[])
 
     auto material = entity.addComponent<hm::Material>();
 
-    material().diff_type = hm::Material::DiffuseTexture;
-    material().diff_tex.id = tex_id;
-    material().diff_tex.sampler_id = floor_sampler_id;
-    //material().diff_color = { 0.53f, 0.8f, 0.94f };
+    //material().diff_type = hm::Material::DiffuseTexture;
+    //material().diff_tex.id = tex_id;
+    //material().diff_tex.sampler_id = floor_sampler_id;
+    material().diff_type = hm::Material::DiffuseConstant;
+    material().diff_color = { 0.53f, 0.8f, 0.94f };
 
     material().metalness = 0.0f;
     material().roughness = 0.7f;
@@ -975,14 +988,18 @@ int main(int argc, char *argv[])
     auto extract_for_shadows_job = ek::renderer().extractForView(scene, shadow_view);
     auto extract_for_shadows_job_id = worker_pool.scheduleJob(extract_for_shadows_job.get());
 
-    if(bunny_load_job->done() && bunny_load_job_id != sched::WorkerPool::InvalidJob) {
-      worker_pool.waitJob(bunny_load_job_id);
-      bunny_load_job_id = sched::WorkerPool::InvalidJob;
+    if(model_load_job->done() && model_load_job_id != sched::WorkerPool::InvalidJob) {
+      worker_pool.waitJob(model_load_job_id);
+      model_load_job_id = sched::WorkerPool::InvalidJob;
+
+      ((mesh::MeshLoader&)obj_hull_loader).load();
+      auto hull_verts = obj_hull_loader.vertices().data();
 
       hm::components().requireUnlocked();
 
       for(uint i = 0; i < obj_loader.numMeshes(); i++) {
         auto& mesh = obj_loader.mesh(i);
+        auto& hull = obj_hull_loader.mesh(i);
         auto num_inds = mesh.faces().size() * 3;
         auto bunny_mesh = mesh::Mesh()
           .withNormals()
@@ -991,7 +1008,7 @@ int main(int argc, char *argv[])
           .withNum((u32)num_inds)
           .withOffset((u32)mesh.offset());
 
-        bunny = create_model(bunny_mesh, mesh);
+        bunny = create_model(bunny_mesh, mesh, hull, hull_verts);
       }
 
       hm::components().endRequireUnlocked();

@@ -46,6 +46,17 @@ public:
     return p;
   }
 
+  StridePtr& operator+=(size_t off)
+  {
+    m_ptr = (T *)((u8 *)m_ptr + m_stride*off);
+    return *this;
+  }
+  StridePtr& operator-=(size_t off)
+  {
+    m_ptr = (T *)((u8 *)m_ptr - m_stride*off);
+    return *this;
+  }
+
   T *get() const { return m_ptr; }
 
   size_t stride() const { return m_stride; }
