@@ -73,7 +73,7 @@ struct Vector2 {
   Vector2 ceil() const { return { std::ceil(x), std::ceil(y) }; }
 
   template <typename U>
-  Vector2<U> cast() const
+  constexpr Vector2<U> cast() const
   {
     return Vector2<U>{ (U)x, (U)y };
   }
@@ -99,6 +99,12 @@ inline Vector2<T> operator+(Vector2<T> a, Vector2<T> b)
 }
 
 template <typename T>
+inline Vector2<T> operator+(Vector2<T> a, T u)
+{
+  return Vector2<T>{ a.x+u, a.y+u };
+}
+
+template <typename T>
 inline Vector2<T> operator-(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x-b.x, a.y-b.y };
@@ -114,6 +120,18 @@ template <typename T>
 inline Vector2<T> operator*(Vector2<T> a, T u)
 {
   return Vector2<T>{ a.x*u, a.y*u };
+}
+
+template <typename T>
+inline Vector2<T> operator/(Vector2<T> a, Vector2<T> b)
+{
+  return Vector2<T>{ a.x/b.x, a.y/b.y };
+}
+
+template <typename T>
+inline Vector2<T> operator/(Vector2<T> a, T u)
+{
+  return Vector2<T>{ a.x/u, a.y/u };
 }
 
 template <typename T>
@@ -243,7 +261,7 @@ struct Vector3 {
   Vector3 operator-() const { return { -x, -y, -z }; }
 
   template <typename U>
-  Vector3<U> cast() const
+  constexpr Vector3<U> cast() const
   {
     return Vector3<U>{ (U)x, (U)y, (U)z };
   }
@@ -474,6 +492,12 @@ template <typename T>
 inline Vector4<T> operator+(Vector4<T> a, Vector4<T> b)
 {
   return Vector4<T>{ (T)(a.x+b.x), (T)(a.y+b.y), (T)(a.z+b.z), (T)(a.w+b.w) };
+}
+
+template <typename T>
+inline Vector4<T> operator+(Vector4<T> a, T u)
+{
+  return Vector4<T>{ (T)(a.x+u), (T)(a.y+u), (T)(a.z+u), (T)(a.w+u) };
 }
 
 template <typename T>

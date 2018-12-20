@@ -22,6 +22,19 @@ uint VisibilityObject::numMeshes() const
   return m_meshes.size();
 }
 
+VisibilityObject& VisibilityObject::addMesh(VisibilityMesh&& mesh)
+{
+  // Update the cummulative AABB
+  m_aabb = {
+    vec3::min(m_aabb.min, mesh.aabb.min),
+    vec3::max(m_aabb.max, mesh.aabb.max)
+  };
+
+  m_meshes.emplace_back(std::move(mesh));
+
+  return *this;
+}
+
 VisibilityObject& VisibilityObject::transformMeshes(const mat4& viewprojectionviewport)
 {
   // Transform all the meshes into screen space
@@ -50,12 +63,17 @@ void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
   }
 }
 
-VisibilityMesh::Triangle VisibilityMesh::gatherTri(uint idx)
+VisibilityMesh::Triangle VisibilityMesh::gatherTri(uint idx) const
 {
   auto off = idx*3;
-  u16 inds[3] = { inds[off + 0], inds[off + 1], inds[off + 2] };
+  u16 vidx[3] = { inds[off + 0], inds[off + 1], inds[off + 2] };
 
-  return { xformed[inds[0]], xformed[inds[1]], xformed[inds[2]] };
+  return { xformed[vidx[0]], xformed[vidx[1]], xformed[vidx[2]] };
+}
+
+uint VisibilityMesh::numTriangles() const
+{
+  return num_inds / 3;  // Each triangle has 3 vertices
 }
 
 }

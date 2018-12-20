@@ -100,6 +100,9 @@
 #include <ek/renderer.h>
 #include <ek/renderview.h>
 #include <ek/renderobject.h>
+#include <ek/visibility.h>
+#include <ek/visobject.h>
+#include <ek/occlusion.h>
 
 #include <cli/cli.h>
 
@@ -686,7 +689,7 @@ int main(int argc, char *argv[])
     const mesh::ObjMesh& hull, const vec3 *hull_verts,
     const std::string& name = "")
   {
-    vec3 origin = { 0.0f, 8.0f, -30.0f };
+    vec3 origin = { 0.0f, 8.0f, -300.0f };
     vec3 scale(1.0f);
 
     AABB aabb = obj.aabb().scale(scale);
@@ -798,6 +801,9 @@ int main(int argc, char *argv[])
   size_t gpu_frametime = 0;
 
   create_lights();
+      gx::Texture2D occlusion_tex(gx::r16f);
+      occlusion_tex.label("t2dOcclusionBuffer");
+
 
   while(window.processMessages()) {
     using hm::entities;
@@ -997,9 +1003,29 @@ int main(int argc, char *argv[])
 
       hm::components().requireUnlocked();
 
+      ek::ViewVisibility vis;
+      vis.viewProjection(persp * view)
+        .nearDistance(30.0f);
+
+      std::vector<std::vector<u16>> hull_inds_vec;
+
       for(uint i = 0; i < obj_loader.numMeshes(); i++) {
         auto& mesh = obj_loader.mesh(i);
         auto& hull = obj_hull_loader.mesh(i);
+
+        auto& hull_inds = hull_inds_vec.emplace_back();
+        for(auto& face : mesh.faces()) {
+          for(auto& v : face) hull_inds.push_back(v.v);
+        }
+
+        auto vis_object = new ek::VisibilityObject();
+        vis_object->addMesh(ek::VisibilityMesh::from_vectors(
+          xform::translate(0.0f, 8.0f, -300.0f), hull.aabb(),
+          obj_loader.vertices(), hull_inds
+        ));
+
+        vis.addObject(vis_object);
+
         auto num_inds = mesh.faces().size() * 3;
         auto bunny_mesh = mesh::Mesh()
           .withNormals()
@@ -1010,6 +1036,14 @@ int main(int argc, char *argv[])
 
         bunny = create_model(bunny_mesh, mesh, hull, hull_verts);
       }
+
+      vis.transformObjects();
+      vis.binTriangles();
+      vis.rasterizeOcclusionBuf();
+
+      const auto& occlusion_buf = vis.occlusionBuf();
+
+      occlusion_tex.init(occlusion_buf.framebuffer(), 0, occlusion_buf.Size, gx::r, gx::f32);
 
       hm::components().endRequireUnlocked();
     }

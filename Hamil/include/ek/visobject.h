@@ -19,6 +19,8 @@ struct VisibilityMesh {
 
   mat4 model = mat4::identity();
 
+  AABB aabb;
+
   u32 num_verts = 0;
   u32 num_inds = 0;
 
@@ -28,12 +30,13 @@ struct VisibilityMesh {
   const u16 *inds = nullptr;
 
   template <typename VertsVec>
-  static VisibilityMesh from_vectors(const mat4& model,
+  static VisibilityMesh from_vectors(const mat4& model, const AABB& aabb,
     const VertsVec& verts, const std::vector<u16>& inds)
   {
     VisibilityMesh self;
 
     self.model = model;
+    self.aabb = aabb;
 
     self.num_verts = (u32)verts.size();
     self.num_inds  = (u32)inds.size();
@@ -51,7 +54,9 @@ struct VisibilityMesh {
 
   // Returns the transformed vertices for triangle formed
   //   from indices at offset idx*3 in 'inds'
-  Triangle gatherTri(uint idx);
+  Triangle gatherTri(uint idx) const;
+
+  uint numTriangles() const;
 };
 
 class VisibilityObject {
@@ -66,6 +71,8 @@ public:
   // Returns the max_index+1 which can be passed to mesh()
   uint numMeshes() const;
 
+  VisibilityObject& addMesh(VisibilityMesh&& mesh);
+
   // Fills VisibilityMesh::xformed arrays with
   //   screen space vertex coords
   VisibilityObject& transformMeshes(const mat4& viewprojectionviewport);
@@ -73,10 +80,9 @@ public:
 private:
   void transformOne(VisibilityMesh& mesh, const mat4& mvp);
 
-  AABB m_aabb;
+  AABB m_aabb = { vec3(INFINITY), vec3(-INFINITY) };
 
-  // Holds 1 VisibilityMesh inline
-  util::SmallVector<VisibilityMesh, 128> m_meshes;
+  std::vector<VisibilityMesh> m_meshes;
 };
 
 }

@@ -7,12 +7,12 @@ namespace ek {
 ViewVisibility& ViewVisibility::viewProjection(const mat4& vp)
 {
   m_viewprojection = vp;
-  m_viewprojectionviewport = vp * OcclusionBuffer::ViewportMatrix;
+  m_viewprojectionviewport = OcclusionBuffer::ViewportMatrix * vp;
 
   return *this;
 }
 
-ViewVisibility& ViewVisibility::near(float n)
+ViewVisibility& ViewVisibility::nearDistance(float n)
 {
   m_near = n;
 
@@ -39,6 +39,25 @@ ViewVisibility& ek::ViewVisibility::transformObjects()
   }
 
   return *this;
+}
+
+ViewVisibility& ViewVisibility::binTriangles()
+{
+  m_occlusion_buf.binTriangles(m_objects);
+
+  return *this;
+}
+
+ViewVisibility & ViewVisibility::rasterizeOcclusionBuf()
+{
+  m_occlusion_buf.rasterizeBinnedTriangles(m_objects);
+
+  return *this;
+}
+
+const OcclusionBuffer& ViewVisibility::occlusionBuf() const
+{
+  return m_occlusion_buf;
 }
 
 }

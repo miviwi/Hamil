@@ -17,7 +17,7 @@ public:
   //   be used to transform VisibilityMeshes
   ViewVisibility& viewProjection(const mat4& vp);
   // Sets the near plane distance
-  ViewVisibility& near(float n);
+  ViewVisibility& nearDistance(float n);
 
   // Adds an occluder to an internal array
   //   - 'object' should be allocated with new
@@ -29,6 +29,11 @@ public:
   // Calls VisibilityObject::transformMeshes() on all
   //   VisibilityObjects added by addObject()
   ViewVisibility& transformObjects();
+
+  ViewVisibility& binTriangles();
+  ViewVisibility& rasterizeOcclusionBuf();
+
+  const OcclusionBuffer& occlusionBuf() const;
 
 private:
   mat4 m_viewprojection;

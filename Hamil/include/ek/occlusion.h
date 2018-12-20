@@ -30,19 +30,29 @@ public:
     MaxTriangles = NumTrisPerBin * NumBins,
   };
 
+  static constexpr ivec2 Offset1 = { 1, SizeInTiles.x };
+  static constexpr ivec2 Offset2 = { NumTrisPerBin, SizeInTiles.x * NumTrisPerBin };
+
   static constexpr mat4 ViewportMatrix = {
-    (float)Size.x * 0.5f,                  0.0f, 0.0f, 0.0f,
-                    0.0f, (float)Size.y * -0.5f, 0.0f, 0.0f,
-                    0.0f,                  0.0f, 1.0f, 0.0f,
-    (float)Size.x * 0.5f, (float)Size.y *  0.5f, 0.0f, 1.0f,
+    (float)Size.x * 0.5f,                  0.0f, 0.0f, (float)Size.x * 0.5f,
+                    0.0f, (float)Size.y * -0.5f, 0.0f, (float)Size.y * 0.5f,
+                    0.0f,                  0.0f, 1.0f,                 0.0f,
+                    0.0f,                  0.0f, 0.0f,                 1.0f,
   };
 
   OcclusionBuffer();
 
   OcclusionBuffer& binTriangles(const std::vector<VisibilityObject::Ptr>& objects);
 
+  OcclusionBuffer& rasterizeBinnedTriangles(const std::vector<VisibilityObject::Ptr>& objects);
+
+  const float *framebuffer() const;
+
 private:
-  void binTriangles(const VisibilityMesh& mesh);
+  void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);
+
+  void clearTile(ivec2 start, ivec2 end);
+  void rasterizeTile(const std::vector<VisibilityObject::Ptr>& objects, uint tile_idx);
 
   // The framebuffer of size Size.area()
   std::unique_ptr<float[]> m_fb;
@@ -53,7 +63,10 @@ private:
   std::unique_ptr<uint[]> m_bin;    // Triangle index
 
   // Stores SizeInTiles.area() (number of bins) entries
-  std::unique_ptr<u16[]> m_bin_sz;
+  std::unique_ptr<u16[]> m_bin_counts;
+
+  // Stores the number of rasterized triangles per bin
+  std::unique_ptr<u16[]> m_drawn_tris;
 };
 
 }
