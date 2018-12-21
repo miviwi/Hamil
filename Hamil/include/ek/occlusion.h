@@ -10,6 +10,17 @@
 
 namespace ek {
 
+union XY {
+  struct { u16 x, y; };
+
+  u32 xy;
+};
+
+struct BinnedTri {
+  XY v[3];
+  float Z[3];  // Plane equation
+};
+
 class OcclusionBuffer {
 public:
   // Size of the underlying framebuffer
@@ -28,6 +39,8 @@ public:
     NumBins = SizeInTiles.area(),
 
     MaxTriangles = NumTrisPerBin * NumBins,
+
+    NumSIMDLanes = 4,
   };
 
   static constexpr ivec2 Offset1 = { 1, SizeInTiles.x };
@@ -46,7 +59,12 @@ public:
 
   OcclusionBuffer& rasterizeBinnedTriangles(const std::vector<VisibilityObject::Ptr>& objects);
 
+  // Returns the framebuffer which can potentially be
+  //   tile in 2x2 pixel quads
   const float *framebuffer() const;
+  // Returns a copy of the framebuffer which has been
+  //   detiled and flipped vertically
+  std::unique_ptr<float[]> detiledFramebuffer() const;
 
 private:
   void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);
@@ -57,10 +75,14 @@ private:
   // The framebuffer of size Size.area()
   std::unique_ptr<float[]> m_fb;
 
+#if defined(NO_OCCLUSION_SSE)
   // Stores SizeInTiles.area() * NumTrisPerBins entries
   std::unique_ptr<u16[]> m_obj_id;  // VisibilityObject index
   std::unique_ptr<u16[]> m_mesh_id; // VisibilityMesh index
   std::unique_ptr<uint[]> m_bin;    // Triangle index
+#else
+  std::unique_ptr<BinnedTri[]> m_bin;
+#endif
 
   // Stores SizeInTiles.area() (number of bins) entries
   std::unique_ptr<u16[]> m_bin_counts;

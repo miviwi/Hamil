@@ -4,6 +4,7 @@
 
 #include <util/smallvector.h>
 #include <math/geometry.h>
+#include <math/util.h>
 
 #include <utility>
 #include <array>
@@ -11,6 +12,11 @@
 #include <memory>
 
 namespace ek {
+
+union VisMesh4Tris {
+  struct { __m128 X, Y, Z, W; };
+  __m128 v[4];
+};
 
 // Stores pointers to vertex and index data for a mesh
 //   along with an array of transformed vertices
@@ -45,7 +51,11 @@ struct VisibilityMesh {
       /* cast to silence IntelliSense */ (void *)verts.data(),
       sizeof(VertsVec::value_type)
     );
+#if defined(NO_OCCLUSION_SSE)
     self.xformed = std::make_unique<vec4[]>(self.num_verts);
+#else
+    self.xformed = std::make_unique<vec4[]>(pow2_align(self.num_verts, 16));
+#endif
 
     self.inds = inds.data();
 
@@ -55,6 +65,8 @@ struct VisibilityMesh {
   // Returns the transformed vertices for triangle formed
   //   from indices at offset idx*3 in 'inds'
   Triangle gatherTri(uint idx) const;
+
+  void gatherTri4(VisMesh4Tris tris[3], uint idx, uint num_lanes) const;
 
   uint numTriangles() const;
 };

@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_model = R.mesh.monkey_cube,
+  res::Handle<res::Mesh> r_model = R.mesh.autumn_plains,
     r_model_hull = R.mesh.monkey_cube_hulls;
 
   auto& obj_loader = (mesh::ObjLoader&)r_model->loader();
@@ -689,7 +689,7 @@ int main(int argc, char *argv[])
     const mesh::ObjMesh& hull, const vec3 *hull_verts,
     const std::string& name = "")
   {
-    vec3 origin = { 0.0f, 8.0f, -300.0f };
+    vec3 origin = { 0.0f, 4.0f, -100.0f };
     vec3 scale(1.0f);
 
     AABB aabb = obj.aabb().scale(scale);
@@ -720,7 +720,7 @@ int main(int argc, char *argv[])
     entity.addComponent<hm::RigidBody>(body);
     entity.addComponent<hm::Mesh>(mesh);
 
-    world.addRigidBody(body);
+    //world.addRigidBody(body);
 
     auto material = entity.addComponent<hm::Material>();
 
@@ -1011,7 +1011,7 @@ int main(int argc, char *argv[])
 
       for(uint i = 0; i < obj_loader.numMeshes(); i++) {
         auto& mesh = obj_loader.mesh(i);
-        auto& hull = obj_hull_loader.mesh(i);
+        auto& hull = obj_hull_loader.mesh(0);
 
         auto& hull_inds = hull_inds_vec.emplace_back();
         for(auto& face : mesh.faces()) {
@@ -1020,7 +1020,7 @@ int main(int argc, char *argv[])
 
         auto vis_object = new ek::VisibilityObject();
         vis_object->addMesh(ek::VisibilityMesh::from_vectors(
-          xform::translate(0.0f, 8.0f, -300.0f), hull.aabb(),
+          xform::translate(0.0f, 4.0f, -100.0f), hull.aabb(),
           obj_loader.vertices(), hull_inds
         ));
 
@@ -1041,9 +1041,9 @@ int main(int argc, char *argv[])
       vis.binTriangles();
       vis.rasterizeOcclusionBuf();
 
-      const auto& occlusion_buf = vis.occlusionBuf();
+      auto occlusion_buf = vis.occlusionBuf().detiledFramebuffer();
 
-      occlusion_tex.init(occlusion_buf.framebuffer(), 0, occlusion_buf.Size, gx::r, gx::f32);
+      occlusion_tex.init(occlusion_buf.get(), 0, ek::OcclusionBuffer::Size, gx::r, gx::f32);
 
       hm::components().endRequireUnlocked();
     }
