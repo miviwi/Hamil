@@ -54,7 +54,7 @@ private:
 
 #if !defined(NDEBUG)
   bool m_waited = true;
-  char *m_label;   // allocated via new[]
+  char *m_label = nullptr;   // allocated via new[]
 #endif
 };
 

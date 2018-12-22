@@ -20,10 +20,7 @@ public:
   ViewVisibility& nearDistance(float n);
 
   // Adds an occluder to an internal array
-  //   - 'object' should be allocated with new
-  //     and doesn't need to have delete called
-  //     on it (the ViewVisibility object takes
-  //     care of it)
+  //  - The added object must be freed by the caller
   ViewVisibility& addObject(VisibilityObject *object);
 
   // Calls VisibilityObject::transformMeshes() on all
@@ -40,7 +37,7 @@ private:
   mat4 m_viewprojectionviewport;
   float m_near;  // Distance to the near plane
 
-  std::vector<VisibilityObject::Ptr> m_objects;
+  std::vector<VisibilityObject *> m_objects;
   OcclusionBuffer m_occlusion_buf;
 };
 

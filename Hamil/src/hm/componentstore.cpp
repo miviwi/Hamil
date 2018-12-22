@@ -43,7 +43,7 @@ void IComponentStore::lock()
   //   on 'm_mutex' so the counter is now in an
   //   unknown state so we'll reacquire it to
   //   wait once more
-  m_mutex.release();
+  //m_mutex.release();
 
   lock();   // Retry
 }

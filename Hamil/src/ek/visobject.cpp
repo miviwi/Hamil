@@ -4,7 +4,14 @@
 #include <pmmintrin.h>
 #include <emmintrin.h>
 
+#include <cstdlib>
+
 namespace ek {
+
+void free_xformed(vec4 *v)
+{
+  free(v);
+}
 
 const AABB& VisibilityObject::aabb() const
 {
@@ -90,6 +97,10 @@ void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
     __m128 Z = _mm_permute_ps(xformed, _MM_SHUFFLE(2, 2, 2, 2));
     __m128 W = _mm_permute_ps(xformed, _MM_SHUFFLE(3, 3, 3, 3));
 #else
+// The macros here don't need an #undef
+//   because they don't escape out of
+//   their respective translation units
+//   anyways
 #define ps_epi32(r) _mm_castps_si128(r)
 #define epi32_ps(r) _mm_castsi128_ps(r)
 
@@ -112,7 +123,10 @@ VisibilityMesh::Triangle VisibilityMesh::gatherTri(uint idx) const
   auto off = idx*3;
   u16 vidx[3] = { inds[off + 0], inds[off + 1], inds[off + 2] };
 
-  return { xformed[vidx[0]], xformed[vidx[1]], xformed[vidx[2]] };
+  // Fetch the indices backwards to reverse the triangle's winding
+  //  - Needed because the rasterizer assumes CW while the vertices
+  //    are CCW (OpenGL default)
+  return { xformed[vidx[2]], xformed[vidx[1]], xformed[vidx[0]] };
 }
 
 void VisibilityMesh::gatherTri4(VisMesh4Tris tris[3], uint idx, uint num_lanes) const
@@ -129,16 +143,18 @@ void VisibilityMesh::gatherTri4(VisMesh4Tris tris[3], uint idx, uint num_lanes) 
   vec4 *in = xformed.get();
 
   for(uint i = 0; i < 3; i++) {
-    __m128 v0 = _mm_load_ps((const float *)(in + inds0[i]));
-    __m128 v1 = _mm_load_ps((const float *)(in + inds1[i]));
-    __m128 v2 = _mm_load_ps((const float *)(in + inds2[i]));
-    __m128 v3 = _mm_load_ps((const float *)(in + inds3[i]));
-    _MM_TRANSPOSE4_PS(v0, v1, v2, v3);
+    uint idx = 2 - i;    // Reverse the winding (see note above)
 
-    tris[i].X = v0;
-    tris[i].Y = v1;
-    tris[i].Z = v2;
-    tris[i].W = v3;
+    __m128 v0 = _mm_load_ps((const float *)(in + inds0[idx]));
+    __m128 v1 = _mm_load_ps((const float *)(in + inds1[idx]));
+    __m128 v2 = _mm_load_ps((const float *)(in + inds2[idx]));
+    __m128 v3 = _mm_load_ps((const float *)(in + inds3[idx]));
+    _MM_TRANSPOSE4_PS(v0, v1, v2, v3);    // Convert to SoA
+
+    tris[i].v[0] = v0;
+    tris[i].v[1] = v1;
+    tris[i].v[2] = v2;
+    tris[i].v[3] = v3;
   }
 }
 

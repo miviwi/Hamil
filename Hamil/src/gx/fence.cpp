@@ -6,8 +6,7 @@
 namespace gx {
 
 Fence::Fence() :
-  m(nullptr),
-  m_label(nullptr)
+  m(nullptr)
 {
 }
 

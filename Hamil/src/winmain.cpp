@@ -295,6 +295,14 @@ int main(int argc, char *argv[])
     r_composite->source(res::Shader::Vertex), r_composite->source(res::Shader::Fragment), U.composite));
   auto& composite_program = pool.get<gx::Program>(composite_program_id);
 
+  gx::Texture2D occlusion_tex(gx::r16f);
+  occlusion_tex.label("t2dOcclusionBuffer");
+  occlusion_tex.init(ek::OcclusionBuffer::Size);
+
+  gx::Framebuffer occlusion_fb;
+  occlusion_fb.use()
+    .tex(occlusion_tex, 0, gx::Framebuffer::Color(0));
+
   auto fb_composite_id = pool.create<gx::Framebuffer>("fbComposite");
   auto& fb_composite = pool.get<gx::Framebuffer>(fb_composite_id);
 
@@ -801,9 +809,9 @@ int main(int argc, char *argv[])
   size_t gpu_frametime = 0;
 
   create_lights();
-      gx::Texture2D occlusion_tex(gx::r16f);
-      occlusion_tex.label("t2dOcclusionBuffer");
 
+  std::vector<std::vector<vec3>> verts_vec;
+  std::vector<std::vector<u16>> inds_vec;
 
   while(window.processMessages()) {
     using hm::entities;
@@ -911,8 +919,8 @@ int main(int argc, char *argv[])
     }
 
     gx::Query query(gx::Query::TimeElapsed);
-    query.label("qFrametime");
     auto query_scope = query.begin();
+    query.label("qFrametime");
 
     // All the input has been processed - schedule a Ui paint
     auto ui_paint_job_id = worker_pool.scheduleJob(ui_paint_job.withParams());
@@ -1003,28 +1011,12 @@ int main(int argc, char *argv[])
 
       hm::components().requireUnlocked();
 
-      ek::ViewVisibility vis;
-      vis.viewProjection(persp * view)
-        .nearDistance(30.0f);
-
-      std::vector<std::vector<u16>> hull_inds_vec;
+      verts_vec.reserve(obj_loader.numMeshes());
+      inds_vec.reserve(obj_loader.numMeshes());
 
       for(uint i = 0; i < obj_loader.numMeshes(); i++) {
         auto& mesh = obj_loader.mesh(i);
         auto& hull = obj_hull_loader.mesh(0);
-
-        auto& hull_inds = hull_inds_vec.emplace_back();
-        for(auto& face : mesh.faces()) {
-          for(auto& v : face) hull_inds.push_back(v.v);
-        }
-
-        auto vis_object = new ek::VisibilityObject();
-        vis_object->addMesh(ek::VisibilityMesh::from_vectors(
-          xform::translate(0.0f, 4.0f, -100.0f), hull.aabb(),
-          obj_loader.vertices(), hull_inds
-        ));
-
-        vis.addObject(vis_object);
 
         auto num_inds = mesh.faces().size() * 3;
         auto bunny_mesh = mesh::Mesh()
@@ -1035,7 +1027,45 @@ int main(int argc, char *argv[])
           .withOffset((u32)mesh.offset());
 
         bunny = create_model(bunny_mesh, mesh, hull, hull_verts);
+
+        auto& verts = verts_vec.emplace_back();
+        verts.reserve(mesh.faces().size());
+        auto& inds = inds_vec.emplace_back();
+        inds.reserve(mesh.faces().size());
+        for(auto& face : mesh.faces()) {
+          auto idx = verts.size();
+
+          verts.push_back(obj_loader.vertices().at(face[0].v));
+          inds.push_back((u16)idx);
+          verts.push_back(obj_loader.vertices().at(face[1].v));
+          inds.push_back((u16)idx + 1);
+          verts.push_back(obj_loader.vertices().at(face[2].v));
+          inds.push_back((u16)idx + 2);
+        }
       }
+
+      hm::components().endRequireUnlocked();
+    }
+
+    if(model_load_job_id == sched::WorkerPool::InvalidJob) {
+      ek::ViewVisibility vis;
+      vis.viewProjection(persp * view)
+        .nearDistance(30.0f);
+
+      auto vis_object = new ek::VisibilityObject;
+
+      vec3 origin ={ 0.0f, 4.0f, -100.0f };
+      for(uint i = 0; i < obj_loader.numMeshes(); i++) {
+        auto aabb = obj_loader.mesh(i).aabb();
+        aabb.min += origin; aabb.max += origin;
+
+        vis_object->addMesh(ek::VisibilityMesh::from_vectors(
+          xform::translate(origin), aabb,
+          verts_vec[i], inds_vec[i]
+        ));
+      }
+
+      vis.addObject(vis_object);
 
       vis.transformObjects();
       vis.binTriangles();
@@ -1043,9 +1073,8 @@ int main(int argc, char *argv[])
 
       auto occlusion_buf = vis.occlusionBuf().detiledFramebuffer();
 
-      occlusion_tex.init(occlusion_buf.get(), 0, ek::OcclusionBuffer::Size, gx::r, gx::f32);
-
-      hm::components().endRequireUnlocked();
+      occlusion_tex.upload(occlusion_buf.get(), 0,
+        0, 0, ek::OcclusionBuffer::Size.x, ek::OcclusionBuffer::Size.y, gx::r, gx::f32);
     }
 
     if(draw_nudge_line && 0) {
@@ -1064,7 +1093,7 @@ int main(int argc, char *argv[])
     auto& render_objects = extract_for_view_job->result();
     render_view.render(ek::renderer(), render_objects).execute();
 
-    skybox_uniforms = { view, persp };
+    skybox_uniforms ={ view, persp };
     skybox_program.use()
       .uniformFloat(U.skybox.uExposure, exp_slider.value())
       ;
@@ -1138,7 +1167,7 @@ int main(int argc, char *argv[])
 #if 0
     float proj_scale = (float)FramebufferSize.y / (tanf(70.0f * 0.5f) * 2.0);
 
-    vec4 proj_info = {
+    vec4 proj_info ={
       2.0f / persp(0, 0),
       2.0f / persp(1, 1),
       -(1.0f - persp(2, 0)) / persp(0, 0),
@@ -1203,7 +1232,7 @@ int main(int argc, char *argv[])
                           resolve_sampler_id } },
       { SceneTexImageUnit, { render_view_rt.textureId(ek::RenderTarget::Accumulation),
                              resolve_sampler_id } },
-    });
+      });
 
     composite_pass.begin(pool);
 
@@ -1222,6 +1251,12 @@ int main(int argc, char *argv[])
     shadow_view_fb.blitToWindow(
       ivec4{ 0, 0, shadowmap_size.x, shadowmap_size.y },
       ivec4{ 0, 0, 256, 256 },
+      gx::Framebuffer::ColorBit, gx::Sampler::Linear);
+
+    static constexpr auto OccSz = ek::OcclusionBuffer::Size;
+    occlusion_fb.blitToWindow(
+      ivec4{ 0, OccSz.y, OccSz.x, 0 },
+      ivec4{ (int)WindowSize.x - OccSz.x, OccSz.y, (int)WindowSize.x, 0 },
       gx::Framebuffer::ColorBit, gx::Sampler::Linear);
 
     window.swapBuffers();
