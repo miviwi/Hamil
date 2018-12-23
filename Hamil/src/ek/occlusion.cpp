@@ -10,7 +10,7 @@
 
 namespace ek {
 
-// CLip triangle to bounding box defined by <min_extent; max_extent>
+// Clip triangle to bounding box defined by <min_extent; max_extent>
 static std::pair<ivec2, ivec2> tri_bbox(ivec2 fx[3], ivec2 min_extent, ivec2 max_extent)
 {
   ivec2 start = ivec2::max(ivec2::min(ivec2::min(fx[0], fx[1]), fx[2]), min_extent);

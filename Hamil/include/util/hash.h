@@ -17,6 +17,14 @@ struct XXHash {
   }
 };
 
+template <>
+struct XXHash<std::string> {
+  size_t operator()(const std::string& x) const
+  {
+    return xxh::xxhash<64>(x.data(), x.size());
+  }
+};
+
 struct ByteXXHash {
   const size_t len;
   ByteXXHash(size_t len_) : len(len_) { }

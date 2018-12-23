@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
     bunny_fmt, bunny_vbuf.get<gx::VertexBuffer>(), bunny_ibuf.get<gx::IndexBuffer>());
   auto& bunny_arr = pool.get<gx::IndexedVertexArray>(bunny_arr_id);
 
-  res::Handle<res::Mesh> r_model = R.mesh.autumn_plains,
+  res::Handle<res::Mesh> r_model = R.mesh.monkey_cube,
     r_model_hull = R.mesh.monkey_cube_hulls;
 
   auto& obj_loader = (mesh::ObjLoader&)r_model->loader();

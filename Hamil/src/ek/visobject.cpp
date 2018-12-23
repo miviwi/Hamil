@@ -99,8 +99,7 @@ void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
 #else
 // The macros here don't need an #undef
 //   because they don't escape out of
-//   their respective translation units
-//   anyways
+//   their translation unit anyways
 #define ps_epi32(r) _mm_castps_si128(r)
 #define epi32_ps(r) _mm_castsi128_ps(r)
 

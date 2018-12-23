@@ -137,6 +137,11 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
       meta("path")->as<yaml::Scalar>()->str(),
       meta("name")->as<yaml::Scalar>()->str());
 
+    printf(
+      "        ...done!\n"
+      "         guid: %.1llx\n", meta("guid")->as<yaml::Scalar>()->ui());
+
+
     win32::File f_meta(f_name.data(), win32::File::Write, win32::File::CreateAlways);
 
     // If there's more than ULONG_MAX bytes of data - oh well

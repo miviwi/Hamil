@@ -67,13 +67,14 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
 
   res::load(R.texture.ids);
 
-#if 1
+#if 0
   res::Handle<res::Texture> r_ltc_1 = R.texture.ltc_1,
     r_ltc_2 = R.texture.ltc_2;
 
-  auto coeffs1 = r_ltc_1->get().image().data.get();
-  auto coeffs2 = r_ltc_2->get().image().data.get();
+  auto coeffs1 = r_ltc_1->get().image().getData();
+  auto coeffs2 = r_ltc_2->get().image().getData();
 #else
+  res::load(R.lut.ltc_lut);
   res::Handle<res::LookupTable> r_ltc = R.lut.ltc_lut;
 
   auto coeffs1 = (u16 *)r_ltc->data();
