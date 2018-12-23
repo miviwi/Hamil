@@ -93,43 +93,43 @@ struct Vector2 {
 };
 
 template <typename T>
-inline Vector2<T> operator+(Vector2<T> a, Vector2<T> b)
+inline constexpr Vector2<T> operator+(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x+b.x, a.y+b.y };
 }
 
 template <typename T>
-inline Vector2<T> operator+(Vector2<T> a, T u)
+inline constexpr Vector2<T> operator+(Vector2<T> a, T u)
 {
   return Vector2<T>{ a.x+u, a.y+u };
 }
 
 template <typename T>
-inline Vector2<T> operator-(Vector2<T> a, Vector2<T> b)
+inline constexpr Vector2<T> operator-(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x-b.x, a.y-b.y };
 }
 
 template <typename T>
-inline Vector2<T> operator*(Vector2<T> a, Vector2<T> b)
+inline constexpr Vector2<T> operator*(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x*b.x, a.y*b.y };
 }
 
 template <typename T>
-inline Vector2<T> operator*(Vector2<T> a, T u)
+inline constexpr Vector2<T> operator*(Vector2<T> a, T u)
 {
   return Vector2<T>{ a.x*u, a.y*u };
 }
 
 template <typename T>
-inline Vector2<T> operator/(Vector2<T> a, Vector2<T> b)
+inline constexpr Vector2<T> operator/(Vector2<T> a, Vector2<T> b)
 {
   return Vector2<T>{ a.x/b.x, a.y/b.y };
 }
 
 template <typename T>
-inline Vector2<T> operator/(Vector2<T> a, T u)
+inline constexpr Vector2<T> operator/(Vector2<T> a, T u)
 {
   return Vector2<T>{ a.x/u, a.y/u };
 }

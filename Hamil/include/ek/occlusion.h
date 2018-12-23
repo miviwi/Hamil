@@ -8,6 +8,10 @@
 #include <vector>
 #include <memory>
 
+// Uncomment the line below to disable the
+//   use of SSE instructions in the rasterizer
+//#define NO_OCCLUSION_SSE
+
 namespace ek {
 
 union XY {
@@ -31,6 +35,10 @@ public:
   // Size of a single binning tile
   static constexpr ivec2 TileSize = { 40, 48 };
 
+  // Size of blocks of 'm_fb_coarse'
+  static constexpr ivec2 CoarseBlockSize = { 8, 8 };
+  static constexpr ivec2 CoarseSize = Size / CoarseBlockSize;
+
   // Number of tiles in framebuffer (rounded up)
   static constexpr ivec2 SizeInTiles = {
     (Size.x + TileSize.x-1)/TileSize.x,
@@ -41,6 +49,7 @@ public:
     NumTrisPerBin = 1024*16,
     NumBins = SizeInTiles.area(),
 
+    // When this value is exceeded bad things will happen...
     MaxTriangles = NumTrisPerBin * NumBins,
 
     NumSIMDLanes = 4,
@@ -72,14 +81,23 @@ public:
   //   detiled and flipped vertically
   std::unique_ptr<float[]> detiledFramebuffer() const;
 
+  // Returns a framebuffer which stores vec2(min, max)
+  //   for 8x8 blocks of the main framebuffer
+  const vec2 *coarseFramebuffer() const;
+
 private:
   void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);
 
   void clearTile(ivec2 start, ivec2 end);
   void rasterizeTile(const std::vector<VisibilityObject *>& objects, uint tile_idx);
 
+  void createCoarseTile(ivec2 tile_start, ivec2 tile_end);
+
   // The framebuffer of size Size.area()
   std::unique_ptr<float[]> m_fb;
+  // Stores vec2(min, max) for 8x8 blocks
+  //   of the framebuffer 'm_fb'
+  std::unique_ptr<vec2[]> m_fb_coarse;
 
 #if defined(NO_OCCLUSION_SSE)
   // Stores SizeInTiles.area() * NumTrisPerBins entries

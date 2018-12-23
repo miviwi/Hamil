@@ -116,6 +116,8 @@ OcclusionBuffer::OcclusionBuffer()
 #else
   auto bin_ptr = (BinnedTri *)malloc(MaxTriangles * sizeof(BinnedTri));
   m_bin = BinnedTrisPtr(bin_ptr, free_binnedtris);
+
+  m_fb_coarse = std::make_unique<vec2[]>(CoarseSize.area());
 #endif
 
   m_bin_counts = std::make_unique<u16[]>(NumBins);
@@ -182,6 +184,11 @@ std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
 #endif
 
   return std::move(ptr);
+}
+
+const vec2 *OcclusionBuffer::coarseFramebuffer() const
+{
+  return m_fb_coarse.get();
 }
 
 void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id)
@@ -340,6 +347,7 @@ void OcclusionBuffer::clearTile(ivec2 start, ivec2 end)
   }
 #endif
 }
+
 void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objects, uint tile_idx)
 {
   auto fb = m_fb.get();
@@ -623,6 +631,84 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
       }
     }
 #endif
+  }
+
+#if !defined(NO_OCCLUSION_SSE)
+  createCoarseTile(tile_start, tile_end+1);
+#endif
+}
+
+void OcclusionBuffer::createCoarseTile(ivec2 tile_start, ivec2 tile_end)
+{
+#if defined(NO_OCCLUSION_SSE)
+  assert(0 && "createCoarseTile() called with NO_OCCLUSION_SSE defined!");
+#endif
+
+  auto fb = m_fb.get();
+  auto fb_coarse = m_fb_coarse.get();
+
+  ivec2 s0 = tile_start / CoarseBlockSize,
+    s1 = tile_end / CoarseBlockSize;
+
+  for(int yt = s0.y; yt < s1.y; yt++) {
+    const auto src_row = fb + (yt*CoarseBlockSize.y) * Size.x;
+    auto dst_row       = fb_coarse + yt*CoarseSize.x;
+
+    for(int xt = s0.x; xt < s1.x; xt++) {
+      const auto src = src_row + (xt*CoarseBlockSize.x)*2;
+
+      static constexpr std::array<int, 8> offsets = {
+        0*Size.x, 0*Size.x + CoarseBlockSize.x,
+        2*Size.x, 2*Size.x + CoarseBlockSize.x,
+        4*Size.x, 4*Size.x + CoarseBlockSize.x,
+        6*Size.x, 6*Size.x + CoarseBlockSize.x,
+      };
+
+      // Use starting values such that anything
+      //   stored in the framebuffer will be
+      //   smaller/bigger respectively
+      __m128 min0 = _mm_set_ps1(1.0f);
+      __m128 min1 = _mm_set_ps1(1.0f);
+
+      __m128 max0 = _mm_setzero_ps();
+      __m128 max1 = _mm_setzero_ps();
+
+      for(int i = 0; i < offsets.size(); i++) {
+        const auto src_quad = src + offsets[i];
+
+        __m128 src_quad0 = _mm_load_ps(src_quad + 0);
+        __m128 src_quad1 = _mm_load_ps(src_quad + NumSIMDLanes);
+
+        // Find the min/max within the first 4 values of the block
+        min0 = _mm_min_ps(min0, src_quad0); min1 = _mm_min_ps(min1, src_quad1);
+        // Find the min/max within the second 4 values of the block
+        max0 = _mm_max_ps(max0, src_quad0); max1 = _mm_max_ps(max1, src_quad1);
+      }
+
+      // Merge the minimums and maximums
+      min0 = _mm_min_ps(min0, min1);
+      max0 = _mm_max_ps(max0, max1);
+
+#if !defined(NO_AVX)
+      min0 = _mm_min_ps(min0, _mm_permute_ps(min0, _MM_SHUFFLE(1, 0, 3, 2)));
+      min0 = _mm_min_ps(min0, _mm_permute_ps(min0, _MM_SHUFFLE(2, 3, 0, 1)));
+
+      max0 = _mm_max_ps(max0, _mm_permute_ps(max0, _MM_SHUFFLE(1, 0, 3, 2)));
+      max0 = _mm_max_ps(max0, _mm_permute_ps(max0, _MM_SHUFFLE(2, 3, 0, 1)));
+#else
+      min0 = _mm_min_ps(min0, _mm_shuffle_ps(min0, min0, _MM_SHUFFLE(1, 0, 3, 2)));
+      min0 = _mm_min_ps(min0, _mm_shuffle_ps(min0, min0, _MM_SHUFFLE(2, 3, 0, 1)));
+
+      max0 = _mm_max_ps(max0, _mm_shuffle_ps(max0, max0, _MM_SHUFFLE(1, 0, 3, 2)));
+      max0 = _mm_max_ps(max0, _mm_shuffle_ps(max0, max0, _MM_SHUFFLE(2, 3, 0, 1)));
+#endif
+
+      // minmax = min, max, _, _
+      __m128 minmax = _mm_unpacklo_ps(min0, max0);
+
+      // dst = vec2(min, max)
+      _mm_storel_pi((__m64 *)(dst_row + xt), minmax);
+    }
   }
 }
 
