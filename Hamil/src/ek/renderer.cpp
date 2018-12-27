@@ -544,6 +544,9 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
       });
 
       view.visibility().addObjectRef(vis().visObject());
+    } else if(vis && view.m_type != RenderView::CameraView) {
+      // For non-CaneraViews do simple frustum culling
+      if(!frustum.aabbInside(aabb)) return;
     } else {
       return;   // Assume Entities with no Visibility Component
                 //   are invisible

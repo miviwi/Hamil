@@ -32,13 +32,17 @@ void free_binnedtris(BinnedTri *btri);
 class OcclusionBuffer {
 public:
   // Size of the underlying framebuffer
+  //   - Can be adjusted
   static constexpr ivec2 Size     = { 320, 192 };
   // Size of a single binning tile
+  //   - Must be adjusted to partition the framebuffer
+  //     into an even number of tiles
   static constexpr ivec2 TileSize = { 40, 48 };
 
   static constexpr ivec2 SizeMinusOne = { Size.x - 1, Size.y - 1 };
 
   // Size of blocks of 'm_fb_coarse'
+  //   - Do NOT change this
   static constexpr ivec2 CoarseBlockSize = { 8, 8 };
   static constexpr ivec2 CoarseSize = Size / CoarseBlockSize;
 

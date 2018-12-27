@@ -323,8 +323,8 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
   }
 
 #if !defined(NDEBUG)
-  printf("Culled %3d meshes (%3d full tests performed)\n",
-    num_culled, num_full_tests);
+  //printf("Culled %3d meshes (%3d full tests performed)\n",
+  //  num_culled, num_full_tests);
 #endif
 
   // Unmap the ObjectConstants UniformBuffer
