@@ -36,22 +36,40 @@ struct VisibilityMesh {
   using Triangle = std::array<vec4, 3>;
 
   enum Visibility {
+    // occlusionQuery() wasn't yet performed
     Unknown,
-    Invisible,
-    PotentiallyVisible,
-    Visible,
 
+    // The VisibilityMesh is occluded or
+    //   outside the viewing frustum
+    Invisible,
+    // Intermediate state for internal use
+    PotentiallyVisible,
+    // The VisibiilityMesh is (at least
+    //   partially) visible
+    Visible,
+  };
+
+  enum VisibilityFlags : uint {
+    // The VisibilityMesh was deemed invisible
+    //   by frustum culling
     FrustumOut = 1<<0,
+    // The VisibilityMesh had the earlyTest()
+    //   performed on it
     EarlyOut   = 1<<1,
+    // The VisibilityMesh had the lateTest()
+    //   performed on it
     LateOut    = 1<<2,
   };
 
   Visibility visible = Unknown;
+  // Bitwise OR of VisibilityFlags values
   uint vis_flags = 0;
 
   mat4 model = mat4::identity();
 
+  // Coordinates in OBJECT space!
   AABB aabb;
+  // model * aabb
   AABB transformed_aabb;
 
   u32 num_verts = 0;
@@ -111,7 +129,10 @@ struct VisibilityMesh {
 class VisibilityObject {
 public:
   enum Flags : uint {
-    Default  = 0,
+    Default = 0,
+
+    // The VisibilityMeshes owned by this VisibilityObject
+    //   will be rasterized into the occlusionBuf()
     Occluder = 1<<0,
   };
 
@@ -120,6 +141,8 @@ public:
   uint flags() const;
   VisibilityObject& flags(uint f);
 
+  // Returns an AABB (in object space) which contains
+  //   all the owned VisibilityMeshes
   const AABB& aabb() const;
 
   VisibilityMesh& mesh(uint idx);
@@ -128,6 +151,7 @@ public:
   // Returns the max_index+1 which can be passed to mesh()
   uint numMeshes() const;
 
+  // Calls 'fn' for each VisibilityMesh added via addMesh()
   template <typename Fn>
   VisibilityObject& foreachMesh(Fn fn)
   {
@@ -142,9 +166,12 @@ public:
   //   screen space vertex coords
   VisibilityObject& transformMeshes(const mat4& viewprojectionviewport, const frustum3& frustum);
 
+  // Used internally
   VisibilityObject& transformAABBs();
 
+  // Cull all VisibilityMeshes to the viewing frustum
   VisibilityObject& frustumCullMeshes(const frustum3& frustum);
+  // Cull all VisibilityMeshes via the OcclusionBuffer
   VisibilityObject& occlusionCullMeshes(OcclusionBuffer& occlusion, const mat4& viewprojectionviewport);
 
 private:

@@ -5,6 +5,7 @@
 #include <pmmintrin.h>
 #include <emmintrin.h>
 
+#include <cassert>
 #include <cstdlib>
 
 namespace ek {
@@ -95,36 +96,55 @@ VisibilityObject& VisibilityObject::frustumCullMeshes(const frustum3& frustum)
       mesh.vis_flags = VisibilityMesh::FrustumOut;
     } else {
       mesh.visible = VisibilityMesh::PotentiallyVisible;
+      mesh.vis_flags = 0;
     }
   }
 
   return *this;
 }
 
+static constexpr uint NumAABBVerts = 8;
+
 VisibilityObject& VisibilityObject::occlusionCullMeshes(
   OcclusionBuffer& occlusion, const mat4& viewprojectionviewport)
 {
+#if defined(NO_OCCLUSION_SSE)
+  assert(0 && "OcclusionBuffer::occlusionQuery() scalar version unimplemented");
+#endif
+
   for(auto& mesh : m_meshes) {
     // Check if the mesh had already been culled in an earlier stage
     if(mesh.visible == VisibilityMesh::Invisible) continue;
 
-    __m128 xformed[8];
+    // Result of viewprojectionviewport * aabb_verts
+    //   - Used to avoid recalculating the transform
+    //     in case a fullTest() is needed
+    __m128 xformed[NumAABBVerts];
 
     auto early_test = occlusion.earlyTest(mesh, viewprojectionviewport, xformed);
     if(early_test == VisibilityMesh::Invisible) {
+      // The earlyTest() succesufully determined the mesh
+      //   is occluded, so no fullTest() is needed
       mesh.visible = VisibilityMesh::Invisible;
-      mesh.vis_flags = VisibilityMesh::EarlyOut;
     } else if(early_test == VisibilityMesh::Unknown) {
+      // The earlyTest() was inconclusive - need to run the fullTest()
       auto full_test = occlusion.fullTest(mesh, viewprojectionviewport, xformed);
-      if(!full_test) {
+      if(!full_test) {  // Mesh is occluded
         mesh.visible = VisibilityMesh::Invisible;
-        mesh.vis_flags = VisibilityMesh::LateOut;
-      } else {
+      } else {          // Mesh is (at least partially) visible
         mesh.visible = VisibilityMesh::Visible;
       }
+
+      mesh.vis_flags = VisibilityMesh::LateOut;
+      continue;
     } else {
+      // The earlyTest() determined the mesh
+      //   must be (at least partially) visible,
+      //   so there is no need to run the fullTest()
       mesh.visible = VisibilityMesh::Visible;
     }
+
+    mesh.vis_flags = VisibilityMesh::EarlyOut;
   }
 
   return *this;
@@ -166,18 +186,12 @@ void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
     xformed = _mm_add_ps(xformed, _mm_mul_ps(row2, _mm_load_ps1(&v.z)));
 
 #if !defined(NO_AVX)
-    __m128 Z = _mm_permute_ps(xformed, _MM_SHUFFLE(2, 2, 2, 2));
-    __m128 W = _mm_permute_ps(xformed, _MM_SHUFFLE(3, 3, 3, 3));
+#  define splat_ps(a, i) _mm_permute_ps(a, _MM_SHUFFLE(i, i, i, i))
 #else
-// The macros here don't need an #undef
-//   because they don't escape out of
-//   their translation unit anyways
-#define ps_epi32(r) _mm_castps_si128(r)
-#define epi32_ps(r) _mm_castsi128_ps(r)
-
-    __m128 Z = epi32_ps(_mm_shuffle_epi32(ps_epi32(xformed), _MM_SHUFFLE(2, 2, 2, 2)));
-    __m128 W = epi32_ps(_mm_shuffle_epi32(ps_epi32(xformed), _MM_SHUFFLE(3, 3, 3, 3)));
+#  define splat_ps(a, i) _mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(a), _MM_SHUFFLE(i, i, i, i)))
 #endif
+    __m128 Z = splat_ps(xformed, 2);
+    __m128 W = splat_ps(xformed, 3);
     __m128 projected = _mm_mul_ps(xformed, _mm_rcp_ps(W));
 
     __m128 no_near_clip = _mm_cmple_ps(Z, W);

@@ -286,27 +286,46 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
     .bufferUpload(constantBufferId(SceneConstantsBinding), scene_constants.h, scene_constants.sz);
 
   auto& vis = visibility();
+#if !defined(NDEBUG)
   int num_culled = 0;
+  int num_full_tests = 0;
+#endif
   auto render_one = RenderFns[m_type][m_render];
   for(size_t i = meshes_off; i < objects.size(); i++) {
     const auto& ro = objects[i];
-#if 1
-    if(ro.mesh().vis) {
-      auto vis_object = (VisibilityObject *)ro.mesh().vis().visObject();
 
-      vis.occlusionQuery(vis_object);
-      if(vis_object->mesh(0).visible == VisibilityMesh::Invisible) {
-        num_culled++;
-        continue;
-      }
-    }
+    auto vis_object = (VisibilityObject *)ro.mesh().vis().visObject();
+
+    // Run occlusion query
+    vis.occlusionQuery(vis_object);
+
+    int meshes_culled = 0;   // Number of meshes culled which are
+                             //   owned by this RenderObject
+    vis_object->foreachMesh([&](VisibilityMesh& mesh) {
+#if !defined(NDEBUG)
+      if(mesh.vis_flags & VisibilityMesh::LateOut) num_full_tests++;
 #endif
+
+      // Mesh wasn't culled
+      if(mesh.visible != VisibilityMesh::Invisible) return;
+
+      meshes_culled++;
+    });
+
+#if !defined(NDEBUG)
+    num_culled += meshes_culled;
+#endif
+
+    if(meshes_culled == vis_object->numMeshes()) continue;
 
     (this->*render_one)(ro, cmd);
     advanceConstantBlockBinding(cmd);
   }
 
-  printf("Culled %d meshes\n", num_culled);
+#if !defined(NDEBUG)
+  printf("Culled %3d meshes (%3d full tests performed)\n",
+    num_culled, num_full_tests);
+#endif
 
   // Unmap the ObjectConstants UniformBuffer
   m_data->object_ubo_view = std::nullopt;

@@ -557,7 +557,7 @@ int main(int argc, char *argv[])
 
     auto floor = hm::entities().createGameObject("floor", scene);
 
-    floor.addComponent<hm::Transform>(
+    auto transform = floor.addComponent<hm::Transform>(
       origin + vec3{ 0.0f, 0.5f, 0.0f },
       //quat::from_euler(PIf/2.0f, 0.0f, 0.0f),
       quat::from_axis(vec3::right(), PIf/2.0f),
@@ -579,6 +579,25 @@ int main(int argc, char *argv[])
     material().ior = vec3(0.01f);
 
     world.addRigidBody(body);
+
+    auto vis = floor.addComponent<hm::Visibility>();
+
+    ek::VisibilityMesh vis_mesh;
+    vis_mesh.model = transform().t.matrix();
+    vis_mesh.aabb = AABB(body.aabb().min - origin, body.aabb().max - origin);
+    vis_mesh.num_verts = vis_mesh.num_inds = floor_vtxs.size();
+
+    vis_mesh.verts = StridePtr<const vec3>(floor_vtxs.data(), sizeof(FloorVtx));
+
+    u16 *inds = new u16[floor_vtxs.size()];
+    for(int i = 0; i < floor_vtxs.size(); i++) inds[i] = i;
+
+    vis_mesh.inds = inds;
+
+    vis_mesh.initInternal();
+
+    vis().vis.addMesh(std::move(vis_mesh));
+    vis().vis.flags(ek::VisibilityObject::Occluder);
 
     return floor;
   };
@@ -629,7 +648,6 @@ int main(int argc, char *argv[])
     vis_mesh.initInternal();
 
     vis().vis.addMesh(std::move(vis_mesh));
-    vis().vis.flags(ek::VisibilityObject::Occluder);
 
     num_spheres++;
 
@@ -724,6 +742,22 @@ int main(int argc, char *argv[])
     light().radius = 1.0f;
     light().line.tangent = vec3::right();
     light().line.length = length;
+
+    auto vis = line_entity.addComponent<hm::Visibility>();
+
+    ek::VisibilityMesh vis_mesh;
+    vis_mesh.model = transform().t.matrix();
+    vis_mesh.aabb = AABB(-scale*0.5f, scale*0.5f);
+    vis_mesh.num_verts = line_vtxs.size();
+    vis_mesh.num_inds = line_inds.size();
+
+    vis_mesh.verts = StridePtr<const vec3>(line_vtxs.data(), sizeof(mesh::PVertex));
+    vis_mesh.inds = line_inds.data();
+
+    vis_mesh.initInternal();
+
+    vis().vis.addMesh(std::move(vis_mesh));
+    vis().vis.flags(ek::VisibilityObject::Occluder);
 
     return line_entity;
   };

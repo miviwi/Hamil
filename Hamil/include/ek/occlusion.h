@@ -28,12 +28,15 @@ struct BinnedTri {
 // See BinnedTrisPtr
 void free_binnedtris(BinnedTri *btri);
 
+// TODO: maybe replace the current implementation with Masked Occlusion Culling?
 class OcclusionBuffer {
 public:
   // Size of the underlying framebuffer
   static constexpr ivec2 Size     = { 320, 192 };
   // Size of a single binning tile
   static constexpr ivec2 TileSize = { 40, 48 };
+
+  static constexpr ivec2 SizeMinusOne = { Size.x - 1, Size.y - 1 };
 
   // Size of blocks of 'm_fb_coarse'
   static constexpr ivec2 CoarseBlockSize = { 8, 8 };
@@ -85,9 +88,15 @@ public:
   //   for 8x8 blocks of the main framebuffer
   const vec2 *coarseFramebuffer() const;
 
+  // Test the meshes AABB against the coarseFramebuffer()
+  //   - When the return value == Visibility::Unknown
+  //     fullTest() must be called to obtain a result
   VisibilityMesh::Visibility earlyTest(VisibilityMesh& mesh, const mat4& viewprojectionviewport,
     void /* __m128 */ *xformed_out);
-  bool fullTest(VisibilityMesh& mesh, const mat4& viewprojectionviewport, void /* __m128 */ *xformed_in);
+  // Test the meshes AABB against the framebuffer()
+  //   - Returns 'false' when the mesh is occluded
+  bool fullTest(VisibilityMesh& mesh, const mat4& viewprojectionviewport,
+    void /* __m128 */ *xformed_in);
 
 private:
   void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);

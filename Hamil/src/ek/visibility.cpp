@@ -21,21 +21,35 @@ ViewVisibility& ViewVisibility::nearDistance(float n)
   return *this;
 }
 
+ViewVisibility& ViewVisibility::addObjectRef(VisibilityObject *object)
+{
+  m_objects.emplace_back(object);  // Don't add 'object' to 'm_owned_objects'
+                                   //   - The caller is responsible for
+  return *this;                    //     freeing it
+}
+
 ViewVisibility& ViewVisibility::addObject(VisibilityObject *object)
 {
-  m_objects.emplace_back(object);
+  if(m_owned_objects) {
+    m_owned_objects->emplace_back(object);
+  } else {
+    // 'm_owned_objects' hasn't been created yet
+    m_owned_objects.emplace();
+
+    // This call will execute the first branch of the if
+    return addObject(object);
+  }
 
   return *this;
 }
 
 ViewVisibility& ek::ViewVisibility::transformOccluders()
 {
-  frustum3 frustum(m_viewprojection);
   for(auto& o : m_objects) {
     bool is_occluder = o->flags() & VisibilityObject::Occluder;
     if(!is_occluder) continue;
 
-    o->transformMeshes(m_viewprojectionviewport, frustum);
+    o->transformMeshes(m_viewprojectionviewport, m_frustum);
   }
 
   return *this;

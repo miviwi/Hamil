@@ -500,6 +500,7 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   // Make the Components immutable
   hm::components().lock();
 
+  // Finish setting up the RenderView
   view.visibility()
     .viewProjection(view.projection() * view.view());
 
@@ -511,6 +512,7 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   // Done reading components
   hm::components().unlock();
 
+  // Render the OcclusionBuffer
   view.visibility()
     .transformOccluders()
     .binTriangles()
@@ -534,21 +536,18 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
   // Extract the object
   if(auto mesh = e.component<hm::Mesh>()) {
     auto vis = e.component<hm::Visibility>();
+    auto material = e.component<hm::Material>();
+
     if(vis && view.m_type == RenderView::CameraView) {
       vis().vis.foreachMesh([&](VisibilityMesh& mesh) {
-        mesh.visible   = VisibilityMesh::Unknown;
-        mesh.vis_flags = 0;
-
         mesh.model = model_matrix;
       });
 
-      view.visibility().addObject(vis().visObject());
+      view.visibility().addObjectRef(vis().visObject());
     } else {
-     // return;   // Assume Entities with no Visibility Component
+      return;   // Assume Entities with no Visibility Component
                 //   are invisible
     }
-
-    auto material = e.component<hm::Material>();
 
     auto& ro = objects.emplace_back(RenderObject::Mesh, e).mesh();
 
@@ -570,12 +569,6 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
     ro.position = position;
     ro.light = light;
   }
-}
-
-// TODO: Better mesh culling
-bool Renderer::cullMesh(const AABB& aabb, const frustum3& frustum)
-{
-  return !frustum.aabbInside(aabb);
 }
 
 // TODO: Better light culling
