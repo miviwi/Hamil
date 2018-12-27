@@ -9,7 +9,7 @@
 (move-if-newer uniforms.* ${Generated})
 
 #    -------- Resources  --------
-(resourcegen ${Solution}x64\Debug)
+(resourcegen ${Output})
 (move-if-newer resources.* ${Generated})
 
 #    -------- Components --------

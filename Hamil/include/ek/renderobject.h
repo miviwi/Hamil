@@ -8,6 +8,7 @@
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
 #include <hm/components/light.h>
+#include <hm/components/visibility.h>
 
 #include <variant>
 
@@ -23,9 +24,11 @@ public:
   AABB aabb;
 
   // Cached at the start of rendering
-  hm::ComponentRef<hm::Mesh> mesh = nullptr;
+  hmRef<hm::Visibility> vis = nullptr;
   // Cached at the start of rendering
-  hm::ComponentRef<hm::Material> material = nullptr;
+  hmRef<hm::Mesh> mesh = nullptr;
+  // Cached at the start of rendering
+  hmRef<hm::Material> material = nullptr;
 };
 
 class RenderLight {

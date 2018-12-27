@@ -27,6 +27,7 @@ class RenderObject;
 class RenderMesh;
 class RenderLight;
 class ConstantBuffer;
+class ViewVisibility;
 
 // Stores a MemoryPool Handle and a size
 struct ShaderConstants;
@@ -91,7 +92,9 @@ public:
   RenderView& sampleCount(uint samples);
 
   RenderView& view(const mat4& v);
+  const mat4& view() const;
   RenderView& projection(const mat4& p);
+  const mat4& projection() const;
 
   vec3 eyePosition() const;
 
@@ -101,6 +104,8 @@ public:
 
   // Used by Renderer::extractForView()
   frustum3 constructFrustum();
+
+  ViewVisibility& visibility();
 
   // 'objects' will be altered by this method
   gx::CommandBuffer render(Renderer& renderer,

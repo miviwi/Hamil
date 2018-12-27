@@ -1,4 +1,7 @@
 #include <ek/renderer.h>
+#include <ek/visibility.h>
+#include <ek/visobject.h>
+#include <ek/occlusion.h>
 
 #include <util/format.h>
 #include <util/dds.h>
@@ -12,6 +15,7 @@
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
 #include <hm/components/light.h>
+#include <hm/components/visibility.h>
 #include <gx/resourcepool.h>
 #include <gx/program.h>
 #include <gx/fence.h>
@@ -496,6 +500,9 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   // Make the Components immutable
   hm::components().lock();
 
+  view.visibility()
+    .viewProjection(view.projection() * view.view());
+
   auto transform_matrix = scene.component<hm::Transform>().get().matrix();
   scene.gameObject().foreachChild([&](hm::Entity e) {
     extractOne(view, objects, frustum, e, transform_matrix);
@@ -503,6 +510,11 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
 
   // Done reading components
   hm::components().unlock();
+
+  view.visibility()
+    .transformOccluders()
+    .binTriangles()
+    .rasterizeOcclusionBuf();
 
   return objects;
 }
@@ -521,16 +533,29 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
 
   // Extract the object
   if(auto mesh = e.component<hm::Mesh>()) {
-    // Cull it
-    if(cullMesh(aabb, frustum)) return;
+    auto vis = e.component<hm::Visibility>();
+    if(vis && view.m_type == RenderView::CameraView) {
+      vis().vis.foreachMesh([&](VisibilityMesh& mesh) {
+        mesh.visible   = VisibilityMesh::Unknown;
+        mesh.vis_flags = 0;
+
+        mesh.model = model_matrix;
+      });
+
+      view.visibility().addObject(vis().visObject());
+    } else {
+     // return;   // Assume Entities with no Visibility Component
+                //   are invisible
+    }
 
     auto material = e.component<hm::Material>();
 
     auto& ro = objects.emplace_back(RenderObject::Mesh, e).mesh();
 
-    ro.model    = model_matrix;
-    ro.aabb     = aabb;
-    ro.mesh     = mesh;
+    ro.model = model_matrix;
+    ro.aabb  = aabb;
+    ro.vis   = vis;
+    ro.mesh  = mesh;
     ro.material = material;
   } else if(auto light = e.component<hm::Light>()) {
     // Check if this view needs to have RenderLights extracted

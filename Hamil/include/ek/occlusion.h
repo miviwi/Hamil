@@ -85,6 +85,10 @@ public:
   //   for 8x8 blocks of the main framebuffer
   const vec2 *coarseFramebuffer() const;
 
+  VisibilityMesh::Visibility earlyTest(VisibilityMesh& mesh, const mat4& viewprojectionviewport,
+    void /* __m128 */ *xformed_out);
+  bool fullTest(VisibilityMesh& mesh, const mat4& viewprojectionviewport, void /* __m128 */ *xformed_in);
+
 private:
   void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);
 

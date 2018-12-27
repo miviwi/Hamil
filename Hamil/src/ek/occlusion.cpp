@@ -132,7 +132,11 @@ OcclusionBuffer& OcclusionBuffer::binTriangles(const std::vector<VisibilityObjec
   for(uint o = 0; o < objects.size(); o++) {
     const auto& obj = objects[o];
     uint num_meshes = obj->numMeshes();
-    for(uint m = 0; m < num_meshes; m++) binTriangles(obj->mesh(m), o, m);
+    for(uint m = 0; m < num_meshes; m++) {
+      auto& mesh = obj->mesh(m);
+
+      binTriangles(mesh, o, m);
+    }
   }
 
   return *this;
@@ -172,10 +176,17 @@ std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
     auto src = fb + y*Size.x;
     auto dst = ptr.get() + (Size.y - y - 2)*Size.x;
     for(int x = 0; x < Size.x; x += 2) {
+#if defined(NO_OCCLUSION_SSE)
       dst[0] = src[2];
       dst[1] = src[3];
       dst[Size.x + 0 /* Next row */] = src[0];
       dst[Size.x + 1 /* Next row */] = src[1];
+#else
+      __m128 quad = _mm_load_ps(src);
+
+      _mm_storeh_pi((__m64 *)dst, quad);
+      _mm_storel_pi((__m64 *)(dst + Size.x), quad);
+#endif
 
       src += 4;
       dst += 2;
@@ -189,6 +200,288 @@ std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
 const vec2 *OcclusionBuffer::coarseFramebuffer() const
 {
   return m_fb_coarse.get();
+}
+
+static constexpr uint NumAABBVerts = 8;
+static constexpr uint NumAABBInds  = 36;
+static constexpr uint NumAABBTris  = NumAABBInds/3;
+
+static constexpr std::array<uint, NumAABBInds> BBoxIndices = {
+  0, 1, 2, 0, 2, 3, // Front
+  0, 4, 1, 4, 5, 1, // Left
+  0, 7, 4, 7, 0, 3, // Top
+  3, 2, 6, 6, 7, 3, // Right
+  4, 6, 5, 6, 4, 7, // Back
+  1, 5, 6, 6, 2, 1, // Bottom
+};
+
+// 0 == min corner, 1 == max corner
+static constexpr std::array<uint, NumAABBVerts> BBoxXIndices = { 1, 0, 0, 1, 1, 1, 0, 0 };
+static constexpr std::array<uint, NumAABBVerts> BBoxYIndices = { 1, 1, 1, 1, 0, 0, 0, 0 };
+static constexpr std::array<uint, NumAABBVerts> BBoxZIndices = { 1, 1, 0, 0, 0, 1, 1, 0 };
+
+VisibilityMesh::Visibility OcclusionBuffer::earlyTest(VisibilityMesh& mesh, const mat4& mvp,
+  void *xformed_out)
+{
+  static constexpr ivec2 SizeMinusOne = Size - ivec2(1, 1);
+
+  __m128 mmin = _mm_load_ps(mesh.transformed_aabb.min);
+  __m128 mmax = _mm_load_ps(mesh.transformed_aabb.max);
+
+  auto xformed = (__m128 *)xformed_out;
+
+  __m128 x_row[2], y_row[2], z_row[2];
+
+  __m128 row0 = _mm_load_ps(mvp.d +  0);
+  __m128 row1 = _mm_load_ps(mvp.d +  4);
+  __m128 row2 = _mm_load_ps(mvp.d +  8);
+  __m128 row3 = _mm_load_ps(mvp.d + 12);
+  _MM_TRANSPOSE4_PS(row0, row1, row2, row3);
+
+  x_row[0] = _mm_mul_ps(_mm_permute_ps(mmin, _MM_SHUFFLE(0, 0, 0, 0)), row0);
+  x_row[1] = _mm_mul_ps(_mm_permute_ps(mmax, _MM_SHUFFLE(0, 0, 0, 0)), row0);
+  y_row[0] = _mm_mul_ps(_mm_permute_ps(mmin, _MM_SHUFFLE(1, 1, 1, 1)), row1);
+  y_row[1] = _mm_mul_ps(_mm_permute_ps(mmax, _MM_SHUFFLE(1, 1, 1, 1)), row1);
+  z_row[0] = _mm_mul_ps(_mm_permute_ps(mmin, _MM_SHUFFLE(2, 2, 2, 2)), row2);
+  z_row[1] = _mm_mul_ps(_mm_permute_ps(mmax, _MM_SHUFFLE(2, 2, 2, 2)), row2);
+
+  __m128 z_all_in = _mm_castsi128_ps(_mm_set1_epi32(~0));
+  __m128 screen_min = _mm_set1_ps(FLT_MAX);
+  __m128 screen_max = _mm_set1_ps(-FLT_MAX);
+
+  for(uint i = 0; i < NumAABBVerts; i++) {
+    __m128 v = row3;
+    v = _mm_add_ps(v, x_row[BBoxXIndices[i]]);
+    v = _mm_add_ps(v, y_row[BBoxYIndices[i]]);
+    v = _mm_add_ps(v, z_row[BBoxZIndices[i]]);
+
+    __m128 Z = _mm_permute_ps(v, _MM_SHUFFLE(2, 2, 2, 2));
+    __m128 W = _mm_permute_ps(v, _MM_SHUFFLE(3, 3, 3, 3));
+    __m128 no_near_clip = _mm_cmple_ps(Z, W);
+
+    z_all_in = _mm_and_ps(z_all_in, no_near_clip);
+
+    xformed[i] = _mm_div_ps(v, W);
+
+    screen_min = _mm_min_ps(screen_min, xformed[i]);
+    screen_max = _mm_max_ps(screen_max, xformed[i]);
+  }
+
+  // If the AABB is clipped by the near plane
+  //   assume (conservatively) that it's visible
+  if(_mm_movemask_ps(z_all_in) != 0b1111) return VisibilityMesh::Visible;
+
+  screen_min = _mm_max_ps(screen_min, _mm_setr_ps(0.0f, 0.0f, 0.0f, -FLT_MAX));
+  screen_max = _mm_min_ps(screen_max, _mm_setr_ps((float)SizeMinusOne.x, (float)SizeMinusOne.y,
+    1.0f, FLT_MAX));
+
+  // Trivial rejection test
+  if(_mm_movemask_ps(_mm_cmplt_ps(screen_max, screen_min))) return VisibilityMesh::Invisible;
+
+  __m128 minmax_xy = _mm_shuffle_ps(screen_min, screen_max, _MM_SHUFFLE(1, 0, 1, 0));
+  __m128i minmax_xyi = _mm_cvtps_epi32(minmax_xy);
+  __m128i minmax_xyis = _mm_srai_epi32(minmax_xyi, 3);
+
+  __m128 max_z = _mm_permute_ps(screen_max, _MM_SHUFFLE(2, 2, 2, 2));
+
+  int rx0 = minmax_xyis.m128i_i32[0];
+  int ry0 = minmax_xyis.m128i_i32[1];
+  int rx1 = minmax_xyis.m128i_i32[2];
+  int ry1 = minmax_xyis.m128i_i32[3];
+
+  __m128 any_closer = _mm_setzero_ps();
+  for(int by = ry0; by <= ry1; by++) {
+    const auto *src_row = m_fb_coarse.get() + by*CoarseSize.x;
+
+    for(int bx = rx0; bx <= rx1; bx++) {
+      __m128 fb_max = _mm_load_ss(&src_row[bx].y);   // m_fb_coarse[by,bx] = vec2(min, max)
+
+      any_closer = _mm_or_ps(any_closer, _mm_cmpnlt_ss(max_z, fb_max));
+    }
+
+    if(_mm_movemask_ps(any_closer)) return VisibilityMesh::Unknown;
+  }
+
+  // We can only reach here if the entire AABB is behind
+  //   the contents of the framebuffer
+  return VisibilityMesh::Invisible;
+}
+
+void gather_aabb_verts(VisMesh4Tris out[3], uint idx, const __m128 xformed[])
+{
+  for(uint i = 0; i < 3; i++) {
+    uint off = idx*3 + (2 - i);
+
+    uint ind0 = BBoxIndices[off + 0];
+    uint ind1 = BBoxIndices[off + 3];
+    uint ind2 = BBoxIndices[off + 6];
+    uint ind3 = BBoxIndices[off + 9];
+
+    __m128 v0 = xformed[ind0];
+    __m128 v1 = xformed[ind1];
+    __m128 v2 = xformed[ind2];
+    __m128 v3 = xformed[ind3];
+    _MM_TRANSPOSE4_PS(v0, v1, v2, v3);
+
+    out[i].v[0] = v0;
+    out[i].v[1] = v1;
+    out[i].v[2] = v2;
+    out[i].v[3] = v3;
+  }
+}
+
+bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xformed_in)
+{
+  static constexpr ivec2 SizeMinusOne = Size - ivec2(1, 1);
+
+  static const __m128i ColumnOffsets = _mm_setr_epi32(0, 1, 0, 1);
+  static const __m128i RowOffsets    = _mm_setr_epi32(0, 0, 1, 1);
+
+  auto fb = m_fb.get();
+
+  for(uint i = 0; i < NumAABBTris; i += NumSIMDLanes) {
+    VisMesh4Tris xformed[3];
+    gather_aabb_verts(xformed, i, (const __m128 *)xformed_in);
+
+    __m128i fxx[3], fxy[3];
+    for(uint m = 0; m < 3; m++) {
+      fxx[m] = _mm_cvtps_epi32(xformed[m].v[0]);
+      fxy[m] = _mm_cvtps_epi32(xformed[m].v[1]);
+
+      // Fab(x, y) =     Ax       +       By     +      C              = 0
+      // Fab(x, y) = (ya - yb)x   +   (xb - xa)y + (xa * yb - xb * ya) = 0
+      // Compute A = (ya - yb) for the 3 line segments that make up each triangle
+      __m128i A0 = _mm_sub_epi32(fxy[1], fxy[2]);
+      __m128i A1 = _mm_sub_epi32(fxy[2], fxy[0]);
+      __m128i A2 = _mm_sub_epi32(fxy[0], fxy[1]);
+
+      // Compute B = (xb - xa) for the 3 line segments that make up each triangle
+      __m128i B0 = _mm_sub_epi32(fxx[2], fxx[1]);
+      __m128i B1 = _mm_sub_epi32(fxx[0], fxx[2]);
+      __m128i B2 = _mm_sub_epi32(fxx[1], fxx[0]);
+
+      // Compute C = (xa * yb - xb * ya) for the 3 line segments that make up each triangle
+      __m128i C0 = _mm_sub_epi32(mullo_epi32(fxx[1], fxy[2]), mullo_epi32(fxx[2], fxy[1]));
+      __m128i C1 = _mm_sub_epi32(mullo_epi32(fxx[2], fxy[0]), mullo_epi32(fxx[0], fxy[2]));
+      __m128i C2 = _mm_sub_epi32(mullo_epi32(fxx[0], fxy[1]), mullo_epi32(fxx[1], fxy[0]));
+
+      __m128i area = mullo_epi32(B2, A1);
+      area = _mm_sub_epi32(area, mullo_epi32(B1, A2));
+
+      __m128 inv_area = _mm_rcp_ps(_mm_cvtepi32_ps(area));
+
+      __m128 Z[3];
+      Z[0] = xformed[0].v[2];
+      Z[1] = _mm_mul_ps(_mm_sub_ps(xformed[1].v[2], Z[0]), inv_area);
+      Z[2] = _mm_mul_ps(_mm_sub_ps(xformed[2].v[2], Z[0]), inv_area);
+
+      __m128i startx, endx, starty, endy;
+      tri_bbox(fxx, fxy, ivec2::zero(), SizeMinusOne, startx, starty, endx, endy);
+
+      startx = _mm_and_si128(startx, _mm_set1_epi32(0xFFFFFFFE));
+      starty = _mm_and_si128(starty, _mm_set1_epi32(0xFFFFFFFE));
+
+      for(uint lane = 0; lane < NumSIMDLanes; lane++) {
+        if(area.m128i_i32[lane] <= 0) continue;  // Skip back-facing triangles
+
+        __m128 zz[3];
+        for(uint vv = 0; vv < 3; vv++) zz[vv] = _mm_set1_ps(Z[vv].m128_f32[lane]);
+
+        int startxx = startx.m128i_i32[lane];
+        int startxy = starty.m128i_i32[lane];
+        int endxx   = endx.m128i_i32[lane];
+        int endxy   = endy.m128i_i32[lane];
+
+        __m128i aa0 = _mm_set1_epi32(A0.m128i_i32[lane]);
+        __m128i aa1 = _mm_set1_epi32(A1.m128i_i32[lane]);
+        __m128i aa2 = _mm_set1_epi32(A2.m128i_i32[lane]);
+
+        __m128i bb0 = _mm_set1_epi32(B0.m128i_i32[lane]);
+        __m128i bb1 = _mm_set1_epi32(B1.m128i_i32[lane]);
+        __m128i bb2 = _mm_set1_epi32(B2.m128i_i32[lane]);
+
+        // Compute the horizontal barycentric coord deltas
+        __m128i aa0_inc = _mm_slli_epi32(aa0, 1);
+        __m128i aa1_inc = _mm_slli_epi32(aa1, 1);
+        __m128i aa2_inc = _mm_slli_epi32(aa2, 1);
+
+        __m128i row, col;   // Framebuffer row and column offsets
+
+        // Compute the offset of the row where the quad will be stored.
+        // The pixels of the quad are stored sequentially in memory like so:
+        //    A B . .      becomes       A B C D
+        //    C D . .                    . . . .
+        int row_idx = startxy*Size.x + 2*startxx;
+
+        col = _mm_add_epi32(ColumnOffsets, _mm_set1_epi32(startxx));
+        __m128i aa0_col = mullo_epi32(aa0, col);
+        __m128i aa1_col = mullo_epi32(aa1, col);
+        __m128i aa2_col = mullo_epi32(aa2, col);
+
+        row = _mm_add_epi32(RowOffsets, _mm_set1_epi32(startxy));
+        __m128i bb0_row = _mm_add_epi32(mullo_epi32(bb0, row), _mm_set1_epi32(C0.m128i_i32[lane]));
+        __m128i bb1_row = _mm_add_epi32(mullo_epi32(bb1, row), _mm_set1_epi32(C1.m128i_i32[lane]));
+        __m128i bb2_row = _mm_add_epi32(mullo_epi32(bb2, row), _mm_set1_epi32(C2.m128i_i32[lane]));
+
+        __m128i sum0_row = _mm_add_epi32(aa0_col, bb0_row);
+        __m128i sum1_row = _mm_add_epi32(aa1_col, bb1_row);
+        __m128i sum2_row = _mm_add_epi32(aa2_col, bb2_row);
+
+        // Compute the vertical barycentric coord deltas
+        __m128i bb0_inc = _mm_slli_epi32(bb0, 1);
+        __m128i bb1_inc = _mm_slli_epi32(bb1, 1);
+        __m128i bb2_inc = _mm_slli_epi32(bb2, 1);
+
+        __m128 zx = _mm_mul_ps(_mm_cvtepi32_ps(aa1_inc), zz[1]);
+        zx = _mm_add_ps(zx, _mm_mul_ps(_mm_cvtepi32_ps(aa2_inc), zz[2]));
+
+        for(int r = startxy; r < endxy; r += 2) {
+          // Barycentric coordinates
+          int idx = row_idx;
+          __m128i alpha = sum0_row;
+          __m128i beta  = sum1_row;
+          __m128i gama  = sum2_row;
+
+          __m128 betaf = _mm_cvtepi32_ps(beta);
+          __m128 gamaf = _mm_cvtepi32_ps(gama);
+
+          // Compute depth from the barycentric coords
+          __m128 depth = zz[0];
+          depth = _mm_add_ps(depth, _mm_mul_ps(betaf, zz[1]));
+          depth = _mm_add_ps(depth, _mm_mul_ps(gamaf, zz[2]));
+
+          __m128i any_out = _mm_setzero_si128();
+          for(int c = startxx; c < endxx; c += 2) {
+            // When alpha == beta == gama == 0 the pixel is outside the triangle
+            __m128i mask = _mm_or_si128(_mm_or_si128(alpha, beta), gama);
+
+            // Store the computed depth if it's > than what's in the framebuffer
+            __m128 prev_depth = _mm_load_ps(fb + idx);
+            __m128 depth_mask = _mm_cmpge_ps(depth, prev_depth);
+            __m128i final_mask = _mm_andnot_si128(mask, _mm_castps_si128(depth_mask));
+
+            any_out = _mm_or_si128(any_out, final_mask);
+
+            idx += 4;    // Computing 4 pixels at a time
+            alpha = _mm_add_epi32(alpha, aa0_inc);
+            beta  = _mm_add_epi32(beta, aa1_inc);
+            gama  = _mm_add_epi32(gama, aa2_inc);
+            depth = _mm_add_ps(depth, zx);
+          }
+
+          // Early out if any pixel is in front of the framebuffer
+          if(!_mm_testz_si128(any_out, _mm_set1_epi32(0x80000000))) return true;
+
+          row_idx += 2*Size.x;   // Advance to the next quad
+          sum0_row = _mm_add_epi32(sum0_row, bb0_inc);
+          sum1_row = _mm_add_epi32(sum1_row, bb1_inc);
+          sum2_row = _mm_add_epi32(sum2_row, bb2_inc);
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id)
@@ -690,6 +983,7 @@ void OcclusionBuffer::createCoarseTile(ivec2 tile_start, ivec2 tile_end)
       max0 = _mm_max_ps(max0, max1);
 
 #if !defined(NO_AVX)
+      // Compute the horizontal min/max
       min0 = _mm_min_ps(min0, _mm_permute_ps(min0, _MM_SHUFFLE(1, 0, 3, 2)));
       min0 = _mm_min_ps(min0, _mm_permute_ps(min0, _MM_SHUFFLE(2, 3, 0, 1)));
 
@@ -704,7 +998,7 @@ void OcclusionBuffer::createCoarseTile(ivec2 tile_start, ivec2 tile_end)
 #endif
 
       // minmax = min, max, _, _
-      __m128 minmax = _mm_unpacklo_ps(min0, max0);
+      __m128 minmax = _mm_unpacklo_ps(max0, min0);
 
       // dst = vec2(min, max)
       _mm_storel_pi((__m64 *)(dst_row + xt), minmax);

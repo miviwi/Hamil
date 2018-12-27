@@ -20,9 +20,9 @@ std::tuple<std::vector<PNVertex>, std::vector<u16>> sphere(uint rings, uint sect
       auto z = sin(2.0f*PIf * s * S) * sin(PIf * r * R);
 
       // Flush very small values to 0.0f
-      if(fabs(x) < 10e-6f) x = 0.0f;
-      if(fabs(y) < 10e-6f) y = 0.0f;
-      if(fabs(z) < 10e-6f) z = 0.0f;
+      if(fabs(x) < 1e-6f) x = 0.0f;
+      if(fabs(y) < 1e-6f) y = 0.0f;
+      if(fabs(z) < 1e-6f) z = 0.0f;
 
       verts.push_back({
         { x, y, z },
@@ -33,8 +33,8 @@ std::tuple<std::vector<PNVertex>, std::vector<u16>> sphere(uint rings, uint sect
 
   std::vector<u16> inds;
   inds.reserve(rings*sectors * 6);
-  for(uint r = 0; r < rings; r++) {
-    for(uint s = 0; s < sectors; s++) {
+  for(uint r = 0; r < rings-1; r++) {   // Avoid out-of-range indices
+    for(uint s = 0; s < sectors-1; s++) {
       inds.push_back(r*sectors + s);
       inds.push_back((r+1)*sectors + s+1);
       inds.push_back(r*sectors + s+1);

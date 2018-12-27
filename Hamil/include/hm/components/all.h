@@ -7,3 +7,4 @@
 #include <hm/components/mesh.h>
 #include <hm/components/material.h>
 #include <hm/components/light.h>
+#include <hm/components/visibility.h>

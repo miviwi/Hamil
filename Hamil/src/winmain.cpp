@@ -167,8 +167,8 @@ int main(int argc, char *argv[])
   auto bunny_fmt = gx::VertexFormat()
     .attr(gx::f32, 3)
     .attr(gx::f32, 3)
-    //.attr(gx::f32, 2);
-    .attrAlias(0, gx::f32, 2);
+    .attr(gx::f32, 2);
+    //.attrAlias(0, gx::f32, 2);
 
   auto bunny_vbuf_id = pool.createBuffer<gx::VertexBuffer>("bvBunny",
     gx::Buffer::Static);
@@ -597,7 +597,10 @@ int main(int argc, char *argv[])
     auto name = util::fmt("sphere%u", num_spheres);
     auto entity = hm::entities().createGameObject(name, scene);
 
-    entity.addComponent<hm::Transform>(body.worldTransform());
+    auto transform = entity.addComponent<hm::Transform>(
+      body.worldTransform(),
+      AABB(origin - vec3(1.0f), origin + vec3(1.0f))
+    );
     entity.addComponent<hm::RigidBody>(body);
     entity.addComponent<hm::Mesh>(sphere_mesh);
 
@@ -611,6 +614,22 @@ int main(int argc, char *argv[])
     material().ior = vec3(1.47f);
 
     world.addRigidBody(body);
+
+    auto vis = entity.addComponent<hm::Visibility>();
+
+    ek::VisibilityMesh vis_mesh;
+    vis_mesh.model = transform().t.matrix();
+    vis_mesh.aabb = AABB(vec3(-1.0f), vec3(1.0f));
+    vis_mesh.num_verts = sphere_verts.size();
+    vis_mesh.num_inds = sphere_inds.size();
+
+    vis_mesh.verts = StridePtr<const vec3>(sphere_verts.data(), sizeof(mesh::PNVertex));
+    vis_mesh.inds = sphere_inds.data();
+
+    vis_mesh.initInternal();
+
+    vis().vis.addMesh(std::move(vis_mesh));
+    vis().vis.flags(ek::VisibilityObject::Occluder);
 
     num_spheres++;
 
@@ -631,7 +650,7 @@ int main(int argc, char *argv[])
     auto sphere_entity = hm::entities().createGameObject(name, scene);
     auto light_entity = hm::entities().createGameObject(light_name, sphere_entity);
 
-    sphere_entity.addComponent<hm::Transform>(
+    auto transform = sphere_entity.addComponent<hm::Transform>(
       xform::Transform(origin, quat(), vec3(LightSphereRadius)),
       AABB(
         origin - vec3(LightSphereRadius),
@@ -653,12 +672,28 @@ int main(int argc, char *argv[])
     light().radius = 100.0f;
     light().sphere.radius = LightSphereRadius;
 
+    auto vis = sphere_entity.addComponent<hm::Visibility>();
+
+    ek::VisibilityMesh vis_mesh;
+    vis_mesh.model = transform().t.matrix();
+    vis_mesh.aabb = AABB(transform().aabb.min - origin, transform().aabb.max - origin);
+    vis_mesh.num_verts = sphere_verts.size();
+    vis_mesh.num_inds = sphere_inds.size();
+
+    vis_mesh.verts = StridePtr<const vec3>(sphere_verts.data(), sizeof(mesh::PNVertex));
+    vis_mesh.inds = sphere_inds.data();
+
+    vis_mesh.initInternal();
+
+    vis().vis.addMesh(std::move(vis_mesh));
+    vis().vis.flags(ek::VisibilityObject::Occluder);
+
     return sphere_entity;
   };
 
   auto line_mesh = mesh::Mesh()
     .withIndexedArray(line_arr_id)
-    .withNum((u32)sphere_inds.size());
+    .withNum((u32)line_inds.size());
   unsigned num_light_lines = 0;
   auto create_light_line = [&](vec3 center, float length, vec3 color)
   {
@@ -697,7 +732,7 @@ int main(int argc, char *argv[])
     const mesh::ObjMesh& hull, const vec3 *hull_verts,
     const std::string& name = "")
   {
-    vec3 origin = { 0.0f, 4.0f, -100.0f };
+    vec3 origin = { 0.0f, 4.0f, -50.0f };
     vec3 scale(1.0f);
 
     AABB aabb = obj.aabb().scale(scale);
@@ -732,15 +767,19 @@ int main(int argc, char *argv[])
 
     auto material = entity.addComponent<hm::Material>();
 
-    //material().diff_type = hm::Material::DiffuseTexture;
-    //material().diff_tex.id = tex_id;
-    //material().diff_tex.sampler_id = floor_sampler_id;
-    material().diff_type = hm::Material::DiffuseConstant;
-    material().diff_color = { 0.53f, 0.8f, 0.94f };
+    material().diff_type = hm::Material::DiffuseTexture;
+    material().diff_tex.id = tex_id;
+    material().diff_tex.sampler_id = floor_sampler_id;
+    //material().diff_type = hm::Material::DiffuseConstant;
+    //material().diff_color = { 0.53f, 0.8f, 0.94f };
 
     material().metalness = 0.0f;
     material().roughness = 0.7f;
     material().ior = vec3(14.7f);
+
+    auto vis = entity.addComponent<hm::Visibility>();
+
+    vis().vis.flags(ek::VisibilityObject::Occluder);
 
     return entity;
   };
@@ -1009,6 +1048,8 @@ int main(int argc, char *argv[])
       ((mesh::MeshLoader&)obj_hull_loader).load();
       auto hull_verts = obj_hull_loader.vertices().data();
 
+      vec3 origin = { 0.0f, 4.0f, -50.0f };
+
       hm::components().requireUnlocked();
 
       verts_vec.reserve(obj_loader.numMeshes());
@@ -1042,22 +1083,9 @@ int main(int argc, char *argv[])
           verts.push_back(obj_loader.vertices().at(face[2].v));
           inds.push_back((u16)idx + 2);
         }
-      }
 
-      hm::components().endRequireUnlocked();
-    }
-
-    if(model_load_job_id == sched::WorkerPool::InvalidJob) {
-      ek::ViewVisibility vis;
-      vis.viewProjection(persp * view)
-        .nearDistance(30.0f);
-
-      auto vis_object = new ek::VisibilityObject;
-
-      vec3 origin ={ 0.0f, 4.0f, -100.0f };
-      for(uint i = 0; i < obj_loader.numMeshes(); i++) {
-        auto aabb = obj_loader.mesh(i).aabb();
-        aabb.min += origin; aabb.max += origin;
+        auto aabb = mesh.aabb();
+        auto vis_object = bunny.component<hm::Visibility>().get().visObject();
 
         vis_object->addMesh(ek::VisibilityMesh::from_vectors(
           xform::translate(origin), aabb,
@@ -1065,16 +1093,7 @@ int main(int argc, char *argv[])
         ));
       }
 
-      vis.addObject(vis_object);
-
-      vis.transformObjects();
-      vis.binTriangles();
-      vis.rasterizeOcclusionBuf();
-
-      auto occlusion_buf = vis.occlusionBuf().detiledFramebuffer();
-
-      occlusion_tex.upload(occlusion_buf.get(), 0,
-        0, 0, ek::OcclusionBuffer::Size.x, ek::OcclusionBuffer::Size.y, gx::r, gx::f32);
+      hm::components().endRequireUnlocked();
     }
 
     if(draw_nudge_line && 0) {
@@ -1090,6 +1109,12 @@ int main(int argc, char *argv[])
     shadow_view.render(ek::renderer(), shadow_objects).execute();
 
     worker_pool.waitJob(extract_for_view_job_id);
+
+    auto occlusion_buf = render_view.visibility().occlusionBuf().detiledFramebuffer();
+
+    occlusion_tex.upload(occlusion_buf.get(), 0,
+      0, 0, ek::OcclusionBuffer::Size.x, ek::OcclusionBuffer::Size.y, gx::r, gx::f32);
+
     auto& render_objects = extract_for_view_job->result();
     render_view.render(ek::renderer(), render_objects).execute();
 

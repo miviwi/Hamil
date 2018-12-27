@@ -2,6 +2,9 @@
 #include <ek/renderer.h>
 #include <ek/renderobject.h>
 #include <ek/constbuffer.h>
+#include <ek/visibility.h>
+#include <ek/visobject.h>
+#include <ek/occlusion.h>
 
 #include <math/util.h>
 #include <gx/gx.h>
@@ -110,6 +113,8 @@ public:
   SceneConstants *scene = nullptr;
 
   gx::ResourcePool::Id fence = gx::ResourcePool::Invalid;
+
+  ViewVisibility vis;
 };
 
 RenderView::RenderView(ViewType type) :
@@ -183,11 +188,21 @@ RenderView& RenderView::view(const mat4& v)
   return *this;
 }
 
+const mat4& RenderView::view() const
+{
+  return m_view;
+}
+
 RenderView& RenderView::projection(const mat4& p)
 {
   m_projection = p;
 
   return *this;
+}
+
+const mat4& RenderView::projection() const
+{
+  return m_projection;
 }
 
 vec3 RenderView::eyePosition() const
@@ -203,6 +218,11 @@ bool RenderView::wantsLights() const
 frustum3 RenderView::constructFrustum()
 {
   return frustum3(m_view, m_projection);
+}
+
+ViewVisibility& RenderView::visibility()
+{
+  return m_data->vis;
 }
 
 const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] = {
@@ -265,13 +285,28 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
     .renderpass(m_renderpass_id)
     .bufferUpload(constantBufferId(SceneConstantsBinding), scene_constants.h, scene_constants.sz);
 
+  auto& vis = visibility();
+  int num_culled = 0;
   auto render_one = RenderFns[m_type][m_render];
   for(size_t i = meshes_off; i < objects.size(); i++) {
     const auto& ro = objects[i];
+#if 1
+    if(ro.mesh().vis) {
+      auto vis_object = (VisibilityObject *)ro.mesh().vis().visObject();
+
+      vis.occlusionQuery(vis_object);
+      if(vis_object->mesh(0).visible == VisibilityMesh::Invisible) {
+        num_culled++;
+        continue;
+      }
+    }
+#endif
 
     (this->*render_one)(ro, cmd);
     advanceConstantBlockBinding(cmd);
   }
+
+  printf("Culled %d meshes\n", num_culled);
 
   // Unmap the ObjectConstants UniformBuffer
   m_data->object_ubo_view = std::nullopt;

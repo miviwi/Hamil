@@ -9,6 +9,8 @@ ViewVisibility& ViewVisibility::viewProjection(const mat4& vp)
   m_viewprojection = vp;
   m_viewprojectionviewport = OcclusionBuffer::ViewportMatrix * vp;
 
+  m_frustum = frustum3(vp);
+
   return *this;
 }
 
@@ -26,16 +28,14 @@ ViewVisibility& ViewVisibility::addObject(VisibilityObject *object)
   return *this;
 }
 
-ViewVisibility& ek::ViewVisibility::transformObjects()
+ViewVisibility& ek::ViewVisibility::transformOccluders()
 {
   frustum3 frustum(m_viewprojection);
-
   for(auto& o : m_objects) {
-    // Frustum cull the VisibilityObjects
-    auto aabb = o->aabb();
-    if(!frustum.aabbInside(aabb)) continue;
+    bool is_occluder = o->flags() & VisibilityObject::Occluder;
+    if(!is_occluder) continue;
 
-    o->transformMeshes(m_viewprojectionviewport);
+    o->transformMeshes(m_viewprojectionviewport, frustum);
   }
 
   return *this;
@@ -48,7 +48,7 @@ ViewVisibility& ViewVisibility::binTriangles()
   return *this;
 }
 
-ViewVisibility & ViewVisibility::rasterizeOcclusionBuf()
+ViewVisibility& ViewVisibility::rasterizeOcclusionBuf()
 {
   m_occlusion_buf.rasterizeBinnedTriangles(m_objects);
 
@@ -58,6 +58,15 @@ ViewVisibility & ViewVisibility::rasterizeOcclusionBuf()
 const OcclusionBuffer& ViewVisibility::occlusionBuf() const
 {
   return m_occlusion_buf;
+}
+
+ViewVisibility& ViewVisibility::occlusionQuery(VisibilityObject *vis)
+{
+  vis->transformAABBs();
+  vis->frustumCullMeshes(m_frustum);
+  vis->occlusionCullMeshes(m_occlusion_buf, m_viewprojectionviewport);
+
+  return *this;
 }
 
 }

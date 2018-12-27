@@ -15,7 +15,7 @@ public:
     m(component)
   { }
 
-  operator bool() { return m; }
+  operator bool() const { return m; }
 
   T& get()
   {

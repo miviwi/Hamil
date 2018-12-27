@@ -180,10 +180,11 @@
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 set "Solution=$(SolutionDir)"
 set "Generated=$(ProjectDir)Generated"
+set "Output=$(OutDir)"
 
 :: Need space before end-quote because MSBuild is rubbish...
 
-call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% "</Command>
+call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% " "Output=%Output% "</Command>
       <Outputs>uniforms.cpp;uniforms.h;resources.cpp;resources.h;components.cpp;components.h;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
@@ -225,10 +226,11 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 set "Solution=$(SolutionDir)"
 set "Generated=$(ProjectDir)Generated"
+set "Output=$(OutDir)"
 
 :: Need space before end-quote because MSBuild is rubbish...
 
-call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% "</Command>
+call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% " "Output=%Output% "</Command>
       <Outputs>uniforms.cpp;uniforms.h;resources.cpp;resources.h;components.cpp;components.h;%(Outputs)</Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
@@ -292,10 +294,11 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
       <Command>set "eugene=$(SolutionDir)Eugene\src\eugene"
 set "Solution=$(SolutionDir)"
 set "Generated=$(ProjectDir)Generated"
+set "Output=$(OutDir)"
 
 :: Need space before end-quote because MSBuild is rubbish...
 
-call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% "</Command>
+call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generated=%Generated% " "Output=%Output% "</Command>
     </CustomBuildStep>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)extern\freetype2\win64\freetype271MT.dll" "$(OutDir)"</Command>
@@ -347,6 +350,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClCompile Include="src\hm\components\mesh.cpp" />
     <ClCompile Include="src\hm\components\rigidbody.cpp" />
     <ClCompile Include="src\hm\components\transform.cpp" />
+    <ClCompile Include="src\hm\components\visibility.cpp" />
     <ClCompile Include="src\hm\entity.cpp" />
     <ClCompile Include="src\hm\entityman.cpp" />
     <ClCompile Include="src\math\brdf.cpp" />
@@ -478,6 +482,7 @@ call "%eugene%" run "$(ProjectDir)build.eugene " "Solution=%Solution% " "Generat
     <ClInclude Include="include\hm\components\mesh.h" />
     <ClInclude Include="include\hm\components\rigidbody.h" />
     <ClInclude Include="include\hm\components\transform.h" />
+    <ClInclude Include="include\hm\components\visibility.h" />
     <ClInclude Include="include\hm\entity.h" />
     <ClInclude Include="include\hm\entityman.h" />
     <ClInclude Include="include\math\brdf.h" />

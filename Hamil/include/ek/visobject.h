@@ -4,6 +4,7 @@
 
 #include <util/smallvector.h>
 #include <math/geometry.h>
+#include <math/frustum.h>
 #include <math/util.h>
 
 #include <utility>
@@ -14,6 +15,8 @@
 //#define NO_OCCLUSION_SSE
 
 namespace ek {
+
+class OcclusionBuffer;
 
 // Structure of arrays
 struct VisMesh4Tris {
@@ -32,9 +35,24 @@ void free_xformed(vec4 *v);
 struct VisibilityMesh {
   using Triangle = std::array<vec4, 3>;
 
+  enum Visibility {
+    Unknown,
+    Invisible,
+    PotentiallyVisible,
+    Visible,
+
+    FrustumOut = 1<<0,
+    EarlyOut   = 1<<1,
+    LateOut    = 1<<2,
+  };
+
+  Visibility visible = Unknown;
+  uint vis_flags = 0;
+
   mat4 model = mat4::identity();
 
   AABB aabb;
+  AABB transformed_aabb;
 
   u32 num_verts = 0;
   u32 num_inds = 0;
@@ -45,7 +63,7 @@ struct VisibilityMesh {
   //   array for the std::unique_ptr via malloc() which avoids the overhead
   //   of default constructing the vec4[] (which malloc() doesn't do,
   //   unlike operator new[])
-  //  - Insignificant, but from profiling it seens to help
+  //  - Insignificant, but from profiling it seems to help
   using XformedPtr = std::unique_ptr<vec4[], decltype(&free_xformed)>;
   XformedPtr xformed = { nullptr, nullptr };
 
@@ -67,14 +85,16 @@ struct VisibilityMesh {
       /* cast to silence IntelliSense */ (void *)verts.data(),
       sizeof(VertsVec::value_type)
     );
-
-    auto xformed_ptr = (vec4 *)malloc(self.num_verts * sizeof(vec4));
-    self.xformed = XformedPtr(xformed_ptr, free_xformed);
-
     self.inds = inds.data();
+
+    self.initInternal();
 
     return std::move(self);
   }
+
+  // Initializes 'xformed' which is used internally during rasterization
+  //   - 'num_verts' must be initialized before calling this method!
+  VisibilityMesh& initInternal();
 
   // Returns the transformed vertices for triangle formed
   //   from indices at offset idx*3 in 'inds'
@@ -90,7 +110,15 @@ struct VisibilityMesh {
 
 class VisibilityObject {
 public:
+  enum Flags : uint {
+    Default  = 0,
+    Occluder = 1<<0,
+  };
+
   using Ptr = std::unique_ptr<VisibilityObject>;
+
+  uint flags() const;
+  VisibilityObject& flags(uint f);
 
   const AABB& aabb() const;
 
@@ -100,15 +128,29 @@ public:
   // Returns the max_index+1 which can be passed to mesh()
   uint numMeshes() const;
 
+  template <typename Fn>
+  VisibilityObject& foreachMesh(Fn fn)
+  {
+    for(auto& mesh : m_meshes) fn(mesh);
+
+    return *this;
+  }
+
   VisibilityObject& addMesh(VisibilityMesh&& mesh);
 
   // Fills VisibilityMesh::xformed arrays with
   //   screen space vertex coords
-  VisibilityObject& transformMeshes(const mat4& viewprojectionviewport);
+  VisibilityObject& transformMeshes(const mat4& viewprojectionviewport, const frustum3& frustum);
+
+  VisibilityObject& transformAABBs();
+
+  VisibilityObject& frustumCullMeshes(const frustum3& frustum);
+  VisibilityObject& occlusionCullMeshes(OcclusionBuffer& occlusion, const mat4& viewprojectionviewport);
 
 private:
   void transformOne(VisibilityMesh& mesh, const mat4& mvp);
 
+  uint m_flags = Default;
   AABB m_aabb = { vec3(INFINITY), vec3(-INFINITY) };
 
   std::vector<VisibilityMesh> m_meshes;

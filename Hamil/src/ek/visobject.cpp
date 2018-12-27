@@ -1,4 +1,5 @@
 #include <ek/visobject.h>
+#include <ek/occlusion.h>
 
 #include <xmmintrin.h>
 #include <pmmintrin.h>
@@ -11,6 +12,18 @@ namespace ek {
 void free_xformed(vec4 *v)
 {
   free(v);
+}
+
+uint VisibilityObject::flags() const
+{
+  return m_flags;
+}
+
+VisibilityObject& VisibilityObject::flags(uint f)
+{
+  m_flags = f;
+
+  return *this;
 }
 
 const AABB& VisibilityObject::aabb() const
@@ -46,13 +59,72 @@ VisibilityObject& VisibilityObject::addMesh(VisibilityMesh&& mesh)
   return *this;
 }
 
-VisibilityObject& VisibilityObject::transformMeshes(const mat4& viewprojectionviewport)
+VisibilityObject& VisibilityObject::transformMeshes(const mat4& viewprojectionviewport,
+  const frustum3& frustum)
 {
   // Transform all the meshes into screen space
   for(auto& mesh : m_meshes) {
     auto mvp = viewprojectionviewport * mesh.model;
     transformOne(mesh, mvp);
+  }
 
+  return *this;
+}
+
+VisibilityObject& VisibilityObject::transformAABBs()
+{
+  for(auto& mesh : m_meshes) {
+    const auto& model = mesh.model;
+    const auto& aabb  = mesh.aabb;
+
+    vec4 min = model * vec4(aabb.min, 1.0f);
+    vec4 max = model * vec4(aabb.max, 1.0f);
+
+    mesh.transformed_aabb.min = min.xyz();
+    mesh.transformed_aabb.max = max.xyz();
+  }
+
+  return *this;
+}
+
+VisibilityObject& VisibilityObject::frustumCullMeshes(const frustum3& frustum)
+{
+  for(auto& mesh : m_meshes) {
+    if(!frustum.aabbInside(mesh.transformed_aabb)) {
+      mesh.visible = VisibilityMesh::Invisible;
+      mesh.vis_flags = VisibilityMesh::FrustumOut;
+    } else {
+      mesh.visible = VisibilityMesh::PotentiallyVisible;
+    }
+  }
+
+  return *this;
+}
+
+VisibilityObject& VisibilityObject::occlusionCullMeshes(
+  OcclusionBuffer& occlusion, const mat4& viewprojectionviewport)
+{
+  for(auto& mesh : m_meshes) {
+    // Check if the mesh had already been culled in an earlier stage
+    if(mesh.visible == VisibilityMesh::Invisible) continue;
+
+    __m128 xformed[8];
+
+    auto early_test = occlusion.earlyTest(mesh, viewprojectionviewport, xformed);
+    if(early_test == VisibilityMesh::Invisible) {
+      mesh.visible = VisibilityMesh::Invisible;
+      mesh.vis_flags = VisibilityMesh::EarlyOut;
+    } else if(early_test == VisibilityMesh::Unknown) {
+      auto full_test = occlusion.fullTest(mesh, viewprojectionviewport, xformed);
+      if(!full_test) {
+        mesh.visible = VisibilityMesh::Invisible;
+        mesh.vis_flags = VisibilityMesh::LateOut;
+      } else {
+        mesh.visible = VisibilityMesh::Visible;
+      }
+    } else {
+      mesh.visible = VisibilityMesh::Visible;
+    }
   }
 
   return *this;
@@ -115,6 +187,14 @@ void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
     out += 4;  // vec4
 #endif
   }
+}
+
+VisibilityMesh& VisibilityMesh::initInternal()
+{
+  auto xformed_ptr = (vec4 *)malloc(num_verts * sizeof(vec4));
+  xformed = XformedPtr(xformed_ptr, free_xformed);
+
+  return *this;
 }
 
 VisibilityMesh::Triangle VisibilityMesh::gatherTri(uint idx) const
