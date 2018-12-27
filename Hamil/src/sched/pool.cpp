@@ -33,7 +33,7 @@ public:
   // The Window from which the GlContexts will be acquired,
   //   must be stored here because GlContext::acquireContext()
   //   is called after creating the workers (in kickWorkers())
-  win32::Window *window;
+  win32::Window *window = nullptr;
   std::map<win32::Thread::Id, win32::GlContext> contexts;
 
   // This mutex is shared by the workers waiting on the queue
@@ -57,10 +57,10 @@ public:
   win32::ConditionVariable workers_idle;
 
   // The number of currently active worker threads
-  std::atomic<uint> workers_active;
+  std::atomic<uint> workers_active = 0;
 
   // Set to true when workers should terminate
-  std::atomic<bool> done;
+  std::atomic<bool> done = false;
 
 protected:
   WorkerPoolData() :
