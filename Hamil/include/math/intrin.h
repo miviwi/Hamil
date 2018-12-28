@@ -34,6 +34,8 @@ INTRIN_INLINE void stream4_f16(const float *src, half *dst);
 //   single-precision and writes them to 'dst'
 INTRIN_INLINE void load4_f16(const half *src, float *dst);
 
+INTRIN_INLINE void set_flush_denormals_flush_to_zero();
+
 }
 
 #include <math/intrin.hh>

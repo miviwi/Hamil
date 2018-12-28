@@ -432,6 +432,16 @@ void load4_f16(const half *src, float *dst)
   _mm_store_ps(dst, ps);
 }
 
+void set_flush_denormals_flush_to_zero()
+{
+  enum {
+    DenormalsAreZero = 1<<6,
+    FlushToZero      = 1<<15,
+  };
+
+  _mm_setcsr(_mm_getcsr() | (DenormalsAreZero|FlushToZero));
+}
+
 // Avoid global namespace pollution
 
 #undef X

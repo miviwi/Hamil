@@ -666,6 +666,8 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
 #if defined(NO_OCCLUSION_SSE)
   VisibilityMesh::Triangle xformed;
 #else
+  intrin::set_flush_denormals_flush_to_zero();
+
   VisMesh4Tris gather_buf[2];
 #endif
   bool done = false;
