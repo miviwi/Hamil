@@ -191,6 +191,18 @@ public:
   const T *cbegin() const { return data(); }
   const T *cend() const { return data() + m_sz; }
 
+  template <typename Fn>
+  void foreach(Fn fn)
+  {
+    for(auto it = begin(); it != end(); it++) fn(*it);
+  }
+
+  template <typename Fn>
+  void foreach(Fn fn) const
+  {
+    for(auto it = cbegin(); it != cend(); it++) fn(*it);
+  }
+
   u32 size() const { return m_sz; }
 
   bool empty() const { return m_sz == 0; }

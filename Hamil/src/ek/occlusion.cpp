@@ -65,6 +65,19 @@ INTRIN_INLINE static __m128 blendv_ps(const __m128& a, const __m128& b, const __
 
 #define splat_ps(a, i) permute_ps(a, _MM_SHUFFLE(i, i, i, i))
 
+INTRIN_INLINE static int testz_si128(const __m128i& a, const __m128i& b)
+{
+#if !defined(NO_SSE41)
+  return _mm_testz_si128(a, b);
+#else
+  __m128i band   = _mm_and_si128(a, b);
+  __m128i result = _mm_cmpeq_epi32(band, _mm_setzero_si128());
+  int mask = _mm_movemask_ps(_mm_castsi128_ps(result));
+
+  return mask == OcclusionBuffer::SIMDLaneMask;
+#endif
+}
+
 // Find and clear the first (lsb) set bit and return it's index
 INTRIN_INLINE static int find_and_clear_lsb(uint *mask)
 {
@@ -110,6 +123,11 @@ INTRIN_INLINE static __m128i tri_area(__m128i fxx[3], __m128i fxy[3])
 
   return area;
 }
+
+#if !defined(NO_OCCLUSION_SSE)
+static const __m128i ColumnOffsets = _mm_setr_epi32(0, 1, 0, 1);
+static const __m128i RowOffsets    = _mm_setr_epi32(0, 0, 1, 1);
+#endif
 
 void free_binnedtris(BinnedTri *btri)
 {
@@ -339,9 +357,6 @@ INTRIN_INLINE static void gather_aabb_verts(VisMesh4Tris out[3], uint idx, const
 
 bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xformed_in)
 {
-  static const __m128i ColumnOffsets = _mm_setr_epi32(0, 1, 0, 1);
-  static const __m128i RowOffsets    = _mm_setr_epi32(0, 0, 1, 1);
-
   auto fb = m_fb.get();
 
   // See rasterizeTile() for notes on how this works
@@ -462,7 +477,7 @@ bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xfor
         }
 
         // Early out if any pixel is in front of the framebuffer
-        if(!_mm_testz_si128(any_out, _mm_set1_epi32(0x80000000))) return true;
+        if(!testz_si128(any_out, _mm_set1_epi32(0x80000000))) return true;
 
         row_idx += 2*Size.x;   // Advance to the next quad
         sum0_row = _mm_add_epi32(sum0_row, bb0_inc);
@@ -652,9 +667,6 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
   VisibilityMesh::Triangle xformed;
 #else
   VisMesh4Tris gather_buf[2];
-
-  static const __m128i ColumnOffsets = _mm_setr_epi32(0, 1, 0, 1);
-  static const __m128i RowOffsets    = _mm_setr_epi32(0, 0, 1, 1);
 #endif
   bool done = false;
   bool all_empty = false;
@@ -820,9 +832,9 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
     // Now that we've set up 4 triangles, rasterize them one by one in 2x2 pixel quads
     for(int lane = 0; lane < num_simd_tris; lane++) {
       __m128 zz[] = {  // Z-plane equation coefficients
-        _mm_set1_ps(gather_buf[0].v[lane].m128_f32[3]),
-        _mm_set1_ps(gather_buf[1].v[lane].m128_f32[0]),
-        _mm_set1_ps(gather_buf[1].v[lane].m128_f32[1]),
+        splat_ps(gather_buf[0].v[lane], 3),
+        splat_ps(gather_buf[1].v[lane], 0),
+        splat_ps(gather_buf[1].v[lane], 1),
       };
 
       // Get the current triangles bounding box

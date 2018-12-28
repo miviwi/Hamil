@@ -33,11 +33,11 @@ class OcclusionBuffer {
 public:
   // Size of the underlying framebuffer
   //   - Can be adjusted
-  static constexpr ivec2 Size     = { 320, 192 };
+  static constexpr ivec2 Size = { 640, 360 };
   // Size of a single binning tile
   //   - Must be adjusted to partition the framebuffer
   //     into an even number of tiles
-  static constexpr ivec2 TileSize = { 40, 48 };
+  static constexpr ivec2 TileSize = { 80, 96 };
 
   static constexpr ivec2 SizeMinusOne = { Size.x - 1, Size.y - 1 };
 
@@ -60,6 +60,7 @@ public:
     MaxTriangles = NumTrisPerBin * NumBins,
 
     NumSIMDLanes = 4,
+    SIMDLaneMask = (1<<NumSIMDLanes) - 1,
   };
 
   static constexpr ivec2 Offset1 = { 1, SizeInTiles.x };

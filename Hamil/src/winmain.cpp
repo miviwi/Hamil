@@ -668,11 +668,12 @@ int main(int argc, char *argv[])
     auto sphere_entity = hm::entities().createGameObject(name, scene);
     auto light_entity = hm::entities().createGameObject(light_name, sphere_entity);
 
+    const float AABBDiagonal = sqrtf(3)*LightSphereRadius;
     auto transform = sphere_entity.addComponent<hm::Transform>(
       xform::Transform(origin, quat(), vec3(LightSphereRadius)),
       AABB(
-        origin - vec3(LightSphereRadius),
-        origin + vec3(LightSphereRadius)
+        origin - vec3(AABBDiagonal),
+        origin + vec3(AABBDiagonal)
       )
     );
     sphere_entity.addComponent<hm::Mesh>(sphere_mesh);

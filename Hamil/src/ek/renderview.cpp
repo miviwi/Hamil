@@ -305,7 +305,6 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
 #if !defined(NDEBUG)
       if(mesh.vis_flags & VisibilityMesh::LateOut) num_full_tests++;
 #endif
-
       // Mesh wasn't culled
       if(mesh.visible != VisibilityMesh::Invisible) return;
 
@@ -799,21 +798,23 @@ void RenderView::shadowRenderOne(const RenderObject& ro, gx::CommandBuffer& cmd)
 
 void RenderView::emitDraw(const RenderMesh& ro, gx::CommandBuffer& cmd)
 {
-  const auto& mesh = ro.mesh().m;
+  const auto& meshes = ro.mesh().m;
 
-  if(mesh.isIndexed()) {
-    if(mesh.base != mesh::Mesh::None && mesh.offset != mesh::Mesh::None) {
-      cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
-        mesh.num, mesh.base, mesh.offset);
-    } else if(mesh.offset != mesh::Mesh::None) {
-      cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
-        mesh.num, 0, mesh.offset);
-    } else { // Use the shorter command when possible
-      cmd.drawIndexed(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
+  meshes.foreach([&](const mesh::Mesh& mesh) {
+    if(mesh.isIndexed()) {
+      if(mesh.base != mesh::Mesh::None && mesh.offset != mesh::Mesh::None) {
+        cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
+          mesh.num, mesh.base, mesh.offset);
+      } else if(mesh.offset != mesh::Mesh::None) {
+        cmd.drawBaseVertex(mesh.getPrimitive(), mesh.vertex_array_id,
+          mesh.num, 0, mesh.offset);
+      } else { // Use the shorter command when possible
+        cmd.drawIndexed(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
+      }
+    } else {
+      cmd.draw(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
     }
-  } else {
-    cmd.draw(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
-  }
+  });
 }
 
 }
