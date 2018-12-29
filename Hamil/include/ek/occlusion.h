@@ -12,7 +12,13 @@
 //   use of SSE instructions in the rasterizer
 //#define NO_OCCLUSION_SSE
 
+namespace gx {
+class MemoryPool;
+}
+
 namespace ek {
+
+class MemoryPool;
 
 union XY {
   struct { u16 x, y; };
@@ -24,9 +30,6 @@ struct BinnedTri {
   XY v[3];     // Screen-space coords
   float Z[3];  // Plane equation
 };
-
-// See BinnedTrisPtr
-void free_binnedtris(BinnedTri *btri);
 
 // TODO: maybe replace the current implementation with Masked Occlusion Culling?
 class OcclusionBuffer {
@@ -61,6 +64,8 @@ public:
 
     NumSIMDLanes = 4,
     SIMDLaneMask = (1<<NumSIMDLanes) - 1,
+
+    MempoolSize = 32 * 1024*1024, // 32MB
   };
 
   static constexpr ivec2 Offset1 = { 1, SizeInTiles.x };
@@ -76,7 +81,7 @@ public:
                     0.0f,                  0.0f,  0.0f,                 1.0f,
   };
 
-  OcclusionBuffer();
+  OcclusionBuffer(MemoryPool& mempool);
 
   OcclusionBuffer& binTriangles(const std::vector<VisibilityObject *>& objects);
 
@@ -104,6 +109,8 @@ public:
     void /* __m128 */ *xformed_in);
 
 private:
+  gx::MemoryPool& mempool();
+
   void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);
 
   void clearTile(ivec2 start, ivec2 end);
@@ -111,28 +118,29 @@ private:
 
   void createCoarseTile(ivec2 tile_start, ivec2 tile_end);
 
+  MemoryPool *m_mempool;
+
   // The framebuffer of size Size.area()
-  std::unique_ptr<float[]> m_fb;
+  float *m_fb;
   // Stores vec2(min, max) for 8x8 blocks
   //   of the framebuffer 'm_fb'
-  std::unique_ptr<vec2[]> m_fb_coarse;
+  vec2 *m_fb_coarse;
 
 #if defined(NO_OCCLUSION_SSE)
   // Stores SizeInTiles.area() * NumTrisPerBins entries
-  std::unique_ptr<u16[]> m_obj_id;  // VisibilityObject index
-  std::unique_ptr<u16[]> m_mesh_id; // VisibilityMesh index
-  std::unique_ptr<uint[]> m_bin;    // Triangle index
+  u16 *m_obj_id;  // VisibilityObject index
+  u16 *m_mesh_id; // VisibilityMesh index
+  uint *m_bin;    // Triangle index
 #else
   // See note above VisibilityMesh::XformedPtr for rationale
-  using BinnedTrisPtr = std::unique_ptr<BinnedTri[], decltype(&free_binnedtris)>;
-  BinnedTrisPtr m_bin = { nullptr, nullptr };
+  BinnedTri *m_bin;
 #endif
 
   // Stores SizeInTiles.area() (number of bins) entries
-  std::unique_ptr<u16[]> m_bin_counts;
+  u16 *m_bin_counts;
 
   // Stores the number of rasterized triangles per bin
-  std::unique_ptr<u16[]> m_drawn_tris;
+  u16 *m_drawn_tris;
 };
 
 }

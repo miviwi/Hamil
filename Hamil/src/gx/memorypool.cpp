@@ -6,14 +6,14 @@ namespace gx {
 
 MemoryPool::MemoryPool(size_t size)
 {
-  m_pool = (byte *)malloc(size);
+  m_pool = (byte *)malloc(size + MaxSizeDefficit);
   checkMalloc();
 
   auto ptr = align((uintptr_t)m_pool);
 
   m_ptr = (byte *)ptr;
   m_rover = m_ptr;
-  m_end = m_pool + size;
+  m_end = m_pool + size + MaxSizeDefficit;
 }
 
 MemoryPool::~MemoryPool()
@@ -72,6 +72,11 @@ void MemoryPool::purgeFrom(Handle where)
   assertHandle(where);
 
   m_rover = m_ptr + where;
+}
+
+size_t MemoryPool::size() const
+{
+  return m_end - m_ptr;
 }
 
 uintptr_t MemoryPool::align(uintptr_t ptr)

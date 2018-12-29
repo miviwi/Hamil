@@ -64,9 +64,13 @@ public:
   //   'where' become invalidated
   void purgeFrom(Handle where);
 
-  size_t size() const { return m_rover - m_ptr; }
+  size_t size() const;
 
 private:
+  enum {
+    MaxSizeDefficit = AllocAlign,
+  };
+
   static uintptr_t align(uintptr_t ptr);
 
   static void assertHandle(Handle h);

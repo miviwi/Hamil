@@ -17,6 +17,7 @@
 #include <hm/components/light.h>
 #include <hm/components/visibility.h>
 #include <gx/resourcepool.h>
+#include <gx/memorypool.h>
 #include <gx/program.h>
 #include <gx/fence.h>
 #include <res/res.h>
@@ -142,6 +143,7 @@ Renderer::Renderer() :
 {
   m_rts.reserve(InitialRenderTargets);
   m_const_buffers.reserve(InitialConstantBuffers);
+  m_mempools.reserve(InitialMemoryPools);
 
   precacheLUTs();
   precacheSamplers();
@@ -202,6 +204,8 @@ Renderer& Renderer::cachePrograms()
 
 Renderer::ExtractObjectsJob Renderer::extractForView(hm::Entity scene, RenderView& view)
 {
+  view.init(*this);
+
   return ExtractObjectsJob(new sched::Job<ObjectVector, hm::Entity, RenderView *>(
     sched::create_job([this](hm::Entity scene, RenderView *view) -> ObjectVector {
       return doExtractForView(scene, *view);
@@ -455,6 +459,51 @@ void Renderer::doneFence(u32 id)
     pool().release<gx::Fence>(fence_id);
   }
   m_fences_lock.releaseExclusive();
+}
+
+MemoryPool& Renderer::queryMempool(size_t sz, u32 fence_id)
+{
+  auto& fence = pool().get<gx::Fence>(fence_id);
+
+  m_mempools_lock.acquireShared();
+
+  auto it = m_mempools.begin();
+  while(it != m_mempools.end()) {
+    it = std::find_if(it, m_mempools.end(), [&](const MemoryPool& mempool) {
+      size_t mempool_sz = mempool.get().size();
+      float fract_bigger = (float)mempool_sz/(float)sz;
+
+      return mempool_sz >= sz && fract_bigger < 1.5f;
+    });
+
+    // No compatible MemoryPool found...
+    if(it == m_mempools.end()) break;
+
+    if(it->lock(fence)) {
+      m_mempools_lock.releaseShared();
+      it->get().purge();
+
+      return *it;
+    }
+
+    it++;  // Keep searching...
+  }
+
+  m_mempools_lock.releaseShared();
+
+  m_mempools_lock.acquireExclusive();
+  auto& mempool = m_mempools.emplace_back(sz);
+  m_mempools_lock.releaseExclusive();
+
+  auto result = mempool.lock();
+  assert(result && "failed to lock() the MemoryPool!");
+
+  return mempool;
+}
+
+void Renderer::releaseMempool(MemoryPool& mempool)
+{
+  mempool.unlock();
 }
 
 gx::ResourcePool& Renderer::pool()

@@ -1,4 +1,7 @@
 #include <ek/occlusion.h>
+#include <ek/mempool.h>
+
+#include <gx/memorypool.h>
 
 #include <utility>
 
@@ -129,34 +132,40 @@ static const __m128i ColumnOffsets = _mm_setr_epi32(0, 1, 0, 1);
 static const __m128i RowOffsets    = _mm_setr_epi32(0, 0, 1, 1);
 #endif
 
-void free_binnedtris(BinnedTri *btri)
+OcclusionBuffer::OcclusionBuffer(MemoryPool& mp) :
+  m_mempool(&mp)
 {
-  free(btri);
-}
-
-OcclusionBuffer::OcclusionBuffer()
-{
-  m_fb = std::make_unique<float[]>(Size.area());
+  auto fb_handle = mempool().alloc(Size.area() * sizeof(float));
+  m_fb = mempool().ptr<float>(fb_handle);
 
 #if defined(NO_OCCLUSION_SSE)
-  m_obj_id  = std::make_unique<u16[]>(MaxTriangles);
-  m_mesh_id = std::make_unique<u16[]>(MaxTriangles);
-  m_bin     = std::make_unique<uint[]>(MaxTriangles);
-#else
-  auto bin_ptr = (BinnedTri *)malloc(MaxTriangles * sizeof(BinnedTri));
-  m_bin = BinnedTrisPtr(bin_ptr, free_binnedtris);
+  auto bin_handle = mempool().alloc(MaxTriangles*(sizeof(u16)+sizeof(u16)+sizeof(uint)));
+  auto bin_ptr = mempool().ptr<u16>(bin_handle);
 
-  m_fb_coarse = std::make_unique<vec2[]>(CoarseSize.area());
+  m_obj_id  = bin_ptr;
+  m_mesh_id = bin_ptr + MaxTriangles;
+  m_bin     = (uint *)(bin_ptr + MaxTriangles*2);
+#else
+  auto bin_handle = mempool().alloc(MaxTriangles * sizeof(BinnedTri));
+  auto bin_ptr = mempool().ptr<BinnedTri>(bin_handle);
+
+  m_bin = bin_ptr;
+
+  auto fb_coarse_handle = mempool().alloc(CoarseSize.area() * sizeof(vec2));
+  m_fb_coarse = mempool().ptr<vec2>(fb_coarse_handle);
 #endif
 
-  m_bin_counts = std::make_unique<u16[]>(NumBins);
-  m_drawn_tris = std::make_unique<u16[]>(NumBins);
+  auto bin_stats_handle = mempool().alloc(NumBins*2 * sizeof(u16));
+  auto bin_stats_ptr = mempool().ptr<u16>(bin_stats_handle);
+
+  m_bin_counts = bin_stats_ptr;
+  m_drawn_tris = bin_stats_ptr + NumBins;
 }
 
 OcclusionBuffer& OcclusionBuffer::binTriangles(const std::vector<VisibilityObject *>& objects)
 {
   // Clear the bin triangle counts
-  memset(m_bin_counts.get(), 0, NumBins * sizeof(decltype(m_bin_counts)::element_type));
+  memset(m_bin_counts, 0, NumBins * sizeof(*m_bin_counts));
 
   for(uint o = 0; o < objects.size(); o++) {
     const auto& obj = objects[o];
@@ -183,12 +192,12 @@ OcclusionBuffer& OcclusionBuffer::rasterizeBinnedTriangles(const std::vector<Vis
 
 const float *OcclusionBuffer::framebuffer() const
 {
-  return m_fb.get();
+  return m_fb;
 }
 
 std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
 {
-  auto fb = m_fb.get();
+  auto fb = m_fb;
   auto ptr = std::make_unique<float[]>(Size.area());
 #if defined(NO_OCCLUSION_SSE)
   for(int y = 0; y < Size.y; y++) {
@@ -205,17 +214,10 @@ std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
     auto src = fb + y*Size.x;
     auto dst = ptr.get() + (Size.y - y - 2)*Size.x;
     for(int x = 0; x < Size.x; x += 2) {
-#if defined(NO_OCCLUSION_SSE)
-      dst[0] = src[2];
-      dst[1] = src[3];
-      dst[Size.x + 0 /* Next row */] = src[0];
-      dst[Size.x + 1 /* Next row */] = src[1];
-#else
       __m128 quad = _mm_load_ps(src);
 
       _mm_storeh_pi((__m64 *)dst, quad);
       _mm_storel_pi((__m64 *)(dst + Size.x), quad);
-#endif
 
       src += 4;
       dst += 2;
@@ -228,7 +230,7 @@ std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
 
 const vec2 *OcclusionBuffer::coarseFramebuffer() const
 {
-  return m_fb_coarse.get();
+  return m_fb_coarse;
 }
 
 static constexpr uint NumAABBVerts = 8;
@@ -316,7 +318,7 @@ VisibilityMesh::Visibility OcclusionBuffer::earlyTest(VisibilityMesh& mesh, cons
 
   __m128 any_closer = _mm_setzero_ps();
   for(int by = ry0; by <= ry1; by++) {
-    const auto *src_row = m_fb_coarse.get() + by*CoarseSize.x;
+    const auto *src_row = m_fb_coarse + by*CoarseSize.x;
 
     for(int bx = rx0; bx <= rx1; bx++) {
       __m128 fb_max = _mm_load_ss(&src_row[bx].y);   // m_fb_coarse[by,bx] = vec2(min, max)
@@ -357,7 +359,10 @@ INTRIN_INLINE static void gather_aabb_verts(VisMesh4Tris out[3], uint idx, const
 
 bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xformed_in)
 {
-  auto fb = m_fb.get();
+#if defined(NO_OCCLUSION_SSE)
+  return true;
+#else
+  auto fb = m_fb;
 
   // See rasterizeTile() for notes on how this works
   for(uint i = 0; i < NumAABBTris; i += NumSIMDLanes) {
@@ -488,6 +493,12 @@ bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xfor
   }  // Each AABB triangle
 
   return false;
+#endif
+}
+
+gx::MemoryPool& OcclusionBuffer::mempool()
+{
+  return m_mempool->get();
 }
 
 void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id)
@@ -610,7 +621,7 @@ void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, u
         for(col = startxx; col <= endxx; col++) {
           int idx1 = off1 + (Offset1.x*col);
           int idx2 = off2 + (Offset2.x*col) + m_bin_counts[idx1];
-          BinnedTri *btri = m_bin.get() + idx2;
+          BinnedTri *btri = m_bin + idx2;
 
           btri->v[0].xy = XY[0].m128i_i32[i];
           btri->v[1].xy = XY[1].m128i_i32[i];
@@ -630,7 +641,7 @@ void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, u
 
 void OcclusionBuffer::clearTile(ivec2 start, ivec2 end)
 {
-  float *fb = m_fb.get();
+  float *fb = m_fb;
   int w = end.x - start.x;
 #if defined(NO_OCCLUSION_SSE)
   for(int r = start.y; r < end.y; r++) {
@@ -647,7 +658,7 @@ void OcclusionBuffer::clearTile(ivec2 start, ivec2 end)
 
 void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objects, uint tile_idx)
 {
-  auto fb = m_fb.get();
+  auto fb = m_fb;
 
   uvec2 tile = { tile_idx % SizeInTiles.x, tile_idx / SizeInTiles.x };
 
@@ -661,7 +672,7 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
 
   uint num_tris = m_bin_counts[off1 + bin];
 
-  clearTile(tile_start, tile_end);
+  clearTile(tile_start, tile_end+1);
 
 #if defined(NO_OCCLUSION_SSE)
   VisibilityMesh::Triangle xformed;
@@ -690,7 +701,7 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
 
       if(!num_tris) break;
 #if !defined (NO_OCCLUSION_SSE)
-      const auto *btri = m_bin.get() + (off2 + bin*NumTrisPerBin + bin_idx);
+      const auto *btri = m_bin + (off2 + bin*NumTrisPerBin + bin_idx);
       gather_buf[0].v[lane] = _mm_castsi128_ps(_mm_loadu_si128((const __m128i *)&btri->v[0].xy));
       gather_buf[1].v[lane] = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i *)&btri->Z[1]));
 
@@ -940,8 +951,8 @@ void OcclusionBuffer::createCoarseTile(ivec2 tile_start, ivec2 tile_end)
   assert(0 && "createCoarseTile() called with NO_OCCLUSION_SSE defined!");
 #endif
 
-  auto fb = m_fb.get();
-  auto fb_coarse = m_fb_coarse.get();
+  auto fb = m_fb;
+  auto fb_coarse = m_fb_coarse;
 
   ivec2 s0 = tile_start / CoarseBlockSize,
     s1 = tile_end / CoarseBlockSize;

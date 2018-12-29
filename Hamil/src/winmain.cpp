@@ -1141,7 +1141,7 @@ int main(int argc, char *argv[])
 
     worker_pool.waitJob(extract_for_shadows_job_id);
     auto& shadow_objects = extract_for_shadows_job->result();
-    shadow_view.render(ek::renderer(), shadow_objects).execute();
+    shadow_view.render(shadow_objects).execute();
 
     worker_pool.waitJob(extract_for_view_job_id);
 
@@ -1151,7 +1151,7 @@ int main(int argc, char *argv[])
       0, 0, ek::OcclusionBuffer::Size.x, ek::OcclusionBuffer::Size.y, gx::r, gx::f32);
 
     auto& render_objects = extract_for_view_job->result();
-    render_view.render(ek::renderer(), render_objects).execute();
+    render_view.render(render_objects).execute();
 
     skybox_uniforms ={ view, persp };
     skybox_program.use()

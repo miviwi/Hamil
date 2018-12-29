@@ -13,9 +13,13 @@
 
 namespace ek {
 
+class MemoryPool;
+
 class ViewVisibility {
 public:
   using ObjectsVector = std::vector<VisibilityObject *>;
+
+  ViewVisibility(MemoryPool& mempool);
 
   // Sets the projection * view matrix which will
   //   be used to transform VisibilityMeshes

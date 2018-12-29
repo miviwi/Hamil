@@ -3,6 +3,7 @@
 #include <ek/euklid.h>
 #include <ek/rendertarget.h>
 #include <ek/constbuffer.h>
+#include <ek/mempool.h>
 #include <ek/renderobject.h>
 #include <ek/renderview.h>
 
@@ -99,6 +100,7 @@ public:
 
     InitialRenderTargets   = 16,
     InitialConstantBuffers = 256,
+    InitialMemoryPools     = 32,
   };
 
   Renderer();
@@ -170,6 +172,9 @@ public:
   //    is a no-op
   void doneFence(u32 id);
 
+  MemoryPool& queryMempool(size_t sz, u32 fence_id);
+  void releaseMempool(MemoryPool& mempool);
+
 private:
   // Fill 'm_luts' with commonly used RenderLUTs
   //   - m_data->pool must be initialized before calling
@@ -221,6 +226,10 @@ private:
   //   Fences
   win32::ReaderWriterLock m_fences_lock;
   std::set<u32> m_fences;  // std::set for fast removal
+
+  //  MemoryPools
+  win32::ReaderWriterLock m_mempools_lock;
+  std::vector<MemoryPool> m_mempools;
 };
 
 }

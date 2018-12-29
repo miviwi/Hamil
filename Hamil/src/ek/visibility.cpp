@@ -4,6 +4,11 @@
 
 namespace ek {
 
+ViewVisibility::ViewVisibility(MemoryPool& mempool) :
+  m_occlusion_buf(mempool)
+{
+}
+
 ViewVisibility& ViewVisibility::viewProjection(const mat4& vp)
 {
   m_viewprojection = vp;
@@ -78,7 +83,9 @@ ViewVisibility& ViewVisibility::occlusionQuery(VisibilityObject *vis)
 {
   vis->transformAABBs();
   vis->frustumCullMeshes(m_frustum);
+#if !defined(NO_OCCLUSION_SSE)
   vis->occlusionCullMeshes(m_occlusion_buf, m_viewprojectionviewport);
+#endif
 
   return *this;
 }

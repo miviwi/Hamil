@@ -111,10 +111,8 @@ public:
   std::optional<gx::BufferView> object_ubo_view = std::nullopt;
 
   SceneConstants *scene = nullptr;
-
   gx::ResourcePool::Id fence = gx::ResourcePool::Invalid;
-
-  ViewVisibility vis;
+  std::optional<ViewVisibility> vis = std::nullopt;
 };
 
 RenderView::RenderView(ViewType type) :
@@ -123,7 +121,6 @@ RenderView::RenderView(ViewType type) :
   m_view(mat4::identity()), m_projection(mat4::identity()),
   m_data(new RenderViewData),
   m_renderer(nullptr),
-  m_mempool(nullptr),
   m_const_bufs(NumConstantBufferBindings, nullptr),
   m_renderpass_id(gx::ResourcePool::Invalid),
   m_objects_rover(nullptr, 1)
@@ -138,12 +135,31 @@ RenderView::~RenderView()
 
   for(auto rt : m_rts) renderer().releaseRenderTarget(*rt);
   for(auto buf : m_const_bufs) renderer().releaseConstantBuffer(*buf);
+  for(auto mp : m_mempools) renderer().releaseMempool(*mp);
   renderer().doneFence(m_data->fence);
 
   pool().release<gx::RenderPass>(m_renderpass_id);
 
   delete m_data;
-  delete m_mempool;
+}
+
+void RenderView::init(Renderer& renderer)
+{
+  // Used by internal methods
+  m_renderer = &renderer;
+
+  // Guards resources (RenderTargets, ConstantBuffers...) used by
+  //   this RenderView, signaled right before end() in the
+  //   returned gx::CommandBuffer
+  m_data->fence = createFence();
+
+  m_mempools.push_back(&m_renderer->queryMempool(4096, m_data->fence));
+
+  auto vis_mempool = m_mempools.emplace_back(&m_renderer->queryMempool(
+    OcclusionBuffer::MempoolSize, m_data->fence
+  ));
+
+  m_data->vis.emplace(*vis_mempool);
 }
 
 RenderView& RenderView::depthOnlyRender()
@@ -222,7 +238,7 @@ frustum3 RenderView::constructFrustum()
 
 ViewVisibility& RenderView::visibility()
 {
-  return m_data->vis;
+  return *m_data->vis;
 }
 
 const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] = {
@@ -232,21 +248,9 @@ const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] =
   { &RenderView::shadowRenderOne, nullptr, nullptr },   // ShadowView
 };
 
-gx::CommandBuffer RenderView::render(Renderer& renderer,
-  std::vector<RenderObject>& objects)
+gx::CommandBuffer RenderView::render(std::vector<RenderObject>& objects)
 {
-  // Used by internal methods
-  m_renderer = &renderer;
-
   auto ltc = m_renderer->queryLUT(RenderLUT::LTCCoeffs);
-
-  // Internal to this RenderView
-  m_mempool = new gx::MemoryPool(MempoolInitialAlloc);
-
-  // Gaurds resources (RenderTargets, ConstantBuffers...) used by
-  //   this RenderView, signaled right before end() in the
-  //   returned gx::CommandBuffer
-  m_data->fence = createFence();
 
   m_renderpass_id = createRenderPass();
   auto& renderpass = getRenderpass();
@@ -281,7 +285,7 @@ gx::CommandBuffer RenderView::render(Renderer& renderer,
 
   auto cmd = gx::CommandBuffer::begin()
     .bindResourcePool(&pool())
-    .bindMemoryPool(m_mempool)
+    .bindMemoryPool(m_mempools.front()->ptr())
     .renderpass(m_renderpass_id)
     .bufferUpload(constantBufferId(SceneConstantsBinding), scene_constants.h, scene_constants.sz);
 
@@ -568,10 +572,12 @@ ShaderConstants RenderView::generateSceneConstants()
 {
   ShaderConstants constants;
 
-  constants.sz = constantBlockSizeAlign(sizeof(SceneConstants));
-  constants.h  = m_mempool->alloc(constants.sz);
+  auto& mempool = m_mempools.front()->get();
 
-  m_data->scene = m_mempool->ptr<SceneConstants>(constants.h);
+  constants.sz = constantBlockSizeAlign(sizeof(SceneConstants));
+  constants.h  = mempool.alloc(constants.sz);
+
+  m_data->scene = mempool.ptr<SceneConstants>(constants.h);
   SceneConstants *scene = m_data->scene;
 
   scene->view = m_view;

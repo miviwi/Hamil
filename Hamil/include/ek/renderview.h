@@ -27,6 +27,7 @@ class RenderObject;
 class RenderMesh;
 class RenderLight;
 class ConstantBuffer;
+class MemoryPool;
 class ViewVisibility;
 
 // Stores a MemoryPool Handle and a size
@@ -74,6 +75,8 @@ public:
   RenderView(ViewType type);
   ~RenderView();
 
+  void init(Renderer& renderer);
+
   // RenderType = DepthOnly
   //   - required for rendering a ShadowView
   RenderView& depthOnlyRender();
@@ -108,8 +111,7 @@ public:
   ViewVisibility& visibility();
 
   // 'objects' will be altered by this method
-  gx::CommandBuffer render(Renderer& renderer,
-    std::vector<RenderObject>& objects);
+  gx::CommandBuffer render(std::vector<RenderObject>& objects);
 
   // Returns a reference to the RenderTarget which holds
   //   the rendered view
@@ -229,8 +231,8 @@ private:
 
   // Assigned in render()
   Renderer *m_renderer;
-  // Allocated in render()
-  gx::MemoryPool *m_mempool;
+
+  std::vector<MemoryPool *> m_mempools;
 
   // Provided by the user (see the addInput() method)
   std::vector<const RenderView *> m_inputs;
