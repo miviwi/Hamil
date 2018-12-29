@@ -16,6 +16,7 @@
 
 namespace ek {
 
+class MemoryPool;
 class OcclusionBuffer;
 
 // Structure of arrays
@@ -26,9 +27,6 @@ struct VisMesh4Tris {
   // v[3] == w0 w1 w2 w3
   __m128 v[4];
 };
-
-// See note for XformedPtr below
-void free_xformed(vec4 *v);
 
 // Stores pointers to vertex and index data for a mesh
 //   along with an array of transformed vertices
@@ -82,8 +80,7 @@ struct VisibilityMesh {
   //   of default constructing the vec4[] (which malloc() doesn't do,
   //   unlike operator new[])
   //  - Insignificant, but from profiling it seems to help
-  using XformedPtr = std::unique_ptr<vec4[], decltype(&free_xformed)>;
-  XformedPtr xformed = { nullptr, nullptr };
+  vec4 *xformed = nullptr;
 
   const u16 *inds = nullptr;
 
@@ -105,14 +102,16 @@ struct VisibilityMesh {
     );
     self.inds = inds.data();
 
-    self.initInternal();
-
     return std::move(self);
   }
 
   // Initializes 'xformed' which is used internally during rasterization
   //   - 'num_verts' must be initialized before calling this method!
-  VisibilityMesh& initInternal();
+  VisibilityMesh& initInternal(MemoryPool& mempool);
+
+  // Fills VisibilityMesh::xformed arrays with
+  //   screen space vertex coords
+  VisibilityMesh& transform(const mat4& viewprojectionviewport, const frustum3& frustum);
 
   // Returns the transformed vertices for triangle formed
   //   from indices at offset idx*3 in 'inds'
@@ -162,10 +161,6 @@ public:
 
   VisibilityObject& addMesh(VisibilityMesh&& mesh);
 
-  // Fills VisibilityMesh::xformed arrays with
-  //   screen space vertex coords
-  VisibilityObject& transformMeshes(const mat4& viewprojectionviewport, const frustum3& frustum);
-
   // Used internally
   VisibilityObject& transformAABBs();
 
@@ -175,8 +170,6 @@ public:
   VisibilityObject& occlusionCullMeshes(OcclusionBuffer& occlusion, const mat4& viewprojectionviewport);
 
 private:
-  void transformOne(VisibilityMesh& mesh, const mat4& mvp);
-
   uint m_flags = Default;
   AABB m_aabb = { vec3(INFINITY), vec3(-INFINITY) };
 

@@ -594,8 +594,6 @@ int main(int argc, char *argv[])
 
     vis_mesh.inds = inds;
 
-    vis_mesh.initInternal();
-
     vis().vis.addMesh(std::move(vis_mesh));
     vis().vis.flags(ek::VisibilityObject::Occluder);
 
@@ -644,8 +642,6 @@ int main(int argc, char *argv[])
 
     vis_mesh.verts = StridePtr<const vec3>(sphere_verts.data(), sizeof(mesh::PNVertex));
     vis_mesh.inds = sphere_inds.data();
-
-    vis_mesh.initInternal();
 
     vis().vis.addMesh(std::move(vis_mesh));
 
@@ -702,8 +698,6 @@ int main(int argc, char *argv[])
     vis_mesh.verts = StridePtr<const vec3>(sphere_verts.data(), sizeof(mesh::PNVertex));
     vis_mesh.inds = sphere_inds.data();
 
-    vis_mesh.initInternal();
-
     vis().vis.addMesh(std::move(vis_mesh));
     vis().vis.flags(ek::VisibilityObject::Occluder);
 
@@ -754,8 +748,6 @@ int main(int argc, char *argv[])
 
     vis_mesh.verts = StridePtr<const vec3>(line_vtxs.data(), sizeof(mesh::PVertex));
     vis_mesh.inds = line_inds.data();
-
-    vis_mesh.initInternal();
 
     vis().vis.addMesh(std::move(vis_mesh));
     vis().vis.flags(ek::VisibilityObject::Occluder);

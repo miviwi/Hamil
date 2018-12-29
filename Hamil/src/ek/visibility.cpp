@@ -5,6 +5,7 @@
 namespace ek {
 
 ViewVisibility::ViewVisibility(MemoryPool& mempool) :
+  m_mempool(&mempool),
   m_occlusion_buf(mempool)
 {
 }
@@ -45,6 +46,8 @@ ViewVisibility& ViewVisibility::addObject(VisibilityObject *object)
     return addObject(object);
   }
 
+  m_objects.emplace_back(object);
+
   return *this;
 }
 
@@ -54,7 +57,10 @@ ViewVisibility& ek::ViewVisibility::transformOccluders()
     bool is_occluder = o->flags() & VisibilityObject::Occluder;
     if(!is_occluder) continue;
 
-    o->transformMeshes(m_viewprojectionviewport, m_frustum);
+    o->foreachMesh([this,is_occluder](VisibilityMesh& mesh) {
+      mesh.initInternal(*m_mempool)
+        .transform(m_viewprojectionviewport, m_frustum);
+    });
   }
 
   return *this;

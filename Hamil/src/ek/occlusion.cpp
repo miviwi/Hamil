@@ -132,8 +132,7 @@ static const __m128i ColumnOffsets = _mm_setr_epi32(0, 1, 0, 1);
 static const __m128i RowOffsets    = _mm_setr_epi32(0, 0, 1, 1);
 #endif
 
-OcclusionBuffer::OcclusionBuffer(MemoryPool& mp) :
-  m_mempool(&mp)
+OcclusionBuffer::OcclusionBuffer(MemoryPool& mempool)
 {
   auto fb_handle = mempool().alloc(Size.area() * sizeof(float));
   m_fb = mempool().ptr<float>(fb_handle);
@@ -147,9 +146,7 @@ OcclusionBuffer::OcclusionBuffer(MemoryPool& mp) :
   m_bin     = (uint *)(bin_ptr + MaxTriangles*2);
 #else
   auto bin_handle = mempool().alloc(MaxTriangles * sizeof(BinnedTri));
-  auto bin_ptr = mempool().ptr<BinnedTri>(bin_handle);
-
-  m_bin = bin_ptr;
+  m_bin = mempool().ptr<BinnedTri>(bin_handle);
 
   auto fb_coarse_handle = mempool().alloc(CoarseSize.area() * sizeof(vec2));
   m_fb_coarse = mempool().ptr<vec2>(fb_coarse_handle);
@@ -169,6 +166,11 @@ OcclusionBuffer& OcclusionBuffer::binTriangles(const std::vector<VisibilityObjec
 
   for(uint o = 0; o < objects.size(); o++) {
     const auto& obj = objects[o];
+
+    // Only occluders are rasterized
+    bool is_occluder = obj->flags() & VisibilityObject::Occluder;
+    if(!is_occluder) continue;
+
     uint num_meshes = obj->numMeshes();
     for(uint m = 0; m < num_meshes; m++) {
       auto& mesh = obj->mesh(m);
@@ -494,11 +496,6 @@ bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xfor
 
   return false;
 #endif
-}
-
-gx::MemoryPool& OcclusionBuffer::mempool()
-{
-  return m_mempool->get();
 }
 
 void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id)

@@ -37,6 +37,7 @@ public:
   // Size of the underlying framebuffer
   //   - Can be adjusted
   static constexpr ivec2 Size = { 640, 360 };
+  static constexpr vec2 Sizef = Size.cast<float>();
   // Size of a single binning tile
   //   - Must be adjusted to partition the framebuffer
   //     into an even number of tiles
@@ -61,11 +62,11 @@ public:
 
     // When this value is exceeded bad things will happen...
     MaxTriangles = NumTrisPerBin * NumBins,
+    // Same with this one - thus it's very conservative
+    MempoolSize = 32 * 1024*1024, // 32MB
 
     NumSIMDLanes = 4,
     SIMDLaneMask = (1<<NumSIMDLanes) - 1,
-
-    MempoolSize = 32 * 1024*1024, // 32MB
   };
 
   static constexpr ivec2 Offset1 = { 1, SizeInTiles.x };
@@ -75,16 +76,22 @@ public:
   //   and inverts the depth (from RH coordinate system to LH,
   //   which is more convinient for the rasterizer)
   static constexpr mat4 ViewportMatrix = {
-    (float)Size.x * 0.5f,                  0.0f,  0.0f, (float)Size.x * 0.5f,
-                    0.0f, (float)Size.y * -0.5f,  0.0f, (float)Size.y * 0.5f,
-                    0.0f,                  0.0f, -1.0f,                 1.0f,
-                    0.0f,                  0.0f,  0.0f,                 1.0f,
+    Sizef.x * 0.5f,            0.0f,  0.0f, Sizef.x * 0.5f,
+              0.0f, Sizef.y * -0.5f,  0.0f, Sizef.y * 0.5f,
+              0.0f,            0.0f, -1.0f,           1.0f,
+              0.0f,            0.0f,  0.0f,           1.0f,
   };
 
+  // 'mempool' is used to store the framebuffer() and other
+  //  internal structures required for rasterization
+  //   - 'mempool' should have size() >= MempoolSize
   OcclusionBuffer(MemoryPool& mempool);
 
+  // Sets up internal structures for rasterizeBinnedTriangles()
   OcclusionBuffer& binTriangles(const std::vector<VisibilityObject *>& objects);
-
+  // Rasterize all VisibilityObject::Occluders to the framebuffer()
+  //  and the coarseFramebuffer() when NO_OCCLUSION_SSE is NOT defined
+  //   - Call after binTriangles() to enable <early,late>Test()
   OcclusionBuffer& rasterizeBinnedTriangles(const std::vector<VisibilityObject *>& objects);
 
   // Returns the framebuffer which can potentially be
@@ -109,16 +116,12 @@ public:
     void /* __m128 */ *xformed_in);
 
 private:
-  gx::MemoryPool& mempool();
-
   void binTriangles(const VisibilityMesh& mesh, uint object_id, uint mesh_id);
 
   void clearTile(ivec2 start, ivec2 end);
   void rasterizeTile(const std::vector<VisibilityObject *>& objects, uint tile_idx);
 
   void createCoarseTile(ivec2 tile_start, ivec2 tile_end);
-
-  MemoryPool *m_mempool;
 
   // The framebuffer of size Size.area()
   float *m_fb;

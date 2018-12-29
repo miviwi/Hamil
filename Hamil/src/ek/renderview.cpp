@@ -94,7 +94,7 @@ struct ObjectConstants {
   vec4 /* vec3 */ ior;
 
   // Packed object material properties
-  //   (uint(material_id), metalness, roughness, 0.0f)
+  //   (intBitsToFloat(material_id), metalness, roughness, 0.0f)
   vec4 materialid_metalness_roughness_0;
 
   vec4 pad_;
@@ -107,11 +107,18 @@ struct ObjectShadowConstants {
 
 class RenderViewData {
 public:
-  // Make SURE to unmap this before rendering
+  // Make SURE to unmap this before calling CommandBuffer::execute()!
   std::optional<gx::BufferView> object_ubo_view = std::nullopt;
 
+  // Pointer to MemoryPool-owned data
   SceneConstants *scene = nullptr;
+
+  // Fence used to guard shared resources given out by Renderer
+  //   - sync() is called on this fence after all drawing
+  //     commands for this view are issiued
   gx::ResourcePool::Id fence = gx::ResourcePool::Invalid;
+
+  // Requires late-contruction
   std::optional<ViewVisibility> vis = std::nullopt;
 };
 
@@ -622,7 +629,12 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   object.normal  = model_matrix.inverse().transpose();
   object.texture = mat4::identity();
 
-  uint material_id = 0;
+  union {
+    uint material_id;
+    float material_idf;   // *(float *)&material_id
+  };
+
+  material_id = 0;
   switch(material.diff_type) {
   case hm::Material::DiffuseConstant: material_id = ConstantColor; break;
   case hm::Material::DiffuseTexture:  material_id = Textured; break;
@@ -635,7 +647,7 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   object.ior = vec4(material.ior, 1.0f);
 
   object.materialid_metalness_roughness_0 = vec4(
-    (float)material_id, material.metalness, material.roughness, 0.0f
+    material_idf, material.metalness, material.roughness, 0.0f
   );
 
   size_t buffer_off = &object - m_objects;

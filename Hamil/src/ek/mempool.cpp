@@ -19,6 +19,11 @@ const gx::MemoryPool& MemoryPool::get() const
   return *m_pool;
 }
 
+gx::MemoryPool& MemoryPool::operator()()
+{
+  return get();
+}
+
 gx::MemoryPool *MemoryPool::ptr()
 {
   return m_pool;

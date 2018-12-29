@@ -1,5 +1,8 @@
 #include <ek/visobject.h>
 #include <ek/occlusion.h>
+#include <ek/mempool.h>
+
+#include <gx/memorypool.h>
 
 #include <xmmintrin.h>
 #include <pmmintrin.h>
@@ -9,11 +12,6 @@
 #include <cstdlib>
 
 namespace ek {
-
-void free_xformed(vec4 *v)
-{
-  free(v);
-}
 
 uint VisibilityObject::flags() const
 {
@@ -56,18 +54,6 @@ VisibilityObject& VisibilityObject::addMesh(VisibilityMesh&& mesh)
   };
 
   m_meshes.emplace_back(std::move(mesh));
-
-  return *this;
-}
-
-VisibilityObject& VisibilityObject::transformMeshes(const mat4& viewprojectionviewport,
-  const frustum3& frustum)
-{
-  // Transform all the meshes into screen space
-  for(auto& mesh : m_meshes) {
-    auto mvp = viewprojectionviewport * mesh.model;
-    transformOne(mesh, mvp);
-  }
 
   return *this;
 }
@@ -150,13 +136,26 @@ VisibilityObject& VisibilityObject::occlusionCullMeshes(
   return *this;
 }
 
-void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
+VisibilityMesh& VisibilityMesh::initInternal(MemoryPool& mempool)
 {
-  auto in  = mesh.verts;
+  auto xformed_handle = mempool.get().alloc(num_verts * sizeof(vec4));
+  xformed = mempool.get().ptr<vec4>(xformed_handle);
+
+  return *this;
+}
+
+VisibilityMesh& VisibilityMesh::transform(const mat4& viewprojectionviewport, const frustum3& frustum)
+{
+  assert(xformed && "transform() called without a prior call to initInternal()!");
+
+  auto mvp = viewprojectionviewport * model;
+
+  auto in  = verts;
+
 #if defined(NO_OCCLUSION_SSE)
-  auto out = mesh.xformed.get();
+  auto out = xformed;
 #else
-  auto out = (float *)mesh.xformed.get();
+  auto out = (float *)xformed;
 
   __m128 row0 = _mm_load_ps(mvp.d +  0);
   __m128 row1 = _mm_load_ps(mvp.d +  4);
@@ -166,47 +165,41 @@ void VisibilityObject::transformOne(VisibilityMesh& mesh, const mat4& mvp)
   _MM_TRANSPOSE4_PS(row0, row1, row2, row3)
 #endif
 
-  for(size_t i = 0; i < mesh.num_verts; i++) {
+    for(size_t i = 0; i < num_verts; i++) {
 #if defined(NO_OCCLUSION_SSE)
-    auto v = vec4(*in++, 1.0f);
-    v = mvp * v;
+      auto v = vec4(*in++, 1.0f);
+      v = mvp * v;
 
-    // Check if the vertex isn't clipped by the near plane
-    if(v.z <= v.w) {
-      *out++ = v.perspectiveDivide();
-    } else {
-      *out++ = vec4::zero();  // If it is set all of it's coords to 0
-    }
+      // Check if the vertex isn't clipped by the near plane
+      if(v.z <= v.w) {
+        *out++ = v.perspectiveDivide();
+      } else {
+        *out++ = vec4::zero();  // If it is set all of it's coords to 0
+      }
 #else
-    auto v = *in++;
+      auto v = *in++;
 
-    __m128 xformed = row3;    // v.w == 1.0f   =>   row3*v.w == row3
-    xformed = _mm_add_ps(xformed, _mm_mul_ps(row0, _mm_load_ps1(&v.x)));
-    xformed = _mm_add_ps(xformed, _mm_mul_ps(row1, _mm_load_ps1(&v.y)));
-    xformed = _mm_add_ps(xformed, _mm_mul_ps(row2, _mm_load_ps1(&v.z)));
+      __m128 xformed = row3;    // v.w == 1.0f   =>   row3*v.w == row3
+      xformed = _mm_add_ps(xformed, _mm_mul_ps(row0, _mm_load_ps1(&v.x)));
+      xformed = _mm_add_ps(xformed, _mm_mul_ps(row1, _mm_load_ps1(&v.y)));
+      xformed = _mm_add_ps(xformed, _mm_mul_ps(row2, _mm_load_ps1(&v.z)));
 
 #if !defined(NO_AVX)
 #  define splat_ps(a, i) _mm_permute_ps(a, _MM_SHUFFLE(i, i, i, i))
 #else
 #  define splat_ps(a, i) _mm_castsi128_ps(_mm_shuffle_epi32(_mm_castps_si128(a), _MM_SHUFFLE(i, i, i, i)))
 #endif
-    __m128 Z = splat_ps(xformed, 2);
-    __m128 W = splat_ps(xformed, 3);
-    __m128 projected = _mm_mul_ps(xformed, _mm_rcp_ps(W));
+      __m128 Z = splat_ps(xformed, 2);
+      __m128 W = splat_ps(xformed, 3);
+      __m128 projected = _mm_mul_ps(xformed, _mm_rcp_ps(W));
 
-    __m128 no_near_clip = _mm_cmple_ps(Z, W);
-    projected = _mm_and_ps(projected, no_near_clip);
+      __m128 no_near_clip = _mm_cmple_ps(Z, W);
+      projected = _mm_and_ps(projected, no_near_clip);
 
-    _mm_store_ps(out, projected);
-    out += 4;  // vec4
+      _mm_store_ps(out, projected);
+      out += 4;  // vec4
 #endif
-  }
-}
-
-VisibilityMesh& VisibilityMesh::initInternal()
-{
-  auto xformed_ptr = (vec4 *)malloc(num_verts * sizeof(vec4));
-  xformed = XformedPtr(xformed_ptr, free_xformed);
+    }
 
   return *this;
 }
@@ -214,7 +207,7 @@ VisibilityMesh& VisibilityMesh::initInternal()
 VisibilityMesh::Triangle VisibilityMesh::gatherTri(uint idx) const
 {
   auto off = idx*3;
-  u16 vidx[3] = { inds[off + 0], inds[off + 1], inds[off + 2] };
+  u16 vidx[3] ={ inds[off + 0], inds[off + 1], inds[off + 2] };
 
   // Fetch the indices backwards to reverse the triangle's winding
   //  - Needed because the rasterizer assumes CW while the vertices
@@ -233,7 +226,7 @@ void VisibilityMesh::gatherTri4(VisMesh4Tris tris[3], uint idx, uint num_lanes) 
   const u16 *inds2 = inds0 + (num_lanes > 2 ? 6 : 0);
   const u16 *inds3 = inds0 + (num_lanes > 3 ? 9 : 0);
 
-  vec4 *in = xformed.get();
+  vec4 *in = xformed;
 
   for(uint i = 0; i < 3; i++) {
     uint idx = 2 - i;    // Reverse the winding (see note above)

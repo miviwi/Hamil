@@ -15,6 +15,8 @@ public:
   gx::MemoryPool& get();
   const gx::MemoryPool& get() const;
 
+  gx::MemoryPool& operator()();
+
   gx::MemoryPool *ptr();
 
 private:

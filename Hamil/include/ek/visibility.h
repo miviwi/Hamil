@@ -62,6 +62,8 @@ private:
 
   frustum3 m_frustum = { mat4::identity() };
 
+  MemoryPool *m_mempool;
+
   ObjectsVector m_objects;
   OcclusionBuffer m_occlusion_buf;
 
