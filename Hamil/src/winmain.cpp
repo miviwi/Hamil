@@ -585,7 +585,7 @@ int main(int argc, char *argv[])
     ek::VisibilityMesh vis_mesh;
     vis_mesh.model = transform().t.matrix();
     vis_mesh.aabb = AABB(body.aabb().min - origin, body.aabb().max - origin);
-    vis_mesh.num_verts = vis_mesh.num_inds = floor_vtxs.size();
+    vis_mesh.num_verts = vis_mesh.num_inds = (u32)floor_vtxs.size();
 
     vis_mesh.verts = StridePtr<const vec3>(floor_vtxs.data(), sizeof(FloorVtx));
 
@@ -637,8 +637,8 @@ int main(int argc, char *argv[])
     ek::VisibilityMesh vis_mesh;
     vis_mesh.model = transform().t.matrix();
     vis_mesh.aabb = AABB(vec3(-1.0f), vec3(1.0f));
-    vis_mesh.num_verts = sphere_verts.size();
-    vis_mesh.num_inds = sphere_inds.size();
+    vis_mesh.num_verts = (u32)sphere_verts.size();
+    vis_mesh.num_inds = (u32)sphere_inds.size();
 
     vis_mesh.verts = StridePtr<const vec3>(sphere_verts.data(), sizeof(mesh::PNVertex));
     vis_mesh.inds = sphere_inds.data();
@@ -666,7 +666,7 @@ int main(int argc, char *argv[])
 
     const float AABBDiagonal = sqrtf(3)*LightSphereRadius;
     auto transform = sphere_entity.addComponent<hm::Transform>(
-      xform::Transform(origin, quat(), vec3(LightSphereRadius)),
+      xform::Transform(origin, quat::identity(), vec3(LightSphereRadius)),
       AABB(
         origin - vec3(AABBDiagonal),
         origin + vec3(AABBDiagonal)
@@ -692,8 +692,8 @@ int main(int argc, char *argv[])
     ek::VisibilityMesh vis_mesh;
     vis_mesh.model = transform().t.matrix();
     vis_mesh.aabb = AABB(transform().aabb.min - origin, transform().aabb.max - origin);
-    vis_mesh.num_verts = sphere_verts.size();
-    vis_mesh.num_inds = sphere_inds.size();
+    vis_mesh.num_verts = (u32)sphere_verts.size();
+    vis_mesh.num_inds = (u32)sphere_inds.size();
 
     vis_mesh.verts = StridePtr<const vec3>(sphere_verts.data(), sizeof(mesh::PNVertex));
     vis_mesh.inds = sphere_inds.data();
@@ -719,7 +719,7 @@ int main(int argc, char *argv[])
 
     auto scale = vec3(length, 1.0f, 1.0f);
     auto transform = line_entity.addComponent<hm::Transform>(
-      xform::Transform(center, quat(), scale),
+      xform::Transform(center, quat::identity(), scale),
       AABB(center - scale, center + scale)
     );
     line_entity.addComponent<hm::Mesh>(line_mesh);
@@ -735,7 +735,7 @@ int main(int argc, char *argv[])
     light().type = hm::Light::Line;
     light().color = color;
     light().radius = 1.0f;
-    light().line.tangent = vec3::right();
+    light().line.tangent = vec3::up();
     light().line.length = length;
 
     auto vis = line_entity.addComponent<hm::Visibility>();
@@ -743,8 +743,8 @@ int main(int argc, char *argv[])
     ek::VisibilityMesh vis_mesh;
     vis_mesh.model = transform().t.matrix();
     vis_mesh.aabb = AABB(-scale*0.5f, scale*0.5f);
-    vis_mesh.num_verts = line_vtxs.size();
-    vis_mesh.num_inds = line_inds.size();
+    vis_mesh.num_verts = (u32)line_vtxs.size();
+    vis_mesh.num_inds = (u32)line_inds.size();
 
     vis_mesh.verts = StridePtr<const vec3>(line_vtxs.data(), sizeof(mesh::PVertex));
     vis_mesh.inds = line_inds.data();
@@ -784,7 +784,7 @@ int main(int argc, char *argv[])
       scene);
 
     entity.addComponent<hm::Transform>(
-      xform::Transform(origin, quat(), scale),
+      xform::Transform(origin, quat::identity(), scale),
       aabb
     );
     entity.addComponent<hm::RigidBody>(body);
@@ -1141,6 +1141,7 @@ int main(int argc, char *argv[])
 
     occlusion_tex.upload(occlusion_buf.get(), 0,
       0, 0, ek::OcclusionBuffer::Size.x, ek::OcclusionBuffer::Size.y, gx::r, gx::f32);
+    occlusion_tex.swizzle(gx::Red, gx::Red, gx::Red, gx::One);
 
     auto& render_objects = extract_for_view_job->result();
     render_view.render(render_objects).execute();
@@ -1206,11 +1207,13 @@ int main(int argc, char *argv[])
     stats.caption(util::fmt(
       "CPU Frametime: %.3lfms\n"
       "GPU Frametime: %.3lfms\n"
+      "Main camera drawcalls: %zu\n"
       "Physics update: %.3lfms\n"
       "Ui painting: %.3lfms\n"
       "Transform extraction: %.3lfms",
       step_dt*1000.0,
       gpu_frametime*1e-6,
+      render_view.numEmmittedDrawcalls(),
       physics_step_job.dbg_ElapsedTime()*1000.0,
       ui_paint_job.dbg_ElapsedTime()*1000.0,
       transforms_extract_dt*1000.0)

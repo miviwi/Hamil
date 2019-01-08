@@ -10,6 +10,7 @@
 #endif
 
 #include <cassert>
+#include "intrin.h"
 
 namespace intrin {
 
@@ -235,6 +236,16 @@ void mat4_scalar_mult(const float *a, float u, float *out)
   _mm_store_ps(out+4, _mm_mul_ps(x[1], y));
   _mm_store_ps(out+8, _mm_mul_ps(x[2], y));
   _mm_store_ps(out+12, _mm_mul_ps(x[3], y));
+}
+
+void mat4_stream_copy(float *dst, const float *src)
+{
+  __m128 x[] = { _mm_load_ps(src+0), _mm_load_ps(src+4), _mm_load_ps(src+8), _mm_load_ps(src+12) };
+
+  _mm_stream_ps(dst +  0, x[0]);
+  _mm_stream_ps(dst +  4, x[1]);
+  _mm_stream_ps(dst +  8, x[2]);
+  _mm_stream_ps(dst + 12, x[3]);
 }
 
 void vec_dot(const float *a, const float *b, float *out)

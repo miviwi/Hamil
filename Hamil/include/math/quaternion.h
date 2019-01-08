@@ -21,6 +21,8 @@ struct alignas(16) Quaternion {
     x(v.x), y(v.y), z(v.z), w(w_)
   { }
 
+  static Quaternion identity() { return Quaternion(); }
+
   Quaternion operator*(float u) const;
 
   static Quaternion from_axis(vec3 axis, float angle);

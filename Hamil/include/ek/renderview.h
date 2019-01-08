@@ -105,6 +105,8 @@ public:
   //   given to render() should constain RenderLights
   bool wantsLights() const;
 
+  bool wantsOcclusionCulling() const;
+
   // Used by Renderer::extractForView()
   frustum3 constructFrustum();
 
@@ -118,6 +120,10 @@ public:
   const RenderTarget& presentRenderTarget() const;
 
   RenderView& addInput(const RenderView *input);
+
+  // After a call to render() returns the no. of drawcalls
+  //   in the returned CommandBuffer
+  size_t numEmmittedDrawcalls() const;
 
 private:
   friend Renderer;
@@ -260,6 +266,8 @@ private:
   StridePtr<ObjectConstants> m_objects_rover;
   // Stores the end of the ObjectConstants UniformBuffer mapping
   ObjectConstants *m_objects_end = nullptr;
+
+  size_t m_num_drawcalls = 0;
 };
 
 }

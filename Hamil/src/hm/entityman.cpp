@@ -40,6 +40,8 @@ private:
 
   util::HashIndex m_entities_hash;
   std::vector<EntityId> m_entities;
+
+  std::function<bool(u32, u32)> m_cmp_entity_fn;
 };
 
 EntityManager::EntityManager(IComponentManager::Ptr component_man) :
@@ -47,6 +49,11 @@ EntityManager::EntityManager(IComponentManager::Ptr component_man) :
   m_entities_hash(InitialEntities, InitialEntities)
 {
   m_entities.reserve(InitialEntities);
+
+  using std::placeholders::_1;
+  using std::placeholders::_2;
+
+  m_cmp_entity_fn = std::bind(&EntityManager::compareEntity, this, _1, _2);
 }
 
 Entity EntityManager::createEntity()
@@ -108,10 +115,7 @@ bool EntityManager::compareEntity(u32 key, u32 index)
 
 u32 EntityManager::findEntity(EntityId id)
 {
-  using std::placeholders::_1;
-  using std::placeholders::_2;
-
-  return m_entities_hash.find(id, std::bind(&EntityManager::compareEntity, this, _1, _2));
+  return m_entities_hash.find(id, m_cmp_entity_fn);
 }
 
 IEntityManager::Ptr create_entity_manager(IComponentManager::Ptr component_man)

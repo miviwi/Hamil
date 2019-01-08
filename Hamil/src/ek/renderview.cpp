@@ -238,6 +238,11 @@ bool RenderView::wantsLights() const
   return m_type == CameraView;
 }
 
+bool RenderView::wantsOcclusionCulling() const
+{
+  return m_type == CameraView;
+}
+
 frustum3 RenderView::constructFrustum()
 {
   return frustum3(m_view, m_projection);
@@ -364,6 +369,11 @@ RenderView& RenderView::addInput(const RenderView *input)
   m_inputs.push_back(input);
 
   return *this;
+}
+
+size_t RenderView::numEmmittedDrawcalls() const
+{
+  return m_num_drawcalls;
 }
 
 std::string RenderView::labelPrefix() const
@@ -623,7 +633,7 @@ u32 RenderView::writeConstants(const RenderObject& ro)
   auto& mesh = ro.mesh();
 
   const auto& model_matrix = mesh.model;
-  const auto& material = mesh.material();
+  const auto& material = mesh.mat();
 
   object.model   = model_matrix;
   object.normal  = model_matrix.inverse().transpose();
@@ -776,7 +786,7 @@ void RenderView::forwardCameraRenderOne(const RenderObject& ro, gx::CommandBuffe
 
   auto& renderpass = getRenderpass();
 
-  const auto& material = ro.mesh().material();
+  const auto& material = ro.mesh().mat();
 
   // TODO!
   //   - Batch RenderObject by Diffuse texture
@@ -833,6 +843,8 @@ void RenderView::emitDraw(const RenderMesh& ro, gx::CommandBuffer& cmd)
       cmd.draw(mesh.getPrimitive(), mesh.vertex_array_id, mesh.num);
     }
   });
+
+  m_num_drawcalls += meshes.size();
 }
 
 }

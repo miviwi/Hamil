@@ -24,11 +24,10 @@ public:
   AABB aabb;
 
   // Cached at the start of rendering
+
   hmRef<hm::Visibility> vis = nullptr;
-  // Cached at the start of rendering
-  hmRef<hm::Mesh> mesh = nullptr;
-  // Cached at the start of rendering
-  hmRef<hm::Material> material = nullptr;
+  hmRef<hm::Mesh> mesh      = nullptr;
+  hmRef<hm::Material> mat   = nullptr;
 };
 
 class RenderLight {

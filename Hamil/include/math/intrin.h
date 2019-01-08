@@ -21,6 +21,7 @@ INTRIN_INLINE void mat4_transpose(const float *a, float *out);
 INTRIN_INLINE void mat4_inverse(const float *a, float *out);
 INTRIN_INLINE void mat4_vec4_mult(const float *a, const float *b, float *out);
 INTRIN_INLINE void mat4_scalar_mult(const float *a, float u, float *out);
+INTRIN_INLINE void mat4_stream_copy(float *dst, const float *src);
 
 INTRIN_INLINE void quat_mult(const float *a, const float *b, float *out);
 INTRIN_INLINE void quat_vec3_mult(const float *a, const float *b, float *out);

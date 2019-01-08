@@ -997,6 +997,18 @@ inline vec4 operator*(const mat4& a, const vec4& b)
   return c;
 }
 
+inline void mat4_stream_copy(mat4& dst, const mat4& src)
+{
+  intrin::mat4_stream_copy(dst, src);
+}
+
+#else
+
+inline void mat4_stream_copy(mat4& dst, const mat4& src)
+{
+  dst = src;
+}
+
 #endif
 
 #pragma pack(pop)

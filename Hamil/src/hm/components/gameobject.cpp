@@ -48,7 +48,7 @@ void GameObject::foreachChild(std::function<void(Entity)> fn)
 
     if(!e) {    // Child was previously reaped
       dead_children++;
-    } else if(!e.alive()) {
+    } else if(!e.alive()) { // Cache-trashing hell :(
       reapChild(child);
     } else {    // Child is alive
       fn(e);
@@ -112,12 +112,12 @@ GameObjectIterator& GameObjectIterator::operator++()
   assert(m_it != m->end() && "Moved GameObjectIterator past end!");
 
   m_it++;
-  do {
+  while(m_it != m->end()) {
     Entity e = *m_it;
     if(e && e.alive()) break;
 
-    m_it++;
-  } while(m_it != m->end());
+    m_it++;  // Skip over dead children
+  }
 
   return *this;
 }

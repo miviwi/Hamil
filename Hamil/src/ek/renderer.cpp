@@ -470,6 +470,8 @@ MemoryPool& Renderer::queryMempool(size_t sz, u32 fence_id)
   auto it = m_mempools.begin();
   while(it != m_mempools.end()) {
     it = std::find_if(it, m_mempools.end(), [&](const MemoryPool& mempool) {
+      // Check if 'mempool' is big enough and if it doesn't exceed
+      //   the requested size by > 50%
       size_t mempool_sz = mempool.get().size();
       float fract_bigger = (float)mempool_sz/(float)sz;
 
@@ -561,6 +563,8 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   // Done reading components
   hm::components().unlock();
 
+  if(!view.wantsOcclusionCulling()) return objects;
+
   // Render the OcclusionBuffer
   view.visibility()
     .transformOccluders()
@@ -577,6 +581,8 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
   auto model_matrix = parent * transform().matrix();
   auto aabb = transform().aabb;
 
+  bool occlusion_cull = view.wantsOcclusionCulling();
+
   // Extract children
   e.gameObject().foreachChild([&](hm::Entity child) {
     extractOne(view, objects, frustum, child, model_matrix);
@@ -587,14 +593,13 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
     auto vis = e.component<hm::Visibility>();
     auto material = e.component<hm::Material>();
 
-    if(vis && view.m_type == RenderView::CameraView) {
+    if(vis && occlusion_cull) {  // Do occlusion culling if a view wants it
       vis().vis.foreachMesh([&](VisibilityMesh& mesh) {
-        mesh.model = model_matrix;
+        mat4_stream_copy(mesh.model, model_matrix);
       });
 
       view.visibility().addObjectRef(vis().visObject());
-    } else if(vis && view.m_type != RenderView::CameraView) {
-      // For non-CaneraViews do simple frustum culling
+    } else if(vis && !occlusion_cull) {  // Otherwise - do simple frustum culling
       if(!frustum.aabbInside(aabb)) return;
     } else {
       return;   // Assume Entities with no Visibility Component
@@ -603,11 +608,11 @@ void Renderer::extractOne(RenderView& view, ObjectVector& objects,
 
     auto& ro = objects.emplace_back(RenderObject::Mesh, e).mesh();
 
-    ro.model = model_matrix;
+    mat4_stream_copy(ro.model, model_matrix);
     ro.aabb  = aabb;
     ro.vis   = vis;
     ro.mesh  = mesh;
-    ro.material = material;
+    ro.mat   = material;
   } else if(auto light = e.component<hm::Light>()) {
     // Check if this view needs to have RenderLights extracted
     if(!view.wantsLights()) return;
