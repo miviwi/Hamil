@@ -172,7 +172,7 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
   // Make sure the workers don't terminate immediately
   m_data->done.store(false);
 
-  uint num_cores = win32::cpuinfo().numPhysicalProcessors();
+  uint num_cores = win32::cpuinfo().numLogicalProcessors();
   bool hyperthreading = win32::cpuinfo().hyperthreading();
 
   if(!name) name = "WorkerPool_Worker";

@@ -288,7 +288,12 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, con
   auto it = m_const_buffers.begin();
   while(it != m_const_buffers.end()) {
     it = std::find_if(it, m_const_buffers.end(), [&](const ConstantBuffer& buf) {
-      return buf.size() >= sz;
+      // Check if 'buf' is big enough and if it doesn't exceed
+      //   the requested size by > 50%
+      size_t constbuf_sz = buf.size();
+      float fract_bigger = (float)constbuf_sz/(float)sz;
+
+      return constbuf_sz >= sz && fract_bigger < 1.5f;
     });
 
     if(it == m_const_buffers.end()) break;

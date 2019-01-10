@@ -1133,9 +1133,19 @@ int main(int argc, char *argv[])
 
     worker_pool.waitJob(extract_for_shadows_job_id);
     auto& shadow_objects = extract_for_shadows_job->result();
-    shadow_view.render(shadow_objects).execute();
+    auto shadow_render_job = shadow_view.render();
+    auto shadow_render_job_id = worker_pool.scheduleJob(shadow_render_job->withParams(&shadow_objects));
 
     worker_pool.waitJob(extract_for_view_job_id);
+    auto& render_objects = extract_for_view_job->result();
+    auto render_job = render_view.render();
+    auto render_job_id = worker_pool.scheduleJob(render_job->withParams(&render_objects));
+
+    worker_pool.waitJob(shadow_render_job_id);
+    worker_pool.waitJob(render_job_id);
+
+    shadow_render_job->result().execute();
+    render_job->result().execute();
 
     auto occlusion_buf = render_view.visibility().occlusionBuf().detiledFramebuffer();
 
@@ -1143,10 +1153,8 @@ int main(int argc, char *argv[])
       0, 0, ek::OcclusionBuffer::Size.x, ek::OcclusionBuffer::Size.y, gx::r, gx::f32);
     occlusion_tex.swizzle(gx::Red, gx::Red, gx::Red, gx::One);
 
-    auto& render_objects = extract_for_view_job->result();
-    render_view.render(render_objects).execute();
 
-    skybox_uniforms ={ view, persp };
+    skybox_uniforms = { view, persp };
     skybox_program.use()
       .uniformFloat(U.skybox.uExposure, exp_slider.value())
       ;

@@ -5,6 +5,7 @@
 #include <util/ref.h>
 #include <math/geometry.h>
 #include <math/frustum.h>
+#include <sched/job.h>
 
 #include <array>
 #include <vector>
@@ -72,6 +73,10 @@ public:
 
   static constexpr size_t MempoolInitialAlloc = 4096;
 
+  using RenderJob = std::unique_ptr<
+    sched::Job<gx::CommandBuffer, std::vector<RenderObject> *>
+  >;
+
   RenderView(ViewType type);
   ~RenderView();
 
@@ -112,8 +117,9 @@ public:
 
   ViewVisibility& visibility();
 
-  // 'objects' will be altered by this method
-  gx::CommandBuffer render(std::vector<RenderObject>& objects);
+  // MUST be called on the same thread which will call
+  //   gx::CommandBuffer::execute() on the Job's result!
+  RenderJob render();
 
   // Returns a reference to the RenderTarget which holds
   //   the rendered view
@@ -202,6 +208,9 @@ private:
   LightConstants generateSphereLightConstants(const RenderObject& ro);
   // Returns LightConstants for a RenderLight with type Light::Line
   LightConstants generateLineLightConstants(const RenderObject& ro);
+
+  // 'objects' will be altered by this method
+  gx::CommandBuffer doRender(std::vector<RenderObject>& objects);
 
   using RenderFn = void (RenderView::*)(const RenderObject&, gx::CommandBuffer&);
   static const RenderFn RenderFns[NumViewTypes][NumRenderTypes];

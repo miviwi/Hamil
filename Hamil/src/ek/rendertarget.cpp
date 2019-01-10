@@ -270,7 +270,6 @@ void RenderTarget::initDepth()
 {
   auto& fb = getFramebuffer();
 
-
   if(m_config.depth_texture) {
     std::string label = "t2d" + labelSuffix() + "Depth";
     gx::TextureHandle depth;

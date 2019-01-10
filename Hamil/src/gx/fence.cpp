@@ -37,7 +37,7 @@ Fence& Fence::sync()
   m_waited = false;
 #endif
 
-  glFlush();  // Have to flush here to ensure consistency across
+  //glFlush();  // Have to flush here to ensure consistency across
               //   threads (and their associated contexts)
 
   return *this;

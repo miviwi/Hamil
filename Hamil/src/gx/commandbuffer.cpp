@@ -301,6 +301,9 @@ CommandBuffer::u32 *CommandBuffer::dispatch(u32 *op)
 
   case OpEnd:
     endIndexedArray();
+
+    // TODO: maybe flush fences here instead of in gx::Fence::sync()?
+    //glFlush();
     return nullptr;
 
   default: assert(0); // unreachable

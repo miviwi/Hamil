@@ -253,6 +253,20 @@ ViewVisibility& RenderView::visibility()
   return *m_data->vis;
 }
 
+RenderView::RenderJob RenderView::render()
+{
+  // Because createFramebuffer() will be called by this method
+  //   it must be put here (not inside the job) because OpenGL
+  //   dissallows sharing Framebuffer ids between threads (contexts)
+  m_renderpass_id = createRenderPass();
+
+  return RenderJob(new sched::Job<gx::CommandBuffer, std::vector<RenderObject> *>(
+    sched::create_job([this](std::vector<RenderObject> *objects) -> gx::CommandBuffer {
+      return doRender(*objects);
+    })
+  ));
+}
+
 const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] = {
   { nullptr, nullptr, nullptr },   // Invalid
   { nullptr, &RenderView::forwardCameraRenderOne, nullptr },   // CameraView
@@ -260,11 +274,10 @@ const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] =
   { &RenderView::shadowRenderOne, nullptr, nullptr },   // ShadowView
 };
 
-gx::CommandBuffer RenderView::render(std::vector<RenderObject>& objects)
+gx::CommandBuffer RenderView::doRender(std::vector<RenderObject>& objects)
 {
   auto ltc = m_renderer->queryLUT(RenderLUT::LTCCoeffs);
 
-  m_renderpass_id = createRenderPass();
   auto& renderpass = getRenderpass();
 
   // The integer values of RenderObject::Type are arranged in such a way that after
