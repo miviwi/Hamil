@@ -626,8 +626,8 @@ int main(int argc, char *argv[])
     material().diff_type = hm::Material::Other;
     material().diff_color = vec3(1.0f);
 
-    material().metalness = random_floats(random_generator);
-    material().roughness = random_floats(random_generator);
+    material().metalness = random_floats(random_generator) * 0.8f;
+    material().roughness = random_floats(random_generator) * 0.8f;
     material().ior = vec3(1.47f);
 
     world.addRigidBody(body);

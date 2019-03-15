@@ -1,6 +1,9 @@
 #include <ek/visibility.h>
 
+#include <util/unit.h>
 #include <math/frustum.h>
+#include <sched/pool.h>
+#include <sched/job.h>
 
 namespace ek {
 
@@ -51,16 +54,39 @@ ViewVisibility& ViewVisibility::addObject(VisibilityObject *object)
   return *this;
 }
 
-ViewVisibility& ek::ViewVisibility::transformOccluders()
+ViewVisibility& ek::ViewVisibility::transformOccluders(sched::WorkerPool& pool)
 {
-  for(auto& o : m_objects) {
-    bool is_occluder = o->flags() & VisibilityObject::Occluder;
-    if(!is_occluder) continue;
+  using TransformJobData = std::pair<sched::WorkerPool::JobId, sched::IJob *>;
 
-    o->foreachMesh([this,is_occluder](VisibilityMesh& mesh) {
-      mesh.initInternal(*m_mempool)
-        .transform(m_viewprojectionviewport, m_frustum);
-    });
+  m_next_object.store(0);
+
+  std::array<TransformJobData, NumJobs> jobs;
+  for(uint job_idx = 0; job_idx < NumJobs; job_idx++) {
+    sched::IJob *job = new sched::Job<Unit>(sched::create_job([this]() -> Unit {
+      uint i = 0;
+      while((i = m_next_object.fetch_add(1)) < m_objects.size()) {
+        auto& o = m_objects[i];
+
+        bool is_occluder = o->flags() & VisibilityObject::Occluder;
+        if(!is_occluder) continue;
+
+        o->foreachMesh([this, is_occluder](VisibilityMesh& mesh) {
+          mesh.initInternal(*m_mempool)
+            .transform(m_viewprojectionviewport, m_frustum);
+        });
+      }
+
+      return {};
+    }));
+
+    auto id = pool.scheduleJob(job);
+    jobs[job_idx] = std::make_pair(id, job);
+  }
+
+  // Wait for all occluders to be transformed by the workers
+  for(const auto& job : jobs) {
+    pool.waitJob(job.first);
+    delete job.second;
   }
 
   return *this;
@@ -73,9 +99,9 @@ ViewVisibility& ViewVisibility::binTriangles()
   return *this;
 }
 
-ViewVisibility& ViewVisibility::rasterizeOcclusionBuf()
+ViewVisibility& ViewVisibility::rasterizeOcclusionBuf(sched::WorkerPool& pool)
 {
-  m_occlusion_buf.rasterizeBinnedTriangles(m_objects);
+  m_occlusion_buf.rasterizeBinnedTriangles(m_objects, pool);
 
   return *this;
 }

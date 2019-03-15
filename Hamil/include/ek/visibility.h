@@ -7,9 +7,14 @@
 #include <math/geometry.h>
 #include <math/frustum.h>
 
+#include <atomic>
 #include <vector>
 #include <optional>
 #include <memory>
+
+namespace sched {
+class WorkerPool;
+}
 
 namespace ek {
 
@@ -18,6 +23,11 @@ class MemoryPool;
 class ViewVisibility {
 public:
   using ObjectsVector = std::vector<VisibilityObject *>;
+
+  enum {
+    // Number of threads used to transform occluders
+    NumJobs = 4,
+  };
 
   ViewVisibility(MemoryPool& mempool);
 
@@ -38,13 +48,13 @@ public:
   // Calls VisibilityObject::transformMeshes() on all
   //   VisibilityObjects added by addObject()
   // - viewProjection() must've been called before this method!
-  ViewVisibility& transformOccluders();
+  ViewVisibility& transformOccluders(sched::WorkerPool& pool);
 
   // - transformOccluders() must be called before this method!
   ViewVisibility& binTriangles();
   // binTriangles() must be called before this method
   //   or nothing will be rendered into occlusionBuf()!
-  ViewVisibility& rasterizeOcclusionBuf();
+  ViewVisibility& rasterizeOcclusionBuf(sched::WorkerPool& pool);
 
   const OcclusionBuffer& occlusionBuf() const;
 
@@ -71,6 +81,8 @@ private:
   //   heap allocations when addObject() is never
   //   called on this ViewVisibility
   std::optional<OwnedObjectsVector> m_owned_objects;
+
+  std::atomic<uint> m_next_object;
 };
 
 }

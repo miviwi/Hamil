@@ -55,8 +55,12 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
 
       return true;
     } else {
+      // The TextBoxFrame should remain editable after
+      //   the mouse leaves it's bounds
+      if(m_state == Editing) return true;
+
       switch(mouse->event) {
-      case Mouse::Down:
+      case Mouse::Down:    // Clicked outside bounds - release focus
         m_state = Default;
 
         ui().keyboard(nullptr);

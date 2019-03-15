@@ -36,7 +36,7 @@ public:
   vec3 position;
 
   // Cached at the start of rendering
-  hm::ComponentRef<hm::Light> light = nullptr;
+  hmRef<hm::Light> light = nullptr;
 };
 
 class RenderObject {

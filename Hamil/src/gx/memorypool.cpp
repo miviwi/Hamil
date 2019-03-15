@@ -11,9 +11,9 @@ MemoryPool::MemoryPool(size_t size)
 
   auto ptr = align((uintptr_t)m_pool);
 
-  m_ptr = (byte *)ptr;
+  m_ptr   = (byte *)ptr;
   m_rover = m_ptr;
-  m_end = m_pool + size + MaxSizeDefficit;
+  m_end   = m_pool + size + MaxSizeDefficit;
 }
 
 MemoryPool::~MemoryPool()
@@ -23,12 +23,18 @@ MemoryPool::~MemoryPool()
 
 MemoryPool::Handle MemoryPool::alloc(size_t sz)
 {
+  byte *rover = m_rover;  // Save state of m_rover at entry
   size_t aligned_sz = align(sz);
 
-  if(m_rover+aligned_sz >= m_end) return Invalid;
+  if(rover+aligned_sz >= m_end) return Invalid;  // Out of memory!
 
-  auto ptr = (Handle)((m_rover - m_ptr) & HandleMask);
-  m_rover += aligned_sz;
+  // Create a Handle from the pointer
+  auto ptr = (Handle)((rover - m_ptr) & HandleMask);
+
+  // Check if another call to alloc() didn't race this one
+  if(!m_rover.compare_exchange_strong(rover, rover+aligned_sz)) {
+    return alloc(sz);  // Retry
+  }
 
   return ptr;
 }
@@ -50,9 +56,9 @@ void MemoryPool::resize(size_t sz)
   m_pool = (byte *)realloc(m_pool, sz);
   checkMalloc();
 
-  m_ptr = m_pool + ptr_offset;
+  m_ptr   = m_pool + ptr_offset;
   m_rover = m_pool + rover_offset;
-  m_end = m_pool + sz;
+  m_end   = m_pool + sz;
 }
 
 void *MemoryPool::ptr(Handle h)

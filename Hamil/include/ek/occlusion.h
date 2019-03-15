@@ -5,6 +5,7 @@
 
 #include <math/geometry.h>
 
+#include <atomic>
 #include <vector>
 #include <memory>
 
@@ -14,6 +15,10 @@
 
 namespace gx {
 class MemoryPool;
+}
+
+namespace sched {
+class WorkerPool;
 }
 
 namespace ek {
@@ -67,6 +72,9 @@ public:
 
     NumSIMDLanes = 4,
     SIMDLaneMask = (1<<NumSIMDLanes) - 1,
+
+    // Number of threads used to render tiles
+    NumJobs = 4,
   };
 
   static constexpr ivec2 Offset1 = { 1, SizeInTiles.x };
@@ -82,17 +90,19 @@ public:
               0.0f,            0.0f,  0.0f,           1.0f,
   };
 
+  using ObjectsRef = const std::vector<VisibilityObject *>&;
+
   // 'mempool' is used to store the framebuffer() and other
   //  internal structures required for rasterization
   //   - 'mempool' should have size() >= MempoolSize
   OcclusionBuffer(MemoryPool& mempool);
 
   // Sets up internal structures for rasterizeBinnedTriangles()
-  OcclusionBuffer& binTriangles(const std::vector<VisibilityObject *>& objects);
+  OcclusionBuffer& binTriangles(ObjectsRef objects);
   // Rasterize all VisibilityObject::Occluders to the framebuffer()
   //  and the coarseFramebuffer() when NO_OCCLUSION_SSE is NOT defined
   //   - Call after binTriangles() to enable <early,late>Test()
-  OcclusionBuffer& rasterizeBinnedTriangles(const std::vector<VisibilityObject *>& objects);
+  OcclusionBuffer& rasterizeBinnedTriangles(ObjectsRef objects, sched::WorkerPool& pool);
 
   // Returns the framebuffer which can potentially be
   //   tile in 2x2 pixel quads
@@ -144,6 +154,14 @@ private:
 
   // Stores the number of rasterized triangles per bin
   u16 *m_drawn_tris;
+
+  // Stores indices which define the prefered tile rendering order
+  //   - That is sorted by each tile's number of triangles
+  //     in descending order
+  u16 *m_tile_seq;
+
+  // Index of next tile in m_tile_seq to be rasterized
+  std::atomic<uint> m_next_tile;
 };
 
 }

@@ -46,7 +46,7 @@ void WindowFrame::paint(VertexPainter& painter, Geometry parent)
   uint decor_corners = VertexPainter::TopLeft|VertexPainter::TopRight;
   Color decor_color = style.bg.color[2].darkenf(0.1);
 
-  Color bg = m_bg ? *m_bg : style.window.bg;
+  Color bg = m_bg.value_or(style.window.bg);
 
   auto pipeline = painter.defaultPipeline(ui().scissorRect(clipped_g));
 

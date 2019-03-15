@@ -1,7 +1,10 @@
 #include <ek/occlusion.h>
 #include <ek/mempool.h>
 
+#include <util/unit.h>
 #include <gx/memorypool.h>
+#include <sched/pool.h>
+#include <sched/job.h>
 
 #include <utility>
 
@@ -152,14 +155,15 @@ OcclusionBuffer::OcclusionBuffer(MemoryPool& mempool)
   m_fb_coarse = mempool().ptr<vec2>(fb_coarse_handle);
 #endif
 
-  auto bin_stats_handle = mempool().alloc(NumBins*2 * sizeof(u16));
+  auto bin_stats_handle = mempool().alloc(NumBins*3 * sizeof(u16));
   auto bin_stats_ptr = mempool().ptr<u16>(bin_stats_handle);
 
   m_bin_counts = bin_stats_ptr;
   m_drawn_tris = bin_stats_ptr + NumBins;
+  m_tile_seq   = bin_stats_ptr + NumBins*2;
 }
 
-OcclusionBuffer& OcclusionBuffer::binTriangles(const std::vector<VisibilityObject *>& objects)
+OcclusionBuffer& OcclusionBuffer::binTriangles(ObjectsRef objects)
 {
   // Clear the bin triangle counts
   memset(m_bin_counts, 0, NumBins * sizeof(*m_bin_counts));
@@ -179,14 +183,51 @@ OcclusionBuffer& OcclusionBuffer::binTriangles(const std::vector<VisibilityObjec
     }
   }
 
+  for(u16 tile = 0; tile < NumBins; tile++) {
+  // Initialize tile rendering order sequentially according to
+  //   tile index at first
+    m_tile_seq[tile] = tile;
+  }
+
+  std::sort(m_tile_seq, m_tile_seq+NumBins, [this](u16 a, u16 b) {
+    return m_bin_counts[a] > m_bin_counts[b];
+  });
+
   return *this;
 }
 
-OcclusionBuffer& OcclusionBuffer::rasterizeBinnedTriangles(const std::vector<VisibilityObject *>& objects)
+OcclusionBuffer& OcclusionBuffer::rasterizeBinnedTriangles(ObjectsRef objects, sched::WorkerPool& pool)
 {
+  using RasterJobData = std::pair<sched::WorkerPool::JobId, sched::IJob *>;
   static constexpr uint NumTiles = (uint)SizeInTiles.area();
-  for(uint i = 0; i < NumTiles; i++) {
-    rasterizeTile(objects, i);
+
+  m_next_tile.store(0);
+
+  std::array<RasterJobData, NumJobs> jobs;
+  for(uint job_idx = 0; job_idx < NumJobs; job_idx++) {
+    sched::IJob *job = new sched::Job<Unit, ObjectsRef>(
+      sched::create_job([this](ObjectsRef objects) -> Unit {
+
+      uint idx = 0;
+      while((idx = m_next_tile.fetch_add(1)) < NumTiles) {
+        // Rasterize tiles in preferred order
+        //   - See comment above m_tile_seq declaraction
+        uint tile_idx = m_tile_seq[idx];
+
+        rasterizeTile(objects, tile_idx);
+      }
+
+      return {};
+    }, objects));
+
+    auto id = pool.scheduleJob(job);
+    jobs[job_idx] = std::make_pair(id, job);
+  }
+
+  // Wait for all tiles to be rasterized by the workers
+  for(const auto& job : jobs) {
+    pool.waitJob(job.first);
+    delete job.second;
   }
 
   return *this;

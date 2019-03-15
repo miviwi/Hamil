@@ -133,14 +133,20 @@ class RendererData {
 public:
   enum { InitialResourcePoolAlloc = 2048, };
 
-  RendererData() : pool(InitialResourcePoolAlloc) { }
+  RendererData() :
+    pool(InitialResourcePoolAlloc),
+    raster_pool(std::max<int>(ViewVisibility::NumJobs, OcclusionBuffer::NumJobs))
+  { }
 
   gx::ResourcePool pool;
+  sched::WorkerPool raster_pool;
 };
 
 Renderer::Renderer() :
   m_data(new RendererData)
 {
+  m_data->raster_pool.kickWorkers("Occlusion_Worker");
+
   m_rts.reserve(InitialRenderTargets);
   m_const_buffers.reserve(InitialConstantBuffers);
   m_mempools.reserve(InitialMemoryPools);
@@ -572,9 +578,9 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
 
   // Render the OcclusionBuffer
   view.visibility()
-    .transformOccluders()
+    .transformOccluders(m_data->raster_pool)
     .binTriangles()
-    .rasterizeOcclusionBuf();
+    .rasterizeOcclusionBuf(m_data->raster_pool);
 
   return objects;
 }
