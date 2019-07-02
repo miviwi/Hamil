@@ -1,7 +1,12 @@
 import os
 import sys
 import database
-import eugene_win32 as win32
+
+import platform
+if platform.system() == 'Windows':
+    import eugene_win32 as eugene_sys
+elif platform.system() == 'Linux':
+    import eugene_sysv as eugene_sys
 
 HAMIL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
     '..', '..', 'Hamil')
@@ -19,7 +24,7 @@ def up_to_date(db, args, pattern):
     for arg in args:
         find_data = None
         try:
-            find_data = win32.FindFiles(pattern(arg))
+            find_data = eugene_sys.FindFiles(pattern(arg))
         except ValueError:
             #print(f"couldn't open directory {arg} or no suitable files found within...")
             continue
@@ -32,8 +37,8 @@ def up_to_date(db, args, pattern):
                 db_record = db.readRecord(key)
                 db.writeRecord(key, record)
 
-                old = win32.GetDateTimeFormat(db_record) if db_record > 0 else "(null)"
-                new = win32.GetDateTimeFormat(record)
+                old = eugene_sys.GetDateTimeFormat(db_record) if db_record > 0 else "(null)"
+                new = eugene_sys.GetDateTimeFormat(record)
 
                 msg = f"`{key}' not up to date"
                 msg += _PAD[len(msg):]
@@ -60,7 +65,7 @@ def exec_module(name, main):
 def subdirectories(path):
     find_data = None
     try:
-        find_data = win32.FindFiles(f"{path}\\*")
+        find_data = eugene_sys.FindFiles(f"{path}\\*")
     except ValueError:
         return []  # path either wasn't a directory or readable - don't return it
 

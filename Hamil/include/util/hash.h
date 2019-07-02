@@ -2,6 +2,8 @@
 
 #include <common.h>
 
+#include <cstring>
+
 #define XXH_CPU_LITTLE_ENDIAN 1
 #include <xxhash/xxhash.hpp>
 

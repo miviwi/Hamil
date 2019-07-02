@@ -382,6 +382,7 @@ inline vec3 operator*(const vec3& v, float u)
   return b.toVec3();
 }
 
+template <>
 inline float vec3::dot(const vec3& v) const
 {
   auto a = intrin_vec3(*this);
@@ -392,6 +393,7 @@ inline float vec3::dot(const vec3& v) const
   return *c;
 }
 
+template <>
 inline vec3 vec3::normalize() const
 {
   auto a = intrin_vec3(*this);
@@ -401,6 +403,7 @@ inline vec3 vec3::normalize() const
   return b.toVec3();
 }
 
+template <>
 inline vec3 vec3::cross(const vec3& v) const
 {
   auto a = intrin_vec3(*this);
@@ -411,6 +414,7 @@ inline vec3 vec3::cross(const vec3& v) const
   return c.toVec3();
 }
 
+template <>
 inline vec3 vec3::recip() const
 {
   auto a = intrin_vec3(*this);
@@ -473,7 +477,7 @@ struct /* alignas(16) for intrin */ Vector4 {
     return (*this) * l;
   }
 
-  Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T) / w }; }
+  Vector4 recip() const { return { (T)1 / x, (T)1 / y, (T)1 / z, (T)1 / w }; }
 
   Vector4 perspectiveDivide() const
   {
@@ -551,6 +555,7 @@ using uvec4 = Vector4<unsigned>;
 
 #if !defined(NO_SSE)
 
+template <>
 inline vec4 operator*(vec4 a, float u)
 {
   alignas(16) vec4 b;
@@ -559,6 +564,7 @@ inline vec4 operator*(vec4 a, float u)
   return b;
 }
 
+template <>
 inline float vec4::dot(const vec4& b) const
 {
   alignas(16) float d[1];
@@ -567,6 +573,7 @@ inline float vec4::dot(const vec4& b) const
   return *d;
 }
 
+template <>
 inline vec4 vec4::normalize() const
 {
   alignas(16) vec4 b;
@@ -575,6 +582,7 @@ inline vec4 vec4::normalize() const
   return b;
 }
 
+template <>
 inline vec4 vec4::recip() const
 {
   alignas(16) vec4 b;
@@ -583,6 +591,7 @@ inline vec4 vec4::recip() const
   return b;
 }
 
+template <>
 inline vec4 vec4::perspectiveDivide() const
 {
   alignas(16) vec4 b;
@@ -956,6 +965,7 @@ using imat4 = Matrix4<int>;
 
 #if !defined(NO_SSE)
 
+template <>
 inline mat4 operator*(const mat4& a, const mat4& b)
 {
   mat4 c;
@@ -964,6 +974,7 @@ inline mat4 operator*(const mat4& a, const mat4& b)
   return c;
 }
 
+template <>
 inline mat4 operator*(const mat4& a, float u)
 {
   mat4 c;
@@ -972,6 +983,7 @@ inline mat4 operator*(const mat4& a, float u)
   return c;
 }
 
+template <>
 mat4 mat4::transpose() const
 {
   mat4 b;
@@ -981,6 +993,7 @@ mat4 mat4::transpose() const
 }
 
 // Must be non-singular!
+template <>
 mat4 mat4::inverse() const
 {
   mat4 b;
@@ -989,6 +1002,7 @@ mat4 mat4::inverse() const
   return b;
 }
 
+template <>
 inline vec4 operator*(const mat4& a, const vec4& b)
 {
   alignas(16) vec4 c;

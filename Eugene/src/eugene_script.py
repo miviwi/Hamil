@@ -5,7 +5,12 @@ import database
 import subprocess
 import eugene_modules
 import eugene_util
-import eugene_win32 as win32
+
+import platform
+if platform.system() == 'Windows':
+    import eugene_win32 as eugene_sys
+elif platform.system() == 'Linux':
+    import eugene_sysv as eugene_sys
 
 from pprint import pprint
 
@@ -70,7 +75,7 @@ _OPERATORS = {
 }
 
 def _check_script_freshness(db, script):
-    find_data = win32.FindFiles(script)
+    find_data = eugene_sys.FindFiles(script)
     if len(find_data) != 1:
         print(f"no such file `{script}'...")
         print("        ...exiting")

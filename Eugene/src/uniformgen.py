@@ -2,7 +2,12 @@ import sys
 import cxx
 import database
 import eugene_util as util
-import eugene_win32 as win32
+
+import platform
+if platform.system() == 'Windows':
+    import eugene_win32 as eugene_sys
+elif platform.system() == 'Linux':
+    import eugene_sysv as eugene_sys
 
 from pprint import pprint
 
@@ -96,7 +101,7 @@ struct U__ {
         for arg in args:
             find_data = None
             try:
-                find_data = win32.FindFiles(pattern(arg))
+                find_data = eugene_sys.FindFiles(pattern(arg))
             except ValueError as e:
                 continue
 

@@ -1,8 +1,13 @@
 import os
 import cxx
 import database
-import eugene_win32 as win32
 import eugene_util as util
+
+import platform
+if platform.system() == 'Windows':
+    import eugene_win32 as eugene_sys
+elif platform.system() == 'Linux':
+    import eugene_sysv as eugene_sys
 
 from pprint import pprint
 
