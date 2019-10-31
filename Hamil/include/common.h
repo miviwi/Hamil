@@ -22,12 +22,16 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
-#define STUB() assert(0 && "stub " __FUNCSIG__ "!");
+#if defined(_MSVC_VER)
+#  define STUB() do { assert(0 && "stub " __FUNCSIG__ "!"); } while(0)
+#else
+#  define STUB()
+#endif
 
 #if defined(_WIN32)
 #  define INTRIN_INLINE __forceinline
 #else
-#  define INTRIN_INLINE
+#  define INTRIN_INLINE [[using gnu: always_inline]] inline
 #endif
 
 template <typename T>

@@ -1,8 +1,11 @@
 #include <win32/cpuinfo.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#endif
 
 #include <cstdlib>
+#include <climits>
 
 namespace win32 {
 
@@ -37,6 +40,7 @@ CpuInfo *CpuInfo::create()
 {
   auto self = new CpuInfo();
 
+#if defined(_MSVC_VER)
   DWORD info_len = 0;
   GetLogicalProcessorInformation(nullptr, &info_len);
 
@@ -57,6 +61,7 @@ CpuInfo *CpuInfo::create()
     offset += sizeof(*info);
   }
   free(info);
+#endif
 
   return self;
 }

@@ -3,7 +3,17 @@
 #include <math/geometry.h>
 #include <math/util.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#else
+union LARGE_INTEGER {
+  struct {
+    i32 low, hi;
+  };
+
+  i64 QuadPart;
+};
+#endif
 
 namespace win32 {
 
@@ -14,8 +24,10 @@ alignas(i64) volatile i64 p_ticks;
 
 void Timers::init()
 {
+#if defined(_MSVC_VER)
   auto result = QueryPerformanceFrequency(&p_perf_freq);
   if(!result) panic("QueryPerformanceCounter() failed!", QueryPerformanceCounterError);
+#endif
 
   tick();
 }
@@ -26,9 +38,11 @@ void Timers::finalize()
 
 void Timers::tick()
 {
+#if defined(_MSVC_VER)
   QueryPerformanceCounter(&p_perf_counter);
 
   InterlockedExchange64(&p_ticks, p_perf_counter.QuadPart);
+#endif
 }
 
 Time Timers::ticks()

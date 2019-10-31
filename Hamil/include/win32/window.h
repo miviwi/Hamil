@@ -11,7 +11,20 @@
 #include <functional>
 #include <map>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#else
+#  define LPWSTR wchar_t*
+#  define HINSTANCE void*
+#  define HWND void*
+#  define HGLRC void*
+#  define LRESULT int
+#  define LPARAM int
+#  define WPARAM int
+#  define UINT unsigned
+#  define ATOM unsigned short
+#  define CALLBACK
+#endif
 
 namespace win32 {
 

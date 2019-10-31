@@ -1,6 +1,7 @@
 #include <ft/font.h>
 
 #include <util/allocator.h>
+#include <win32/panic.h>
 #include <math/xform.h>
 #include <math/util.h>
 #include <uniforms.h>
@@ -240,9 +241,7 @@ Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
   auto err = FT_New_Face(ft, family.getPath(), 0, &face);
   if(err) {
     std::string err_message = "FreeType face creation error " + std::to_string(err) + "!";
-
-    MessageBoxA(nullptr, err_message.data(), "FreeTyper error!", MB_OK);
-    ExitProcess(-2);
+    win32::panic(err_message.data(), -2);
   }
 
   m = new pFace(face);
@@ -297,7 +296,7 @@ int Font::glyphIndex(int ch) const
 String Font::string(const char *str, size_t length) const
 {
   auto ptr = (unsigned)p->allocator.alloc(length); // Simple free list alloator
-  assert(ptr != FreeListAllocator::Error && "no more space in string vertex buffer!");
+  assert(ptr != (unsigned)FreeListAllocator::Error && "no more space in string vertex buffer!");
 
   std::vector<Vertex> vtx(length*NumCharVerts);
   std::vector<u16> inds(length*NumCharIndices);
@@ -332,7 +331,7 @@ String Font::stringMetrics(const char *str) const
   //   - Somehow merge this with string() ?
   FT_Face face = *m;
 
-  const char *begin = str;
+  [[maybe_unused]] const char *begin = str;
   FT_Vector pen = { 0, 0 };
   float width = 0.0f;
   while(*str) {
@@ -400,7 +399,7 @@ String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, Stri
 
   unsigned num_chars = 0;
 
-  const char *begin = str;
+  [[maybe_unused]] const char *begin = str;
   FT_Vector pen = { 0, 0 };
   float width = 0.0f;
   while(*str) {
@@ -679,7 +678,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHand
     rd.left    = bm->left;
     rd.width   = bm->bitmap.width;
     rd.height  = bm->bitmap.rows+1;
-    rd.advance = ivec2{ g->advance.x, g->advance.y };
+    rd.advance = ivec2{ (int)g->advance.x, (int)g->advance.y };
 
     rd.uvs[0] = uvs[0]; rd.uvs[1] = uvs[1];
     rd.uvs[2] = uvs[2]; rd.uvs[3] = uvs[3];

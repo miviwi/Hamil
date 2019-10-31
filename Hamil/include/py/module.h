@@ -59,6 +59,12 @@ public:
   MethodDef& method(void *fn);
   MethodDef& flags(int flags);
 
+  template <typename Fn>
+  MethodDef& method(Fn fn)
+  {
+    return method((void *)fn);
+  }
+
   const PyMethodDef& py() const;
 
 private:

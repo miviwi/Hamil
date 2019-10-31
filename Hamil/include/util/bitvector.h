@@ -2,6 +2,8 @@
 
 #include <common.h>
 
+#include <climits>
+
 #include <vector>
 
 namespace util {

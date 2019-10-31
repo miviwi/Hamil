@@ -25,6 +25,10 @@
 
 namespace res {
 
+ResourceLoader::~ResourceLoader()
+{
+}
+
 ResourceManager& ResourceLoader::manager()
 {
   return *m_man;
@@ -184,7 +188,7 @@ void SimpleFsLoader::metaIoCompleted(std::string full_path, IORequest& req)
   auto id = enumOne(file.get<const char>(), file.size(), full_path.data());
   if(id == Resource::InvalidId) return;  // The *.meta file was invalid
 
-  printf("found resource %-25s: 0x%.16llx\n", full_path.data(), id);
+  printf("found resource %-25s: 0x%.16lx\n", full_path.data(), id);
 
   // Multiple threads can be executing this method simultaneously
   auto guard = m_available_mutex.acquireScoped();

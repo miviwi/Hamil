@@ -66,7 +66,7 @@ public:
   template <typename T, typename U>
   const T *get(const U& key) const
   {
-    return get(key)->as<T>();
+    return get(key)->template as<T>();
   }
 
   virtual size_t hash() const = 0;
@@ -161,7 +161,7 @@ public:
   template <typename T>
   const T *get(size_t key) const
   {
-    return get(key)->as<T>();
+    return get(key)->template as<T>();
   }
 
   size_t size() const;
@@ -208,7 +208,7 @@ public:
   template <typename T, typename U>
   const T *get(const U& key) const
   {
-    return get(key)->as<T>();
+    return get(key)->template as<T>();
   }
 
   size_t size() const;

@@ -15,9 +15,9 @@ std::tuple<std::vector<PNVertex>, std::vector<u16>> sphere(uint rings, uint sect
   verts.reserve(rings*sectors);
   for(uint r = 0; r < rings; r++) {
     for(uint s = 0; s < sectors; s++) {
-      auto y = sin(-(PIf/2.0f) + PIf*r*R);
-      auto x = cos(2.0f*PIf * s * S) * sin(PIf * r * R);
-      auto z = sin(2.0f*PIf * s * S) * sin(PIf * r * R);
+      auto y = sinf(-(PIf/2.0f) + PIf*r*R);
+      auto x = cosf(2.0f*PIf * s * S) * sinf(PIf * r * R);
+      auto z = sinf(2.0f*PIf * s * S) * sinf(PIf * r * R);
 
       // Flush very small values to 0.0f
       if(fabs(x) < 1e-6f) x = 0.0f;

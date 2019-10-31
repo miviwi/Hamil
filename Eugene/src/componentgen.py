@@ -3,16 +3,17 @@ import cxx
 import database
 import eugene_util as util
 
-import platform
-if platform.system() == 'Windows':
+if os.name == 'nt':
     import eugene_win32 as eugene_sys
-elif platform.system() == 'Linux':
+elif os.name == 'posix':
     import eugene_sysv as eugene_sys
+else:
+    raise util.OSUnsupportedError()
 
 from pprint import pprint
 
 def main(db, args):
-    pattern = lambda dir: f"{dir}\\*.h"
+    pattern = lambda dir: f"{dir}{os.path.sep}*.h"
 
     print("\nGenerating Components...")
 
@@ -20,8 +21,11 @@ def main(db, args):
 
     with open('components.h', 'w') as header, open('components.cpp', 'w') as src:
         header.write(
-        """#include <hm/componentstore.h>
-#include <hm/component.h>
+        """#pragma once
+
+#include <hm/componentstore.h>
+
+#include <util/staticstring.h>
 
 #include <string>
 
@@ -42,8 +46,8 @@ static const std::unordered_map<std::string, Component::Tag> p_tags = {
 """)
         tu = cxx.CxxTranslationUnit(
             # Need to pick a TranslationUnit with #include <hm/compoents/all.h>
-            os.path.join(util.HAMIL_PATH, 'src', 'hm', 'componentstore.cpp'),
-            args
+            os.path.join(util.HAMIL_PATH, 'include', 'hm', 'components', 'all.h'),#'componentstore.cpp'),
+            [util.HAMIL_INCLUDE]
         )
 
         hm = tu.namespace('hm')
@@ -56,6 +60,8 @@ static const std::unordered_map<std::string, Component::Tag> p_tags = {
         # c[0] is the non-namespace qualified class name
         components = list(map(lambda c: c[0], component_classes))
 
+        print(f"resolved components: {components}")
+
         for component in components:
             header.write(f"struct {component};\n")
             src.write(f"  {{ \"{component}\", {component}::tag() }},\n")
@@ -63,7 +69,7 @@ static const std::unordered_map<std::string, Component::Tag> p_tags = {
         src.write(
         """};
 
-Component::Tag tag_from_string(const std::string& tag)
+util::StaticString tag_from_string(const std::string& tag)
 {
     auto it = p_tags.find(tag);
     if(it == p_tags.end()) return "";
@@ -74,18 +80,18 @@ Component::Tag tag_from_string(const std::string& tag)
 
         header.write(
         """
-using ComponentStore = ComponentStoreBase<""")
+class ComponentStore : public ComponentStoreBase<""")
 
         for i, component in enumerate(components):
-            header.write(f"\n{' '*8}{component}")
+            header.write(f"\n{' '*4}{component}")
 
             if i+1 < len(components): header.write(',')
 
         header.write(
         """
-    >;
+> { };
 
-Component::Tag tag_from_string(const std::string& tag);
+util::StaticString tag_from_string(const std::string& tag);
 
 }
 """)

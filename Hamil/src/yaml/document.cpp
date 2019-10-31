@@ -1,5 +1,6 @@
 #include <yaml/document.h>
 #include <util/format.h>
+#include <util/hash.h>
 
 #include <yaml.h>
 
@@ -7,6 +8,19 @@
 #include <cstdlib>
 #include <unordered_map>
 #include <sstream>
+
+namespace std {
+  template <>
+  struct hash<yaml::string> {
+
+    size_t operator()(const yaml::string& s) const
+    {
+      const auto h = util::ByteXXHash(s.size());
+      return h(s.data());
+    }
+
+  };
+}
 
 namespace yaml {
 

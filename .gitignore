@@ -241,13 +241,27 @@ ModelManifest.xml
 # FAKE - F# Make
 .fake/
 
+# YouCompleteMe compilation flag database
+compile_commands.json
+**/compile_commands.json
+
 *.raw
 
+# Eugene output
 **/[Gg]enerated/
 uniforms.*
 resources.*
 components.*
 **/eugene.db
+
+# eugene_win32/eugene_sysv shared library
+Eugene/*/build/*.so
+Eugene/src/*.so
+
+# Configure time generated files
+Hamil/[Gg]enerated/config.h
+Hamil/extern/python37/include/pyconfig.h
+Hamil/extern/freetype2/include/freetype/config/ftoption.h
 
 *.exe
 

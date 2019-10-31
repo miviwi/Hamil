@@ -15,6 +15,8 @@ class IEntityManager {
 public:
   using Ptr = std::unique_ptr<IEntityManager>;
 
+  virtual ~IEntityManager();
+
   virtual Entity createEntity() = 0;
   virtual Entity findEntity(const std::string& name) = 0;
   virtual void destroyEntity(EntityId id) = 0;

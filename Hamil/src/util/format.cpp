@@ -12,7 +12,11 @@ std::string p_fmt(const char *fmt, ...)
 {
   va_list va;
   va_start(va, fmt);
+#if defined(_MSVC_VER)
   vsprintf_s(p_format_string_buf, sizeof(p_format_string_buf), fmt, va);
+#else
+  vsnprintf(p_format_string_buf, sizeof(p_format_string_buf), fmt, va);
+#endif
   va_end(va);
 
   return std::string(p_format_string_buf);

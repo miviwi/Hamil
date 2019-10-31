@@ -6,9 +6,14 @@
 #include <sched/pool.h>
 #include <sched/job.h>
 
+#include <cstring>
+
 #include <utility>
 
-#include <intrin.h>
+#if defined(_MSVC_VER)
+#  include <intrin.h>
+#endif
+
 #include <xmmintrin.h>
 #include <pmmintrin.h>
 #include <emmintrin.h>
@@ -18,6 +23,14 @@
 //  https://github.com/GameTechDev/OcclusionCulling
 
 namespace ek {
+
+#if defined(_MSVC_VER)
+#  define m128i_i32(vector, lane_idx) ( vector.m128i_i32[lane_idx] )
+#  define m128_f32(vector, lane_idx) ( vector.m128_f32[lane_idx] )
+#else
+#  define m128i_i32(vector, lane_idx) ( (i32)vector[lane_idx] )
+#  define m128_f32(vector, lane_idx) ( (float)vector[lane_idx] )
+#endif
 
 // Clip triangle to bounding box defined by <min_extent; max_extent>
 static std::pair<ivec2, ivec2> tri_bbox(ivec2 fx[3], ivec2 min_extent, ivec2 max_extent)
@@ -88,7 +101,11 @@ INTRIN_INLINE static int testz_si128(const __m128i& a, const __m128i& b)
 INTRIN_INLINE static int find_and_clear_lsb(uint *mask)
 {
   ulong idx;
+#if defined(_MSVC_VER)
   _BitScanForward(&idx, *mask);
+#else
+  idx = __builtin_ffsll(*mask);
+#endif
   *mask &= *mask - 1;
 
   return idx;
@@ -268,7 +285,7 @@ std::unique_ptr<float[]> OcclusionBuffer::detiledFramebuffer() const
   }
 #endif
 
-  return std::move(ptr);
+  return ptr;
 }
 
 const vec2 *OcclusionBuffer::coarseFramebuffer() const
@@ -354,10 +371,10 @@ VisibilityMesh::Visibility OcclusionBuffer::earlyTest(VisibilityMesh& mesh, cons
 
   __m128 max_z = splat_ps(screen_max, 2);
 
-  int rx0 = minmax_xyis.m128i_i32[0];
-  int ry0 = minmax_xyis.m128i_i32[1];
-  int rx1 = minmax_xyis.m128i_i32[2];
-  int ry1 = minmax_xyis.m128i_i32[3];
+  int rx0 = m128i_i32(minmax_xyis, 0);
+  int ry0 = m128i_i32(minmax_xyis, 1);
+  int rx1 = m128i_i32(minmax_xyis, 2);
+  int ry1 = m128i_i32(minmax_xyis, 3);
 
   __m128 any_closer = _mm_setzero_ps();
   for(int by = ry0; by <= ry1; by++) {
@@ -447,23 +464,23 @@ bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xfor
     starty = _mm_and_si128(starty, _mm_set1_epi32(0xFFFFFFFE));
 
     for(uint lane = 0; lane < NumSIMDLanes; lane++) {
-      if(area.m128i_i32[lane] <= 0) continue;  // Skip back-facing triangles
+      if(m128i_i32(area, lane) <= 0) continue;  // Skip back-facing triangles
 
       __m128 zz[3];
-      for(uint vv = 0; vv < 3; vv++) zz[vv] = _mm_set1_ps(Z[vv].m128_f32[lane]);
+      for(uint vv = 0; vv < 3; vv++) zz[vv] = _mm_set1_ps(m128_f32(Z[vv], lane));
 
-      int startxx = startx.m128i_i32[lane];
-      int startxy = starty.m128i_i32[lane];
-      int endxx   = endx.m128i_i32[lane];
-      int endxy   = endy.m128i_i32[lane];
+      int startxx = m128i_i32(startx, lane);
+      int startxy = m128i_i32(starty, lane);
+      int endxx   = m128i_i32(endx, lane);
+      int endxy   = m128i_i32(endy, lane);
 
-      __m128i aa0 = _mm_set1_epi32(A0.m128i_i32[lane]);
-      __m128i aa1 = _mm_set1_epi32(A1.m128i_i32[lane]);
-      __m128i aa2 = _mm_set1_epi32(A2.m128i_i32[lane]);
+      __m128i aa0 = _mm_set1_epi32(m128i_i32(A0, lane));
+      __m128i aa1 = _mm_set1_epi32(m128i_i32(A1, lane));
+      __m128i aa2 = _mm_set1_epi32(m128i_i32(A2, lane));
 
-      __m128i bb0 = _mm_set1_epi32(B0.m128i_i32[lane]);
-      __m128i bb1 = _mm_set1_epi32(B1.m128i_i32[lane]);
-      __m128i bb2 = _mm_set1_epi32(B2.m128i_i32[lane]);
+      __m128i bb0 = _mm_set1_epi32(m128i_i32(B0, lane));
+      __m128i bb1 = _mm_set1_epi32(m128i_i32(B1, lane));
+      __m128i bb2 = _mm_set1_epi32(m128i_i32(B2, lane));
 
       __m128i aa0_inc = _mm_slli_epi32(aa0, 1);
       __m128i aa1_inc = _mm_slli_epi32(aa1, 1);
@@ -478,9 +495,9 @@ bool OcclusionBuffer::fullTest(VisibilityMesh& mesh, const mat4& mvp, void *xfor
       __m128i aa2_col = mullo_epi32(aa2, col);
 
       row = _mm_add_epi32(RowOffsets, _mm_set1_epi32(startxy));
-      __m128i bb0_row = _mm_add_epi32(mullo_epi32(bb0, row), _mm_set1_epi32(C0.m128i_i32[lane]));
-      __m128i bb1_row = _mm_add_epi32(mullo_epi32(bb1, row), _mm_set1_epi32(C1.m128i_i32[lane]));
-      __m128i bb2_row = _mm_add_epi32(mullo_epi32(bb2, row), _mm_set1_epi32(C2.m128i_i32[lane]));
+      __m128i bb0_row = _mm_add_epi32(mullo_epi32(bb0, row), _mm_set1_epi32(m128i_i32(C0, lane)));
+      __m128i bb1_row = _mm_add_epi32(mullo_epi32(bb1, row), _mm_set1_epi32(m128i_i32(C1, lane)));
+      __m128i bb2_row = _mm_add_epi32(mullo_epi32(bb2, row), _mm_set1_epi32(m128i_i32(C2, lane)));
 
       __m128i sum0_row = _mm_add_epi32(aa0_col, bb0_row);
       __m128i sum1_row = _mm_add_epi32(aa1_col, bb1_row);
@@ -645,11 +662,11 @@ void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, u
       int i = find_and_clear_lsb(&tri_mask);
 
       // Find tile extents of the triangle
-      int startxx = std::max(startx.m128i_i32[i]/TileSize.x, 0);
-      int endxx   = std::min(endx.m128i_i32[i]/TileSize.x, SizeInTiles.x-1);
+      int startxx = std::max(m128i_i32(startx, i)/TileSize.x, 0);
+      int endxx   = std::min(m128i_i32(endx, i)/TileSize.x, SizeInTiles.x-1);
 
-      int startxy = std::max(starty.m128i_i32[i]/TileSize.y, 0);
-      int endxy   = std::min(endy.m128i_i32[i]/TileSize.y, SizeInTiles.y-1);
+      int startxy = std::max(m128i_i32(starty, i)/TileSize.y, 0);
+      int endxy   = std::min(m128i_i32(endy, i)/TileSize.y, SizeInTiles.y-1);
 
       // Add the triangle to the bins which it's bbox covers
       int row, col;
@@ -661,13 +678,13 @@ void OcclusionBuffer::binTriangles(const VisibilityMesh& mesh, uint object_id, u
           int idx2 = off2 + (Offset2.x*col) + m_bin_counts[idx1];
           BinnedTri *btri = m_bin + idx2;
 
-          btri->v[0].xy = XY[0].m128i_i32[i];
-          btri->v[1].xy = XY[1].m128i_i32[i];
-          btri->v[2].xy = XY[2].m128i_i32[i];
+          btri->v[0].xy = m128i_i32(XY[0], i);
+          btri->v[1].xy = m128i_i32(XY[1], i);
+          btri->v[2].xy = m128i_i32(XY[2], i);
 
-          btri->Z[0] = Z[0].m128_f32[i];
-          btri->Z[1] = Z[1].m128_f32[i];
-          btri->Z[2] = Z[2].m128_f32[i];
+          btri->Z[0] = m128_f32(Z[0], i);
+          btri->Z[1] = m128_f32(Z[1], i);
+          btri->Z[2] = m128_f32(Z[2], i);
 
           m_bin_counts[idx1]++;
         }  // Each row
@@ -889,18 +906,18 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
       };
 
       // Get the current triangles bounding box
-      int startxx = startx.m128i_i32[lane];
-      int endxx   = endx.m128i_i32[lane];
-      int startxy = starty.m128i_i32[lane];
-      int endxy   = endy.m128i_i32[lane];
+      int startxx = m128i_i32(startx, lane);
+      int endxx   = m128i_i32(endx, lane);
+      int startxy = m128i_i32(starty, lane);
+      int endxy   = m128i_i32(endy, lane);
 
-      __m128i aa0 = _mm_set1_epi32(A0.m128i_i32[lane]);
-      __m128i aa1 = _mm_set1_epi32(A1.m128i_i32[lane]);
-      __m128i aa2 = _mm_set1_epi32(A2.m128i_i32[lane]);
+      __m128i aa0 = _mm_set1_epi32(m128i_i32(A0, lane));
+      __m128i aa1 = _mm_set1_epi32(m128i_i32(A1, lane));
+      __m128i aa2 = _mm_set1_epi32(m128i_i32(A2, lane));
 
-      __m128i bb0 = _mm_set1_epi32(B0.m128i_i32[lane]);
-      __m128i bb1 = _mm_set1_epi32(B1.m128i_i32[lane]);
-      __m128i bb2 = _mm_set1_epi32(B2.m128i_i32[lane]);
+      __m128i bb0 = _mm_set1_epi32(m128i_i32(B0, lane));
+      __m128i bb1 = _mm_set1_epi32(m128i_i32(B1, lane));
+      __m128i bb2 = _mm_set1_epi32(m128i_i32(B2, lane));
 
       // Compute the horizontal barycentric coord deltas
       __m128i aa0_inc = _mm_slli_epi32(aa0, 1);
@@ -921,9 +938,9 @@ void OcclusionBuffer::rasterizeTile(const std::vector<VisibilityObject *>& objec
       __m128i aa2_col = mullo_epi32(aa2, col);
 
       row = _mm_add_epi32(RowOffsets, _mm_set1_epi32(startxy));
-      __m128i bb0_row = _mm_add_epi32(mullo_epi32(bb0, row), _mm_set1_epi32(C0.m128i_i32[lane]));
-      __m128i bb1_row = _mm_add_epi32(mullo_epi32(bb1, row), _mm_set1_epi32(C1.m128i_i32[lane]));
-      __m128i bb2_row = _mm_add_epi32(mullo_epi32(bb2, row), _mm_set1_epi32(C2.m128i_i32[lane]));
+      __m128i bb0_row = _mm_add_epi32(mullo_epi32(bb0, row), _mm_set1_epi32(m128i_i32(C0, lane)));
+      __m128i bb1_row = _mm_add_epi32(mullo_epi32(bb1, row), _mm_set1_epi32(m128i_i32(C1, lane)));
+      __m128i bb2_row = _mm_add_epi32(mullo_epi32(bb2, row), _mm_set1_epi32(m128i_i32(C2, lane)));
 
       __m128i sum0_row = _mm_add_epi32(aa0_col, bb0_row);
       __m128i sum1_row = _mm_add_epi32(aa1_col, bb1_row);

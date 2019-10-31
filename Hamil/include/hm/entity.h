@@ -1,6 +1,7 @@
 #pragma once
 
 #include <hm/hamil.h>
+#include <hm/componentman.h>
 #include <hm/componentref.h>
 
 #include <utility>
@@ -8,8 +9,6 @@
 namespace hm {
 
 struct GameObject;
-
-using EntityId = u32;
 
 class Entity {
 public:

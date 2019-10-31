@@ -28,8 +28,8 @@ frustum3::frustum3(mat4 vp, bool inf_far)
   for(auto& c : corners) c = (inv_vp * c).perspectiveDivide();
 
   auto plane_from_points = [](vec4 p0, vec4 p1, vec4 p2) -> vec4 {
-    vec3 v = p1 - p0;
-    vec3 u = p2 - p0;
+    vec3 v = (p1 - p0).xyz();
+    vec3 u = (p2 - p0).xyz();
 
     vec3 n = u.cross(v).normalize();
     float d = n.dot(p0.xyz());

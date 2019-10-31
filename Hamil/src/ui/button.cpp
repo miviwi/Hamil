@@ -196,7 +196,7 @@ void CheckBoxFrame::paint(VertexPainter& painter, Geometry parent)
 
   Geometry g = geometry(),
     clipped_g = parent.clip(g);
-  vec2 center = g.center();
+  [[maybe_unused]] vec2 center = g.center();
 
   Geometry box = getSolidGeometry();
 

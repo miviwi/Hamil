@@ -2,7 +2,9 @@
 
 #include <common.h>
 
-#include <Windows.h>
+#if !defined(__linux__)
+#  include <Windows.h>
+#endif
 
 namespace win32 {
 
@@ -21,7 +23,9 @@ public:
   ReaderWriterLock& releaseShared();
 
 private:
+#if !defined(__linux__)
   SRWLOCK m;
+#endif
 };
 
 }

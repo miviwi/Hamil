@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
 
   py::set_global("world", py::DynamicsWorld_FromDynamicsWorld(world));
 
-  res::load(R.image.ids);
+//  res::load(R.image.ids);
   res::load(R.mesh.ids);
 
   auto bunny_fmt = gx::VertexFormat()

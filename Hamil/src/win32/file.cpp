@@ -1,6 +1,11 @@
 #include <win32/file.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#else
+#  define DWORD int
+#  define INVALID_HANDLE_VALUE (void *)(intptr_t)-1
+#endif
 
 #include <cassert>
 #include <cstring>
@@ -9,16 +14,25 @@
 namespace win32 {
 
 static const DWORD p_creation_disposition_table[] = {
+#if defined(_MSVC_VER)
   CREATE_ALWAYS,
   CREATE_NEW,
   OPEN_ALWAYS,
   OPEN_EXISTING,
   TRUNCATE_EXISTING,
+#else
+  0,
+  0,
+  0,
+  0,
+  0,
+#endif
 };
 
 File::File(const char *path, Access access, Share share, OpenMode open) :
   m_access(access), m_full_path(nullptr)
 {
+#if defined(_MSVC_VER)
   DWORD desired_access = 0;
   desired_access |= access & Read    ? GENERIC_READ    : 0;
   desired_access |= access & Write   ? GENERIC_WRITE   : 0;
@@ -39,6 +53,7 @@ File::File(const char *path, Access access, Share share, OpenMode open) :
   if(result != TRUE) throw FileOpenError(GetLastError());
 
   m_sz = (size_t)size.QuadPart;
+#endif
 }
 
 File::File(const char *path, Access access, OpenMode open) :
@@ -65,6 +80,7 @@ size_t File::size() const
 
 const char *File::fullPath() const
 {
+#if defined(_MSVC_VER)
   // if the full path has already been queried - return it
   if(m_full_path) return m_full_path;
 
@@ -103,12 +119,17 @@ const char *File::fullPath() const
   }
 
   return m_full_path;
+#else
+  return "";
+#endif
 }
 
 File::Size File::read(void *buf, Size sz)
 {
   DWORD num_read = 0;
+#if defined(_MSVC_VER)
   ReadFile(m, buf, sz, &num_read, nullptr);
+#endif
 
   return num_read;
 }
@@ -121,13 +142,16 @@ File::Size File::read(void *buf)
 File::Size File::write(const void *buf, Size sz)
 {
   DWORD num_written = 0;
+#if defined(_MSVC_VER)
   WriteFile(m, buf, sz, &num_written, nullptr);
+#endif
 
   return num_written;
 }
 
 void File::seek(Seek seek, size_t offset) const
 {
+#if defined(_MSVC_VER)
   DWORD move_method = 0;
   switch(seek) {
   case SeekBegin:   move_method = FILE_BEGIN; break;
@@ -139,10 +163,12 @@ void File::seek(Seek seek, size_t offset) const
   move_distance.QuadPart = offset;
 
   SetFilePointerEx(m, move_distance, nullptr, move_method);
+#endif
 }
 
 size_t File::seekOffset() const
 {
+#if defined(_MSVC_VER)
   LARGE_INTEGER file_pointer;
   LARGE_INTEGER distance;
   distance.QuadPart = 0;
@@ -151,11 +177,18 @@ size_t File::seekOffset() const
   if(result != TRUE) throw Error(GetLastError());
 
   return (size_t)file_pointer.QuadPart;
+#else
+  return 0;
+#endif
 }
 
 bool File::flush()
 {
+#if defined(_MSVC_VER)
   return FlushFileBuffers(m) == TRUE;
+#else
+  return false;
+#endif
 }
 
 FileView File::map(Protect protect, const char *name)
@@ -165,6 +198,7 @@ FileView File::map(Protect protect, const char *name)
 
 FileView File::map(Protect protect, size_t offset, size_t size, const char *name)
 {
+#if defined(_MSVC_VER)
   DWORD flprotect = 0;
   switch(protect) {
   case ProtectRead:             flprotect = PAGE_READONLY; break;
@@ -181,6 +215,9 @@ FileView File::map(Protect protect, size_t offset, size_t size, const char *name
   if(!mapping) throw MappingCreateError(GetLastError());
 
   return FileView(*this, mapping, protect, offset, size);
+#else
+  return FileView(*this, nullptr, ProtectNone, 0, 0);
+#endif
 }
 
 FileView::~FileView()
@@ -197,7 +234,9 @@ void *FileView::get() const
 
 void FileView::flush(File::Size sz)
 {
+#if defined(_MSVC_VER)
   FlushViewOfFile(m_ptr, sz);
+#endif
 }
 
 uint8_t& FileView::operator[](size_t offset)
@@ -213,16 +252,19 @@ size_t FileView::size() const
 
 void FileView::unmap()
 {
+#if defined(_MSVC_VER)
   UnmapViewOfFile(m_ptr);
   CloseHandle(m);
 
   m_ptr = nullptr;
   m = nullptr;
+#endif
 }
 
 FileView::FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size) :
   m_file(file), m_size(size), m(mapping)
 {
+#if defined(_MSVC_VER)
   DWORD desired_access = 0;
   desired_access |= access & File::ProtectRead    ? FILE_MAP_READ    : 0;
   desired_access |= access & File::ProtectWrite   ? FILE_MAP_WRITE   : 0;
@@ -230,15 +272,18 @@ FileView::FileView(const File& file, void *mapping, File::Protect access, size_t
 
   m_ptr = MapViewOfFile(m, desired_access, dword_high(offset), dword_low(offset), size);
   if(!m_ptr) throw File::MapFileError(GetLastError());
+#endif
 }
 
 const char *File::Error::errorString() const
 {
+#if defined(_MSVC_VER)
   switch(what) {
   case ERROR_FILE_NOT_FOUND: return "FileNotFound";
   case ERROR_FILE_INVALID:   return "FileInvalid";
   case ERROR_ACCESS_DENIED:  return "AccessDenied";
   }
+#endif
 
   return "<unknown-error>";
 }
@@ -282,6 +327,7 @@ FileQuery& FileQuery::operator=(FileQuery&& other)
 
 void FileQuery::foreach(IterFn fn)
 {
+#if defined(_MSVC_VER)
   auto compare = [](const char *a, const char *b) {
     return strncmp(a, b, sizeof(WIN32_FIND_DATAA::cFileName)) == 0;
   };
@@ -298,24 +344,33 @@ void FileQuery::foreach(IterFn fn)
 
     fn(name, (Attributes)attrs);
   } while(FindNextFileA(m, find_data));
+#endif
 }
 
 void FileQuery::openQuery(const char *path)
 {
+#if defined(_MSVC_VER)
   if(!m_find_data) m_find_data = new WIN32_FIND_DATAA();
   m = FindFirstFileExA(path, FindExInfoBasic, m_find_data, FindExSearchNameMatch, nullptr, 0);
 
   if(m == INVALID_HANDLE_VALUE) throw Error();
+#endif
 }
 
 void FileQuery::closeQuery()
 {
+#if defined(_MSVC_VER)
   if(m != INVALID_HANDLE_VALUE) FindClose(m);
+#endif
 }
 
 bool current_working_directory(const char *dir)
 {
+#if defined(_MSVC_VER)
   return SetCurrentDirectoryA(dir);
+#else
+  return false;
+#endif
 }
 
 }

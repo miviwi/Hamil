@@ -276,9 +276,9 @@ const RenderView::RenderFn RenderView::RenderFns[NumViewTypes][NumRenderTypes] =
 
 gx::CommandBuffer RenderView::doRender(std::vector<RenderObject>& objects)
 {
-  auto ltc = m_renderer->queryLUT(RenderLUT::LTCCoeffs);
+  [[maybe_unused]] auto ltc = m_renderer->queryLUT(RenderLUT::LTCCoeffs);
 
-  auto& renderpass = getRenderpass();
+  [[maybe_unused]] auto& renderpass = getRenderpass();
 
   // The integer values of RenderObject::Type are arranged in such a way that after
   //   sorting them the RenderLights will come first, which means that after skipping

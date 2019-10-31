@@ -257,7 +257,7 @@ std::string ConsoleOpts::doc() const
     if(opt.second.flags() & Option::ShortName) ss << ", -" << opt.first.front();
 
     // algin option names to DocNameMargin columns
-    ss << std::string(std::max(DocNameMargin-ss.tellp(), 1LL), ' ');
+    ss << std::string(std::max<std::ostringstream::pos_type>(DocNameMargin-ss.tellp(), 1), ' ');
 
     util::linewrap(opt.second.doc(), 80-DocNameMargin, [&](const std::string& str, size_t line_no) {
       // if this isn't the first line add the margin

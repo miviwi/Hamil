@@ -12,7 +12,9 @@
 namespace py {
 
 struct NodeToken;
+[[maybe_unused]]
 static MemberDefList<NodeToken> NodeMembers;
+[[maybe_unused]]
 static MethodDefList<NodeToken> NodeMethods;
 
 struct Node {
@@ -89,6 +91,8 @@ static PyObject *Node_FromPtr(const yaml::Node::Ptr& p)
 }
 
 struct DocumentToken;
+
+[[maybe_unused]]
 static MemberDefList<DocumentToken> DocumentMembers;
 static MethodDefList<DocumentToken> DocumentMethods;
 static GetSetDefList<DocumentToken> DocumentGetSet;

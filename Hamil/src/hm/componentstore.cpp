@@ -93,6 +93,11 @@ void IComponentStore::endRequireUnlocked()
   if(locked == -1) m_mutex.release();
 }
 
+bool IComponentStore::component_valid(const Component& component)
+{
+  return (bool)component;
+}
+
 void IComponentStore::reap_component(Component *component)
 {
   component->m_entity = Entity();

@@ -98,11 +98,11 @@ struct VisibilityMesh {
 
     self.verts = StridePtr<const vec3>(
       /* cast to silence IntelliSense */ (void *)verts.data(),
-      sizeof(VertsVec::value_type)
+      sizeof(typename VertsVec::value_type)
     );
     self.inds = inds.data();
 
-    return std::move(self);
+    return self;
   }
 
   // Initializes 'xformed' which is used internally during rasterization

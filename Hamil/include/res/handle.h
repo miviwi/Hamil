@@ -29,7 +29,7 @@ public:
   // Returns 'nullptr' if the resource has expired
   T *operator->()
   {
-    if(auto& r = lock()) return r->as<T>();
+    if(auto& r = lock()) return r->template as<T>();
 
     return nullptr;
   }

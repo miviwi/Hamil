@@ -5,6 +5,8 @@
 #include <util/smallvector.h>
 #include <math/geometry.h>
 
+#include <climits>
+
 #include <utility>
 #include <vector>
 #include <map>
@@ -216,7 +218,11 @@ public:
   template <typename Fn /* void (*)(const MipChain&) */>
   void eachLayer(Fn fn) const
   {
-    for(const auto& chain : m_layers) fn(chain);
+    for(size_t k = 0; k < m_num_layers; k++) {
+      const auto& chain = m_layers[k];
+
+      fn(chain);
+    }
   }
 
   // Calls 'fn' for each layer/face with the Image at 'level'
@@ -224,7 +230,7 @@ public:
   template <typename Fn /* void (*)(const Image&) */>
   void eachLayerLevel(Fn fn, uint level = 0) const
   {
-    for(const auto& chain : m_layers) fn(chain.at(level));
+    return eachLayer([&](const auto& chain) { fn(chain.at(level)); });
   }
 
   // After calling this method the DDSImage

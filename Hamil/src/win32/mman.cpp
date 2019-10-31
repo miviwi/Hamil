@@ -1,11 +1,14 @@
 #include <win32/mman.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#endif
 
 namespace win32 {
 
 MemoryStatus::MemoryStatus()
 {
+#if defined(_MSVC_VER)
   MEMORYSTATUSEX s;
   s.dwLength = sizeof(s);
 
@@ -18,6 +21,7 @@ MemoryStatus::MemoryStatus()
 
   m_virt_size  = s.ullTotalVirtual;
   m_virt_avail = s.ullAvailVirtual;
+#endif
 }
 
 }

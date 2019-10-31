@@ -242,7 +242,7 @@ ivec2 Framebuffer::getColorAttachement0Dimensions()
   glGetFramebufferAttachmentParameteriv(m_bound, GL_COLOR_ATTACHMENT0,
                                         GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, &name);
 
-  ivec2 dims{ -1, -1 };
+  alignas(4) ivec2 dims{ -1, -1 };
   switch(att_type) {
   case GL_RENDERBUFFER:
     glBindRenderbuffer(GL_RENDERBUFFER, name);

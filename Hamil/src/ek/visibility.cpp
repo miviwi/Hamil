@@ -70,7 +70,7 @@ ViewVisibility& ek::ViewVisibility::transformOccluders(sched::WorkerPool& pool)
         bool is_occluder = o->flags() & VisibilityObject::Occluder;
         if(!is_occluder) continue;
 
-        o->foreachMesh([this, is_occluder](VisibilityMesh& mesh) {
+        o->foreachMesh([this](VisibilityMesh& mesh) {
           mesh.initInternal(*m_mempool)
             .transform(m_viewprojectionviewport, m_frustum);
         });

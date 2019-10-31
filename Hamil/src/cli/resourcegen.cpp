@@ -392,7 +392,7 @@ static yaml::Document meshgen(win32::File& file,
   }
 
   auto obj_mesh   = obj_loader.mesh();
-  size_t num_faces = obj_mesh.faces().size();
+  [[maybe_unused]] size_t num_faces = obj_mesh.faces().size();
 
   auto meta_vertex = new yaml::Mapping();
   meta_vertex->retainOrder()->append(

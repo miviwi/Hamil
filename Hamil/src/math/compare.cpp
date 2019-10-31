@@ -7,7 +7,7 @@ namespace math {
 
 bool equal(float a, float b)
 {
-  return abs(a-b) <= std::numeric_limits<float>::epsilon();
+  return fabsf(a-b) <= std::numeric_limits<float>::epsilon();
 }
 
 }

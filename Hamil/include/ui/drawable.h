@@ -20,6 +20,8 @@ namespace ui {
 
 class Ui;
 
+class DrawableManager;
+
 struct pDrawable;
 struct pDrawableText;
 struct pDrawableImage;

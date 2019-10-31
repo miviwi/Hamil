@@ -72,7 +72,7 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
 
   res::load(R.texture.ids);
 
-#if 1
+#if 0
   res::Handle<res::Texture> r_ltc_1 = R.texture.ltc_1,
     r_ltc_2 = R.texture.ltc_2;
 
@@ -645,8 +645,8 @@ bool Renderer::cullLight(RenderView& view, const vec3& pos,
 {
   auto eye = view.eyePosition();
   auto radius = light.radius;
-  auto radius2 = radius * radius;
-  float distance2 = eye.distance2(pos);
+  [[maybe_unused]] auto radius2 = radius * radius;
+  [[maybe_unused]] float distance2 = eye.distance2(pos);
 
   switch(light.type) {
   case hm::Light::Sphere: return !frustum.sphereInside(pos, radius);

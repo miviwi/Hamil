@@ -1,6 +1,8 @@
 #include <win32/handle.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#endif
 
 namespace win32 {
 
@@ -24,7 +26,9 @@ Handle::~Handle()
 {
   if(deref()) return;
 
+#if defined(_MSVC_VER)
   if(m && m != INVALID_HANDLE_VALUE) CloseHandle(m);
+#endif
 }
 
 Handle& Handle::operator=(Handle&& other)

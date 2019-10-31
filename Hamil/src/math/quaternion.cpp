@@ -74,7 +74,6 @@ Quaternion Quaternion::from_mat4(const mat4& m)
 // Source: https://github.com/OGRECave/ogre/blob/master/OgreMain/include/OgreVector.h
 Quaternion Quaternion::rotation_between(const vec3& u, const vec3& v)
 {
-  Quaternion q;
   vec3 axis;
 
   float s = sqrtf(u.length2() * v.length2());

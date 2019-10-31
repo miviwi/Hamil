@@ -2,16 +2,16 @@
 
 #    --------  Uniforms  --------
 (uniformgen
-  ${Solution}Hamil\src\programs.cpp
-  ${Solution}Hamil\src\ft\font.cpp
-  ${Solution}Hamil\src\ui\cursor.cpp
-  ${Solution}Hamil\src\ui\ui.cpp)
-(move-if-newer uniforms.* ${Generated})
+  ${Solution}Hamil/src/programs.cpp
+  ${Solution}Hamil/src/ft/font.cpp
+  ${Solution}Hamil/src/ui/cursor.cpp
+  ${Solution}Hamil/src/ui/ui.cpp)
+(move-if-newer ${_PWD}/uniforms.* ${Generated})
 
 #    -------- Resources  --------
-(resourcegen ${Output})
-(move-if-newer resources.* ${Generated})
+(resourcegen ${Resources})
+(move-if-newer ${_PWD}/resources.* ${Generated})
 
 #    -------- Components --------
-(componentgen ${Solution}Hamil\include\hm\components)
-(move-if-newer components.* ${Generated})
+(componentgen ${Solution}Hamil/include/hm/components)
+(move-if-newer ${_PWD}/components.* ${Generated})

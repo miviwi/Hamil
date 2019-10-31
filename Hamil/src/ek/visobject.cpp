@@ -162,7 +162,7 @@ VisibilityMesh& VisibilityMesh::transform(const mat4& viewprojectionviewport, co
   __m128 row2 = _mm_load_ps(mvp.d +  8);
   __m128 row3 = _mm_load_ps(mvp.d + 12);
 
-  _MM_TRANSPOSE4_PS(row0, row1, row2, row3)
+  _MM_TRANSPOSE4_PS(row0, row1, row2, row3);
 #endif
 
     for(size_t i = 0; i < num_verts; i++) {
@@ -177,7 +177,7 @@ VisibilityMesh& VisibilityMesh::transform(const mat4& viewprojectionviewport, co
         *out++ = vec4::zero();  // If it is set all of it's coords to 0
       }
 #else
-      auto v = *in++;
+      alignas(16) auto v = *in++;
 
       __m128 xformed = row3;    // v.w == 1.0f   =>   row3*v.w == row3
       xformed = _mm_add_ps(xformed, _mm_mul_ps(row0, _mm_load_ps1(&v.x)));

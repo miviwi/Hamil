@@ -2,7 +2,9 @@
 
 #include <common.h>
 
-#include <Windows.h>
+#if !defined(__linux__)
+#  include <Windows.h>
+#endif
 
 namespace win32 {
 
@@ -27,7 +29,9 @@ public:
 private:
   friend ConditionVariable;
 
+#if !defined(__linux__)
   CRITICAL_SECTION m;
+#endif
 };
 
 template <typename T>

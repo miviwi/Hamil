@@ -1,9 +1,14 @@
 #include <win32/thread.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#else
+#  define DWORD ulong
+#endif
 
 #include <utility>
 
+#if defined(_MSVC_VER)
 const DWORD MS_VC_EXCEPTION = 0x406D1388;
 
 #pragma pack(push,8)
@@ -32,6 +37,13 @@ static void SetThreadName(DWORD dwThreadID, const char* threadName)
   }
 #pragma warning(pop)
 }
+#else
+
+static void SetThreadName(DWORD dwThreadID, const char *name)
+{
+}
+
+#endif
 
 namespace win32 {
 
@@ -67,6 +79,7 @@ DWORD Thread::ThreadProcTrampoline(void *param)
 Thread::Thread(Fn fn, bool suspended) :
   m_data(new ThreadData())
 {
+#if defined(_MSVC_VER)
   DWORD dwCreationFlags = 0;
   dwCreationFlags |= suspended ? CREATE_SUSPENDED : 0;
 
@@ -75,6 +88,7 @@ Thread::Thread(Fn fn, bool suspended) :
 
   m = CreateThread(nullptr, 0, ThreadProcTrampoline, m_data, dwCreationFlags, &m_data->id);
   if(!m) throw CreateError(GetLastError());
+#endif
 }
 
 Thread::~Thread()
@@ -105,26 +119,36 @@ Thread& Thread::dbg_SetName(const char *name)
 
 Thread::Id Thread::current_thread_id()
 {
+#if defined(_MSVC_VER)
   return GetCurrentThreadId();
+#else
+  return InvalidId;
+#endif
 }
 
 Thread& Thread::resume()
 {
+#if defined(_MSVC_VER)
   ResumeThread(m);
+#endif
 
   return *this;
 }
 
 Thread& Thread::suspend()
 {
+#if defined(_MSVC_VER)
   SuspendThread(m);
+#endif
 
   return *this;
 }
 
 Thread& Thread::affinity(uintptr_t mask)
 {
+#if defined(_MSVC_VER)
   SetThreadAffinityMask(m, mask);
+#endif
 
   return *this;
 }
@@ -132,7 +156,9 @@ Thread& Thread::affinity(uintptr_t mask)
 ulong Thread::exitCode() const
 {
   DWORD exit_code = 0;
+#if defined(_MSVC_VER)
   if(!GetExitCodeThread(m, &exit_code)) throw Error(GetLastError());
+#endif
 
   return exit_code;
 }

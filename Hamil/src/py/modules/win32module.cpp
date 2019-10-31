@@ -11,6 +11,8 @@
 namespace py {
 
 struct TimeToken;
+
+[[maybe_unused]]
 static MemberDefList<TimeToken> TimeMembers;
 static MethodDefList<TimeToken> TimeMethods;
 static GetSetDefList<TimeToken> TimeGetSet;
@@ -124,6 +126,8 @@ static PyObject *Time_FromTime(win32::Time t)
 }
 
 struct TimerToken;
+
+[[maybe_unused]]
 static MemberDefList<TimerToken> TimerMembers;
 static MethodDefList<TimerToken> TimerMethods;
 
@@ -179,7 +183,10 @@ static PyObject *Timer_New()
 }
 
 struct DeltaTimerToken;
+
+[[maybe_unused]]
 static MemberDefList<DeltaTimerToken> DeltaTimerMembers;
+[[maybe_unused]]
 static MethodDefList<DeltaTimerToken> DeltaTimerMethods;
 static GetSetDefList<DeltaTimerToken> DeltaTimerGetSet;
 
@@ -221,7 +228,10 @@ static PyObject *DeltaTimer_New()
 }
 
 struct DurationTimerToken;
+
+[[maybe_unused]]
 static MemberDefList<DurationTimerToken> DurationTimerMembers;
+[[maybe_unused]]
 static MethodDefList<DurationTimerToken> DurationTimerMethods;
 static GetSetDefList<DurationTimerToken> DurationTimerGetSet;
 
@@ -298,8 +308,12 @@ static PyObject *DurationTimer_New()
 }
 
 struct LoopTimerToken;
+
+[[maybe_unused]]
 static MemberDefList<LoopTimerToken> LoopTimerMembers;
+[[maybe_unused]]
 static MethodDefList<LoopTimerToken> LoopTimerMethods;
+[[maybe_unused]]
 static GetSetDefList<LoopTimerToken> LoopTimerGetSet;
 
 struct LoopTimer {
@@ -384,6 +398,8 @@ static PyObject *LoopTimer_New()
 }
 
 struct Win32ModuleToken;
+
+[[maybe_unused]]
 static MethodDefList<Win32ModuleToken> Win32ModuleMethods;
 
 static ModuleDef Win32Module =

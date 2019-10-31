@@ -257,7 +257,7 @@ LTC_CoeffsTable& LTC_CoeffsTable::fit(const brdf::BRDF_GGX& brdf)
         math::to_str(V), math::to_str(avg_dir),
         math::to_str(M), ltc.magnitude, ltc.fresnel);
 
-      printf(str.data());
+      puts(str.data());
     }
   }
 
@@ -382,6 +382,7 @@ void LTC_CoeffsTable::fitOne(LTC& ltc, const brdf::BRDF_GGX& brdf,
 
   auto get_error = std::bind(&LTC_CoeffsTable::computeError, this, std::placeholders::_1, brdf, V, alpha);
 
+  [[maybe_unused]]
   float error = nedler_mead<3>(result, start, eps, 1e-5f, 100, [&](const float *params) -> float {
     update(ltc, params);
     return get_error(ltc);

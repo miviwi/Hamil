@@ -4,7 +4,9 @@
 #include <win32/waitable.h>
 #include <win32/mutex.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#endif
 
 namespace win32 {
 
@@ -32,7 +34,11 @@ public:
   void wakeAll();
 
 private:
+#if !defined(__linux__)
   CONDITION_VARIABLE m_cv;
+#else
+  void *m_cv;
+#endif
 };
 
 }

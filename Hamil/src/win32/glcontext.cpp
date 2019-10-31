@@ -1,9 +1,14 @@
 #include <win32/glcontext.h>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#endif
 
 #include <GL/gl3w.h>
-#include <GL/wgl.h>
+#if defined(_MSVC_VER)
+#  include <GL/wgl.h>
+#else
+#endif
 
 #include <cassert>
 #include <utility>
@@ -53,18 +58,22 @@ void GlContext::makeCurrent()
 
   assert(m_hdc && m_hglrc && "Attempted to use an invalid GlContext!");
 
+#if defined(_MSVC_VER)
   // wglMakeCurrent() can sometimes fail, when that happens - yield
   //   and try again
   while(wglMakeCurrent((HDC)m_hdc, (HGLRC)m_hglrc) != TRUE) Sleep(1);
+#endif
 }
 
 void GlContext::release()
 {
+#if defined(_MSVC_VER)
   wglMakeCurrent(nullptr, nullptr);
   wglDeleteContext((HGLRC)m_hglrc);
 
   m_hdc = nullptr;
   m_hglrc = nullptr;
+#endif
 }
 
 GlContext::operator bool()

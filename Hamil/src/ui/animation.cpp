@@ -4,8 +4,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <Windows.h>
-
 namespace ui {
 
 Animation::Animation() :
@@ -65,7 +63,7 @@ IAnimationChannel::IAnimationChannel()
 
 size_t IAnimationChannel::findKeyframe(float time) const
 {
-  auto num_keyframes = m_timepoints.size();
+  [[maybe_unused]] auto num_keyframes = m_timepoints.size();
 
   size_t first = 0;
   while(time > m_timepoints[first+1]) first++;
@@ -86,7 +84,7 @@ float IAnimationChannel::totalDuration() const
 AnimationFrame IAnimationChannel::getFrame(float time) const
 {
   float loops;
-  time = modf(time, &loops);
+  time = modff(time, &loops);
 
   if(m_repeat == RepeatOnce && loops >= 1.0f) time = 1.0f;
 

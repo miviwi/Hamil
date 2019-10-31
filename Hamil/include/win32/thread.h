@@ -24,7 +24,7 @@ class ThreadData;
 //   copied around (treated just like primitive types) - because they are
 //   ref-counted they will be disposed of only when there are no more
 //   references to a given Thread remaining
-class Thread : public Waitable {
+class Thread final : public Waitable {
 public:
   using Id = ulong;
   using Fn = std::function<ulong()>;

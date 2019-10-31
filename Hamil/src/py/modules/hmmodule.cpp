@@ -62,6 +62,7 @@ static TypeObject ComponentType =
 
 struct EntityToken;
 
+[[maybe_unused]] 
 static MemberDefList<EntityToken> EntityMembers;
 static MethodDefList<EntityToken> EntityMethods;
 static GetSetDefList<EntityToken> EntityGetSet;
@@ -240,6 +241,7 @@ PyObject *Entity_FromEntity(hm::Entity e)
 
 struct GameObjectToken;
 
+[[maybe_unused]]
 static MethodDefList<GameObjectToken> GameObjectMethods;
 static GetSetDefList<GameObjectToken> GameObjectGetSet;
 
@@ -367,7 +369,9 @@ static PyObject *GameObjectIterator_FromIter(hm::GameObjectIterator it)
 
 struct HmTransformToken;
 
+[[maybe_unused]]
 static MemberDefList<HmTransformToken> HmTransformMembers;
+[[maybe_unused]]
 static MethodDefList<HmTransformToken> HmTransformMethods;
 static GetSetDefList<HmTransformToken> HmTransformGetSet;
 
@@ -426,6 +430,7 @@ static PyObject *HmTransform_FromRef(hmRef<hm::Transform> ref)
 
 struct HmRigidBodyToken;
 
+[[maybe_unused]]
 static MemberDefList<HmRigidBodyToken> HmRigidBodyMembers;
 static GetSetDefList<HmRigidBodyToken> HmRigidBodyGetSet;
 

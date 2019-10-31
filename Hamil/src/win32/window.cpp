@@ -5,22 +5,46 @@
 #include <algorithm>
 #include <string>
 
-#include <windowsx.h>
+#if defined(_MSVC_VER)
+#  include <windowsx.h>
+#else
+#  define LPWSTR wchar_t*
+#  define HINSTANCE void*
+#  define HWND void*
+#  define HGLRC void*
+#  define LRESULT int
+#  define LPARAM int
+#  define WPARAM int
+#  define UINT unsigned
+#  define ATOM unsigned short
+#  define CALLBACK
+#  define APIENTRY
+#  define INVALID_HANDLE_VALUE (void *)(intptr_t)-1
+#  define INVALID_ATOM 0
+#endif
 
 #include <GL/gl3w.h>
-#include <GL/wgl.h>
+#if defined(_MSVC_VER)
+#  include <GL/wgl.h>
+#endif
 
-#pragma comment(lib, "opengl32.lib")
+#if defined(_MSVC_VER)
+#  pragma comment(lib, "opengl32.lib")
+#endif
 
 namespace win32 {
 
+#if defined(_MSVC_VER)
 PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
 PFNWGLCREATECONTEXTATTRIBSARBPROC CreateContextAttribsARB;
+#endif
 
 static HGLRC ogl_create_context(HWND hWnd);
 
 static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
                                         GLenum severity, GLsizei length, GLchar *msg, const void *user);
+
+#if defined(_MSVC_VER)
 
 #if !defined(NDEBUG)
 constexpr int ContextFlags = WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -30,18 +54,24 @@ constexpr int ContextFlags = 0;
 
 constexpr int ContextProfile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
+#endif
+
 static const int ContextAttribs[] = {
+#if defined(_MSVC_VER)
   WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
   WGL_CONTEXT_MINOR_VERSION_ARB, 3,
   WGL_CONTEXT_PROFILE_MASK_ARB, ContextProfile,
   WGL_CONTEXT_FLAGS_ARB, ContextFlags,
+#endif
   0
 };
 
 static void get_wgl_extension_addresses()
 {
+#if defined(_MSVC_VER)
   SwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
   CreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
+#endif
 }
 
 Window::Window(int width, int height) :
@@ -50,10 +80,12 @@ Window::Window(int width, int height) :
   m_width(width), m_height(height),
   m_thread(Thread::current_thread_id())
 {
+#if defined(_MSVC_VER)
   HINSTANCE hInstance = GetModuleHandle(nullptr);
 
   registerClass(hInstance);
   m_hwnd = createWindow(hInstance, width, height);
+#endif
 }
 
 Window::~Window()
@@ -65,6 +97,7 @@ Window::~Window()
 
 bool Window::processMessages()
 {
+#if defined(_MSVC_VER)
   MSG msg;
   while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) != 0) {
     if(msg.message == WM_QUIT) return false;
@@ -74,16 +107,23 @@ bool Window::processMessages()
   }
 
   return true;
+#else
+  return false;
+#endif
 }
 
 void Window::swapBuffers()
 {
+#if defined(_MSVC_VER)
   wglSwapLayerBuffers(GetDC(m_hwnd), WGL_SWAP_MAIN_PLANE);
+#endif
 }
 
 void Window::swapInterval(unsigned interval)
 {
+#if defined(_MSVC_VER)
   SwapIntervalEXT(interval);
+#endif
 }
 
 Input::Ptr Window::getInput()
@@ -98,35 +138,44 @@ void Window::setMouseSpeed(float speed)
 
 void Window::captureMouse()
 {
+#if defined(_MSVC_VER)
   SetCapture(m_hwnd);
   resetMouse();
 
   while(ShowCursor(FALSE) >= 0);
+#endif
 }
 
 void Window::releaseMouse()
 {
+#if defined(_MSVC_VER)
   ReleaseCapture();
 
   while(ShowCursor(TRUE) < 0);
+#endif
 }
 
 void Window::resetMouse()
 {
+#if defined(_MSVC_VER)
   POINT pt = { 0, 0 };
 
   ClientToScreen(m_hwnd, &pt);
   SetCursorPos(pt.x + (m_width/2), pt.y + (m_height/2));
+#endif
 }
 
 void Window::quit()
 {
+#if defined(_MSVC_VER)
   PostMessage(m_hwnd, WM_CLOSE, 0, 0);
+#endif
 }
 
 static ATOM p_atom = INVALID_ATOM;
 ATOM Window::registerClass(HINSTANCE hInstance)
 {
+#if defined(_MSVC_VER)
   // The class has already been registered
   if(p_atom != INVALID_ATOM) return p_atom;
 
@@ -147,10 +196,14 @@ ATOM Window::registerClass(HINSTANCE hInstance)
 
   // Store the class ATOM
   return p_atom = atom;
+#else
+  return p_atom = 0;
+#endif
 }
 
 HWND Window::createWindow(HINSTANCE hInstance, int width, int height)
 {
+#if defined(_MSVC_VER)
   RECT rc = { 0, 0, width, height };
   AdjustWindowRect(&rc, WS_CAPTION|WS_SYSMENU, false);
 
@@ -163,10 +216,14 @@ HWND Window::createWindow(HINSTANCE hInstance, int width, int height)
   SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)this);
 
   return hwnd;
+#else
+  return INVALID_HANDLE_VALUE;
+#endif
 }
 
 HGLRC ogl_create_context(HWND hWnd)
 {
+#if defined(_MSVC_VER)
   PIXELFORMATDESCRIPTOR pfd = {
     sizeof(PIXELFORMATDESCRIPTOR),
     1,
@@ -218,10 +275,14 @@ HGLRC ogl_create_context(HWND hWnd)
   glGetError(); // clear the error indicator
 
   return context;
+#else
+  return nullptr;
+#endif
 }
 
 GlContext Window::acquireGlContext()
 {
+#if defined(_MSVC_VER)
   assert(Thread::current_thread_id() == m_thread &&
     "Window::acquireGlContext() called on the wrong thread!");
 
@@ -229,10 +290,14 @@ GlContext Window::acquireGlContext()
   HGLRC hglrc = CreateContextAttribsARB(hdc, m_hglrc, ContextAttribs);
 
   return GlContext(hdc, hglrc);
+#else
+  return GlContext(nullptr, nullptr);
+#endif
 }
 
 void Window::destroy()
 {
+#if defined(_MSVC_VER)
   wglMakeCurrent(nullptr, nullptr);
   wglDeleteContext(m_hglrc);
 
@@ -240,10 +305,12 @@ void Window::destroy()
 
   m_hwnd = nullptr;
   m_hglrc = nullptr;
+#endif
 }
 
 LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 {
+#if defined(_MSVC_VER)
   auto self = (Window *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
   switch(uMsg) {
@@ -283,6 +350,7 @@ LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 
   default: return DefWindowProc(hWnd, uMsg, wparam, lparam);
   }
+#endif
 
   return 0;
 }
@@ -320,9 +388,11 @@ static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
   case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "?"; break;
   }
 
+#if defined(_MSVC_VER)
   sprintf_s(dbg_buf, "%s (%s, %s): %s\n", source_str, severity_str, type_str, msg);
 
   OutputDebugStringA(dbg_buf);
+#endif
 }
 
 }

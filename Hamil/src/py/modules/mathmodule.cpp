@@ -756,6 +756,7 @@ PyObject *Vec4_FromVec4(::vec4 v)
 }
 
 struct Mat4Token;
+[[maybe_unused]]
 static MemberDefList<Mat4Token> Mat4Members;
 static MethodDefList<Mat4Token> Mat4Methods;
 
@@ -1005,7 +1006,7 @@ static MethodDefList<XformToken> XformMethods;
 
 static PyObject *Xform_Translate(PyObject *self, PyObject *args, PyObject *kwds)
 {
-  auto num_args = PyTuple_Size(args) + (kwds ? PyDict_Size(kwds) : 0);
+  [[maybe_unused]] auto num_args = PyTuple_Size(args) + (kwds ? PyDict_Size(kwds) : 0);
   static char *kwds_names[] = { "x", "y", "z", nullptr };
 
   float x = 0, y = 0, z = 0;
@@ -1053,6 +1054,8 @@ static PyObject *Xform_Rotate(PyObject *self, PyObject *args, PyObject *kwds)
 }
 
 struct TransformToken;
+
+[[maybe_unused]]
 static MemberDefList<TransformToken> TransformMembers;
 static MethodDefList<TransformToken> TransformMethods;
 static GetSetDefList<TransformToken> TransformGetSet;

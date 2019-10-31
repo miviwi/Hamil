@@ -92,7 +92,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   auto d = n*r,
     u = (b-a).normalize()*cap_r;
 
-  float alpha = acos(n.x);
+  float alpha = acosf(n.x);
 
   cap_r = cap_r > 0 ? cap_r : r;
   switch(cap) {
@@ -163,9 +163,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
   auto d = n*r,
     u = (b-a).normalize()*cap_r;
 
-  float alpha = acos(n.x);
-
-  unsigned vertex_count = 0;
+  float alpha = acosf(n.x);
 
   cap_r = cap_r > 0 ? cap_r : r;
   switch(cap) {
@@ -285,8 +283,8 @@ VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
   auto point = [=](float angle) -> vec2
   {
     return vec2{
-      pos.x + (radius * cos(angle)),
-      pos.y + (radius * sin(angle)),
+      pos.x + (radius * cosf(angle)),
+      pos.y + (radius * sinf(angle)),
     };
   };
 
@@ -330,8 +328,8 @@ VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, flo
   auto point = [=](float angle) -> vec2
   {
     return vec2{
-      pos.x + (radius * cos(angle)),
-      pos.y + (radius * sin(angle)),
+      pos.x + (radius * cosf(angle)),
+      pos.y + (radius * sinf(angle)),
     };
   };
 
@@ -429,8 +427,8 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
     auto point = [=](float angle) -> vec2
     {
       return vec2{
-        pos.x + (radius * cos(angle)),
-        pos.y + (radius * sin(angle)),
+        pos.x + (radius * cosf(angle)),
+        pos.y + (radius * sinf(angle)),
       };
     };
 
@@ -447,7 +445,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
     num_verts++;
   };
 
-  float d = 2.0f*radius;
+  [[maybe_unused]] float d = 2.0f*radius;
 
   g.x += 0.5f; g.y += 0.5f;
   g.w -= 1.0f; g.h -= 1.0f;
@@ -726,7 +724,7 @@ VertexPainter& VertexPainter::textCentered(const Drawable& text, Geometry g)
 
   appendVerticesAndIndices(text);
 
-  vec2 center = g.center();
+  [[maybe_unused]] vec2 center = g.center();
 
   appendCommand(Command::text(
     text.textFont(),

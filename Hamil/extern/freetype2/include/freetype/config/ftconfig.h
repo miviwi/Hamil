@@ -1,8 +1,9 @@
+/* ftconfig.h.  Generated from ftconfig.in by configure.  */
 /***************************************************************************/
 /*                                                                         */
-/*  ftconfig.h                                                             */
+/*  ftconfig.in                                                            */
 /*                                                                         */
-/*    ANSI-specific configuration file (specification only).               */
+/*    UNIX-specific configuration file (specification only).               */
 /*                                                                         */
 /*  Copyright 1996-2016 by                                                 */
 /*  David Turner, Robert Wilhelm, and Werner Lemberg.                      */
@@ -31,9 +32,8 @@
   /* system-specific files that are always included first when building    */
   /* the library.                                                          */
   /*                                                                       */
-  /* This ANSI version should stay in `include/config/'.                   */
-  /*                                                                       */
   /*************************************************************************/
+
 
 #ifndef FTCONFIG_H_
 #define FTCONFIG_H_
@@ -58,6 +58,11 @@ FT_BEGIN_HEADER
   /*************************************************************************/
 
 
+#define HAVE_UNISTD_H 1
+#define HAVE_FCNTL_H 1
+#define HAVE_STDINT_H 1
+
+
   /* There are systems (like the Texas Instruments 'C54x) where a `char' */
   /* has 16 bits.  ANSI C says that sizeof(char) is always 1.  Since an  */
   /* `int' has 16 bits also for this system, sizeof(int) gives 1 which   */
@@ -70,6 +75,22 @@ FT_BEGIN_HEADER
 #define FT_CHAR_BIT  CHAR_BIT
 #endif
 
+
+/* #undef FT_USE_AUTOCONF_SIZEOF_TYPES */
+#ifdef FT_USE_AUTOCONF_SIZEOF_TYPES
+
+#define SIZEOF_INT 4
+#define SIZEOF_LONG 8
+#define FT_SIZEOF_INT  SIZEOF_INT
+#define FT_SIZEOF_LONG SIZEOF_LONG
+
+#else /* !FT_USE_AUTOCONF_SIZEOF_TYPES */
+
+  /* Following cpp computation of the bit length of int and long */
+  /* is copied from default include/freetype/config/ftconfig.h.  */
+  /* If any improvement is required for this file, it should be  */
+  /* applied to the original header file for the builders that   */
+  /* do not use configure script.                                */
 
   /* The size of an `int' type.  */
 #if                                 FT_UINT_MAX == 0xFFFFUL
@@ -93,6 +114,8 @@ FT_BEGIN_HEADER
 #else
 #error "Unsupported size of `long' type!"
 #endif
+
+#endif /* !FT_USE_AUTOCONF_SIZEOF_TYPES */
 
 
   /* FT_UNUSED is a macro used to indicate that a given parameter is not  */
@@ -236,12 +259,12 @@ FT_BEGIN_HEADER
 
 #endif
 
-#if FT_SIZEOF_INT == (32 / FT_CHAR_BIT)
+#if FT_SIZEOF_INT == 4
 
   typedef signed int      FT_Int32;
   typedef unsigned int    FT_UInt32;
 
-#elif FT_SIZEOF_LONG == (32 / FT_CHAR_BIT)
+#elif FT_SIZEOF_LONG == 4
 
   typedef signed long     FT_Int32;
   typedef unsigned long   FT_UInt32;
@@ -252,12 +275,12 @@ FT_BEGIN_HEADER
 
 
   /* look up an integer type that is at least 32 bits */
-#if FT_SIZEOF_INT >= (32 / FT_CHAR_BIT)
+#if FT_SIZEOF_INT >= 4
 
   typedef int            FT_Fast;
   typedef unsigned int   FT_UFast;
 
-#elif FT_SIZEOF_LONG >= (32 / FT_CHAR_BIT)
+#elif FT_SIZEOF_LONG >= 4
 
   typedef long           FT_Fast;
   typedef unsigned long  FT_UFast;
@@ -265,14 +288,24 @@ FT_BEGIN_HEADER
 #endif
 
 
-  /* determine whether we have a 64-bit int type for platforms without */
-  /* Autoconf                                                          */
-#if FT_SIZEOF_LONG == (64 / FT_CHAR_BIT)
+  /* determine whether we have a 64-bit int type  */
+  /* (mostly for environments without `autoconf') */
+#if FT_SIZEOF_LONG == 8
 
   /* FT_LONG64 must be defined if a 64-bit type is available */
 #define FT_LONG64
 #define FT_INT64   long
 #define FT_UINT64  unsigned long
+
+  /* we handle the LLP64 scheme separately for GCC and clang, */
+  /* suppressing the `long long' warning                      */
+#elif ( FT_SIZEOF_LONG == 4 )       && \
+      defined( HAVE_LONG_LONG_INT ) && \
+      defined( __GNUC__ )
+#pragma GCC diagnostic ignored "-Wlong-long"
+#define FT_LONG64
+#define FT_INT64   long long int
+#define FT_UINT64  unsigned long long int
 
   /*************************************************************************/
   /*                                                                       */
@@ -325,7 +358,7 @@ FT_BEGIN_HEADER
 
 #endif /* __STDC_VERSION__ >= 199901L */
 
-#endif /* FT_SIZEOF_LONG == (64 / FT_CHAR_BIT) */
+#endif /* FT_SIZEOF_LONG == 8 */
 
 #ifdef FT_LONG64
   typedef FT_INT64   FT_Int64;

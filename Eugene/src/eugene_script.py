@@ -3,14 +3,16 @@ import sys
 import os
 import database
 import subprocess
+import pathlib
 import eugene_modules
-import eugene_util
+import eugene_util as util
 
-import platform
-if platform.system() == 'Windows':
+if os.name == 'nt':
     import eugene_win32 as eugene_sys
-elif platform.system() == 'Linux':
+elif os.name == 'posix':
     import eugene_sysv as eugene_sys
+else:
+    raise util.OSUnsupportedError()
 
 from pprint import pprint
 
@@ -53,15 +55,60 @@ def _expand_commands(commands, env):
             expanded = _VAR.sub(expand_one, cmd[i])
             cmd[i] = expanded
 
+# TODO: figure out how to properly create the first component
+#       for the path joining
+def _fixup_path_args(args):
+    args_split = map(lambda arg: arg.split('/'), args)
+    args_fixed = map(lambda split: os.path.join(os.path.sep, *split), args_split)
+
+    return list(args_fixed)
+
+_MOVE_COMMAND = None
+if os.name == 'nt':
+    _MOVE_COMMAND = ['move']
+elif os.name == 'posix':
+    _MOVE_COMMAND = ['mv', '-u']
+else:
+    print(f"WARNING: move command unknown for this OS {os.name} - assuming 'mv'")
+
+    _MOVE_COMMAND = ['mv', '-u']
+
+_SUBPROCESS_USE_SHELL = False
+if os.name == 'nt':
+    _SUBPROCESS_USE_SHELL = True
+
 def _move_if_newer(args, last_command=None, **kwargs):
     if last_command: return
 
-    result = subprocess.run(["move"] + args,
+    sources = args[:-1]
+    dest = args[-1]
+    expanded_args = []
+    # Ensure all files in 'args' exist
+    #   and expand any wildcards
+    for source in sources:
+        find_data = None
+        try:
+            find_data = eugene_sys.FindFiles(source)
+        except ValueError:     # no such file(s)
+            print(f"(move-if-newer) '{source}' doesn't exist - skipping...")
+            return
+
+        for file in find_data:
+            expanded_args.append(file['cFileName'])
+
+    command = _MOVE_COMMAND + expanded_args + [dest]
+    result = subprocess.run(command,
         # capture_output=True to prevent out-of-order console output
-        capture_output=True, shell=True, encoding='utf-8')
+        capture_output=True, shell=_SUBPROCESS_USE_SHELL, encoding='utf-8')
+
+    try:
+        result.check_returncode()   # Make sure the command was successfull
+    except:
+        print(result.stderr)
+        #raise    # Rethrow
 
     print("")
-    print(result.stdout)
+    print(f"{' '.join(command)} {result.stdout}")
 
 def _mkdir(args, **kwargs):
     for arg in args:
@@ -87,6 +134,10 @@ def _check_script_freshness(db, script):
         db.invalidate()              # Script file changed - regenerate everything
         db.writeRecord(key, record)
 
+_BUILTIN_VARS = {
+    '_PWD': os.getcwd(),
+}
+
 def main(db, args):
     _check_script_freshness(db, args[0])
 
@@ -96,6 +147,9 @@ def main(db, args):
 
     env = map(lambda arg: arg.strip().split('='), args[1:])
     env = { name: val for name, val in env }
+
+    # Include the builtin variable definitions
+    env.update(_BUILTIN_VARS)
 
     commands = [ cmd.split() for cmd in _COMMAND.findall(script) if cmd ]
     _expand_commands(commands, env)
@@ -114,9 +168,16 @@ def main(db, args):
             continue
 
         if module != "run":
-            args = eugene_util.expand_args(cmd[1:])
+            args = util.expand_args(cmd[1:])
         else:
             args = cmd[1:]
+
+        # The arguments to commands in *.eugene scripts
+        #   are always stored with / (forward slash) used
+        #   as path separator. Account for OSes (such
+        #   as Windows), which use a different spearator
+        #   ex. \ (backslash) used by Windows. 
+        args = _fixup_path_args(args)
 
         exit_code = eugene_modules.MODULES[module](db, args)
 

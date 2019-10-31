@@ -2,11 +2,18 @@ import os
 import sys
 import database
 
-import platform
-if platform.system() == 'Windows':
+if os.name == 'nt':
     import eugene_win32 as eugene_sys
-elif platform.system() == 'Linux':
+elif os.name == 'posix':
     import eugene_sysv as eugene_sys
+else:
+    raise util.OSUnsupportedError()
+
+class OSUnsupportedError(Exception):
+    OS_UNSUPPORTED = "eugene support module not available on this os!"
+
+    def __init__():
+        super().__init__(OS_UNSUPPORTED)
 
 HAMIL_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
     '..', '..', 'Hamil')
@@ -18,13 +25,18 @@ def up_to_date(db, args, pattern):
     """
         The database is updated with the newest ftLastWriteTime value
           automatically by this function
+        When 'args' doesn't match any files the query result is always
+          'False' i.e. out of date
     """
 
-    result = True
+    any_out_of_date = False
+    num_found_files = 0
     for arg in args:
         find_data = None
         try:
             find_data = eugene_sys.FindFiles(pattern(arg))
+
+            num_found_files = num_found_files+len(find_data)
         except ValueError:
             #print(f"couldn't open directory {arg} or no suitable files found within...")
             continue
@@ -33,22 +45,28 @@ def up_to_date(db, args, pattern):
             key    = file['cFileName']
             record = file['ftLastWriteTime']
 
-            if not db.compareWithRecord(key, record):
-                db_record = db.readRecord(key)
-                db.writeRecord(key, record)
+            if db.compareWithRecord(key, record): continue   # Up-to-date
 
-                old = eugene_sys.GetDateTimeFormat(db_record) if db_record > 0 else "(null)"
-                new = eugene_sys.GetDateTimeFormat(record)
+            db_record = db.readRecord(key)
+            db.writeRecord(key, record)
 
-                msg = f"`{key}' not up to date"
-                msg += _PAD[len(msg):]
+            old = eugene_sys.GetDateTimeFormat(db_record) if db_record > 0 else "(null)"
+            new = eugene_sys.GetDateTimeFormat(record)
 
-                print(f"{msg} ({old} -> {new})...")
-                result = False
+            msg = f"`{key}' not up to date"
+            msg += _PAD[len(msg):]
 
-    if result:
-        print("    ...up to date!")
+            print(f"{msg} ({old} -> {new})...")
+            any_out_of_date = True
 
+    # For the query to return a 'True' result
+    #  - No database record can be out-of-date
+    #  - At LEAST one file in the directories
+    #      given in 'args' must've matched the
+    #      pattern
+    result = (num_found_files > 0) and not any_out_of_date
+
+    if result: print("    ...up to date!")
     return result
 
 def exec_module(name, main):
@@ -65,13 +83,13 @@ def exec_module(name, main):
 def subdirectories(path):
     find_data = None
     try:
-        find_data = eugene_sys.FindFiles(f"{path}\\*")
+        find_data = eugene_sys.FindFiles(f"{path}{os.path.sep}*")
     except ValueError:
         return []  # path either wasn't a directory or readable - don't return it
 
     find_data = find_data[2:]   # Don't traverse current and previous directory
     find_data = filter(lambda d: d['bIsDirectory'], find_data)
-    find_data = map(lambda d: f"{path}\\{d['cFileName']}", find_data)
+    find_data = map(lambda d: d['cFileName'], find_data)
 
     subdirs = [path]
     for d in find_data:

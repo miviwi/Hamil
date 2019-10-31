@@ -1,7 +1,6 @@
 #pragma once
 
 #include <hm/hamil.h>
-#include <hm/component.h>
 #include <hm/componentref.h>
 
 #include <components.h>
@@ -17,6 +16,8 @@ namespace hm {
 class IComponentManager {
 public:
   using Ptr = std::shared_ptr<IComponentManager>;
+
+  virtual ~IComponentManager();
 
   template <typename T>
   ComponentRef<T> getComponentById(EntityId entity)
@@ -40,7 +41,7 @@ public:
   void foreach(Fn fn)
   {
     using Traits = util::LambdaTraits<Fn>;
-    using T = Traits::ArgType<0>;
+    using T = typename Traits::template ArgType<0>;
 
     foreach<typename T::RefType>(Traits::to_function(fn));
   }

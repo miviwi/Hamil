@@ -1,5 +1,7 @@
 #include <sched/job.h>
 
+#include <cmath>
+
 #include <utility>
 
 namespace sched {
@@ -15,6 +17,10 @@ IJob::IJob(IJob&& other) :
   // Make sure no deadlocks or other strange things occur
   //   when 'other' is used after this somehow
   other.m_done.store(true);
+}
+
+IJob::~IJob()
+{
 }
 
 win32::ConditionVariable& IJob::condition()

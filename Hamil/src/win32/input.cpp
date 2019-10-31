@@ -4,13 +4,16 @@
 #include <vector>
 #include <cctype>
 
-#include <Windows.h>
+#if defined(_MSVC_VER)
+#  include <Windows.h>
+#endif
 
 namespace win32 {
 
 InputDeviceManager::InputDeviceManager() :
   m_mouse_buttons(0), m_kb_modifiers(0)
 {
+#if defined(_MSVC_VER)
   RAWINPUTDEVICE rid[2];
 
   // Mouse
@@ -33,6 +36,7 @@ InputDeviceManager::InputDeviceManager() :
   setDoubleClickSpeed(0.5f);
 
   m_capslock = (GetKeyState(VK_CAPITAL) & 1) ? Keyboard::CapsLock : 0; //  bit 0 == toggle state
+#endif
 }
 
 void InputDeviceManager::setMouseSpeed(float speed)
@@ -47,6 +51,7 @@ void InputDeviceManager::setDoubleClickSpeed(float speed_seconds)
 
 void InputDeviceManager::process(void *handle)
 {
+#if defined(_MSVC_VER)
   UINT sz = 0;
   GetRawInputData((HRAWINPUT)handle, RID_INPUT, nullptr, &sz, sizeof(RAWINPUTHEADER));
 
@@ -55,7 +60,7 @@ void InputDeviceManager::process(void *handle)
 
   auto raw = (RAWINPUT *)buffer.data();
 
-  Input::Ptr input;
+  Input::Ptr input(nullptr, &Input::deleter);
 
   switch(raw->header.dwType) {
   case RIM_TYPEKEYBOARD: {
@@ -63,7 +68,7 @@ void InputDeviceManager::process(void *handle)
 
     if(kb->VKey == 0xFF) return; // no mapping - ignore
 
-    input = Input::Ptr(new Keyboard());
+    input = Input::Ptr(new Keyboard(), &Input::deleter);
     input->timestamp = win32::Timers::ticks();
 
     auto kbi = (Keyboard *)input.get();
@@ -103,7 +108,7 @@ void InputDeviceManager::process(void *handle)
   case RIM_TYPEMOUSE: {
     RAWMOUSE *m = &raw->data.mouse;
 
-    input = Input::Ptr(new Mouse());
+    input = Input::Ptr(new Mouse(), &Input::deleter);
     input->timestamp = win32::Timers::ticks();
 
     auto mi = (Mouse *)input.get();
@@ -175,11 +180,12 @@ void InputDeviceManager::process(void *handle)
   }
 
   m_input_buffer.push_back(std::move(input));
+#endif
 }
 
 Input::Ptr InputDeviceManager::getInput()
 {
-  Input::Ptr ptr;
+  Input::Ptr ptr(nullptr, &Input::deleter);
 
   if(m_input_buffer.size()) {
     ptr = std::move(m_input_buffer.front());
@@ -247,6 +253,7 @@ unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
   bool shift = modifiers & Shift,
     caps = modifiers & CapsLock;
 
+#if defined(_MSVC_VER)
   if(shift) {
     switch(vk) {
     case '1': return '!';
@@ -287,12 +294,14 @@ unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
     case VK_OEM_MINUS:  return '-';
     }
   }
+#endif
 
   return (shift || caps) ? toupper(vk) : tolower(vk);
 }
 
 unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
 {
+#if defined(_MSVC_VER)
   switch(vk) {
   case VK_OEM_1:      return ';';
   case VK_OEM_2:      return '/';
@@ -339,6 +348,7 @@ unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
   case VK_SCROLL: return ScrollLock;
   case VK_PAUSE:  return Pause;
   }
+#endif
 
   return vk;
 }

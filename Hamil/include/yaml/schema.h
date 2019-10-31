@@ -21,6 +21,8 @@ class SchemaCondition {
 public:
   using Ptr = std::shared_ptr<SchemaCondition>;
 
+  virtual ~SchemaCondition() = default;
+
   SchemaCondition(Flags flags);
 
   bool validate(const Node::Ptr& node) const;

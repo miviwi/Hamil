@@ -7,6 +7,8 @@
 #include <util/smallvector.h>
 #include <math/geometry.h>
 
+#include <climits>
+
 namespace gx {
 
 class Renderbuffer;

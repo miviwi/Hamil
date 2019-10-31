@@ -106,7 +106,7 @@ WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
   if(id == jobs.size()) {
     jobs.push_back(job);
   } else {
-    assert(id != FreeListAllocator::Error && "Too many jobs in pool!");
+    assert(id != (JobId)FreeListAllocator::Error && "Too many jobs in pool!");
     assert(jobs.at(id) == nullptr && "Issued a JobId already in use!");
 
     jobs.at(id) = job;

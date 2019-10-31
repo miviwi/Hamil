@@ -1,13 +1,15 @@
 import sys
+import os
 import cxx
 import database
 import eugene_util as util
 
-import platform
-if platform.system() == 'Windows':
+if os.name == 'nt':
     import eugene_win32 as eugene_sys
-elif platform.system() == 'Linux':
+elif os.name == 'posix':
     import eugene_sysv as eugene_sys
+else:
+    raise util.OSUnsupportedError()
 
 from pprint import pprint
 
@@ -38,7 +40,7 @@ def _gen(header, src, fname):
         uniforms[name[0].spelling] = u
 
     for cname, klass in uniforms.items():
-        print(f"Gemerating: {klass.name}({cname})")
+        print(f"Generating: {klass.name}({cname})")
 
         u = filter(lambda c: cxx.CxxClass(c) != UniformsName, klass.fields)
         _gen_one(header, src, cname, list(u))
@@ -88,7 +90,9 @@ def main(db, args):
 
     with open('uniforms.h', 'w') as header, open('uniforms.cpp', 'w') as src:
         header.write(
-        """#include <array>
+        """#pragma once
+
+#include <array>
 #include <string>
 #include <utility>
 
@@ -110,7 +114,7 @@ struct U__ {
                 record = file['ftLastWriteTime']
 
                 db.writeRecord(key, record)
-                _gen(header, src, arg)
+                _gen(header, src, key)
 
         header.write(
         """};

@@ -11,7 +11,9 @@
 namespace win32 {
 
 struct Input {
-  using Ptr = std::unique_ptr<Input>;
+  static void deleter(Input *ptr);
+
+  using Ptr = std::unique_ptr<Input, decltype(&Input::deleter)>;
   using Tag = const char *;
 
   // Use example:
@@ -28,7 +30,7 @@ protected:
   virtual Tag getTag() const = 0;
 };
 
-struct Mouse : public Input {
+struct Mouse final : public Input {
   enum Button : u16 {
     Left   = 1<<0,
     Right  = 1<<1,
@@ -59,7 +61,7 @@ protected:
   virtual Tag getTag() const { return tag(); }
 };
 
-struct Keyboard : public Input {
+struct Keyboard final : public Input {
   enum Event : u16 {
     Invalid,
     KeyUp, KeyDown,

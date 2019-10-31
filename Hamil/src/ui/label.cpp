@@ -15,7 +15,7 @@ bool LabelFrame::input(CursorDriver& cursor, const InputPtr& input)
 
 void LabelFrame::paint(VertexPainter& painter, Geometry parent)
 { 
-  const Style& style = ownStyle();
+  [[maybe_unused]] const Style& style = ownStyle();
   auto& font = *ownFont();
 
   Geometry g = geometry(),

@@ -7,6 +7,8 @@ namespace hm {
 class IComponentManager;
 class IEntityManager;
 
+using EntityId = u32;
+
 void init();
 void finalize();
 

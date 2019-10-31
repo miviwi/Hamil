@@ -1,6 +1,7 @@
 #include <util/hashindex.h>
 
 #include <cassert>
+#include <cstring>
 
 #include <new>
 #include <algorithm>

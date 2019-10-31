@@ -252,7 +252,7 @@ void ObjLoader::parseLine(std::string::const_iterator it)
   switch(keyword) {
   case Vertex:
     if(isspace(*it)) {  // This is a 'v' command
-      auto& aabb = mesh.m_aabb;
+      [[maybe_unused]] auto& aabb = mesh.m_aabb;
       auto vert = loadVertex(it);
 
       m_v.push_back(vert);
@@ -318,14 +318,14 @@ std::string ObjLoader::loadName(std::string::const_iterator it)
   //   the line - oh well)
   while(!isspace(*it)) name.push_back(*it++);
 
-  return std::move(name);
+  return name;
 }
 
 vec3 ObjLoader::loadVec3(std::string::const_iterator it)
 {
   const char *str = &(*it);
 
-  vec3 v;
+  alignas(16) vec3 v;
   sscanf(str, "%f%f%f", &v.x, &v.y, &v.z);
 
   return v;

@@ -1,7 +1,9 @@
 #include <win32/cpuid.h>
 #include <win32/panic.h>
 
-#include <intrin.h>
+#if defined(_MSVC_VER)
+#  include <intrin.h>
+#endif
 
 #include <cstdio>
 #include <cstring>
@@ -31,6 +33,7 @@ CpuId cpuid()
 {
   CpuId cpu;
 
+#if defined(_MSVC_VER)
   union {
     int cpuid[4];
     struct {
@@ -62,6 +65,7 @@ CpuId cpuid()
 
   cpu.popcnt = (ecx >> CpuIdPOPCNTBit) & 1;
   cpu.f16c   = (ecx >> CpuIdF16CBit)   & 1;
+#endif
 
   return cpu;
 }

@@ -1,13 +1,15 @@
 import sys
+import os
 import database
 import yaml
 import eugene_util as util
 
-import platform
-if platform.system() == 'Windows':
+if os.name == 'nt':
     import eugene_win32 as eugene_sys
-elif platform.system() == 'Linux':
+elif os.name == 'posix':
     import eugene_sysv as eugene_sys
+else:
+    raise util.OSUnsupportedError()
 
 from pprint import pprint
 
@@ -87,11 +89,13 @@ class ResourceGen:
             if '$' not in path: header.write("\n")
 
     def emit(self, header, src):
+        print("    ...emitting")
         pprint(self.paths)
+
         self._emit_path(self.paths, header, src)
 
 def main(db, args):
-    pattern = lambda dir: f"{dir}\\*.meta"
+    pattern = lambda dir: f"{dir}{os.path.sep}*.meta"
 
     print("\nGenerating Resources...")
 
@@ -102,7 +106,9 @@ def main(db, args):
 
     with open('resources.h', 'w') as header, open('resources.cpp', 'w') as src:
         header.write(
-        """#include <cstddef>
+        """#pragma once
+
+#include <cstddef>
 #include <array>
 
 struct R__ {
@@ -115,13 +121,13 @@ struct R__ {
         for arg in args:
             find_data = None
             try:
-                find_data = win32.FindFiles(pattern(arg))
+                find_data = eugene_sys.FindFiles(pattern(arg))
             except ValueError:
                 continue
 
             for file in find_data:
-                fname = f"{arg}\\{file['cFileName']}"
-                with open(fname, 'r') as f: docs.append(yaml.load(f))
+                fname = file['cFileName']
+                with open(fname, 'r') as f: docs.append(yaml.load(f, Loader=yaml.Loader))
 
         r = ResourceGen(docs)
         r.emit(header, src)

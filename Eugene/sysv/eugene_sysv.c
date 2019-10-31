@@ -1,9 +1,16 @@
 #include <Python.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <glob.h>
+#include <time.h>
+
+//#define DEBUG_OUTPUT
 
 PyObject *eugene_sysv_FindFiles(PyObject *self, PyObject *arg)
 {
@@ -13,8 +20,18 @@ PyObject *eugene_sysv_FindFiles(PyObject *self, PyObject *arg)
   }
 
   const char *pattern = PyUnicode_AsUTF8(arg);
+
   glob_t pglob;
   glob(pattern, 0, NULL, &pglob);
+
+#if defined(DEBUG_OUTPUT)
+  printf("glob(%s): gl_pathc=%zu\n", pattern, pglob.gl_pathc);
+  for(size_t i = 0; i < pglob.gl_pathc; i++) {
+    const char *path = pglob.gl_pathv[i];
+    printf("    [%zu] %s\n", i, path);
+  }
+#endif
+
   if(!pglob.gl_pathc) {
     PyErr_SetString(PyExc_ValueError, "no files found");
     return NULL;
@@ -62,33 +79,25 @@ char p_local_date[256];
 char p_local_time[256];
 PyObject *eugene_sysv_GetDateTimeFormat(PyObject *self, PyObject *arg)
 {
-  return NULL;
-  /*
   if(!PyLong_Check(arg)) {
     PyErr_SetString(PyExc_ValueError, "GetDateTimeFormat() accepts a single 'int' arguemnt!");
     return NULL;
   }
 
-  ULARGE_INTEGER time;
-  time.QuadPart = PyLong_AsUnsignedLongLong(arg);
+  time_t time_raw  = PyLong_AsUnsignedLongLong(arg);
+  time_t time_secs = time_raw / 10000000;    //  'time_raw' is in units of 100ns
+                                             // -> convert it to seconds
+                                            
+  struct tm time_st;
+  localtime_r(&time_secs, &time_st);
 
-  FILETIME ft;
-  ft.dwLowDateTime  = time.LowPart;
-  ft.dwHighDateTime = time.HighPart;
-
-  SYSTEMTIME st;
-
-  FileTimeToLocalFileTime(&ft, &ft);
-  FileTimeToSystemTime(&ft, &st);
-  GetDateFormatA(LOCALE_USER_DEFAULT, DATE_SHORTDATE,
-    &st, NULL, p_local_date, sizeof(p_local_date));
-  GetTimeFormatA(LOCALE_USER_DEFAULT, 0,
-    &st, NULL, p_local_time, sizeof(p_local_time));
-
-  PyObject *datetime = PyUnicode_FromFormat("%s %s", p_local_date, p_local_time);
+  PyObject *datetime = PyUnicode_FromFormat(
+      "%.2d-%.2d-%d %.2d:%.2d:%.2d",
+      time_st.tm_mday, time_st.tm_mon+1 /* [0;11] => [1;12] */, 1900+time_st.tm_year, // Date
+      time_st.tm_hour, time_st.tm_min, time_st.tm_sec      // Time
+  );
 
   return datetime;
-  */
 }
 
 /*

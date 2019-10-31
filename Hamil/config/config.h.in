@@ -1,0 +1,6 @@
+#pragma once
+
+#define __PROJECT_VERSION         @Hamil__PROJECT_VERSION@
+#define __PROJECT_VERSION_STR     @Hamil__PROJECT_VERSION_STR@
+
+#define __PROJECT_DIR             @Hamil__PROJECT_DIR@

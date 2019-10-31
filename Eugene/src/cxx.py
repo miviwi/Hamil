@@ -5,9 +5,15 @@ from pprint import pprint
 
 _EUGENE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 
-clang.cindex.Config.set_library_path(
-    os.path.join(_EUGENE_PATH, 'extern', 'LLVM', 'win64')
-)
+_LIBCLANG_DIR = None
+if os.name == 'nt':
+    _LIBCLANG_DIR = os.path.join(_EUGENE_PATH, 'extern', 'LLVM', 'win64')
+elif os.name == 'posix':
+    _LIBCLANG_DIR = os.path.join(_EUGENE_PATH, 'extern', 'LLVM', 'sysv')
+else:
+    raise Exception('OS not supported by libclang!')
+
+clang.cindex.Config.set_library_path(_LIBCLANG_DIR)
 
 class CxxClass:
     def __init__(self, decl: clang.cindex.Cursor):
@@ -141,7 +147,7 @@ class CxxTranslationUnit:
     def __init__(self, path: str, include: list):
         self._index = clang.cindex.Index.create()
         self._tu = self._index.parse(
-            path, args=["-I" + ','.join(include)]
+            path, args=['-std=c++17', '-O0', '-I' + ','.join(include)]
         )
 
         ns_decls = filter(

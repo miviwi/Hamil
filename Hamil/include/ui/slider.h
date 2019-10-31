@@ -6,6 +6,8 @@
 #include <win32/input.h>
 #include <math/geometry.h>
 
+#include <cfloat>
+
 namespace ui {
 
 class SliderFrame : public Frame {

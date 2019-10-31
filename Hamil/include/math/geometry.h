@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math/intrin.h>
+#include <util/structpack.h>
 
 #include <cmath>
 #include <array>
@@ -16,7 +17,7 @@
 constexpr double PI = 3.1415926535897932384626433832795;
 constexpr float PIf = (float)PI;
 
-#pragma pack(push, 1)
+PACKED_STRUCT_BEGIN
 
 template <typename T>
 struct Vector2 {
@@ -90,7 +91,7 @@ struct Vector2 {
 
   operator T *() { return (T *)this; }
   operator const T *() const { return (const T *)this; }
-};
+} PACKED_STRUCT_END;
 
 template <typename T>
 inline constexpr Vector2<T> operator+(Vector2<T> a, Vector2<T> b)
@@ -177,6 +178,8 @@ using vec2  = Vector2<float>;
 using hvec2 = Vector2<intrin::half>;
 using ivec2 = Vector2<int>;
 using uvec2 = Vector2<unsigned>;
+
+PACKED_STRUCT_BEGIN
 
 template <typename T>
 struct Vector3 {
@@ -286,7 +289,7 @@ struct Vector3 {
 
   operator T *() { return (T *)this; }
   operator const T *() const { return (const T *)this; }
-};
+} PACKED_STRUCT_END;
 
 template <typename T>
 inline Vector3<T> operator+(Vector3<T> a, Vector3<T> b)
@@ -359,6 +362,7 @@ using uvec3 = Vector3<unsigned>;
 #if !defined(NO_SSE)
 
 // Extended to 4 floats and aligned siutably for SSE
+PACKED_STRUCT_BEGIN
 struct alignas(16) intrin_vec3 {
   float d[4];
 
@@ -371,7 +375,7 @@ struct alignas(16) intrin_vec3 {
   vec3 toVec3() const { return vec3(d); }
 
   operator float *() { return d; }
-};
+} PACKED_STRUCT_END;
 
 inline vec3 operator*(const vec3& v, float u)
 {
@@ -425,6 +429,8 @@ inline vec3 vec3::recip() const
 }
 
 #endif
+
+PACKED_STRUCT_BEGIN
 
 template <typename T>
 struct /* alignas(16) for intrin */ Vector4 {
@@ -490,7 +496,7 @@ struct /* alignas(16) for intrin */ Vector4 {
 
   operator T *() { return (T *)this; }
   operator const T *() const { return (const T *)this; }
-};
+} PACKED_STRUCT_END;
 
 template <typename T>
 inline Vector4<T> operator+(Vector4<T> a, Vector4<T> b)
@@ -608,6 +614,8 @@ struct Matrix3;
 template <typename T>
 struct Matrix4;
 
+PACKED_STRUCT_BEGIN
+
 template <typename T>
 struct Matrix2 {
   T d[2*2];
@@ -629,7 +637,7 @@ struct Matrix2 {
 
   operator float *() { return d; }
   operator const float *() const { return d; }
-};
+} PACKED_STRUCT_END;
 
 template <typename T>
 inline Matrix2<T> operator*(Matrix2<T> a, Matrix2<T> b)
@@ -642,6 +650,8 @@ inline Matrix2<T> operator*(Matrix2<T> a, Matrix2<T> b)
 
 using mat2  = Matrix2<float>;
 using imat2 = Matrix2<int>;
+
+PACKED_STRUCT_BEGIN
 
 template <typename T>
 struct Matrix3 {
@@ -689,7 +699,7 @@ struct Matrix3 {
     return { d[col + 0], d[col + 3], d[col + 6] };
   }
 
-  Matrix3& operator *=(Matrix3& b) { *this = *this * b; return *this; }
+  Matrix3& operator *=(const Matrix3& b) { *this = *this * b; return *this; }
   Matrix3& operator *=(float u) { *this = *this * u; return *this; }
 
   Matrix3 transpose() const
@@ -750,7 +760,7 @@ struct Matrix3 {
 
   operator float *() { return d; }
   operator const float *() const { return d; }
-};
+} PACKED_STRUCT_END;
 
 template <typename T>
 inline Matrix3<T> operator*(const Matrix3<T>& a, const Matrix3<T>& b)
@@ -790,6 +800,8 @@ inline Matrix3<T> operator*(const Matrix3<T>& a, float u)
 
 using mat3  = Matrix3<float>;
 using imat3 = Matrix3<int>;
+
+PACKED_STRUCT_BEGIN
 
 template <typename T>
 struct alignas(16) Matrix4 {
@@ -875,7 +887,7 @@ struct alignas(16) Matrix4 {
 
   operator float *() { return d; }
   operator const float *() const { return d; }
-};
+} PACKED_STRUCT_END;
 
 template <typename T>
 inline Matrix4<T> operator+(const Matrix4<T>& a, const Matrix4<T>& b)
@@ -984,7 +996,7 @@ inline mat4 operator*(const mat4& a, float u)
 }
 
 template <>
-mat4 mat4::transpose() const
+inline mat4 mat4::transpose() const
 {
   mat4 b;
 
@@ -994,7 +1006,7 @@ mat4 mat4::transpose() const
 
 // Must be non-singular!
 template <>
-mat4 mat4::inverse() const
+inline mat4 mat4::inverse() const
 {
   mat4 b;
 
@@ -1025,8 +1037,6 @@ inline void mat4_stream_copy(mat4& dst, const mat4& src)
 
 #endif
 
-#pragma pack(pop)
-
 // Axis-aligned bounding box
 struct AABB {
   AABB()
@@ -1048,10 +1058,10 @@ struct AABB {
   };
 
   // Scales the AABB uniformly
-  AABB scale(float s) const { return { min*s, max*s }; }
+  inline AABB scale(float s) const { return { min*s, max*s }; }
 
   // Scales the AABB by the vec3
-  AABB scale(vec3 s) const  { return { min*s, max*s }; }
+  inline AABB scale(vec3 s) const  { return { min*s, max*s }; }
 };
 
 struct Sphere {

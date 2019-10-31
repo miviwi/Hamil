@@ -17,6 +17,7 @@ namespace py {
 
 struct RigidBodyToken;
 
+[[maybe_unused]]
 static MemberDefList<RigidBodyToken> RigidBodyMembers;
 static MethodDefList<RigidBodyToken> RigidBodyMethods;
 static GetSetDefList<RigidBodyToken> RigidBodyGetSet;
@@ -104,7 +105,9 @@ PyObject *RigidBody_FromRigidBody(bt::RigidBody rb)
 
 struct CollisionShapeToken;
 
+[[maybe_unused]]
 static MemberDefList<CollisionShapeToken> CollisionShapeMembers;
+[[maybe_unused]]
 static MethodDefList<CollisionShapeToken> CollisionShapeMethods;
 static GetSetDefList<CollisionShapeToken> CollisionShapeGetSet;
 
@@ -164,8 +167,11 @@ PyObject *CollisionShape_FromCollisionShape(bt::CollisionShape shape)
 
 struct DynamicsWorldToken;
 
+[[maybe_unused]]
 static MemberDefList<DynamicsWorldToken> DynamicsWorldMembers;
+[[maybe_unused]]
 static MethodDefList<DynamicsWorldToken> DynamicsWorldMethods;
+[[maybe_unused]]
 static GetSetDefList<DynamicsWorldToken> DynamicsWorldGetSet;
 
 struct DynamicsWorld {

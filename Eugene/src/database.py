@@ -53,8 +53,9 @@ class Database:
     def writeRecord(self, key, record):
         db_record = self.readRecord(key)
 
-        if record > db_record:          # Deal with win32 FindFirstFile returning dates
-            self.records[key.encode()] = record  #   which are in the past...
+        # Deal with win32 FindFirstFile sometimes returning
+        #   dates which are in the future...
+        if record > db_record: self.records[key.encode()] = record
 
     def invalidate(self):
         self.records = {}

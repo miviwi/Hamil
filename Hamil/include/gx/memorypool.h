@@ -2,6 +2,8 @@
 
 #include <gx/gx.h>
 
+#include <climits>
+
 #include <atomic>
 #include <memory>
 

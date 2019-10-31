@@ -136,7 +136,7 @@ void finalize()
 
 Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_real_size(geom.size()),
-  m_geom(geom), m_style(style), m_repaint(true),
+  m_geom(geom), m_style(style),
   m_capture(nullptr),
   m_keyboard(nullptr),
   m_pool(pool),
@@ -337,7 +337,7 @@ gx::CommandBuffer Ui::paint()
     command_buf.fenceWait(m_drawable.fenceId());
   }
 
-  if(m_repaint) {
+  if(m_repaint || true) {     // TODO: intelligently decide on this somehow?
     // Same as above - clean up after previous paint()
     m_painter.end();
 

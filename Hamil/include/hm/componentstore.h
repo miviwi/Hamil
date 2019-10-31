@@ -1,8 +1,6 @@
 #pragma once
 
 #include <hm/hamil.h>
-#include <hm/entity.h>
-#include <hm/component.h>
 
 #include <util/hashindex.h>
 #include <util/tupleindex.h>
@@ -38,6 +36,8 @@ public:
   // -------------------------------------------
 
 protected:
+  static bool component_valid(const Component& component);
+
   // Should be called only ONCE
   static void reap_component(Component *component);
 
@@ -47,13 +47,13 @@ protected:
   win32::Mutex m_mutex;
 };
 
-template <typename... Args>
+template <typename... ComponentTypes>
 struct ComponentStoreBase : IComponentStore {
   using Index = util::HashIndex::Index;
 
-  using HashArray  = std::array<util::HashIndex, sizeof...(Args)>;
-  using Components = std::tuple<std::vector<Args>...>;
-  using FreeLists  = std::array<std::vector<Index>, sizeof...(Args)>;
+  using HashArray  = std::array<util::HashIndex, sizeof...(ComponentTypes)>;
+  using Components = std::tuple<std::vector<ComponentTypes>...>;
+  using FreeLists  = std::array<std::vector<Index>, sizeof...(ComponentTypes)>;
 
   HashArray  hashes;
   Components components;
@@ -66,7 +66,7 @@ struct ComponentStoreBase : IComponentStore {
 
     constexpr auto TupleIndex = tuple_index<T>();
 
-    util::HashIndex& hash  = getHash<TupleIndex>();
+    [[maybe_unused]] util::HashIndex& hash  = getHash<TupleIndex>();
     std::vector<T>& bucket = getBucket<TupleIndex>();
 
     auto index = findComponent<TupleIndex>(id);
@@ -118,7 +118,7 @@ struct ComponentStoreBase : IComponentStore {
     std::vector<T>& bucket = getBucket<TupleIndex>();
     for(auto& el : bucket) {
       auto& component = (Component&)el;
-      if(!component) {
+      if(!component_valid(component)) {
         destroyComponent(&el);
         continue;
       }
@@ -194,7 +194,7 @@ private:
   template <typename T>
   void destroyComponent(T *component)
   {
-    if(!component->entity()) return; // The Component was already reaped
+    if(!component_valid(*component)) return; // The Component was already reaped
 
     component->destroyed();
     reap_component(component);
