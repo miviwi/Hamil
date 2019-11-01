@@ -17,7 +17,7 @@ class IComponentManager {
 public:
   using Ptr = std::shared_ptr<IComponentManager>;
 
-  virtual ~IComponentManager();
+  virtual ~IComponentManager() = default;
 
   template <typename T>
   ComponentRef<T> getComponentById(EntityId entity)

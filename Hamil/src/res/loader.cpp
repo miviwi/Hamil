@@ -25,10 +25,6 @@
 
 namespace res {
 
-ResourceLoader::~ResourceLoader()
-{
-}
-
 ResourceManager& ResourceLoader::manager()
 {
   return *m_man;

@@ -17,7 +17,7 @@ struct pDrawable {
     type(type_)
   { }
 
-  virtual ~pDrawable() { }
+  virtual ~pDrawable() = default;
 
   virtual vec2 size() const = 0;
 

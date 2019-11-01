@@ -23,7 +23,7 @@ public:
   IJob();
   IJob(const IJob& other) = delete;
   IJob(IJob&& other);
-  virtual ~IJob();
+  virtual ~IJob() = default;
 
   // Can be called at any time to check if the Job has
   //   completed (after a call to WorkerPool::waitJob()

@@ -35,7 +35,7 @@ class ResourceLoader {
 public:
   using Ptr = std::unique_ptr<ResourceLoader>;
 
-  virtual ~ResourceLoader();
+  virtual ~ResourceLoader() = default;
 
   struct Error { };
 

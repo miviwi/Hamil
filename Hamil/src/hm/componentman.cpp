@@ -40,10 +40,6 @@ private:
   ComponentStore *m_components;
 };
 
-IComponentManager::~IComponentManager()
-{
-}
-
 IComponentManager::Ptr create_component_manager()
 {
   IComponentManager::Ptr ptr;

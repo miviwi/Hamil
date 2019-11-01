@@ -19,10 +19,6 @@ IJob::IJob(IJob&& other) :
   other.m_done.store(true);
 }
 
-IJob::~IJob()
-{
-}
-
 win32::ConditionVariable& IJob::condition()
 {
   return m_cv;

@@ -44,10 +44,6 @@ private:
   std::function<bool(u32, u32)> m_cmp_entity_fn;
 };
 
-IEntityManager::~IEntityManager()
-{
-}
-
 EntityManager::EntityManager(IComponentManager::Ptr component_man) :
   m_component_man(component_man),
   m_entities_hash(InitialEntities, InitialEntities)

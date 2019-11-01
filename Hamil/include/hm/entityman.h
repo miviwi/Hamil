@@ -15,7 +15,7 @@ class IEntityManager {
 public:
   using Ptr = std::unique_ptr<IEntityManager>;
 
-  virtual ~IEntityManager();
+  virtual ~IEntityManager() = default;
 
   virtual Entity createEntity() = 0;
   virtual Entity findEntity(const std::string& name) = 0;
