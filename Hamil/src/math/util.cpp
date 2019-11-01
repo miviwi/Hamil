@@ -7,6 +7,7 @@
 
 u32 loadbe_u32(const void *ptr)
 {
+#if defined(_MSVC_VER)
   union {
     i32 i;
     u32 u;
@@ -14,10 +15,16 @@ u32 loadbe_u32(const void *ptr)
 
   i = _loadbe_i32(ptr);
   return u;
+#else
+  auto u = *(u32 *)ptr;
+
+  return __builtin_bswap32(u);
+#endif
 }
 
 void storebe_u32(u32 v, void *ptr)
 {
+#if defined(_MSVC_VER)
   union {
     i32 i;
     u32 u;
@@ -25,6 +32,12 @@ void storebe_u32(u32 v, void *ptr)
 
   u = v;
   _storebe_i32(ptr, i);
+#else
+  auto uptr = (u32 *)ptr;
+  u32 u = __builtin_bswap32(v);
+
+  *uptr = u;
+#endif
 }
 
 union Bits {

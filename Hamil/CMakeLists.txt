@@ -1,5 +1,17 @@
 add_executable (Hamil)
 
+find_package (Freetype REQUIRED)
+message ("-- Found 'Freetype' package")
+
+find_package (LibYAML REQUIRED)
+message ("-- Found 'libyaml' package")
+
+find_package (Bullet REQUIRED)
+message ("-- Found 'Bullet' package")
+
+find_package (PythonLibs REQUIRED)
+message ("-- Found 'PythonLibs' package")
+
 set (SolutionDir "${PROJECT_SOURCE_DIR}")
 set (ProjectDir  "${PROJECT_SOURCE_DIR}/Hamil")
 set (OutDir      "${PROJECT_BINARY_DIR}")
@@ -59,26 +71,16 @@ target_link_libraries (Hamil PRIVATE
   HamilExtern
 
   # FreeType 2
-  debug "${ProjectDir}/extern/freetype2/sysv/libfreetype.a"
+  ${FREETYPE_LIBRARIES}
 
   # libyaml
-  debug "${ProjectDir}/extern/libyaml/sysv/libyaml.a"
+  ${LIBYAML_LIBRARIES}
 
   # Bullet physics
-  debug "${ProjectDir}/extern/bullet3/sysv/libBulletCollision_d.a"
-  debug "${ProjectDir}/extern/bullet3/sysv/libBulletDynamics_d.a"
-  debug "${ProjectDir}/extern/bullet3/sysv/libBullet3Common_d.a"
-  debug "${ProjectDir}/extern/bullet3/sysv/libBullet3Collision_d.a"
-  debug "${ProjectDir}/extern/bullet3/sysv/libBullet3Dynamics_d.a"
-  debug "${ProjectDir}/extern/bullet3/sysv/libLinearMath_d.a"
-  #"${ProjectDir}/extern/bullet3/sysv/libBulletInverseDynamics_d.a"
-  #"${ProjectDir}/extern/bullet3/sysv/libBulletInverseDynamicsUtils_d.a"
-  #"${ProjectDir}/extern/bullet3/sysv/libBulletSoftBody_d.a"
-  #"${ProjectDir}/extern/bullet3/sysv/libBulletWorldImporter_d.a"
-  #"${ProjectDir}/extern/bullet3/sysv/libBullet3Geometry_d.a"
+  ${BULLET_LIBRARIES}
 
   # Python 3.7
-  debug "${ProjectDir}/extern/python37/sysv/libpython3.7m_d.so"
+  ${PYTHON_LIBRARIES}
 )
 
 target_sources (Hamil PUBLIC
@@ -133,5 +135,5 @@ endif()
 #     --- YouCompleteMe compilation flag database ---
 message ("-- Copying YouCompleteMe compile flags dump (compile_commands.json)")
 execute_process (COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/Hamil"
+  "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
 )

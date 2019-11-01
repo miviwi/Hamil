@@ -2,13 +2,26 @@
 #include <win32/panic.h>
 
 #include <vector>
+
 #include <cctype>
+#include <cassert>
 
 #if defined(_MSVC_VER)
 #  include <Windows.h>
 #endif
 
 namespace win32 {
+
+void Input::deleter(Input *ptr)
+{
+  if(auto mouse = ptr->get<Mouse>()) {
+    delete mouse;
+  } else if(auto kb = ptr->get<Keyboard>()) {
+    delete kb;
+  }
+
+  assert(0);     // Unreachable
+}
 
 InputDeviceManager::InputDeviceManager() :
   m_mouse_buttons(0), m_kb_modifiers(0)
