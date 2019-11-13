@@ -4,7 +4,7 @@
 #include <py/types.h>
 #include <py/collections.h>
 
-#include <win32/time.h>
+#include <os/time.h>
 
 #include <type_traits>
 
@@ -20,11 +20,11 @@ static GetSetDefList<TimeToken> TimeGetSet;
 struct Time {
   PyObject_HEAD;
 
-  win32::Time m;
+  os::Time m;
 };
 
 static int Time_Check(PyObject *obj);
-static PyObject *Time_FromTime(win32::Time t);
+static PyObject *Time_FromTime(os::Time t);
 
 #define TIME_INIT_ERR "Time can only be initailized with another Time object or a number (of seconds)"
 
@@ -41,13 +41,13 @@ static int Time_Init(Time *self, PyObject *args, PyObject *kwds)
       self->m = ((Time *)t)->m;
     } else if(PyNumber_Check(t)) {
       Float f = PyNumber_Float(t);
-      self->m = win32::Timers::s_to_ticks(f.f());
+      self->m = os::Timers::s_to_ticks(f.f());
     } else {
       PyErr_SetString(PyExc_TypeError, TIME_INIT_ERR);
       return -1;
     }
   } else {
-    self->m = win32::InvalidTime;
+    self->m = os::InvalidTime;
   }
 
   return 0;
@@ -55,32 +55,32 @@ static int Time_Init(Time *self, PyObject *args, PyObject *kwds)
 
 static PyObject *Time_Repr(Time *self)
 {
-  return Unicode::from_format("Time(%lf)", win32::Timers::ticks_to_sf(self->m)).move();
+  return Unicode::from_format("Time(%lf)", os::Timers::ticks_to_sf(self->m)).move();
 }
 
 static PyObject *Time_Str(Time *self)
 {
-  return Unicode::from_format("%lf", win32::Timers::ticks_to_sf(self->m)).move();
+  return Unicode::from_format("%lf", os::Timers::ticks_to_sf(self->m)).move();
 }
 
 static PyObject *Time_Time(PyObject *Py_UNUSED(klass), PyObject *Py_UNUSED(arg))
 {
-  return PyFloat_FromDouble(win32::Timers::ticks());
+  return PyFloat_FromDouble(os::Timers::ticks());
 }
 
 static PyObject *Time_To_S(Time *self, void *Py_UNUSED(closure))
 {
-  return PyFloat_FromDouble(win32::Timers::ticks_to_sf(self->m));
+  return PyFloat_FromDouble(os::Timers::ticks_to_sf(self->m));
 }
 
 static PyObject *Time_To_Ms(Time *self, void *Py_UNUSED(closure))
 {
-  return PyLong_FromUnsignedLongLong(win32::Timers::ticks_to_ms(self->m));
+  return PyLong_FromUnsignedLongLong(os::Timers::ticks_to_ms(self->m));
 }
 
 static PyObject *Time_To_Us(Time *self, void *Py_UNUSED(closure))
 {
-  return PyLong_FromUnsignedLongLong(win32::Timers::ticks_to_us(self->m));
+  return PyLong_FromUnsignedLongLong(os::Timers::ticks_to_us(self->m));
 }
 
 static TypeObject Time_Type =
@@ -117,7 +117,7 @@ static int Time_Check(PyObject *object)
   return Time_Type.check(object);
 }
 
-static PyObject *Time_FromTime(win32::Time t)
+static PyObject *Time_FromTime(os::Time t)
 {
   auto obj = Time_Type.newObject<Time>();
   obj->m = t;
@@ -134,7 +134,7 @@ static MethodDefList<TimerToken> TimerMethods;
 struct Timer {
   PyObject_HEAD;
 
-  win32::Timer m;
+  os::Timer m;
 };
 
 static int Timer_Check(PyObject *obj);
@@ -193,7 +193,7 @@ static GetSetDefList<DeltaTimerToken> DeltaTimerGetSet;
 struct DeltaTimer {
   PyObject_HEAD;
 
-  win32::DeltaTimer m;
+  os::DeltaTimer m;
 };
 
 static int DeltaTimer_Check(PyObject *obj);
@@ -238,7 +238,7 @@ static GetSetDefList<DurationTimerToken> DurationTimerGetSet;
 struct DurationTimer {
   PyObject_HEAD;
 
-  win32::DurationTimer m;
+  os::DurationTimer m;
 };
 
 static int DurationTimer_Check(PyObject *obj);
@@ -319,7 +319,7 @@ static GetSetDefList<LoopTimerToken> LoopTimerGetSet;
 struct LoopTimer {
   PyObject_HEAD;
 
-  win32::LoopTimer m;
+  os::LoopTimer m;
 };
 
 static int LoopTimer_Check(PyObject *obj);

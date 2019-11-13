@@ -1,16 +1,16 @@
 add_executable (Hamil)
 
-find_package (Freetype REQUIRED)
-message ("-- Found 'Freetype' package")
+if (WIN32)
+  set (Platform "win32")
+endif ()
 
-find_package (LibYAML REQUIRED)
-message ("-- Found 'libyaml' package")
+if (UNIX)
+  set (Platform "sysv")
+endif ()
 
-find_package (Bullet REQUIRED)
-message ("-- Found 'Bullet' package")
+set (CMakeScriptsDir "${PROJECT_SOURCE_DIR}/CMake/Scripts")
 
-find_package (PythonLibs REQUIRED)
-message ("-- Found 'PythonLibs' package")
+include ("${CMakeScriptsDir}/${Platform}/FindPackages.cmake")
 
 set (SolutionDir "${PROJECT_SOURCE_DIR}")
 set (ProjectDir  "${PROJECT_SOURCE_DIR}/Hamil")
@@ -20,25 +20,30 @@ set (Generated   "${ProjectDir}/Generated")
 
 #     --- Configure headers ---
 # config.h.in configuration header variables
+set (Hamil__PLATFORM    "\"${Platform}\"")
+if (WIN32)
+  set (Hamil__win32   1)
+  set (Hamil__sysv    0)
+endif()
+if (UNIX)
+  set (Hamil__win32   0)
+  set (Hamil__sysv    1)
+endif()
+
 set (Hamil__PROJECT_VERSION       0x001000)
 set (Hamil__PROJECT_VERSION_STR   "\"0.10.0\"")
 
 set (Hamil__PROJECT_DIR "R\"(${OutDir})\"")
 
-message ("-- Configuring header files (config.h)")
+message ("-- Configuring header files")
+
+message ("-- Configuring config.in.h -> config")
 configure_file (
-  "${ProjectDir}/config/config.h.in" "${Generated}/config.h"
+  "${ProjectDir}/config/config.h.in" "${Generated}/config"
 )
 
 #     --- Eugene location/build script ---
-if (WIN32)
-  set (EUGENE "${SolutionDir}/Eugene/src/eugene")
-endif ()
-
-if (UNIX)
-  set (EUGENE "${SolutionDir}/Eugene/eugene")
-endif ()
-
+set (EUGENE "${SolutionDir}/Eugene/eugene")
 set (EUGENE_BUILD "${ProjectDir}/build.eugene")
 
 #     --- Project executable compilation setup ---
@@ -47,6 +52,8 @@ add_subdirectory ("extern")
 
 set (CMAKE_CXX_COMPILER clang++)
 target_compile_options (Hamil PUBLIC
+  -pipe
+
   -std=c++17
 
   -ffast-math
@@ -54,6 +61,8 @@ target_compile_options (Hamil PUBLIC
 
   -Wall -Wno-switch -Wno-unknown-pragmas -Wno-unused-function
   -Wno-writable-strings
+
+  -g
 )
 
 #target_compile_definitions (Hamil PUBLIC
@@ -70,6 +79,8 @@ target_include_directories (Hamil PUBLIC
 target_link_libraries (Hamil PRIVATE
   HamilExtern
 
+  ${CMAKE_THREAD_LIBS_INIT}
+
   # FreeType 2
   ${FREETYPE_LIBRARIES}
 
@@ -85,7 +96,7 @@ target_link_libraries (Hamil PRIVATE
 
 target_sources (Hamil PUBLIC
   # main()
-  "${ProjectDir}/src/winmain.cpp"
+  "${ProjectDir}/src/sysvmain.cpp"
 
   # OpenGL shader uniform interface structs
   "${ProjectDir}/src/programs.cpp"
@@ -127,13 +138,14 @@ if (WIN32)
   # FreeType
   add_custom_command (TARGET Hamil POST_BUILD
     COMMAND
-      cp "${ProjectDir}/extern/freetype2/win64/freetype271MT.dll" ${OutDir}
+      ${CMAKE_COMMAND} -E copy_if_different "${ProjectDir}/extern/freetype2/win64/freetype271MT.dll" ${OutDir}
     COMMENT
       "Copy freetype2 runtime lib")
 endif()
 
 #     --- YouCompleteMe compilation flag database ---
 message ("-- Copying YouCompleteMe compile flags dump (compile_commands.json)")
-execute_process (COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
+execute_process (
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
 )

@@ -13,7 +13,7 @@ bool ScrollFrame::input(CursorDriver& cursor, const InputPtr& input)
   bool mouse_inside = g.intersect(cursor.pos());
   if(!mouse_inside) return false;
 
-  using win32::Mouse;
+  using os::Mouse;
   if(auto mouse = input->get<Mouse>()) {
     // Content is smaller than the ScrollFrame - so
     //   no srolling is possible
@@ -166,7 +166,7 @@ void ScrollFrame::scrollContentX(float x)
   m_content->position(m_scroll);
 }
 
-bool ScrollFrame::scrollMousewheel(const win32::Mouse *mouse)
+bool ScrollFrame::scrollMousewheel(const os::Mouse *mouse)
 {
   float y = m_scroll.y + (ScrollSpeed*mouse->ev_data / 120.0f);
   scrollContentY(y);
@@ -174,7 +174,7 @@ bool ScrollFrame::scrollMousewheel(const win32::Mouse *mouse)
   return true;
 }
 
-bool ScrollFrame::scrollbarClicked(CursorDriver& cursor, const win32::Mouse *mouse)
+bool ScrollFrame::scrollbarClicked(CursorDriver& cursor, const os::Mouse *mouse)
 {
   Geometry g = geometry();
   auto cursor_pos = cursor.pos();

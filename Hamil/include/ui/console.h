@@ -68,7 +68,7 @@ private:
 
   void consoleCommand(const std::string& cmd);
 
-  bool specialKey(win32::Keyboard *kb);
+  bool specialKey(os::Keyboard *kb);
 
   bool isDropped() const;
   bool isTransitioning() const;

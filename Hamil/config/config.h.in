@@ -1,5 +1,11 @@
 #pragma once
 
+// win32 - Windows
+// sysv  - Linux
+#define __PLATFORM                @Hamil__PLATFORM@
+#define __win32                   @Hamil__win32@
+#define __sysv                    @Hamil__sysv@
+
 #define __PROJECT_VERSION         @Hamil__PROJECT_VERSION@
 #define __PROJECT_VERSION_STR     @Hamil__PROJECT_VERSION_STR@
 

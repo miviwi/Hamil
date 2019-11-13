@@ -2,18 +2,24 @@
 
 #include <util/allocator.h>
 #include <util/format.h>
-#include <win32/cpuinfo.h>
-#include <win32/thread.h>
+#include <os/cpuinfo.h>
+#include <os/thread.h>
+#include <os/window.h>
+#include <os/glcontext.h>
+#include <gx/context.h>
+
 #include <win32/mutex.h>
 #include <win32/conditionvar.h>
-#include <win32/window.h>
-#include <win32/glcontext.h>
 
-#include <cassert>
+#include <config>
+
 #include <algorithm>
+#include <memory>
 #include <atomic>
 #include <map>
 #include <functional>
+
+#include <cassert>
 
 // Uncomment this line so workers DON'T get locked to specific cores
 //   - Setting the affinity is supposed to remove latency caused by the
@@ -30,11 +36,11 @@ public:
     JobsQueueSize = 64,
   };
 
-  // The Window from which the GlContexts will be acquired,
-  //   must be stored here because GlContext::acquireContext()
+  // The Window from which the GLContexts will be acquired,
+  //   must be stored here because GLContext::acquireContext()
   //   is called after creating the workers (in kickWorkers())
-  win32::Window *window = nullptr;
-  std::map<win32::Thread::Id, win32::GlContext> contexts;
+  os::Window *window = nullptr;
+  std::map<os::Thread::Id, std::unique_ptr<gx::GLContext>> contexts;
 
   // This mutex is shared by the workers waiting on the queue
   //   and thread(s) waiting for jobs to complete in waitJob()
@@ -88,7 +94,7 @@ WorkerPool::~WorkerPool()
   killWorkers();
 }
 
-WorkerPool& WorkerPool::acquireWorkerGlContexts(win32::Window& window)
+WorkerPool& WorkerPool::acquireWorkerGLContexts(os::Window& window)
 {
   m_data->window = &window;
 
@@ -172,8 +178,8 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
   // Make sure the workers don't terminate immediately
   m_data->done.store(false);
 
-  uint num_cores = win32::cpuinfo().numLogicalProcessors();
-  bool hyperthreading = win32::cpuinfo().hyperthreading();
+  uint num_cores = os::cpuinfo().numLogicalProcessors();
+  bool hyperthreading = os::cpuinfo().hyperthreading();
 
   if(!name) name = "WorkerPool_Worker";
 
@@ -183,7 +189,9 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
   for(size_t i = 0; i < num_workers; i++) {
     // ulong (WorkerPool::*fn)() -> ulong (*fn)()
     auto fn = std::bind(&WorkerPool::doWork, this);
-    auto worker = new win32::Thread(fn, /* suspended = */ true);
+    auto worker = os::Thread::alloc();
+
+    worker->create(fn, /* suspended = */ true);
 
     m_workers.append(worker);
 
@@ -214,12 +222,16 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
 #endif
   }
 
-  // Optionally acquire GlContexts for all the workers
+  // Optionally acquire GLContexts for all the workers
   auto window = m_data->window;
+  auto& current_context = gx::GLContext::current();
   auto& contexts = m_data->contexts;
   if(window) {
     for(auto& worker : m_workers) {
-      contexts.emplace(worker->id(), window->acquireGlContext());
+      auto gl_context = os::create_glcontext();
+      gl_context->acquire(window, &current_context);
+
+      contexts.emplace(worker->id(), std::move(gl_context));
     }
   }
 
@@ -236,7 +248,7 @@ WorkerPool& WorkerPool::killWorkers()
 
   for(auto& worker : m_workers) {
     // Wait for each worker before we delete it
-    if(worker->exitCode() == win32::Thread::StillActive) {
+    if(worker->exitCode() == os::Thread::StillActive) {
       worker->wait();
     }
 
@@ -274,13 +286,13 @@ ulong WorkerPool::doWork()
 
   auto& workers_active = m_data->workers_active;
 
-  // If GlContexts were acquired for the workers - grab one
+  // If GLContexts were acquired for the workers - grab one
   auto& contexts = m_data->contexts;
-  auto context_it = contexts.find(win32::Thread::current_thread_id());
+  auto context_it = contexts.find(os::Thread::current_thread_id());
 
-  win32::GlContext *context = nullptr;
+  gx::GLContext *context = nullptr;
   if(context_it != contexts.end()) {
-    context = &context_it->second;
+    context = context_it->second.get();
     context->makeCurrent();
   }
 

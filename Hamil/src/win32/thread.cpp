@@ -1,14 +1,19 @@
 #include <win32/thread.h>
 
-#if defined(_MSVC_VER)
+#include <config>
+
+#if __win32
 #  include <Windows.h>
 #else
 #  define DWORD ulong
 #endif
 
+#include <new>
 #include <utility>
 
-#if defined(_MSVC_VER)
+#include <cassert>
+
+#if __win32
 const DWORD MS_VC_EXCEPTION = 0x406D1388;
 
 #pragma pack(push,8)
@@ -49,15 +54,13 @@ namespace win32 {
 
 class ThreadData {
 public:
+#if __win32
+  HANDLE handle;
+#endif
+
   Thread::Id id;
+
   Thread::Fn fn;
-  Thread::OnExit on_exit;
-
-protected:
-  ThreadData() = default;
-
-private:
-  friend Thread;
 };
 
 DWORD Thread::ThreadProcTrampoline(void *param)
@@ -69,105 +72,135 @@ DWORD Thread::ThreadProcTrampoline(void *param)
   DWORD exit_code = self->fn();
 
   // Call the OnExit handler if it has been set
+#if 0
   if(auto& on_exit = self->on_exit) {
     on_exit();
   }
+#endif
 
   return exit_code;
 }
 
-Thread::Thread(Fn fn, bool suspended) :
-  m_data(new ThreadData())
+Thread::Thread() :
+  os::Thread(sizeof(ThreadData))
 {
-#if defined(_MSVC_VER)
-  DWORD dwCreationFlags = 0;
-  dwCreationFlags |= suspended ? CREATE_SUSPENDED : 0;
-
-  m_data->id = InvalidId;  // Will be initialized by CreateThread
-  m_data->fn = std::move(fn);
-
-  m = CreateThread(nullptr, 0, ThreadProcTrampoline, m_data, dwCreationFlags, &m_data->id);
-  if(!m) throw CreateError(GetLastError());
-#endif
+  new(storage<ThreadData>()) ThreadData();
 }
 
 Thread::~Thread()
 {
   // Only CHECK the ref-count so it's not decremented twice
-  //   - See the comment above Waitable
   if(refs() > 1) return;
 
-  // A count == 1 means somebody down the line will decrement
-  //   it (i.e. set it to 0), thus the object is already dead
-  //   and we need to clean it up
-  delete m_data;
+  assert(Thread::exitCode() != StillActive &&
+      "at least ONE reference to a Thread object must be kept around while it's running!");
+
+  storage<ThreadData>()->~ThreadData();
 }
 
 Thread::Id Thread::id() const
 {
-  return m_data->id;
+  return data().id;
 }
 
-Thread& Thread::dbg_SetName(const char *name)
+os::Thread& Thread::dbg_SetName(const char *name)
 {
-#if !defined(NDEBUG)
-  SetThreadName(m_data->id, name);
+#if !__win32
+  SetThreadName(id(), name);
 #endif
 
   return *this;
 }
 
+#if 0
 Thread::Id Thread::current_thread_id()
 {
-#if defined(_MSVC_VER)
+#if __win32
   return GetCurrentThreadId();
 #else
   return InvalidId;
 #endif
 }
+#endif
 
-Thread& Thread::resume()
+os::Thread& Thread::resume()
 {
-#if defined(_MSVC_VER)
+#if __win32
   ResumeThread(m);
 #endif
 
   return *this;
 }
 
-Thread& Thread::suspend()
+os::Thread& Thread::suspend()
 {
-#if defined(_MSVC_VER)
+#if __win32
   SuspendThread(m);
 #endif
 
   return *this;
 }
 
-Thread& Thread::affinity(uintptr_t mask)
+os::Thread& Thread::affinity(uintptr_t mask)
 {
-#if defined(_MSVC_VER)
+#if __win32
   SetThreadAffinityMask(m, mask);
 #endif
 
   return *this;
 }
 
-ulong Thread::exitCode() const
+u32 Thread::exitCode()
 {
-  DWORD exit_code = 0;
-#if defined(_MSVC_VER)
-  if(!GetExitCodeThread(m, &exit_code)) throw Error(GetLastError());
-#endif
+  assert(id() != InvalidId && "a Thread must've had create() called on it before calling exitCode()!");
 
-  return exit_code;
+#if __win32
+  DWORD exit_code = 0;
+  if(!GetExitCodeThread(data().handle, &exit_code)) throw Error(GetLastError());
+
+  return exit_code == STILL_ACTIVE ? StillActive : exit_code;
+#else
+  return StillActive;
+#endif
 }
 
-Thread& Thread::onExit(OnExit on_exit)
+os::WaitResult Thread::wait(ulong timeout)
 {
-  m_data->on_exit = on_exit;
+  assert(0 && "win32::Thread::wait() unimplemented!");
 
-  return *this;
+  return os::WaitFailed;
+}
+
+void Thread::doCreate(Fn fn, bool suspended)
+{
+#if __win32
+  DWORD dwCreationFlags = 0;
+  dwCreationFlags |= suspended ? CREATE_SUSPENDED : 0;
+
+  DWORD id;
+  auto handle = CreateThread(
+      nullptr, 0,
+      ThreadProcTrampoline, storage(),
+      dwCreationFlags, &id
+  );
+  if(!handle) throw CreateError(GetLastError());
+
+  data().handle = handle;
+
+  data().id = (Id)id;
+  data().fn = fn;
+
+#endif
+}
+
+ThreadData& Thread::data()
+{
+  return *storage<ThreadData>();
+}
+
+const ThreadData& Thread::data() const
+{
+  return *storage<ThreadData>();
 }
 
 }

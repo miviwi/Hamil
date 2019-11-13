@@ -1,6 +1,10 @@
 #include <win32/cpuinfo.h>
 
-#if defined(_MSVC_VER)
+#include <os/cpuinfo.h>
+
+#include <config>
+
+#if __win32
 #  include <Windows.h>
 #endif
 
@@ -8,21 +12,6 @@
 #include <climits>
 
 namespace win32 {
-
-uint CpuInfo::numPhysicalProcessors() const
-{
-  return m_num_physical_processors;
-}
-
-uint CpuInfo::numLogicalProcessors() const
-{
-  return m_num_logical_processors;
-}
-
-bool CpuInfo::hyperthreading() const
-{
-  return m_num_logical_processors > m_num_physical_processors;
-}
 
 template <typename T>
 static uint p_count_bits(T x)
@@ -36,11 +25,11 @@ static uint p_count_bits(T x)
   return count;
 }
 
-CpuInfo *CpuInfo::create()
+os::CpuInfo *create_cpuinfo()
 {
-  auto self = new CpuInfo();
+  auto self = new os::CpuInfo();
 
-#if defined(_MSVC_VER)
+#if __win32
   DWORD info_len = 0;
   GetLogicalProcessorInformation(nullptr, &info_len);
 

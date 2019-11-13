@@ -2,17 +2,11 @@
 
 #include <common.h>
 
-#include <string>
+namespace win32::stdstream_detail {
 
-namespace win32 {
+void init();
+void finalize();
 
-class StdStream {
-public:
-  static void init();
-  static void finalize();
-
-  static std::string gets();
-};
-
+int do_read(void *buf, size_t buf_sz);
 
 }

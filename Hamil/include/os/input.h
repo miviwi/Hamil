@@ -2,13 +2,11 @@
 
 #include <common.h>
 
-#include <util/ringbuffer.h>
-#include <win32/time.h>
-
-#include <list>
 #include <memory>
 
-namespace win32 {
+namespace os {
+
+using Time = u64;
 
 struct Input {
   static void deleter(Input *ptr);
@@ -111,38 +109,6 @@ struct Keyboard final : public Input {
 
 protected:
   virtual Tag getTag() const { return tag(); }
-
-private:
-  friend class InputDeviceManager;
-
-  static unsigned translate_key(u16 vk, unsigned modifiers);
-  static unsigned translate_sym(u16 vk, unsigned modifiers);
-};
-
-class InputDeviceManager {
-public:
-  InputDeviceManager();
-
-  void setMouseSpeed(float speed);
-  void setDoubleClickSpeed(float speed_seconds);
-
-  void process(void *handle);
-
-  Input::Ptr getInput();
-
-private:
-  void doDoubleClick(Mouse *mi);
-
-  std::list<Input::Ptr> m_input_buffer;
-
-  float m_mouse_speed;
-  unsigned m_mouse_buttons;
-
-  unsigned m_kb_modifiers;
-  unsigned m_capslock;
-
-  RingBuffer<Mouse> m_clicks;
-  Time m_dbl_click_speed;
 };
 
 }

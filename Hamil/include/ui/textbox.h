@@ -35,7 +35,7 @@ public:
   using OnChange = Signal<TextBoxFrame *>;
   using OnSubmit = Signal<TextBoxFrame *>;
 
-  using OnKeyDown = Signal<TextBoxFrame *, win32::Keyboard *>;
+  using OnKeyDown = Signal<TextBoxFrame *, os::Keyboard *>;
 
   using Frame::Frame;
   virtual ~TextBoxFrame();
@@ -83,9 +83,9 @@ private:
     }, EaseNone, RepeatLoop)
   };
 
-  bool keyboardDown(CursorDriver& cursor, win32::Keyboard *kb);
-  bool charInput(win32::Keyboard *kb);
-  bool specialInput(win32::Keyboard *kb);
+  bool keyboardDown(CursorDriver& cursor, os::Keyboard *kb);
+  bool charInput(os::Keyboard *kb);
+  bool specialInput(os::Keyboard *kb);
 
   // 'pos' must be relative to self
   bool mouseGesture(vec2 pos);

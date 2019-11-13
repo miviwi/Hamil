@@ -18,10 +18,10 @@ bool SliderFrame::input(CursorDriver& cursor, const InputPtr& input)
 
   if(m_state != Pressed) m_state = over_head ? Hover : Default;
 
-  auto mouse = input->get<win32::Mouse>();
+  auto mouse = input->get<os::Mouse>();
   if(!mouse) return false;
 
-  using win32::Mouse;
+  using os::Mouse;
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
     ui().capture(this);

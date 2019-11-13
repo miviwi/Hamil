@@ -7,7 +7,7 @@ InputEvent::InputEvent(const InputPtr& input) :
 {
 }
 
-const win32::Input *InputEvent::input() const
+const os::Input *InputEvent::input() const
 {
   return m_input;
 }
@@ -17,11 +17,11 @@ MouseEvent::MouseEvent(const InputPtr& input, CursorDriver& cursor) :
 {
 }
 
-const win32::Mouse *MouseEvent::mouse() const
+const os::Mouse *MouseEvent::mouse() const
 {
-  // Don't need to use win32::Input::get() as the input
-  //   is guaranteed to be a win32::Mouse
-  return (const win32::Mouse *)input();
+  // Don't need to use os::Input::get() as the input
+  //   is guaranteed to be a os::Mouse
+  return (const os::Mouse *)input();
 }
 
 vec2 MouseEvent::pos() const

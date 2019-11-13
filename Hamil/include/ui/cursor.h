@@ -2,11 +2,11 @@
 
 #include <common.h>
 #include <math/geometry.h>
-#include <win32/input.h>
+#include <os/input.h>
 
 namespace ui {
 
-using InputPtr = win32::Input::Ptr;
+using InputPtr = os::Input::Ptr;
 
 class CursorDriver {
 public:

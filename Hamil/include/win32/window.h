@@ -1,17 +1,21 @@
 #pragma once
 
-#include <win32/input.h>
+#include <os/window.h>
+#include <os/input.h>
+#include <os/inputman.h>
 #include <win32/thread.h>
 #include <win32/glcontext.h>
 
 #include <util/ref.h>
 #include <math/geometry.h>
 
+#include <config>
+
 #include <utility>
 #include <functional>
 #include <map>
 
-#if defined(_MSVC_VER)
+#if __win32
 #  include <Windows.h>
 #else
 #  define LPWSTR wchar_t*
@@ -26,14 +30,18 @@
 #  define CALLBACK
 #endif
 
+namespace gx {
+// Forward declaration
+class GLContext;
+}
+
 namespace win32 {
 
-class Window : public Ref {
+class Window final : public os::Window {
 public:
-  // 'width' and 'height' will be the size of the
-  //   "client (drawable) area" i.e. of the framebuffer
+  // See os::Window() for notes on 'width' and 'height'
   Window(int width, int height);
-  ~Window();
+  virtual ~Window();
 
   // Passed to RegisterClass()
   static LPWSTR wnd_class_name() { return L"Hamil OpenGL"; }
@@ -43,45 +51,28 @@ public:
   // Returns this Window's native handle
   HWND hwnd() const { return m_hwnd; }
 
-  // Returns 'false' when a QUIT message was posted and the
-  //   application should terminate
-  //  - Fills the input buffer and repaints the window
-  bool processMessages();
+  virtual void *nativeHandle() const final;
 
-  // Waits for VSync and swaps the front buffer with
-  //   the back buffer
-  void swapBuffers();
+  virtual void swapBuffers() final;
   // TODO: glSwapInterval appears to only work once (?)
-  void swapInterval(unsigned interval);
+  virtual void swapInterval(unsigned interval) final;
 
-  // Takes uncomsumed input from the input buffer if
-  //   there is any and returns it
-  Input::Ptr getInput();
-  // Calls InputDeviceManager::setMouseSpeed() which
-  //   sets 'speed' as the internal mouse cursor velocity
-  //   multiplier (so a speed < 1 slows down the mouse
-  //   and anything > 1 speeds it up)
-  void setMouseSpeed(float speed);
+  virtual void captureMouse() final;
+  virtual void releaseMouse() final;
+  virtual void resetMouse() final;
 
-  // Hides the mouse cursor and locks it to the center of the window
-  void captureMouse();
-  // Shows the mouse cursor and frees it
-  void releaseMouse();
-  // Sets the mouse cursor position to the center of the window
-  void resetMouse();
+  virtual void quit() final;
 
-  // Posts a QUIT message (causes processMessages() to return false)
-  void quit();
+  // Used to prevent double-delete because of for example
+  //   calling os::finalize() before ~Window fires
+  //  - See note above os::Window::destroy() for more
+  //    details
+  virtual void destroy() final;
 
-  // Must be called on the thread which created the Window!
-  GlContext acquireGlContext();
+protected:
+  virtual bool doProcessMessages() final;
 
-  // Must be called if ~Window() can fire after win32::finalize()
-  //   i.e. if any Windows exist in main() or are global variables
-  //   they must have this method called on them
-  //  - After calling this method the Window object becomes INVALID
-  //    and any further operations on it result in undefined behaviour
-  void destroy();
+  virtual os::InputDeviceManager *acquireInputManager() final;
 
 private:
   // Declared as member so private fields can be accessed inside
@@ -99,13 +90,9 @@ private:
   //   - Used as the 'hShareContext' for contexts created
   //     via Window::acquireGlContext()
   HGLRC m_hglrc;
-  // Dimensions of the client area/framebuffer
-  int m_width, m_height;
 
   // The thread which created the Window
   Thread::Id m_thread;
-
-  InputDeviceManager m_input_man;
 };
 
 }

@@ -1,6 +1,8 @@
 #include <win32/file.h>
 
-#if defined(_MSVC_VER)
+#include <config>
+
+#if __win32
 #  include <Windows.h>
 #else
 #  define DWORD int
@@ -14,7 +16,7 @@
 namespace win32 {
 
 static const DWORD p_creation_disposition_table[] = {
-#if defined(_MSVC_VER)
+#if __win32
   CREATE_ALWAYS,
   CREATE_NEW,
   OPEN_ALWAYS,
@@ -32,7 +34,7 @@ static const DWORD p_creation_disposition_table[] = {
 File::File(const char *path, Access access, Share share, OpenMode open) :
   m_access(access), m_full_path(nullptr)
 {
-#if defined(_MSVC_VER)
+#if __win32
   DWORD desired_access = 0;
   desired_access |= access & Read    ? GENERIC_READ    : 0;
   desired_access |= access & Write   ? GENERIC_WRITE   : 0;
@@ -80,7 +82,7 @@ size_t File::size() const
 
 const char *File::fullPath() const
 {
-#if defined(_MSVC_VER)
+#if __win32
   // if the full path has already been queried - return it
   if(m_full_path) return m_full_path;
 
@@ -127,7 +129,7 @@ const char *File::fullPath() const
 File::Size File::read(void *buf, Size sz)
 {
   DWORD num_read = 0;
-#if defined(_MSVC_VER)
+#if __win32
   ReadFile(m, buf, sz, &num_read, nullptr);
 #endif
 
@@ -142,7 +144,7 @@ File::Size File::read(void *buf)
 File::Size File::write(const void *buf, Size sz)
 {
   DWORD num_written = 0;
-#if defined(_MSVC_VER)
+#if __win32
   WriteFile(m, buf, sz, &num_written, nullptr);
 #endif
 
@@ -151,7 +153,7 @@ File::Size File::write(const void *buf, Size sz)
 
 void File::seek(Seek seek, size_t offset) const
 {
-#if defined(_MSVC_VER)
+#if __win32
   DWORD move_method = 0;
   switch(seek) {
   case SeekBegin:   move_method = FILE_BEGIN; break;
@@ -168,7 +170,7 @@ void File::seek(Seek seek, size_t offset) const
 
 size_t File::seekOffset() const
 {
-#if defined(_MSVC_VER)
+#if __win32
   LARGE_INTEGER file_pointer;
   LARGE_INTEGER distance;
   distance.QuadPart = 0;
@@ -184,7 +186,7 @@ size_t File::seekOffset() const
 
 bool File::flush()
 {
-#if defined(_MSVC_VER)
+#if __win32
   return FlushFileBuffers(m) == TRUE;
 #else
   return false;
@@ -198,7 +200,7 @@ FileView File::map(Protect protect, const char *name)
 
 FileView File::map(Protect protect, size_t offset, size_t size, const char *name)
 {
-#if defined(_MSVC_VER)
+#if __win32
   DWORD flprotect = 0;
   switch(protect) {
   case ProtectRead:             flprotect = PAGE_READONLY; break;
@@ -234,7 +236,7 @@ void *FileView::get() const
 
 void FileView::flush(File::Size sz)
 {
-#if defined(_MSVC_VER)
+#if __win32
   FlushViewOfFile(m_ptr, sz);
 #endif
 }
@@ -252,7 +254,7 @@ size_t FileView::size() const
 
 void FileView::unmap()
 {
-#if defined(_MSVC_VER)
+#if __win32
   UnmapViewOfFile(m_ptr);
   CloseHandle(m);
 
@@ -264,7 +266,7 @@ void FileView::unmap()
 FileView::FileView(const File& file, void *mapping, File::Protect access, size_t offset, size_t size) :
   m_file(file), m_size(size), m(mapping)
 {
-#if defined(_MSVC_VER)
+#if __win32
   DWORD desired_access = 0;
   desired_access |= access & File::ProtectRead    ? FILE_MAP_READ    : 0;
   desired_access |= access & File::ProtectWrite   ? FILE_MAP_WRITE   : 0;
@@ -277,7 +279,7 @@ FileView::FileView(const File& file, void *mapping, File::Protect access, size_t
 
 const char *File::Error::errorString() const
 {
-#if defined(_MSVC_VER)
+#if __win32
   switch(what) {
   case ERROR_FILE_NOT_FOUND: return "FileNotFound";
   case ERROR_FILE_INVALID:   return "FileInvalid";
@@ -327,7 +329,7 @@ FileQuery& FileQuery::operator=(FileQuery&& other)
 
 void FileQuery::foreach(IterFn fn)
 {
-#if defined(_MSVC_VER)
+#if __win32
   auto compare = [](const char *a, const char *b) {
     return strncmp(a, b, sizeof(WIN32_FIND_DATAA::cFileName)) == 0;
   };
@@ -349,7 +351,7 @@ void FileQuery::foreach(IterFn fn)
 
 void FileQuery::openQuery(const char *path)
 {
-#if defined(_MSVC_VER)
+#if __win32
   if(!m_find_data) m_find_data = new WIN32_FIND_DATAA();
   m = FindFirstFileExA(path, FindExInfoBasic, m_find_data, FindExSearchNameMatch, nullptr, 0);
 
@@ -359,14 +361,14 @@ void FileQuery::openQuery(const char *path)
 
 void FileQuery::closeQuery()
 {
-#if defined(_MSVC_VER)
+#if __win32
   if(m != INVALID_HANDLE_VALUE) FindClose(m);
 #endif
 }
 
 bool current_working_directory(const char *dir)
 {
-#if defined(_MSVC_VER)
+#if __win32
   return SetCurrentDirectoryA(dir);
 #else
   return false;

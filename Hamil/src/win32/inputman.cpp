@@ -1,32 +1,25 @@
-#include <win32/input.h>
+#include <win32/inputman.h>
 #include <win32/panic.h>
+
+#include <config>
 
 #include <vector>
 
 #include <cctype>
 #include <cassert>
 
-#if defined(_MSVC_VER)
+#if __win32
 #  include <Windows.h>
 #endif
 
 namespace win32 {
 
-void Input::deleter(Input *ptr)
-{
-  if(auto mouse = ptr->get<Mouse>()) {
-    delete mouse;
-  } else if(auto kb = ptr->get<Keyboard>()) {
-    delete kb;
-  }
+static unsigned translate_key(u16 vk, unsigned modifiers);
+static unsigned translate_sym(u16 vk, unsigned modifiers);
 
-  assert(0);     // Unreachable
-}
-
-InputDeviceManager::InputDeviceManager() :
-  m_mouse_buttons(0), m_kb_modifiers(0)
+InputDeviceManager::InputDeviceManager()
 {
-#if defined(_MSVC_VER)
+#if __win32
   RAWINPUTDEVICE rid[2];
 
   // Mouse
@@ -45,26 +38,13 @@ InputDeviceManager::InputDeviceManager() :
     panic("couldn't register input devices!", InputDeviceRegistartionError);
   }
 
-  setMouseSpeed(1.0f);
-  setDoubleClickSpeed(0.5f);
-
   m_capslock = (GetKeyState(VK_CAPITAL) & 1) ? Keyboard::CapsLock : 0; //  bit 0 == toggle state
 #endif
 }
 
-void InputDeviceManager::setMouseSpeed(float speed)
+Input::Ptr InputDeviceManager::doPollInput()
 {
-  m_mouse_speed = speed;
-}
-
-void InputDeviceManager::setDoubleClickSpeed(float speed_seconds)
-{
-  m_dbl_click_speed = Timers::s_to_ticks(speed_seconds);
-}
-
-void InputDeviceManager::process(void *handle)
-{
-#if defined(_MSVC_VER)
+#if __win32
   UINT sz = 0;
   GetRawInputData((HRAWINPUT)handle, RID_INPUT, nullptr, &sz, sizeof(RAWINPUTHEADER));
 
@@ -112,8 +92,8 @@ void InputDeviceManager::process(void *handle)
     }
     kbi->modifiers = m_kb_modifiers | m_capslock;
 
-    kbi->key = Keyboard::translate_key(kb->VKey, kbi->modifiers);
-    kbi->sym = Keyboard::translate_sym(kb->VKey, kbi->modifiers);
+    kbi->key = translate_key(kb->VKey, kbi->modifiers);
+    kbi->sym = translate_sym(kb->VKey, kbi->modifiers);
 
     break;
   }
@@ -192,20 +172,10 @@ void InputDeviceManager::process(void *handle)
   default: break;
   }
 
-  m_input_buffer.push_back(std::move(input));
+  return input;
+#else
+  return Input::Ptr(nullptr, &Input::deleter);
 #endif
-}
-
-Input::Ptr InputDeviceManager::getInput()
-{
-  Input::Ptr ptr(nullptr, &Input::deleter);
-
-  if(m_input_buffer.size()) {
-    ptr = std::move(m_input_buffer.front());
-    m_input_buffer.pop_front();
-  }
-
-  return ptr;
 }
 
 void InputDeviceManager::doDoubleClick(Mouse *mi)
@@ -222,7 +192,7 @@ void InputDeviceManager::doDoubleClick(Mouse *mi)
 
     m_clicks.clear();
 
-    if(last_click.ev_data == mi->ev_data && dt < m_dbl_click_speed) {
+    if(last_click.ev_data == mi->ev_data && dt < tDoubleClickSpeed()) {
       mi->event = Mouse::DoubleClick;
       return;
     }
@@ -231,42 +201,12 @@ void InputDeviceManager::doDoubleClick(Mouse *mi)
   m_clicks.push(*mi);
 }
 
-bool Mouse::buttonDown(Button btn) const
+static unsigned translate_sym(u16 vk, unsigned modifiers)
 {
-  return event == Down && ev_data == btn;
-}
+  bool shift = modifiers & Keyboard::Shift,
+    caps = modifiers & Keyboard::CapsLock;
 
-bool Mouse::buttonUp(Button btn) const
-{
-  return event == Up && ev_data == btn;
-}
-
-bool Keyboard::keyDown(unsigned k) const
-{
-  return event == KeyDown && key == k;
-}
-
-bool Keyboard::keyUp(unsigned k) const
-{
-  return event == KeyUp && key == k;
-}
-
-bool Keyboard::modifier(unsigned mod) const
-{
-  return (modifiers & mod) == mod;
-}
-
-bool Keyboard::special() const
-{
-  return key > SpecialKey;
-}
-
-unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
-{
-  bool shift = modifiers & Shift,
-    caps = modifiers & CapsLock;
-
-#if defined(_MSVC_VER)
+#if __win32
   if(shift) {
     switch(vk) {
     case '1': return '!';
@@ -312,9 +252,9 @@ unsigned Keyboard::translate_sym(u16 vk, unsigned modifiers)
   return (shift || caps) ? toupper(vk) : tolower(vk);
 }
 
-unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
+unsigned translate_key(u16 vk, unsigned modifiers)
 {
-#if defined(_MSVC_VER)
+#if __win32
   switch(vk) {
   case VK_OEM_1:      return ';';
   case VK_OEM_2:      return '/';
@@ -328,38 +268,38 @@ unsigned Keyboard::translate_key(u16 vk, unsigned modifiers)
   case VK_OEM_PLUS:   return '+';
   case VK_OEM_MINUS:  return '-';
 
-  case VK_ESCAPE: return Escape;
-  case VK_F1:     return F1;
-  case VK_F2:     return F2;
-  case VK_F3:     return F3;
-  case VK_F4:     return F4;
-  case VK_F5:     return F5;
-  case VK_F6:     return F6;
-  case VK_F7:     return F7;
-  case VK_F8:     return F8;
-  case VK_F9:     return F9;
-  case VK_F10:    return F10;
-  case VK_F11:    return F11;
-  case VK_F12:    return F12;
+  case VK_ESCAPE: return Keyboard::Escape;
+  case VK_F1:     return Keyboard::F1;
+  case VK_F2:     return Keyboard::F2;
+  case VK_F3:     return Keyboard::F3;
+  case VK_F4:     return Keyboard::F4;
+  case VK_F5:     return Keyboard::F5;
+  case VK_F6:     return Keyboard::F6;
+  case VK_F7:     return Keyboard::F7;
+  case VK_F8:     return Keyboard::F8;
+  case VK_F9:     return Keyboard::F9;
+  case VK_F10:    return Keyboard::F10;
+  case VK_F11:    return Keyboard::F11;
+  case VK_F12:    return Keyboard::F12;
 
-  case VK_UP:    return Up;
-  case VK_DOWN:  return Down;
-  case VK_LEFT:  return Left;
-  case VK_RIGHT: return Right;
+  case VK_UP:    return Keyboard::Up;
+  case VK_DOWN:  return Keyboard::Down;
+  case VK_LEFT:  return Keyboard::Left;
+  case VK_RIGHT: return Keyboard::Right;
 
-  case VK_RETURN: return Enter;
-  case VK_BACK:   return Backspace;
+  case VK_RETURN: return Keyboard::Enter;
+  case VK_BACK:   return Keyboard::Backspace;
 
-  case VK_INSERT: return Insert;
-  case VK_DELETE: return Delete;
-  case VK_HOME:   return Home;
-  case VK_END:    return End;
-  case VK_PRIOR:  return PageUp;
-  case VK_NEXT:   return PageDown;
+  case VK_INSERT: return Keyboard::Insert;
+  case VK_DELETE: return Keyboard::Delete;
+  case VK_HOME:   return Keyboard::Home;
+  case VK_END:    return Keyboard::End;
+  case VK_PRIOR:  return Keyboard::PageUp;
+  case VK_NEXT:   return Keyboard::PageDown;
 
-  case VK_PRINT:  return Print;
-  case VK_SCROLL: return ScrollLock;
-  case VK_PAUSE:  return Pause;
+  case VK_PRINT:  return Keyboard::Print;
+  case VK_SCROLL: return Keyboard::ScrollLock;
+  case VK_PAUSE:  return Keyboard::Pause;
   }
 #endif
 

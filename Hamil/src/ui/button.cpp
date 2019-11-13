@@ -21,10 +21,10 @@ bool ButtonFrame::input(CursorDriver& cursor, const InputPtr& input)
     ui().capture(this);
   }
 
-  auto mouse = input->get<win32::Mouse>();
+  auto mouse = input->get<os::Mouse>();
   if(!mouse) return false;
 
-  using win32::Mouse;
+  using os::Mouse;
   if(mouse->buttonDown(Mouse::Left)) {
     m_state = Pressed;
     ui().keyboard(nullptr);

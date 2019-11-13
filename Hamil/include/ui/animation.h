@@ -3,7 +3,7 @@
 #include <common.h>
 
 #include <ui/uicommon.h>
-#include <win32/time.h>
+#include <os/time.h>
 
 #include <cassert>
 #include <initializer_list>
@@ -162,7 +162,7 @@ public:
 private:
   IAnimationChannel *m_channels[MaxAnimationChannels];
 
-  win32::LoopTimer m_timer;
+  os::LoopTimer m_timer;
 };
 
 }

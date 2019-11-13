@@ -1,42 +1,41 @@
 #pragma once
 
+#include <gx/context.h>
+#include <os/thread.h>
 #include <win32/win32.h>
-#include <win32/thread.h>
+
+namespace os {
+// Forward declaration
+class Window;
+}
 
 namespace win32 {
 
-class Window;
-
-// Acquired through Window::acquireGlContext()
-class GlContext {
+// Acquired through Window::acquireGLContext()
+class GLContext final : public gx::GLContext {
 public:
-  GlContext();
-  GlContext(const GlContext& other) = delete;
-  GlContext(GlContext&& other);
+  GLContext();
+  GLContext(GLContext&& other);
+  virtual ~GLContext() final;
 
-  GlContext& operator=(GlContext&& other);
+  GLContext& operator=(GLContext&& other);
 
-  // Once called for the first time on a given Thread
-  //   all future calls to this method must be made on
-  //   that Thread
-  void makeCurrent();
+  virtual void *nativeHandle() const final;
 
-  // Frees the GlContext
-  void release();
+  virtual gx::GLContext& acquire(os::Window *window, gx::GLContext *share = nullptr) final;
 
-  // Returns 'true' if context was previously initialized
-  operator bool();
+protected:
+  virtual bool wasInit() const final;
+
+  virtual void doMakeCurrent() final;
+  virtual void doRelease() final;
 
 private:
-  friend Window;
-
-  GlContext(void *hdc, void *hglrc);
-
   void /* HDC */ *m_hdc;
   void /* HGLRC */ *m_hglrc;
 
 #if !defined(NDEBUG)
-  Thread::Id m_owner = Thread::InvalidId;
+  os::Thread::Id m_owner = os::Thread::InvalidId;
 #endif
 };
 

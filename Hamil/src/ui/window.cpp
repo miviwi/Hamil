@@ -12,10 +12,10 @@ bool WindowFrame::input(CursorDriver& cursor, const InputPtr& input)
   // If moving don't pass input to the content Frame
   bool handled = m_state == Moving ? false : m_content->input(cursor, input);
   if(!handled) {
-    auto mouse = input->get<win32::Mouse>();
+    auto mouse = input->get<os::Mouse>();
     if(!mouse) return false;
 
-    using win32::Mouse;
+    using os::Mouse;
     if(mouse->buttonDown(Mouse::Left)) {
       bool mouse_over_decorations = decorationsGeometry().intersect(cursor.pos());
 

@@ -66,11 +66,11 @@ private:
   // Update m_content's position.x
   void scrollContentX(float x);
 
-  bool scrollMousewheel(const win32::Mouse *mouse);
+  bool scrollMousewheel(const os::Mouse *mouse);
 
   // Returns 'true' when the mouse intersected a scrollbar
   //   - Captures input when 'true' is returned!
-  bool scrollbarClicked(CursorDriver& cursor, const win32::Mouse *mouse);
+  bool scrollbarClicked(CursorDriver& cursor, const os::Mouse *mouse);
 
   uint m_scrollbars = VScrollbar;
   Frame *m_content = nullptr;

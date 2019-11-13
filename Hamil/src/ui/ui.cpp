@@ -287,15 +287,15 @@ gx::ResourcePool::Id Ui::framebufferTextureId()
 
 bool Ui::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(auto mouse = input->get<win32::Mouse>()) {
-    if(mouse->event == win32::Mouse::Move && !cursor.visible()) cursor.visible(true);
+  if(auto mouse = input->get<os::Mouse>()) {
+    if(mouse->event == os::Mouse::Move && !cursor.visible()) cursor.visible(true);
   }
 
   // The cursor is outside the Ui, so don't consume the input
   if(!m_geom.intersect(cursor.pos())) return false;
 
   if(m_keyboard) {
-    if(input->get<win32::Keyboard>()) return m_keyboard->input(cursor, input);
+    if(input->get<os::Keyboard>()) return m_keyboard->input(cursor, input);
   } else if(m_capture) {
     return m_capture->input(cursor, input);
   }

@@ -5,7 +5,7 @@
 
 #include <util/format.h>
 #include <util/str.h>
-#include <win32/input.h>
+#include <os/input.h>
 
 #include <unordered_map>
 #include <functional>
@@ -94,7 +94,7 @@ ConsoleFrame::ConsoleFrame(Ui& ui, const char *name) :
     target->text("");
   });
 
-  m_prompt->onKeyDown([this](TextBoxFrame *target, win32::Keyboard *kb) {
+  m_prompt->onKeyDown([this](TextBoxFrame *target, os::Keyboard *kb) {
     specialKey(kb);
   });
 }
@@ -111,8 +111,8 @@ ConsoleFrame::~ConsoleFrame()
 
 bool ConsoleFrame::input(CursorDriver& cursor, const InputPtr& input)
 {
-  if(auto kb = input->get<win32::Keyboard>()) {
-    using win32::Keyboard;
+  if(auto kb = input->get<os::Keyboard>()) {
+    using os::Keyboard;
     if(!kb->special() || kb->event != Keyboard::KeyDown) return m_console->input(cursor, input);
 
     return specialKey(kb);
@@ -215,9 +215,9 @@ void ConsoleFrame::consoleCommand(const std::string& cmd)
   fns[cmd]();
 }
 
-bool ConsoleFrame::specialKey(win32::Keyboard *kb)
+bool ConsoleFrame::specialKey(os::Keyboard *kb)
 {
-  using win32::Keyboard;
+  using os::Keyboard;
 
   std::string s;
   switch(kb->key) {
@@ -250,8 +250,8 @@ bool ConsoleBufferFrame::input(CursorDriver& cursor, const InputPtr& input)
     return false;
   }
 
-  if(auto mouse = input->get<win32::Mouse>()) {
-    using win32::Mouse;
+  if(auto mouse = input->get<os::Mouse>()) {
+    using os::Mouse;
     if(mouse->event != Mouse::Wheel) {
       ui().capture(this);
       return true;

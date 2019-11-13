@@ -1,11 +1,14 @@
 #include <win32/window.h>
+#include <win32/inputman.h>
 #include <win32/panic.h>
+#include <win32/glcontext.h>
+#include <gx/context.h>
 
 #include <cassert>
 #include <algorithm>
 #include <string>
 
-#if defined(_MSVC_VER)
+#if __win32
 #  include <windowsx.h>
 #else
 #  define LPWSTR wchar_t*
@@ -24,17 +27,17 @@
 #endif
 
 #include <GL/gl3w.h>
-#if defined(_MSVC_VER)
+#if __win32
 #  include <GL/wgl.h>
 #endif
 
-#if defined(_MSVC_VER)
+#if __win32
 #  pragma comment(lib, "opengl32.lib")
 #endif
 
 namespace win32 {
 
-#if defined(_MSVC_VER)
+#if __win32
 PFNWGLSWAPINTERVALEXTPROC SwapIntervalEXT;
 PFNWGLCREATECONTEXTATTRIBSARBPROC CreateContextAttribsARB;
 #endif
@@ -44,7 +47,7 @@ static HGLRC ogl_create_context(HWND hWnd);
 static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
                                         GLenum severity, GLsizei length, GLchar *msg, const void *user);
 
-#if defined(_MSVC_VER)
+#if __win32
 
 #if !defined(NDEBUG)
 constexpr int ContextFlags = WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -57,7 +60,7 @@ constexpr int ContextProfile = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 #endif
 
 static const int ContextAttribs[] = {
-#if defined(_MSVC_VER)
+#if __win32
   WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
   WGL_CONTEXT_MINOR_VERSION_ARB, 3,
   WGL_CONTEXT_PROFILE_MASK_ARB, ContextProfile,
@@ -68,19 +71,19 @@ static const int ContextAttribs[] = {
 
 static void get_wgl_extension_addresses()
 {
-#if defined(_MSVC_VER)
+#if __win32
   SwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
   CreateContextAttribsARB = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
 #endif
 }
 
 Window::Window(int width, int height) :
+  os::Window(width, height),
   m_hwnd(nullptr),
   m_hglrc(nullptr),
-  m_width(width), m_height(height),
   m_thread(Thread::current_thread_id())
 {
-#if defined(_MSVC_VER)
+#if __win32
   HINSTANCE hInstance = GetModuleHandle(nullptr);
 
   registerClass(hInstance);
@@ -95,50 +98,28 @@ Window::~Window()
   destroy();
 }
 
-bool Window::processMessages()
+void *Window::nativeHandle() const
 {
-#if defined(_MSVC_VER)
-  MSG msg;
-  while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) != 0) {
-    if(msg.message == WM_QUIT) return false;
-
-    TranslateMessage(&msg);
-    DispatchMessage(&msg);
-  }
-
-  return true;
-#else
-  return false;
-#endif
+  return hwnd();
 }
 
 void Window::swapBuffers()
 {
-#if defined(_MSVC_VER)
+#if __win32
   wglSwapLayerBuffers(GetDC(m_hwnd), WGL_SWAP_MAIN_PLANE);
 #endif
 }
 
 void Window::swapInterval(unsigned interval)
 {
-#if defined(_MSVC_VER)
+#if __win32
   SwapIntervalEXT(interval);
 #endif
 }
 
-Input::Ptr Window::getInput()
-{
-  return m_input_man.getInput();
-}
-
-void Window::setMouseSpeed(float speed)
-{
-  m_input_man.setMouseSpeed(speed);
-}
-
 void Window::captureMouse()
 {
-#if defined(_MSVC_VER)
+#if __win32
   SetCapture(m_hwnd);
   resetMouse();
 
@@ -148,7 +129,7 @@ void Window::captureMouse()
 
 void Window::releaseMouse()
 {
-#if defined(_MSVC_VER)
+#if __win32
   ReleaseCapture();
 
   while(ShowCursor(TRUE) < 0);
@@ -157,7 +138,7 @@ void Window::releaseMouse()
 
 void Window::resetMouse()
 {
-#if defined(_MSVC_VER)
+#if __win32
   POINT pt = { 0, 0 };
 
   ClientToScreen(m_hwnd, &pt);
@@ -167,7 +148,7 @@ void Window::resetMouse()
 
 void Window::quit()
 {
-#if defined(_MSVC_VER)
+#if __win32
   PostMessage(m_hwnd, WM_CLOSE, 0, 0);
 #endif
 }
@@ -175,7 +156,7 @@ void Window::quit()
 static ATOM p_atom = INVALID_ATOM;
 ATOM Window::registerClass(HINSTANCE hInstance)
 {
-#if defined(_MSVC_VER)
+#if __win32
   // The class has already been registered
   if(p_atom != INVALID_ATOM) return p_atom;
 
@@ -201,9 +182,31 @@ ATOM Window::registerClass(HINSTANCE hInstance)
 #endif
 }
 
+bool Window::doProcessMessages()
+{
+#if __win32
+  MSG msg;
+  while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) != 0) {
+    if(msg.message == WM_QUIT) return false;
+
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+
+  return true;
+#else
+  return false;
+#endif
+}
+
+os::InputDeviceManager *Window::acquireInputManager()
+{
+  return new win32::InputDeviceManager();
+}
+
 HWND Window::createWindow(HINSTANCE hInstance, int width, int height)
 {
-#if defined(_MSVC_VER)
+#if __win32
   RECT rc = { 0, 0, width, height };
   AdjustWindowRect(&rc, WS_CAPTION|WS_SYSMENU, false);
 
@@ -223,7 +226,7 @@ HWND Window::createWindow(HINSTANCE hInstance, int width, int height)
 
 HGLRC ogl_create_context(HWND hWnd)
 {
-#if defined(_MSVC_VER)
+#if __win32
   PIXELFORMATDESCRIPTOR pfd = {
     sizeof(PIXELFORMATDESCRIPTOR),
     1,
@@ -280,24 +283,9 @@ HGLRC ogl_create_context(HWND hWnd)
 #endif
 }
 
-GlContext Window::acquireGlContext()
-{
-#if defined(_MSVC_VER)
-  assert(Thread::current_thread_id() == m_thread &&
-    "Window::acquireGlContext() called on the wrong thread!");
-
-  HDC hdc = GetDC(m_hwnd);
-  HGLRC hglrc = CreateContextAttribsARB(hdc, m_hglrc, ContextAttribs);
-
-  return GlContext(hdc, hglrc);
-#else
-  return GlContext(nullptr, nullptr);
-#endif
-}
-
 void Window::destroy()
 {
-#if defined(_MSVC_VER)
+#if __win32
   wglMakeCurrent(nullptr, nullptr);
   wglDeleteContext(m_hglrc);
 
@@ -310,7 +298,7 @@ void Window::destroy()
 
 LRESULT Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wparam, LPARAM lparam)
 {
-#if defined(_MSVC_VER)
+#if __win32
   auto self = (Window *)GetWindowLongPtr(hWnd, GWLP_USERDATA);
 
   switch(uMsg) {
@@ -388,7 +376,7 @@ static void APIENTRY ogl_debug_callback(GLenum source, GLenum type, GLuint id,
   case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "?"; break;
   }
 
-#if defined(_MSVC_VER)
+#if __win32
   sprintf_s(dbg_buf, "%s (%s, %s): %s\n", source_str, severity_str, type_str, msg);
 
   OutputDebugStringA(dbg_buf);

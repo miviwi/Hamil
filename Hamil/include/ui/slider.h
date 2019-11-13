@@ -3,7 +3,8 @@
 #include <ui/uicommon.h>
 #include <ui/ui.h>
 #include <ui/frame.h>
-#include <win32/input.h>
+
+#include <os/input.h>
 #include <math/geometry.h>
 
 #include <cfloat>

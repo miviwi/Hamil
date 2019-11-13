@@ -10,14 +10,17 @@
 #include <math/util.h>
 #include <math/frustum.h>
 
+#include <os/os.h>
+#include <os/stdstream.h>
+
 #include <win32/win32.h>
 #include <win32/panic.h>
 #include <win32/cpuid.h>
 #include <win32/cpuinfo.h>
 #include <win32/window.h>
+#include <win32/glcontext.h>
 #include <win32/time.h>
 #include <win32/file.h>
-#include <win32/stdstream.h>
 #include <win32/mman.h>
 #include <win32/thread.h>
 #include <win32/mutex.h>
@@ -127,6 +130,10 @@ int main(int argc, char *argv[])
   using win32::Window;
   Window window(WindowSize.x, WindowSize.y);
 
+  win32::GLContext gl_context;
+
+  gl_context.acquire(&window);
+
   gx::init();
   ft::init();
   ui::init();
@@ -146,7 +153,7 @@ int main(int argc, char *argv[])
 
   sched::WorkerPool worker_pool;
   worker_pool
-    .acquireWorkerGlContexts(window)
+    .acquireWorkerGLContexts(window)
     .kickWorkers();
 
   std::random_device dev_random;
@@ -514,7 +521,7 @@ int main(int argc, char *argv[])
   console.onCommand([&](auto target, const char *command) {
     try {
       py::exec(command);
-      console.print(">>> " + win32::StdStream::gets());
+      console.print(">>> " + os::StdStream::gets());
     } catch(py::Exception e) {
       std::string exception_type = e.type().name();
       if(exception_type == "SystemExit") exit(0);
@@ -883,7 +890,7 @@ int main(int argc, char *argv[])
     using hm::entities;
     using hm::components;
 
-    auto std_stream = win32::StdStream::gets();
+    auto std_stream = os::StdStream::gets();
 
     win32::Timers::tick();
     if(std_stream.size()) console.print(std_stream);
@@ -906,8 +913,8 @@ int main(int argc, char *argv[])
 
       if(iface.input(cursor, input)) continue;
 
-      if(auto kb = input->get<win32::Keyboard>()) {
-        using win32::Keyboard;
+      if(auto kb = input->get<os::Keyboard>()) {
+        using os::Keyboard;
 
         if(kb->keyDown('S')) {
           components().foreach([&](hmRef<hm::RigidBody> rb) {
@@ -946,8 +953,8 @@ int main(int argc, char *argv[])
         } else if(kb->key == Keyboard::Down) {
           zoom = clamp(zoom-0.05f, 0.01f, INFINITY);
         }
-      } else if(auto mouse = input->get<win32::Mouse>()) {
-        using win32::Mouse;
+      } else if(auto mouse = input->get<os::Mouse>()) {
+        using os::Mouse;
 
         cursor.visible(!mouse->buttons);
         if(mouse->buttonDown(Mouse::Left)) iface.keyboard(nullptr);

@@ -9,7 +9,7 @@
 #include <win32/file.h>
 #include <util/staticstring.h>
 
-#include <config.h>
+#include <config>
 
 #include <memory>
 #include <regex>

@@ -1,5 +1,13 @@
 set (ProjectDir "${PROJECT_SOURCE_DIR}/Hamil")
 
+if (WIN32)
+  set (Platform "win32")
+endif ()
+
+if (UNIX)
+  set (Platform "sysv")
+endif()
+
 target_include_directories (Hamil PUBLIC
   "GL"
   "bullet3/include"
@@ -31,13 +39,7 @@ target_link_libraries (HamilExtern PUBLIC
 )
 
 # Copy over the correct ftoption.h depending on platform
-if (WIN32)
-  set (FTOPTION_H "${ProjectDir}/extern/freetype2/config/ftoption.win32.h")
-endif ()
-
-if (UNIX)
-  set (FTOPTION_H "${ProjectDir}/extern/freetype2/config/ftoption.sysv.h")
-endif ()
+set (FTOPTION_H "${ProjectDir}/extern/freetype2/config/ftoption.${Platform}.h")
 
 message ("-- Copying FreeType 2 configuration header (ftoption.h)")
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy
@@ -45,13 +47,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E copy
 )
 
 # Copy over the correct pyconfig.h depending on platform
-if (WIN32)
-  set (PYCONFIG_H "${ProjectDir}/extern/python37/config/pyconfig.win32.h")
-endif ()
-
-if (UNIX)
-  set (PYCONFIG_H "${ProjectDir}/extern/python37/config/pyconfig.sysv.h")
-endif ()
+set (PYCONFIG_H "${ProjectDir}/extern/python37/config/pyconfig.${Platform}.h")
 
 message ("-- Copying Python configuration header (pyconfig.h)")
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy

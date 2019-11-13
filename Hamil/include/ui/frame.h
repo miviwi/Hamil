@@ -7,8 +7,9 @@
 #include <ui/cursor.h>
 #include <ui/event.h>
 #include <ui/animation.h>
+
 #include <math/geometry.h>
-#include <win32/input.h>
+#include <os/input.h>
 
 #include <utility>
 

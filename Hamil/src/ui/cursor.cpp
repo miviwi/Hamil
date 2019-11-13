@@ -232,7 +232,7 @@ CursorDriver::CursorDriver(float x, float y) :
 
 void CursorDriver::input(const InputPtr& input)
 {
-  if(auto mouse = input->get<win32::Mouse>()) {
+  if(auto mouse = input->get<os::Mouse>()) {
     m_pos += { mouse->dx, mouse->dy };
 
     m_pos = clamp(m_pos, { }, FramebufferSize);

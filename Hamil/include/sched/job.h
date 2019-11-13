@@ -3,8 +3,8 @@
 #include <sched/scheduler.h>
 
 #include <util/lambdatraits.h>
+#include <os/time.h>
 #include <win32/conditionvar.h>
-#include <win32/time.h>
 
 #include <cassert>
 #include <atomic>
@@ -54,7 +54,7 @@ private:
   win32::ConditionVariable m_cv;
 
 #if !defined(NDEBUG)
-  win32::DeltaTimer m_timer;
+  os::DeltaTimer m_timer;
   double m_dt;
 #endif
 };

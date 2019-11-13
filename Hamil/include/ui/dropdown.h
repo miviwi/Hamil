@@ -60,7 +60,7 @@ private:
   Geometry buttonGeometry() const;
   Geometry itemGeometry(unsigned idx) const;
 
-  bool inputDropped(vec2 mouse_pos, win32::Mouse *mouse);
+  bool inputDropped(vec2 mouse_pos, os::Mouse *mouse);
 
   State m_state = Default;
   bool m_dropped = false;

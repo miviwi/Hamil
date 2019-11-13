@@ -46,7 +46,7 @@ void IJob::scheduled()
 void IJob::started()
 {
 #if !defined(NDEBUG)
-  win32::Timers::tick();
+  os::Timers::tick();
 
   m_timer.reset();
   m_dt = 0.0;
@@ -56,7 +56,7 @@ void IJob::started()
 void IJob::finished()
 {
 #if !defined(NDEBUG)
-  win32::Timers::tick();
+  os::Timers::tick();
   m_dt = m_timer.elapsedSecondsf();
 #endif
 

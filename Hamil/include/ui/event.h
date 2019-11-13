@@ -1,8 +1,11 @@
 #pragma once
 
 #include <common.h>
+
 #include <ui/uicommon.h>
 #include <ui/ui.h>
+
+#include <os/input.h>
 
 namespace ui {
 
@@ -13,21 +16,21 @@ public:
 
 class InputEvent : public Event {
 public:
-  const win32::Input *input() const;
+  const os::Input *input() const;
 
 protected:
   InputEvent(const InputPtr& input);
 
 private:
-  const win32::Input *m_input;
+  const os::Input *m_input;
 };
 
 class MouseEvent : public InputEvent {
 public:
-  using Button = win32::Mouse::Button;
-  using Event  = win32::Mouse::Event;
+  using Button = os::Mouse::Button;
+  using Event  = os::Mouse::Event;
 
-  const win32::Mouse *mouse() const;
+  const os::Mouse *mouse() const;
 
   vec2 pos() const;
   ivec2 ipos() const;

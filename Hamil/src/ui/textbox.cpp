@@ -32,8 +32,8 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
   auto g = geometry();
   bool mouse_over = g.intersect(cursor.pos());
     
-  if(auto mouse = input->get<win32::Mouse>()) {
-    using win32::Mouse;
+  if(auto mouse = input->get<os::Mouse>()) {
+    using os::Mouse;
 
     auto pos = cursor.pos() - g.pos();
 
@@ -68,8 +68,8 @@ bool TextBoxFrame::input(CursorDriver& cursor, const InputPtr& input)
       }
     }
 
-  } else if(auto kb = input->get<win32::Keyboard>()) {
-    if(m_state != Editing || kb->event != win32::Keyboard::KeyDown) return false;
+  } else if(auto kb = input->get<os::Keyboard>()) {
+    if(m_state != Editing || kb->event != os::Keyboard::KeyDown) return false;
 
     cursor.visible(!mouse_over);
     return keyboardDown(cursor, kb);
@@ -238,7 +238,7 @@ vec2 TextBoxFrame::sizeHint() const
   return { 0, font()->height() + TextPixelMargin*2 };
 }
 
-bool TextBoxFrame::keyboardDown(CursorDriver& cursor, win32::Keyboard *kb)
+bool TextBoxFrame::keyboardDown(CursorDriver& cursor, os::Keyboard *kb)
 {
   bool handled = kb->special() ? specialInput(kb) : charInput(kb);
 
@@ -246,9 +246,9 @@ bool TextBoxFrame::keyboardDown(CursorDriver& cursor, win32::Keyboard *kb)
   return handled;
 }
 
-bool TextBoxFrame::charInput(win32::Keyboard *kb)
+bool TextBoxFrame::charInput(os::Keyboard *kb)
 {
-  using win32::Keyboard;
+  using os::Keyboard;
 
   if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) {
     switch(kb->key) {
@@ -291,9 +291,9 @@ bool TextBoxFrame::charInput(win32::Keyboard *kb)
   return true;
 }
 
-bool TextBoxFrame::specialInput(win32::Keyboard *kb)
+bool TextBoxFrame::specialInput(os::Keyboard *kb)
 {
-  using win32::Keyboard;
+  using os::Keyboard;
 
   m_cursor_blink.start();
 

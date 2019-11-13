@@ -9,7 +9,7 @@
 #include <ui/drawable.h>
 
 #include <math/geometry.h>
-#include <win32/input.h>
+#include <os/input.h>
 #include <win32/window.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
@@ -37,7 +37,7 @@ void finalize();
 class VertexPainter;
 class Frame;
 
-using InputPtr = win32::Input::Ptr;
+using InputPtr = os::Input::Ptr;
 
 class Ui {
 public:

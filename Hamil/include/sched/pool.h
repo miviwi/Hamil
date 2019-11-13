@@ -8,9 +8,9 @@
 #include <vector>
 #include <memory>
 
-namespace win32 {
+namespace os {
+// Forward declarations
 class Thread;
-
 class Window;
 }
 
@@ -57,8 +57,14 @@ public:
   WorkerPool(const WorkerPool& other) = delete;
   ~WorkerPool();
 
-  // Must be called BEFORE kickWorkers()
-  WorkerPool& acquireWorkerGlContexts(win32::Window& window);
+  // Used to create GLContext's which share the resources
+  //   of the current thread's context so worker threads
+  //   can have access to GL calls
+  //  - Can be called ONLY when a GLContext has previously
+  //    had GLContext::makeCurrent() called on it on the
+  //    current thread!
+  //  - Must be called BEFORE kickWorkers()
+  WorkerPool& acquireWorkerGLContexts(os::Window& window);
 
   // The caller is responsible for freeing the Job
   //   - Thanks to this Jobs can be stack-allocated
@@ -90,9 +96,9 @@ public:
 
 private:
   // 16 inline threads ought to be enough to avoid heap allocation for most cases
-  using WorkerVector = util::SmallVector<win32::Thread *, 16*sizeof(win32::Thread *)>;
+  using WorkerVector = util::SmallVector<os::Thread *, 16*sizeof(os::Thread *)>;
 
-  // Used as the Fn for worker win32::Thread()
+  // Used as the Fn for worker os::Thread()
   ulong doWork();
 
   WorkerPoolData *m_data;

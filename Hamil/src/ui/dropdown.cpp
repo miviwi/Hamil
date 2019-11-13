@@ -22,10 +22,10 @@ bool DropDownFrame::input(CursorDriver& cursor, const InputPtr& input)
     ui().capture(this);
   }
 
-  auto mouse = input->get<win32::Mouse>();
+  auto mouse = input->get<os::Mouse>();
   if(!mouse) return false;
 
-  using win32::Mouse;
+  using os::Mouse;
   if(m_dropped) {
     if(inputDropped(cursor.pos(), mouse)) return true;
   }
@@ -205,9 +205,9 @@ Geometry DropDownFrame::itemGeometry(unsigned idx) const
   };
 }
 
-bool DropDownFrame::inputDropped(vec2 mouse_pos, win32::Mouse *mouse)
+bool DropDownFrame::inputDropped(vec2 mouse_pos, os::Mouse *mouse)
 {
-  using win32::Mouse;
+  using os::Mouse;
 
   unsigned i = 0;
   for(; i < m_items.size(); i++) {
