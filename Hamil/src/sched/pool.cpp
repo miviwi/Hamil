@@ -224,9 +224,10 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
 
   // Optionally acquire GLContexts for all the workers
   auto window = m_data->window;
-  auto& current_context = gx::GLContext::current();
   auto& contexts = m_data->contexts;
   if(window) {
+    auto& current_context = gx::GLContext::current();
+
     for(auto& worker : m_workers) {
       auto gl_context = os::create_glcontext();
       gl_context->acquire(window, &current_context);

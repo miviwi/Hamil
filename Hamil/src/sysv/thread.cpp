@@ -6,6 +6,7 @@
 
 #include <new>
 #include <atomic>
+#include <algorithm>
 
 #include <cassert>
 #include <climits>
@@ -80,8 +81,6 @@ void *Thread::thread_proc_trampoline(void *arg)
   if(self->suspended) {
     auto action = wait_suspend_resume_signal();
     thread_suspend_resume(action);
-
-    printf("    ...resumed!\n");
   }
 
   self->exit_code = self->fn();
@@ -181,7 +180,10 @@ os::Thread& Thread::dbg_SetName(const char *name)
       "Thread must have had create() called on it before calling dbg_SetName()!");
 
 #if __sysv
-  auto error = pthread_setname_np(data().self, name);
+  size_t name_len = std::min<size_t>(strlen(name), 15);
+  std::string trimmed_name(name, name_len);
+
+  auto error = pthread_setname_np(data().self, trimmed_name.data());
   assert(!error);
 #endif
 

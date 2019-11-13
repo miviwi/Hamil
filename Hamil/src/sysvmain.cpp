@@ -4,6 +4,9 @@
 #include <os/cpuid.h>
 #include <os/time.h>
 #include <os/thread.h>
+#include <sched/job.h>
+#include <sched/pool.h>
+#include <util/unit.h>
 
 #include <numeric>
 #include <vector>
@@ -36,7 +39,6 @@ size_t do_sleep()
 int thread_proc()
 {
   do_sleep();
-
   puts("    done!");
 
   return 1;
@@ -46,28 +48,22 @@ int main(void)
 {
   os::init();
 
-  auto a_thread = os::Thread::alloc();
+  sched::WorkerPool worker_pool;
+  worker_pool.kickWorkers();
 
-  puts("creating 'a_thread'...");
-  a_thread->create(thread_proc, true);
+  auto a_job = sched::create_job([](int job_no) -> Unit {
+    printf("job_no %d:\n", job_no);
+    do_sleep();
+    printf("    job_no %d done!\n", job_no);
 
-  printf("a_thread.id()=%u\n", a_thread->id());
+    return {};
+  });
+  
+  worker_pool.scheduleJob(a_job.withParams(1));
 
-  a_thread->dbg_SetName("a_thread");
+  worker_pool.waitWorkersIdle();
 
-  os::Timers::tick();
-
-  sleep(2);
-
-  getchar();
-
-  a_thread->resume();
-  puts("resumed 'a_thread'...");
-
-  auto wait_result = a_thread->wait(5000);
-  printf("a_thread.wait()=0x%.8lX\n", wait_result);
-
-  printf("'a_thread' exited with exitCode=%u\n", a_thread->exitCode());
+  worker_pool.killWorkers();
 
   os::finalize();
 
