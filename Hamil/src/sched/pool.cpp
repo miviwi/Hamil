@@ -4,12 +4,12 @@
 #include <util/format.h>
 #include <os/cpuinfo.h>
 #include <os/thread.h>
+#include <os/mutex.h>
+#include <os/conditionvar.h>
 #include <os/window.h>
 #include <os/glcontext.h>
 #include <gx/context.h>
 
-#include <win32/mutex.h>
-#include <win32/conditionvar.h>
 
 #include <config>
 
@@ -44,10 +44,10 @@ public:
 
   // This mutex is shared by the workers waiting on the queue
   //   and thread(s) waiting for jobs to complete in waitJob()
-  win32::Mutex mutex;
+  os::Mutex::Ptr mutex;
 
   // Workers sleep() on this while the 'job_queue' is empty
-  win32::ConditionVariable cv;
+  os::ConditionVariable::Ptr cv;
 
   FreeListAllocator jobs_alloc;
   std::vector<IJob *> jobs;  // Job pool
@@ -58,9 +58,9 @@ public:
   std::vector<WorkerPool::JobId> job_queue;
 
   // Used to sleep() on 'workers_idle'
-  win32::Mutex workers_idle_mutex;
+  os::Mutex::Ptr workers_idle_mutex;
   // Signaled when all workers finish (i.e. !workers_active && queue.empty())
-  win32::ConditionVariable workers_idle;
+  os::ConditionVariable::Ptr workers_idle;
 
   // The number of currently active worker threads
   std::atomic<uint> workers_active = 0;
@@ -72,6 +72,12 @@ protected:
   WorkerPoolData() :
     jobs_alloc(JobsPoolSize)
   {
+    mutex = os::Mutex::alloc();
+    cv = os::ConditionVariable::alloc();
+
+    workers_idle_mutex = os::Mutex::alloc();
+    workers_idle = os::ConditionVariable::alloc();
+
     jobs.reserve(JobsPoolSize);
     job_queue.reserve(JobsQueueSize);
 
@@ -104,7 +110,7 @@ WorkerPool& WorkerPool::acquireWorkerGLContexts(os::Window& window)
 WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
 {
   // Need to acquire the lock before modyfying the job pool
-  auto lock_guard = m_data->mutex.acquireScoped();
+  auto lock_guard = m_data->mutex->acquireScoped();
 
   // Add the Job to the pool
   auto& jobs = m_data->jobs;
@@ -123,7 +129,7 @@ WorkerPool::JobId WorkerPool::scheduleJob(IJob *job)
   job->scheduled();
 
   // Wake up a worker to perform it
-  m_data->cv.wake();
+  m_data->cv->wake();
 
   return id;
 }
@@ -135,7 +141,7 @@ void WorkerPool::waitJob(JobId id)
   // Need to acquire the lock because we'll be
   //   removing the job from the pool
   auto& mutex = m_data->mutex;
-  auto lock_guard = mutex.acquireScoped();
+  auto lock_guard = mutex->acquireScoped();
 
   auto& jobs = m_data->jobs;
   auto job = jobs.at(id);
@@ -149,7 +155,7 @@ void WorkerPool::waitJob(JobId id)
   //   where the waiting thread goes to sleep just BEFORE
   //   the worker thread wakes condition()
   // TODO: figure out how to fix this, not bypass it...
-  job->condition().sleep(mutex, [&]() { return job->done(); }, 1);
+  job->condition()->sleep(mutex, [&]() { return job->done(); }, 1);
 
   // Remove the Job from the pool and make sure it's 
   //   never slept on again until it's rescheduled
@@ -162,7 +168,7 @@ WorkerPool::JobId WorkerPool::jobId(IJob *job) const
   // Need to acquire the lock because we'll be
   //   querying the Job pool
   auto& mutex = m_data->mutex;
-  auto lock_guard = mutex.acquireScoped();
+  auto lock_guard = mutex->acquireScoped();
 
   auto& jobs = m_data->jobs;
   auto it = std::find(jobs.cbegin(), jobs.cend(), job);
@@ -245,7 +251,7 @@ WorkerPool& WorkerPool::kickWorkers(const char *name)
 WorkerPool& WorkerPool::killWorkers()
 {
   m_data->done.store(true);
-  m_data->cv.wakeAll();
+  m_data->cv->wakeAll();
 
   for(auto& worker : m_workers) {
     // Wait for each worker before we delete it
@@ -263,12 +269,12 @@ WorkerPool& WorkerPool::killWorkers()
 WorkerPool& WorkerPool::waitWorkersIdle()
 {
   auto& idle_mutex = m_data->workers_idle_mutex;
-  auto lock_guard = idle_mutex.acquireScoped();
+  auto lock_guard = idle_mutex->acquireScoped();
 
   auto& queue = m_data->job_queue;
   auto& workers_active = m_data->workers_active;
 
-  m_data->workers_idle.sleep(idle_mutex, [&]() {
+  m_data->workers_idle->sleep(idle_mutex, [&]() {
     // Avoid a situation where a job gets scheduled just
     //   as we've been woken up causing a spurious wakeup
     return queue.empty() && workers_active.load() < 1;
@@ -279,8 +285,8 @@ WorkerPool& WorkerPool::waitWorkersIdle()
 
 ulong WorkerPool::doWork()
 {
-  auto& mutex = m_data->mutex;
-  auto& cv = m_data->cv;
+  auto& mutex = *m_data->mutex;
+  auto& cv = *m_data->cv;
   auto& done = m_data->done;
 
   auto& queue = m_data->job_queue;
@@ -324,7 +330,7 @@ ulong WorkerPool::doWork()
     //   that means we were the only active worker
     bool workers_idle = workers_active.fetch_sub(1) < 2;
 
-    if(workers_idle && queue.empty()) m_data->workers_idle.wakeAll();
+    if(workers_idle && queue.empty()) m_data->workers_idle->wakeAll();
   }
 
   if(context) context->release();

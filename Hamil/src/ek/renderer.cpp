@@ -147,8 +147,28 @@ Renderer::Renderer() :
 {
   m_data->raster_pool.kickWorkers("Occlusion_Worker");
 
+  //   RenderTargets
+  m_rts_lock = os::ReaderWriterLock::alloc();
   m_rts.reserve(InitialRenderTargets);
+
+  //   Programs
+  m_programs_lock = os::ReaderWriterLock::alloc();
+
+  //   ConstantBuffers
+  m_const_buffers_lock = os::ReaderWriterLock::alloc();
   m_const_buffers.reserve(InitialConstantBuffers);
+
+  //   RenderLUTs
+  m_luts_lock = os::ReaderWriterLock::alloc();
+
+  //   Samplers
+  m_samplers_lock = os::ReaderWriterLock::alloc();
+
+  //   Fences
+  m_fences_lock = os::ReaderWriterLock::alloc();
+
+  //  MemoryPools
+  m_mempools_lock = os::ReaderWriterLock::alloc();
   m_mempools.reserve(InitialMemoryPools);
 
   precacheLUTs();
@@ -198,12 +218,12 @@ Renderer& Renderer::cachePrograms()
     f_rendermsm->source(res::Shader::Vertex), f_rendermsm->source(res::Shader::Fragment), U.rendermsm));
 
   // Writing to 'm_programs'
-  m_programs_lock.acquireExclusive();
+  m_programs_lock->acquireExclusive();
 
   m_programs.push_back(forward);
   m_programs.push_back(rendermsm);
 
-  m_programs_lock.releaseExclusive();
+  m_programs_lock->releaseExclusive();
 
   return *this;
 }
@@ -224,7 +244,7 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
   auto& fence = pool().get<gx::Fence>(fence_id);
 
   // Initially we only need to read from the vector
-  m_rts_lock.acquireShared();
+  m_rts_lock->acquireShared();
 
   auto it = m_rts.begin();
   while(it != m_rts.end()) {
@@ -236,7 +256,7 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
 
     // Check if the RenderTarget isn't already in use
     if(it->lock(fence)) {
-      m_rts_lock.releaseShared();
+      m_rts_lock->releaseShared();
 
       return *it;
     }
@@ -247,13 +267,13 @@ const RenderTarget& Renderer::queryRenderTarget(const RenderTargetConfig& config
 
   // Need to create a new RenderTarget which means
   //   we'll be writing to the vector
-  m_rts_lock.releaseShared();
-  m_rts_lock.acquireExclusive();
+  m_rts_lock->releaseShared();
+  m_rts_lock->acquireExclusive();
 
   auto& result = m_rts.emplace_back(RenderTarget::from_config(config, pool()));
 
   // Done writing
-  m_rts_lock.releaseExclusive();
+  m_rts_lock->releaseExclusive();
 
   auto locked = result.lock(fence);
   assert(locked && "Failed to lock() the RenderTarget!");
@@ -272,7 +292,7 @@ u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro)
   if(m_programs.empty()) cachePrograms();
 
   // Reading from 'm_programs'
-  m_programs_lock.acquireShared();
+  m_programs_lock->acquireShared();
 
   u32 program = ~0u;
   switch(view.m_type) {
@@ -280,7 +300,7 @@ u32 Renderer::queryProgram(const RenderView& view, const RenderObject& ro)
   case RenderView::ShadowView: program = m_programs.at(1); break;
   }
 
-  m_programs_lock.releaseShared();
+  m_programs_lock->releaseShared();
 
   return program;
 }
@@ -289,7 +309,7 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, con
 {
   auto& fence = pool().get<gx::Fence>(fence_id);
 
-  m_const_buffers_lock.acquireShared();
+  m_const_buffers_lock->acquireShared();
 
   auto it = m_const_buffers.begin();
   while(it != m_const_buffers.end()) {
@@ -305,7 +325,7 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, con
     if(it == m_const_buffers.end()) break;
 
     if(it->lock(fence)) {
-      m_const_buffers_lock.releaseShared();
+      m_const_buffers_lock->releaseShared();
 
       return *it;
     }
@@ -314,7 +334,7 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, con
     it++;
   }
 
-  m_const_buffers_lock.releaseShared();
+  m_const_buffers_lock->releaseShared();
 
   auto id = pool().createBuffer<gx::UniformBuffer>(
     // Use the size as the suffix if one wasn't provided
@@ -325,9 +345,9 @@ const ConstantBuffer& Renderer::queryConstantBuffer(size_t sz, u32 fence_id, con
 
   buf().init(sz, 1);
 
-  m_const_buffers_lock.acquireExclusive();
+  m_const_buffers_lock->acquireExclusive();
   auto& const_buf = m_const_buffers.emplace_back(ConstantBuffer(id, sz));
-  m_const_buffers_lock.releaseExclusive();
+  m_const_buffers_lock->releaseExclusive();
 
   auto result = const_buf.lock(fence);
   assert(result && "failed to lock() ConstantBuffer!");
@@ -342,7 +362,7 @@ void Renderer::releaseConstantBuffer(const ConstantBuffer& buf)
 
 u32 Renderer::queryLUT(RenderLUT::Type type, int param)
 {
-  m_luts_lock.acquireShared();
+  m_luts_lock->acquireShared();
 
   auto it = m_luts.begin();
   while(it != m_luts.end()) {
@@ -357,8 +377,8 @@ u32 Renderer::queryLUT(RenderLUT::Type type, int param)
     return it->tex_id;
   }
 
-  m_luts_lock.releaseShared();
-  m_luts_lock.acquireExclusive();
+  m_luts_lock->releaseShared();
+  m_luts_lock->acquireExclusive();
 
   // Generate a new RenderLUT
   auto& lut = m_luts.emplace_back();
@@ -368,7 +388,7 @@ u32 Renderer::queryLUT(RenderLUT::Type type, int param)
   //   so release it here because the
   //   following call can potentially
   //   be time-consuming
-  m_luts_lock.releaseExclusive();
+  m_luts_lock->releaseExclusive();
 
   // Generate and upload the texture
   lut.generate(pool());
@@ -378,18 +398,18 @@ u32 Renderer::queryLUT(RenderLUT::Type type, int param)
 
 u32 Renderer::querySampler(SamplerClass sampler)
 {
-  m_samplers_lock.acquireShared();
+  m_samplers_lock->acquireShared();
 
   auto it = m_samplers.find(sampler);
   if(it != m_samplers.end()) {
-    m_samplers_lock.releaseShared();
+    m_samplers_lock->releaseShared();
 
     return it->second;
   }
 
   // The requested gx::Sampler hasn't been
   //   created yet
-  m_samplers_lock.releaseShared();
+  m_samplers_lock->releaseShared();
 
   u32 id = gx::ResourcePool::Invalid;
   switch(sampler) {
@@ -422,20 +442,20 @@ u32 Renderer::querySampler(SamplerClass sampler)
   }
 
   // Write to the std::map
-  m_samplers_lock.acquireExclusive();
+  m_samplers_lock->acquireExclusive();
   m_samplers.emplace(sampler, id);
-  m_samplers_lock.releaseExclusive();
+  m_samplers_lock->releaseExclusive();
 
   return id;
 }
 
 u32 Renderer::queryFence(const std::string& label)
 {
-  m_fences_lock.acquireExclusive();
+  m_fences_lock->acquireExclusive();
   auto id = m_fences.emplace(
     pool().create<gx::Fence>(label + std::to_string(m_fences.size()))
   );
-  m_fences_lock.releaseExclusive();
+  m_fences_lock->releaseExclusive();
 
   auto& fence = pool().get<gx::Fence>(*id.first);
   fence.ref();  // doneFence() will decrement it
@@ -452,31 +472,31 @@ void Renderer::doneFence(u32 id)
 
   // Garbage collect 'm_fences'
   util::SmallVector<u32> release_list;
-  m_fences_lock.acquireShared();
+  m_fences_lock->acquireShared();
   for(auto fence_id : m_fences) {
     auto& fence = pool().get<gx::Fence>(fence_id);
     if(fence.refs() > 1) continue;
 
     release_list.append(fence_id);
   }
-  m_fences_lock.releaseShared();
+  m_fences_lock->releaseShared();
 
   // All Fences are in use
   if(release_list.empty()) return;
 
-  m_fences_lock.acquireExclusive();
+  m_fences_lock->acquireExclusive();
   for(auto fence_id : release_list) {
     m_fences.erase(fence_id);
     pool().release<gx::Fence>(fence_id);
   }
-  m_fences_lock.releaseExclusive();
+  m_fences_lock->releaseExclusive();
 }
 
 MemoryPool& Renderer::queryMempool(size_t sz, u32 fence_id)
 {
   auto& fence = pool().get<gx::Fence>(fence_id);
 
-  m_mempools_lock.acquireShared();
+  m_mempools_lock->acquireShared();
 
   auto it = m_mempools.begin();
   while(it != m_mempools.end()) {
@@ -493,7 +513,7 @@ MemoryPool& Renderer::queryMempool(size_t sz, u32 fence_id)
     if(it == m_mempools.end()) break;
 
     if(it->lock(fence)) {
-      m_mempools_lock.releaseShared();
+      m_mempools_lock->releaseShared();
       it->get().purge();
 
       return *it;
@@ -502,11 +522,11 @@ MemoryPool& Renderer::queryMempool(size_t sz, u32 fence_id)
     it++;  // Keep searching...
   }
 
-  m_mempools_lock.releaseShared();
+  m_mempools_lock->releaseShared();
 
-  m_mempools_lock.acquireExclusive();
+  m_mempools_lock->acquireExclusive();
   auto& mempool = m_mempools.emplace_back(sz);
-  m_mempools_lock.releaseExclusive();
+  m_mempools_lock->releaseExclusive();
 
   auto result = mempool.lock();
   assert(result && "failed to lock() the MemoryPool!");

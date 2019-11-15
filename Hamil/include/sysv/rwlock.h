@@ -4,15 +4,16 @@
 
 #include <config>
 
-#if __win32
-#  include <Windows.h>
+#if __sysv
+#  include <pthread.h>
 #endif
 
-namespace win32 {
+namespace sysv {
 
 class ReaderWriterLock final : public os::ReaderWriterLock {
 public:
   ReaderWriterLock();
+  virtual ~ReaderWriterLock();
 
   virtual os::ReaderWriterLock& acquireExclusive() final;
   virtual os::ReaderWriterLock& acquireShared() final;
@@ -24,8 +25,8 @@ public:
   virtual os::ReaderWriterLock& releaseShared() final;
 
 private:
-#if __win32
-  SRWLOCK m;
+#if __sysv
+  pthread_rwlock_t m;
 #endif
 };
 

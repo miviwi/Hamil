@@ -153,6 +153,9 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/os/inputman.cpp"
   "${SrcDir}/os/waitable.cpp"
   "${SrcDir}/os/thread.cpp"
+  "${SrcDir}/os/mutex.cpp"
+  "${SrcDir}/os/rwlock.cpp"
+  "${SrcDir}/os/conditionvar.cpp"
   "${SrcDir}/os/window.cpp"
   "${SrcDir}/os/glcontext.cpp"
 
@@ -183,6 +186,9 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/sysv/time.cpp"
   "${SrcDir}/sysv/inputman.cpp"
   "${SrcDir}/sysv/thread.cpp"
+  "${SrcDir}/sysv/mutex.cpp"
+  "${SrcDir}/sysv/rwlock.cpp"
+  "${SrcDir}/sysv/conditionvar.cpp"
   "${SrcDir}/sysv/window.cpp"
   "${SrcDir}/sysv/glcontext.cpp"
 

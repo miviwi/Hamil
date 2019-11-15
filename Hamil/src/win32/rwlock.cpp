@@ -1,30 +1,28 @@
 #include <win32/rwlock.h>
 
+#include <config>
+
 namespace win32 {
 
 ReaderWriterLock::ReaderWriterLock()
 {
-#if !defined(__linux__)
+#if __win32
   InitializeSRWLock(&m);
 #endif
 }
 
-ReaderWriterLock::~ReaderWriterLock()
+os::ReaderWriterLock& ReaderWriterLock::acquireExclusive()
 {
-}
-
-ReaderWriterLock& ReaderWriterLock::acquireExclusive()
-{
-#if !defined(__linux__)
+#if __win32
   AcquireSRWLockExclusive(&m);
 #endif
 
   return *this;
 }
 
-ReaderWriterLock& ReaderWriterLock::acquireShared()
+os::ReaderWriterLock& ReaderWriterLock::acquireShared()
 {
-#if !defined(__linux__)
+#if __win32
   AcquireSRWLockShared(&m);
 #endif
 
@@ -33,7 +31,7 @@ ReaderWriterLock& ReaderWriterLock::acquireShared()
 
 bool ReaderWriterLock::tryAcquireExclusive()
 {
-#if !defined(__linux__)
+#if __win32
   return TryAcquireSRWLockExclusive(&m) == TRUE;
 #else
   return false;
@@ -42,25 +40,25 @@ bool ReaderWriterLock::tryAcquireExclusive()
 
 bool ReaderWriterLock::tryAcquireShared()
 {
-#if !defined(__linux__)
+#if __win32
   return TryAcquireSRWLockShared(&m) == TRUE;
 #else
   return false;
 #endif
 }
 
-ReaderWriterLock& ReaderWriterLock::releaseExclusive()
+os::ReaderWriterLock& ReaderWriterLock::releaseExclusive()
 {
-#if !defined(__linux__)
+#if __win32
   ReleaseSRWLockExclusive(&m);
 #endif
 
   return *this;
 }
 
-ReaderWriterLock& ReaderWriterLock::releaseShared()
+os::ReaderWriterLock& ReaderWriterLock::releaseShared()
 {
-#if !defined(__linux__)
+#if __win32
   ReleaseSRWLockShared(&m);
 #endif
 

@@ -4,7 +4,7 @@
 
 #include <util/lambdatraits.h>
 #include <os/time.h>
-#include <win32/conditionvar.h>
+#include <os/conditionvar.h>
 
 #include <cassert>
 #include <atomic>
@@ -36,7 +36,7 @@ public:
 
 protected:
   // Signaled after a job completes (finished() is called)
-  win32::ConditionVariable& condition();
+  os::ConditionVariable::Ptr& condition();
 
   void started();
   void finished();
@@ -51,7 +51,7 @@ private:
   friend WorkerPool;
 
   std::atomic<bool> m_done;
-  win32::ConditionVariable m_cv;
+  os::ConditionVariable::Ptr m_cv;
 
 #if !defined(NDEBUG)
   os::DeltaTimer m_timer;
@@ -91,6 +91,14 @@ public:
     assert(done() && "Attempted to get result() of an in-flight Job!");
 
     return *m_result;
+  }
+
+  Job clone() const
+  {
+    auto fn = m_fn;
+    auto params = m_params;
+
+    return Job(std::move(fn), std::move(params));
   }
 
 protected:

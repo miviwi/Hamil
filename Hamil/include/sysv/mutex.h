@@ -4,11 +4,11 @@
 
 #include <config>
 
-#if __win32
-#  include <Windows.h>
+#if __syv
+#  include <pthread.h>
 #endif
 
-namespace win32 {
+namespace sysv {
 
 // Forward declaration
 class ConditionVariable;
@@ -26,8 +26,8 @@ public:
 private:
   friend ConditionVariable;
 
-#if __win32
-  CRITICAL_SECTION m;
+#if __sysv
+  pthread_mutex_t m;
 #endif
 };
 

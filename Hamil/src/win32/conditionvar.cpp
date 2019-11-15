@@ -1,10 +1,14 @@
 #include <win32/conditionvar.h>
 
+#include <config>
+
+#include <utility>
+
 namespace win32 {
 
 ConditionVariable::ConditionVariable()
 {
-#if !defined(__linux__)
+#if __win32
   InitializeConditionVariable(&m_cv);
 #endif
 }
@@ -12,18 +16,14 @@ ConditionVariable::ConditionVariable()
 ConditionVariable::ConditionVariable(ConditionVariable&& other) :
   m_cv(other.m_cv)
 {
-#if !defined(__linux__)
+#if __win32
   other.m_cv = CONDITION_VARIABLE_INIT;
 #endif
 }
 
-ConditionVariable::~ConditionVariable()
-{
-}
-
 ConditionVariable& ConditionVariable::operator=(ConditionVariable&& other)
 {
-#if !defined(__linux__)
+#if __win32
   m_cv = other.m_cv;
   other.m_cv = CONDITION_VARIABLE_INIT;
 #endif
@@ -31,9 +31,10 @@ ConditionVariable& ConditionVariable::operator=(ConditionVariable&& other)
   return *this;
 }
 
-bool ConditionVariable::sleep(Mutex& mutex, ulong timeout)
+bool ConditionVariable::sleep(os::Mutex& mutex_, ulong timeout)
 {
-#if !defined(__linux__)
+#if __win32
+  auto& mutex = (win32::Mutex&)mutex_;
   auto result = SleepConditionVariableCS(&m_cv, &mutex.m, timeout);
 
   return result == TRUE;
@@ -42,18 +43,22 @@ bool ConditionVariable::sleep(Mutex& mutex, ulong timeout)
 #endif
 }
 
-void ConditionVariable::wake()
+os::ConditionVariable& ConditionVariable::wake()
 {
-#if !defined(__linux__)
+#if __win32
   WakeConditionVariable(&m_cv);
 #endif
+
+  return *this;
 }
 
-void ConditionVariable::wakeAll()
+os::ConditionVariable& ConditionVariable::wakeAll()
 {
-#if !defined(__linux__)
+#if __win32
   WakeAllConditionVariable(&m_cv);
 #endif
+
+  return *this;
 }
 
 }

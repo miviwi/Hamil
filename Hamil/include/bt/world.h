@@ -8,7 +8,8 @@
 
 #include <functional>
 
-namespace win32 {
+namespace os {
+// Forward declaration
 class ReaderWriterLock;
 }
 
@@ -58,7 +59,7 @@ private:
   using BtCollisionObjectIter = std::function<void(btCollisionObject *)>;
   using BtRigidBodyIter       = std::function<void(btRigidBody *)>;
 
-  win32::ReaderWriterLock& lock();
+  os::ReaderWriterLock& lock();
 
   // Iterates BACKWARDS
   void foreachObject(BtCollisionObjectIter fn);

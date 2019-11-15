@@ -58,8 +58,14 @@ int main(void)
 
     return {};
   });
+
+  auto a_job1 = a_job.clone();
+  auto a_job2 = a_job.clone();
+  auto a_job3 = a_job.clone();
   
-  worker_pool.scheduleJob(a_job.withParams(1));
+  worker_pool.scheduleJob(a_job1.withParams(1));
+  worker_pool.scheduleJob(a_job2.withParams(2));
+  worker_pool.scheduleJob(a_job3.withParams(3));
 
   worker_pool.waitWorkersIdle();
 

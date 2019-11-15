@@ -4,7 +4,7 @@
 #include <bt/btcommon.h>
 
 #include <math/geometry.h>
-#include <win32/rwlock.h>
+#include <os/rwlock.h>
 
 #include <atomic>
 #include <array>
@@ -77,7 +77,9 @@ public:
 
   using QueueEntry = std::pair<QueueOp, btRigidBody *>;
 
-  win32::ReaderWriterLock lock;
+  DynamicsWorldData();
+
+  os::ReaderWriterLock::Ptr lock;
 
   std::atomic<uint> queue_head = 0;
   std::array<QueueEntry, AddRemoveQueueDepth> queue;
@@ -86,6 +88,11 @@ public:
   QueueEntry queuePop();
   bool queueEmpty();
 };
+
+DynamicsWorldData::DynamicsWorldData()
+{
+  lock = os::ReaderWriterLock::alloc();
+}
 
 void DynamicsWorldData::queueAppend(QueueEntry e)
 {
@@ -102,11 +109,11 @@ void DynamicsWorldData::queueAppend(QueueEntry e)
     //     this is a VERY cold path because this stall could
     //     last a looong ime if we're in the middle of
     //     simulation
-    lock.acquireExclusive();
+    lock->acquireExclusive();
 
     queueAppend(e); // Retry
 
-    lock.releaseExclusive();
+    lock->releaseExclusive();
   }
 }
 
@@ -246,9 +253,9 @@ void DynamicsWorld::step(float dt)
 #endif
 }
 
-win32::ReaderWriterLock& DynamicsWorld::lock()
+os::ReaderWriterLock& DynamicsWorld::lock()
 {
-  return m_data->lock;
+  return *m_data->lock;
 }
 
 void DynamicsWorld::foreachObject(BtCollisionObjectIter fn)

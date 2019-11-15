@@ -9,6 +9,7 @@ namespace sched {
 IJob::IJob() :
   m_done(true)
 {
+  m_cv = os::ConditionVariable::alloc();
 }
 
 IJob::IJob(IJob&& other) :
@@ -19,7 +20,7 @@ IJob::IJob(IJob&& other) :
   other.m_done.store(true);
 }
 
-win32::ConditionVariable& IJob::condition()
+os::ConditionVariable::Ptr& IJob::condition()
 {
   return m_cv;
 }
@@ -61,7 +62,7 @@ void IJob::finished()
 #endif
 
   m_done.store(true);
-  m_cv.wakeAll();
+  m_cv->wakeAll();
 }
 
 }

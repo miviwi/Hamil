@@ -8,7 +8,7 @@
 #include <ek/renderview.h>
 
 #include <sched/job.h>
-#include <win32/rwlock.h>
+#include <os/rwlock.h>
 #include <hm/entity.h>
 #include <hm/componentref.h>
 
@@ -204,31 +204,31 @@ private:
   RendererData *m_data;
 
   //   RenderTargets
-  win32::ReaderWriterLock m_rts_lock;
+  os::ReaderWriterLock::Ptr m_rts_lock;
   std::vector<RenderTarget> m_rts;
 
   //   Programs
-  win32::ReaderWriterLock m_programs_lock;
+  os::ReaderWriterLock::Ptr m_programs_lock;
   std::vector<u32> m_programs;
 
   //   ConstantBuffers
-  win32::ReaderWriterLock m_const_buffers_lock;
+  os::ReaderWriterLock::Ptr m_const_buffers_lock;
   std::vector<ConstantBuffer> m_const_buffers;
 
   //   RenderLUTs
-  win32::ReaderWriterLock m_luts_lock;
+  os::ReaderWriterLock::Ptr m_luts_lock;
   std::vector<RenderLUT> m_luts;
 
   //   Samplers
-  win32::ReaderWriterLock m_samplers_lock;
+  os::ReaderWriterLock::Ptr m_samplers_lock;
   std::map<SamplerClass, u32> m_samplers;
 
   //   Fences
-  win32::ReaderWriterLock m_fences_lock;
+  os::ReaderWriterLock::Ptr m_fences_lock;
   std::set<u32> m_fences;  // std::set for fast removal
 
   //  MemoryPools
-  win32::ReaderWriterLock m_mempools_lock;
+  os::ReaderWriterLock::Ptr m_mempools_lock;
   std::vector<MemoryPool> m_mempools;
 };
 

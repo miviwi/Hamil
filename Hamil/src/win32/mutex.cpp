@@ -1,6 +1,6 @@
 #include <win32/mutex.h>
 
-#if !defined(__linux__)
+#if __win32
 #  include <Windows.h>
 #endif
 
@@ -8,21 +8,21 @@ namespace win32 {
 
 Mutex::Mutex()
 {
-#if !defined(__linux__)
+#if __win32
   InitializeCriticalSection(&m);
 #endif
 }
 
 Mutex::~Mutex()
 {
-#if !defined(__linux__)
+#if __win32
   DeleteCriticalSection(&m);
 #endif
 }
 
-Mutex& Mutex::acquire()
+os::Mutex& Mutex::acquire()
 {
-#if !defined(__linux__)
+#if __win32
   EnterCriticalSection(&m);
 #endif
 
@@ -31,7 +31,7 @@ Mutex& Mutex::acquire()
 
 bool Mutex::tryAcquire()
 {
-#if !defined(__linux__)
+#if __win32
   auto succeeded = TryEnterCriticalSection(&m);
 
   return succeeded == TRUE;
@@ -40,14 +40,9 @@ bool Mutex::tryAcquire()
 #endif
 }
 
-LockGuard<Mutex> Mutex::acquireScoped()
+os::Mutex& Mutex::release()
 {
-  return LockGuard<Mutex>(acquire());
-}
-
-Mutex& Mutex::release()
-{
-#if !defined(__linux__)
+#if __win32
   LeaveCriticalSection(&m);
 #endif
 
