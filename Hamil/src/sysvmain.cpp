@@ -4,6 +4,8 @@
 #include <os/cpuid.h>
 #include <os/time.h>
 #include <os/thread.h>
+#include <os/window.h>
+#include <sysv/window.h>
 #include <sched/job.h>
 #include <sched/pool.h>
 #include <util/unit.h>
@@ -48,6 +50,7 @@ int main(void)
 {
   os::init();
 
+#if 0
   sched::WorkerPool worker_pool;
   worker_pool.kickWorkers();
 
@@ -70,6 +73,11 @@ int main(void)
   worker_pool.waitWorkersIdle();
 
   worker_pool.killWorkers();
+#endif
+
+  sysv::Window window(1280, 720);
+
+  do_sleep();
 
   os::finalize();
 

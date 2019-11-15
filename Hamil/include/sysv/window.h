@@ -11,6 +11,10 @@ class GLContext;
 
 namespace sysv {
 
+// PIMPL structs
+struct X11Connection;
+struct X11Window;
+
 class Window final : public os::Window {
 public:
   // See note above os::Window()
@@ -35,6 +39,9 @@ protected:
   virtual os::InputDeviceManager *acquireInputManager() final;
 
 private:
+  static X11Connection *p_x11;
+
+  X11Window *p;
 };
 
 }

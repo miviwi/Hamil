@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <cassert>
+#include <cerrno>
 #include <climits>
 #include <cstring>
 #include <ctime>
@@ -76,15 +77,19 @@ void *Thread::thread_proc_trampoline(void *arg)
 
   auto self = (ThreadData *)arg;
 
+  // Store this thread's id right away as the one which
+  //   spawned it is waiting for this to happen
   self->id = (Id)gettid();
 
-  if(self->suspended) {
-    auto action = wait_suspend_resume_signal();
+  if(self->suspended) {                           // If the thread was created with suspended=true
+    auto action = wait_suspend_resume_signal();   //   wait for a resume signal before runnig any code
     thread_suspend_resume(action);
   }
 
+  // Actually execute the code
   self->exit_code = self->fn();
 
+  // Notify all threads waiting in Thread::wait()
   self->terminated.store(true);
 
   auto broadcast_error = pthread_cond_broadcast(&self->terminate_cond);
@@ -107,7 +112,11 @@ thread_detail::ThreadSuspendResumeAction *Thread::wait_suspend_resume_signal()
   assert(!add_error);
 
   siginfo_t info;
-  auto wait_result = sigwaitinfo(&set, &info);
+  int wait_result = -1;
+  do {
+    wait_result = sigwaitinfo(&set, &info);      // Make sure we handle for ex. being
+  } while(wait_result < 0 && errno == EINTR);    //   stopped by a debugger properly
+
   assert(wait_result == thread_detail::ThreadSuspendResumeSignal);
 
   return (ThreadSuspendResumeAction *)info.si_value.sival_ptr;
@@ -134,10 +143,12 @@ void Thread::thread_suspend_resume(thread_detail::ThreadSuspendResumeAction *act
 
   self->suspend_resume_ack.store(action->initiator);
 
-  auto signal_error = pthread_cond_signal(&self->suspend_resume_cond);
+  auto signal_error = pthread_cond_broadcast(&self->suspend_resume_cond);
   assert(!signal_error);
 
-  // Wait for a resume signal before continuing if we're suspended
+  // Wait for a resume signal before continuing if
+  //   - we were just supended
+  //   - we're still suspended
   while(self->suspended) {
     auto action = wait_suspend_resume_signal();
     
@@ -180,6 +191,8 @@ os::Thread& Thread::dbg_SetName(const char *name)
       "Thread must have had create() called on it before calling dbg_SetName()!");
 
 #if __sysv
+  // Thread names can be at most 16 characters long (including the terminating '\0'),
+  //   so trim the provided name so it meets this requirement
   size_t name_len = std::min<size_t>(strlen(name), 15);
   std::string trimmed_name(name, name_len);
 
@@ -212,9 +225,9 @@ os::Thread& Thread::raiseThreadSuspendResumeAction(int action)
   using thread_detail::ThreadSuspendResumeAction;
 
   auto self_tid = gettid();
+  auto& target = data().self;
 
   union sigval value;
-  memset(&value, 0, sizeof(value));
 
   ThreadSuspendResumeAction suspend_resume_action;
   suspend_resume_action.initiator = self_tid;
@@ -223,7 +236,7 @@ os::Thread& Thread::raiseThreadSuspendResumeAction(int action)
 
   value.sival_ptr = &suspend_resume_action;
   
-  auto sigqueue_error = sigqueue(data().id, thread_detail::ThreadSuspendResumeSignal, value);
+  auto sigqueue_error = pthread_sigqueue(target, thread_detail::ThreadSuspendResumeSignal, value);
   assert(!sigqueue_error);
 
   // Make sure the thread acknowledges the request before returning
@@ -241,8 +254,7 @@ os::Thread& Thread::raiseThreadSuspendResumeAction(int action)
     assert(!wait_error);
 
     suspend_resume_ack_val = (u32)self_tid;   // Make sure the 'expected' value given to
-                                              //   compare_exchange_strong() is what we want
-  }
+  }                                           //   compare_exchange_strong() is what we want
 #endif
 
   return *this;

@@ -10,6 +10,9 @@ enum : int {
   QueryPerformanceCounterError,
   InputDeviceRegistartionError,
 
+  // sysv related error
+  XOpenDisplayError, GetXCBConnectionError, XCBError,
+
   FileOpenError,
 
   // OpenGL related errors

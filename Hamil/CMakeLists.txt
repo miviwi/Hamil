@@ -92,6 +92,9 @@ target_link_libraries (Hamil PRIVATE
 
   # Python 3.7
   ${PYTHON_LIBRARIES}
+
+  # X11/xcb
+  ${X11_XCB_LIBRARIES}
 )
 
 target_sources (Hamil PUBLIC
