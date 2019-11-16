@@ -2,6 +2,7 @@
 #include <sysv/cpuinfo.h>
 #include <sysv/time.h>
 #include <sysv/thread.h>
+#include <sysv/x11.h>
 #include <util/ringbuffer.h>
 
 #include <config>
@@ -27,6 +28,8 @@ namespace sysv {
 
 static std::unique_ptr<cpuinfo_detail::ProcCPUInfo> p_cpuinfo;
 
+static std::unique_ptr<X11Connection> p_x11;
+
 void init_cpuinfo();
 void init_signal();
 
@@ -36,11 +39,14 @@ void init()
   init_signal();
 
   Timers::init();
+
+  p_x11.reset(X11Connection::connect());
 }
 
 void finalize()
 {
-  p_cpuinfo.release();
+  p_x11.reset();
+  p_cpuinfo.reset();
 }
 
 void init_cpuinfo()
@@ -139,6 +145,17 @@ void init_signal()
     exit(1);
   }
 #endif
+}
+
+namespace x11_detail {
+
+X11Connection& x11()
+{
+  assert(p_x11.get() && "sysv::x11_detail::x11() called before sysv::init()!");
+
+  return *p_x11;
+}
+
 }
 
 }

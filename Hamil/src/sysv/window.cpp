@@ -1,4 +1,6 @@
 #include <sysv/window.h>
+#include <sysv/sysv.h>
+#include <sysv/x11.h>
 #include <sysv/inputman.h>
 #include <os/panic.h>
 #include <gx/context.h>
@@ -13,64 +15,10 @@
 
 namespace sysv {
 
-enum {
-  X11InvalidId = ~0u,
-};
-
-struct X11Connection {
-  X11Connection();
-  X11Connection(const X11Connection&) = delete;
-  ~X11Connection();
-
-  Display *display = nullptr;
-  int default_screen = -1;
-
-  xcb_connection_t *connection = nullptr;
-  const xcb_setup_t *setup = nullptr;
-  xcb_screen_t *screen = nullptr;
-
-  u32 genId();
-};
-
-X11Connection::X11Connection()
-{
-  display = XOpenDisplay(nullptr);
-  if(!display) os::panic("failed to open an X11 Display!", os::XOpenDisplayError);
-
-  default_screen = DefaultScreen(display);
-
-  connection = XGetXCBConnection(display);
-  if(!connection) os::panic("failed to get an X11 xcb_connection_t!" , os::GetXCBConnectionError);
-
-  XSetEventQueueOwner(display, XCBOwnsEventQueue);
-
-  setup = xcb_get_setup(connection);
-  if(!setup) os::panic("xcb_get_setup() failed!", os::XCBError);
-
-  auto roots_it = xcb_setup_roots_iterator(setup);
-  while(roots_it.index < default_screen) {
-    if(!roots_it.rem) os::panic("couldn't find root window of default screen!", os::XCBError);
-
-    xcb_screen_next(&roots_it);
-  }
-
-  screen = roots_it.data;
-}
-
-X11Connection::~X11Connection()
-{
-  xcb_disconnect(connection);
-}
-
-u32 X11Connection::genId()
-{
-  return xcb_generate_id(connection);
-}
-
-X11Connection *Window::p_x11 = nullptr;
+using x11_detail::x11;
 
 struct X11Window {
-  X11Window(X11Connection& x11, unsigned width, unsigned height);
+  X11Window(unsigned width, unsigned height);
   ~X11Window();
 
   // Returns 'false' if creating the colormap failed
@@ -78,15 +26,19 @@ struct X11Window {
 
   bool createWindow(unsigned width, unsigned height, u8 depth = 0, xcb_visualid_t visual = 0);
 
-  X11Connection& x11;
+  xcb_connection_t *connection;
+  xcb_screen_t *screen;
 
-  u32 window = X11InvalidId;
-  u32 colormap = X11InvalidId;
+  X11Id window = X11InvalidId;
+  X11Id colormap = X11InvalidId;
 };
 
-X11Window::X11Window(X11Connection& x11_, unsigned width, unsigned height) :
-  x11(x11_)
+X11Window::X11Window(unsigned width, unsigned height) :
+  connection(nullptr), screen(nullptr)
 {
+  connection = x11().connection<xcb_connection_t>();
+  screen = x11().screen<xcb_screen_t>();
+
   auto create_colormap_success = createColormap();
   if(!create_colormap_success) os::panic("xcb_create_colormap() failed!", os::XCBError);
 
@@ -96,19 +48,21 @@ X11Window::X11Window(X11Connection& x11_, unsigned width, unsigned height) :
 
 X11Window::~X11Window()
 {
-  xcb_destroy_window(x11.connection, window);
-  xcb_free_colormap(x11.connection, colormap);
+#if 0
+  xcb_destroy_window(connection, window);
+  xcb_free_colormap(connection, colormap);
+#endif
 }
 
 bool X11Window::createColormap(xcb_visualid_t visual)
 {
-  colormap = x11.genId();
+  colormap = x11().genId();
 
   auto colormap_cookie = xcb_create_colormap(
-      x11.connection, XCB_COLORMAP_ALLOC_NONE, colormap,
-      x11.screen->root, visual ? visual : x11.screen->root_visual
+      connection, XCB_COLORMAP_ALLOC_NONE, colormap,
+      screen->root, visual ? visual : screen->root_visual
   );
-  auto err = xcb_request_check(x11.connection, colormap_cookie);
+  auto err = xcb_request_check(connection, colormap_cookie);
   if(!err) return true;
 
   // There was an error - cleanup and signal failure
@@ -118,7 +72,7 @@ bool X11Window::createColormap(xcb_visualid_t visual)
 
 bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visualid_t visual)
 {
-  window = x11.genId();
+  window = x11().genId();
 
   u32 mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
   u32 args[] = {
@@ -131,11 +85,11 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
   };
 
   auto window_cookie = xcb_create_window_checked(
-      x11.connection, visual ? depth : x11.screen->root_depth, window, x11.screen->root, 
+      connection, visual ? depth : screen->root_depth, window, screen->root, 
       0 /* x */, 0 /* y */, width, height, 0,
-      XCB_WINDOW_CLASS_INPUT_OUTPUT, visual ? visual : x11.screen->root_visual, mask, args
+      XCB_WINDOW_CLASS_INPUT_OUTPUT, visual ? visual : screen->root_visual, mask, args
   );
-  auto err = xcb_request_check(x11.connection, window_cookie);
+  auto err = xcb_request_check(connection, window_cookie);
   if(!err) return true;
 
   // There was an error - cleanup and signal failure
@@ -147,14 +101,13 @@ Window::Window(int width, int height) :
   os::Window(width, height),
   p(nullptr)
 {
-  if(!p_x11) p_x11 = new X11Connection();
-
   assert((width > 0) && (height > 0) &&
       "attempted to create a Window width negative or 0 width/height");
-  p = new X11Window(*p_x11, (unsigned)width, (unsigned)height);
+  p = new X11Window((unsigned)width, (unsigned)height);
 
-  xcb_map_window(p_x11->connection, p->window);
-  xcb_flush(p_x11->connection);
+  xcb_map_window(x11().connection<xcb_connection_t>(), p->window);
+
+  x11().flush();
 }
 
 Window::~Window()

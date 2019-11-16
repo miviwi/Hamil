@@ -5,14 +5,13 @@
 #include <os/inputman.h>
 
 namespace gx {
-// forward declaration
+// Forward declaration
 class GLContext;
 }
 
 namespace sysv {
 
-// PIMPL structs
-struct X11Connection;
+// PIMPL struct
 struct X11Window;
 
 class Window final : public os::Window {
@@ -39,8 +38,6 @@ protected:
   virtual os::InputDeviceManager *acquireInputManager() final;
 
 private:
-  static X11Connection *p_x11;
-
   X11Window *p;
 };
 

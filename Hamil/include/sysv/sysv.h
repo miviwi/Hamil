@@ -32,4 +32,11 @@ struct ThreadSuspendResumeAction {
 };
 }
 
+// Forward declaration
+class X11Connection;
+
+namespace x11_detail {
+X11Connection& x11();
+}
+
 }

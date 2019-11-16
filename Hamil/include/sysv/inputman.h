@@ -10,6 +10,9 @@ using Input = os::Input;
 using Mouse = os::Mouse;
 using Keyboard = os::Keyboard;
 
+// PIMPL struct
+struct InputDeviceManagerData;
+
 class InputDeviceManager final : public os::InputDeviceManager {
 public:
   InputDeviceManager();
@@ -19,6 +22,7 @@ protected:
   virtual Input::Ptr doPollInput() final;
 
 private:
+  InputDeviceManagerData *m_data;
 };
 
 }
