@@ -28,6 +28,7 @@ target_sources (Hamil PUBLIC
 
   "${SrcDir}/ft/cache.cpp"
   "${SrcDir}/ft/font.cpp"
+  "${SrcDir}/ft/uniforms.cpp"
   
   "${SrcDir}/gx/gx.cpp"
   "${SrcDir}/gx/info.cpp"
@@ -187,6 +188,7 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/sysv/inputman.cpp"
   "${SrcDir}/sysv/thread.cpp"
   "${SrcDir}/sysv/mutex.cpp"
+  "${SrcDir}/sysv/panic.cpp"
   "${SrcDir}/sysv/rwlock.cpp"
   "${SrcDir}/sysv/conditionvar.cpp"
   "${SrcDir}/sysv/x11.cpp"

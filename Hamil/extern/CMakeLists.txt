@@ -47,7 +47,7 @@ execute_process(COMMAND ${CMAKE_COMMAND} -E copy
 )
 
 # Copy over the correct pyconfig.h depending on platform
-set (PYCONFIG_H "${ProjectDir}/extern/python37/config/pyconfig.${Platform}.h")
+set (PYCONFIG_H "${ProjectDir}/extern/python37/config/pyconfig.sysv.h")
 
 message ("-- Copying Python configuration header (pyconfig.h)")
 execute_process(COMMAND ${CMAKE_COMMAND} -E copy

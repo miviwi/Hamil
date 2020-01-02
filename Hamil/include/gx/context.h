@@ -1,7 +1,7 @@
 #pragma once
 
 #include <gx/gx.h>
-
+#include <os/error.h>
 #include <util/ref.h>
 
 #include <memory>
@@ -15,6 +15,12 @@ namespace gx {
 
 class GLContext : public Ref {
 public:
+  struct AcquireError final : public os::Error {
+    AcquireError() :
+      os::Error("failed to acquire the GLContext!")
+    { }
+  };
+
   GLContext() = default;
   GLContext(const GLContext& other) = delete;
   virtual ~GLContext();

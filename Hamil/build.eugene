@@ -3,7 +3,7 @@
 #    --------  Uniforms  --------
 (uniformgen
   ${Solution}Hamil/src/programs.cpp
-  ${Solution}Hamil/src/ft/font.cpp
+  ${Solution}Hamil/src/ft/uniforms.cpp
   ${Solution}Hamil/src/ui/cursor.cpp
   ${Solution}Hamil/src/ui/ui.cpp)
 (move-if-newer ${_PWD}/uniforms.* ${Generated})

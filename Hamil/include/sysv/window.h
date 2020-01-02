@@ -3,6 +3,7 @@
 #include <os/window.h>
 #include <os/input.h>
 #include <os/inputman.h>
+#include <math/geometry.h>
 
 namespace gx {
 // Forward declaration
@@ -10,6 +11,9 @@ class GLContext;
 }
 
 namespace sysv {
+
+// Forward declaration
+class GLContext;
 
 // PIMPL struct
 struct X11Window;
@@ -38,6 +42,13 @@ protected:
   virtual os::InputDeviceManager *acquireInputManager() final;
 
 private:
+  friend GLContext;
+
+  // Used when creating a GLContext
+  bool recreateWithVisual(u8 depth, u32 /* xcb_visualid_t */ visual);
+
+  ivec2 m_dimensions;
+
   X11Window *p;
 };
 

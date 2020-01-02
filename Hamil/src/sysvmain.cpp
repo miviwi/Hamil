@@ -6,9 +6,13 @@
 #include <os/thread.h>
 #include <os/window.h>
 #include <sysv/window.h>
+#include <sysv/glcontext.h>
 #include <sched/job.h>
 #include <sched/pool.h>
+#include <gx/gx.h>
+#include <gx/info.h>
 #include <util/unit.h>
+#include <ft/font.h>
 
 #include <numeric>
 #include <vector>
@@ -23,6 +27,9 @@
 // SysV
 #include <unistd.h>
 #include <time.h>
+
+// OpenGL
+#include <GL/gl3w.h>
 
 size_t do_sleep()
 {
@@ -76,8 +83,30 @@ int main(void)
 #endif
 
   sysv::Window window(1280, 720);
+  sysv::GLContext gl_context;
+
+  gl_context
+    .acquire(&window)
+    .makeCurrent();
+
+  gx::init();
+  ft::init();
+
+  printf("extension(EXT::TextureSRGB):      %i\n", gx::info().extension(gx::EXT::TextureSRGB));
+  printf("extension(ARB::ComputeShader):    %i\n", gx::info().extension(gx::ARB::ComputeShader));
+  printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));
+  printf("extension(ARB::TextureBPTC):      %i\n", gx::info().extension(gx::ARB::TextureBPTC));
+
+  ft::Font face(ft::FontFamily("/usr/share/fonts/TTF/segoeui.ttf"), 35);
+
+  glClearColor(0.5f, 0.8f, 0.3f, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
+
+  window.swapBuffers();
 
   do_sleep();
+
+  gl_context.release();
 
   os::finalize();
 

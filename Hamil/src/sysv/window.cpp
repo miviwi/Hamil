@@ -2,16 +2,20 @@
 #include <sysv/sysv.h>
 #include <sysv/x11.h>
 #include <sysv/inputman.h>
+#include <sysv/glcontext.h>
 #include <os/panic.h>
-#include <gx/context.h>
+
+#include <config>
 
 #include <cassert>
 
 // X11/xcb headers
-#include <xcb/xcb.h>
-#include <X11/Xlib.h>
-#include <X11/Xlib-xcb.h>
-#include <X11/keysymdef.h>
+#if __sysv
+#  include <xcb/xcb.h>
+#  include <X11/Xlib.h>
+#  include <X11/Xlib-xcb.h>
+#  include <X11/keysymdef.h>
+#endif
 
 namespace sysv {
 
@@ -26,15 +30,18 @@ struct X11Window {
 
   bool createWindow(unsigned width, unsigned height, u8 depth = 0, xcb_visualid_t visual = 0);
 
-  xcb_connection_t *connection;
-  xcb_screen_t *screen;
+  void show();
+
+  void destroy();
+
+  xcb_connection_t *connection = nullptr;
+  xcb_screen_t *screen = nullptr;
 
   X11Id window = X11InvalidId;
   X11Id colormap = X11InvalidId;
 };
 
-X11Window::X11Window(unsigned width, unsigned height) :
-  connection(nullptr), screen(nullptr)
+X11Window::X11Window(unsigned width, unsigned height)
 {
   connection = x11().connection<xcb_connection_t>();
   screen = x11().screen<xcb_screen_t>();
@@ -48,10 +55,7 @@ X11Window::X11Window(unsigned width, unsigned height) :
 
 X11Window::~X11Window()
 {
-#if 0
-  xcb_destroy_window(connection, window);
-  xcb_free_colormap(connection, colormap);
-#endif
+  destroy();
 }
 
 bool X11Window::createColormap(xcb_visualid_t visual)
@@ -97,35 +101,54 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
   return false;
 }
 
+void X11Window::show()
+{
+  xcb_map_window(connection, window);
+}
+
+void X11Window::destroy()
+{
+  xcb_destroy_window(connection, window);
+  xcb_free_colormap(connection, colormap);
+
+  window = colormap = X11InvalidId;
+}
+
 Window::Window(int width, int height) :
   os::Window(width, height),
+  m_dimensions({ width, height }),
   p(nullptr)
 {
   assert((width > 0) && (height > 0) &&
       "attempted to create a Window width negative or 0 width/height");
   p = new X11Window((unsigned)width, (unsigned)height);
 
-  xcb_map_window(x11().connection<xcb_connection_t>(), p->window);
+  p->show();
 
   x11().flush();
 }
 
 Window::~Window()
 {
-  delete p;
 }
 
 void *Window::nativeHandle() const
 {
-  return nullptr;
+  return (void *)(uintptr_t)p->window;
 }
 
 void Window::swapBuffers()
 {
+  auto& gl_context = (sysv::GLContext&)gx::GLContext::current();
+
+  gl_context.swapBuffers();
 }
 
 void Window::swapInterval(unsigned interval)
 {
+  auto& gl_context = (sysv::GLContext&)gx::GLContext::current();
+
+  gl_context.swapInterval(interval);
 }
 
 void Window::captureMouse()
@@ -146,6 +169,10 @@ void Window::quit()
 
 void Window::destroy()
 {
+  delete p;
+  
+  p = nullptr;
+  m_dimensions = { -1, -1 };
 }
 
 bool Window::doProcessMessages()
@@ -162,6 +189,27 @@ bool Window::doProcessMessages()
 os::InputDeviceManager *Window::acquireInputManager()
 {
   return new sysv::InputDeviceManager();
+}
+
+bool Window::recreateWithVisual(u8 depth, u32 visual)
+{
+  p->destroy();
+
+  // When creating a window with an arbitrarily chosen visual
+  //   we must also create a colormap with a visual which
+  //   is the same as the one chosen for the window.
+  //  - Failing to do so results in a BadMatch X server
+  //    error when calling xcb_create_window()/XCreateWindow()
+  if(!p->createColormap(visual)) return false;
+  if(!p->createWindow(m_dimensions.x, m_dimensions.y, depth, visual)) return false;
+
+  // Newly created windows are
+  //   invisible by default
+  p->show();
+
+  x11().flush();     // Make sure the requests reach the X server
+
+  return true;
 }
 
 }

@@ -40,6 +40,14 @@ public:
     return (T *)screen();
   }
 
+  template <typename T /* Display */>
+  T *xlibDisplay()
+  {
+    return (T *)xlibDisplay();
+  }
+
+  int defaultScreen();
+
 private:
   friend void init();
 
@@ -54,6 +62,9 @@ private:
   void *connection();
   // Use ONLY via call to screen<xcb_screen_t>()
   void *screen();
+
+  // Use ONLY vis call to xlibDisplay<Display>()
+  void *xlibDisplay();
 
   X11ConnectionData *m_data;
 };

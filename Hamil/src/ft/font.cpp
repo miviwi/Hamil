@@ -1,7 +1,9 @@
 #include <ft/font.h>
 
+#include <config>
+
 #include <util/allocator.h>
-#include <win32/panic.h>
+#include <os/panic.h>
 #include <math/xform.h>
 #include <math/util.h>
 #include <uniforms.h>
@@ -12,6 +14,7 @@
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include FT_STROKER_H
+#include FT_ERRORS_H
 
 #include <stb_rect_pack/stb_rect_pack.h>
 
@@ -118,14 +121,6 @@ struct Vertex {
 };
 
 FT_Library ft;
-
-struct FontUniforms : gx::Uniforms {
-  Name font;
-
-  mat4 uModelViewProjection;
-  Sampler uAtlas;
-  vec4 uColor;
-};
 
 static const char *vs_src = R"VTX(
 
@@ -240,8 +235,8 @@ Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
   FT_Face face;
   auto err = FT_New_Face(ft, family.getPath(), 0, &face);
   if(err) {
-    std::string err_message = "FreeType face creation error " + std::to_string(err) + "!";
-    win32::panic(err_message.data(), -2);
+    std::string err_message = "FreeType face creation error (" + std::to_string(err) + ")";
+    os::panic(err_message.data(), os::FreeTypeFaceCreationError);
   }
 
   m = new pFace(face);
@@ -768,18 +763,23 @@ pString *String::get() const
 }
 
 static const std::unordered_map<std::string, std::string> family_to_path = {
+#if __win32
   { "arial", "C:\\Windows\\Fonts\\arial.ttf" },
   { "times", "C:\\Windows\\Fonts\\times.ttf" },
   { "georgia", "C:\\Windows\\Fonts\\georgia.ttf" },
   { "calibri", "C:\\Windows\\Fonts\\calibri.ttf" },
   { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
   { "segoeui", "C:\\Windows\\Fonts\\segoeui.ttf" },
+#elif __sysv
+#else
+#  error "unknown platform"
+#endif
 };
 
 FontFamily::FontFamily(const char *name)
 {
   auto path = family_to_path.find(name);
-  m_path = path != family_to_path.end() ? path->second : "";
+  m_path = path != family_to_path.end() ? path->second : name;
 }
 
 const char *FontFamily::getPath() const

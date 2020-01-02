@@ -3,6 +3,7 @@
 #include <win32/panic.h>
 #include <win32/glcontext.h>
 #include <gx/context.h>
+#include <os/panic.h>
 
 #include <cassert>
 #include <algorithm>
@@ -254,9 +255,9 @@ HGLRC ogl_create_context(HWND hWnd)
   wglMakeCurrent(hdc, temp_context);
   
   int err = gl3wInit();
-  if(err) panic("Failed to initialize gl3w!", GL3WInitError);
+  if(err) os::panic("Failed to initialize gl3w!", os::GL3WInitError);
 
-  if(!gl3wIsSupported(3, 3)) panic("OpenGL version >= 3.3 required!", OpenGL3_3NotSupportedError);
+  if(!gl3wIsSupported(3, 3)) os::panic("OpenGL version >= 3.3 required!", os::OpenGL3_3NotSupportedError);
 
   get_wgl_extension_addresses();
 

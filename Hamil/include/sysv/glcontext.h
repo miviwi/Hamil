@@ -10,10 +10,16 @@ class Window;
 
 namespace sysv {
 
+// Forward declaration
 class Window;
+
+// PIMPL struct
+struct GLContextData;
 
 class GLContext final : public gx::GLContext {
 public:
+
+
   GLContext();
   virtual ~GLContext() final;
 
@@ -29,6 +35,13 @@ protected:
 
 private:
   friend Window;
+
+  void swapBuffers();
+  void swapInterval(unsigned interval);
+
+  GLContextData *p;
+
+  bool m_was_acquired;
 };
 
 }

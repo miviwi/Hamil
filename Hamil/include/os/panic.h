@@ -12,6 +12,7 @@ enum : int {
 
   // sysv related error
   XOpenDisplayError, GetXCBConnectionError, XCBError,
+  GLXError,
 
   FileOpenError,
 
@@ -20,6 +21,9 @@ enum : int {
   OpenGL3_3NotSupportedError,
   ShaderCompileError, ShaderLinkingError,
   FramebufferError,
+
+  // FreeType related errors
+  FreeTypeFaceCreationError,
 };
 
 void panic(const char *reason, int exit_code);
