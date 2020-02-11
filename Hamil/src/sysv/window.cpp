@@ -226,7 +226,7 @@ void Window::quit()
 void Window::destroy()
 {
   delete p;
-  
+
   p = nullptr;
   m_dimensions = { -1, -1 };
 }

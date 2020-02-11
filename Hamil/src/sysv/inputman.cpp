@@ -21,7 +21,7 @@
 #endif
 
 // X11/xcb headers
-#if __sysv 
+#if __sysv
 #  include <xcb/xcb.h>
 #  include <X11/Xlib.h>
 #  include <X11/Xlib-xcb.h>
@@ -196,7 +196,7 @@ Input::Ptr InputDeviceManager::doPollInput()
 #if __sysv
   while(std::optional<LibevdevEvent> libevdev_kb_ev = next_event(m_data->kb)) {
     const auto& ev = libevdev_kb_ev->ev;
-    
+
     if(ev.type == EV_SYN) continue;   // Ignore Synchronization events at this stage
     if(ev.type == EV_MSC) continue;   //   ...and Miscelaneous events as well
 

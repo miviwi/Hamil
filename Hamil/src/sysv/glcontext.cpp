@@ -106,7 +106,7 @@ bool GLContextData::createContext(
       glXGetProcAddressARB((const GLubyte *)"glXSwapIntervalEXT");
   }
 
-  // Only old-style contexts are available 
+  // Only old-style contexts are available
   if(!glXCreateContextAttribsARB) return false;
 
 #if !defined(NDEBUG)
@@ -126,7 +126,7 @@ bool GLContextData::createContext(
   };
 
   context = glXCreateContextAttribsARB(
-      display, fb_config, 
+      display, fb_config,
       /* shareList */ share ? (GLXContext)share->nativeHandle() : nullptr,
       /* direct */ True,
       context_attribs
