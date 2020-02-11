@@ -16,13 +16,16 @@ struct InputDeviceManagerData;
 class InputDeviceManager final : public os::InputDeviceManager {
 public:
   InputDeviceManager();
-  virtual ~InputDeviceManager() = default;
+  virtual ~InputDeviceManager();
 
 protected:
   virtual Input::Ptr doPollInput() final;
 
 private:
   InputDeviceManagerData *m_data;
+
+  unsigned m_kb_modifiers;
+  unsigned m_capslock;
 };
 
 }

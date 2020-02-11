@@ -9,9 +9,11 @@ enum : int {
   NoSSESupportError, NoAVXSupportError,
   QueryPerformanceCounterError,
   InputDeviceRegistartionError,
+  WGLCreateContextError,
 
   // sysv related error
   XOpenDisplayError, GetXCBConnectionError, XCBError,
+  LibevdevDeviceOpenError,
   GLXError,
 
   FileOpenError,

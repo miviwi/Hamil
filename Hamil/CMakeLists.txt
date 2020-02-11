@@ -74,6 +74,9 @@ target_include_directories (Hamil PUBLIC
   "extern"
 
   "Generated"
+
+  # libevdev
+  ${LIBEVDEV_INCLUDE_DIRS}
 )
 
 target_link_libraries (Hamil PRIVATE
@@ -95,6 +98,9 @@ target_link_libraries (Hamil PRIVATE
 
   # X11/xcb
   ${X11_XCB_LIBRARIES}
+
+  # libevdev
+  ${LIBEVDEV_LIBRARIES}
 )
 
 target_sources (Hamil PUBLIC

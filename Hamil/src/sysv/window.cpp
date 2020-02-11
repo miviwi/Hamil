@@ -12,6 +12,8 @@
 // X11/xcb headers
 #if __sysv
 #  include <xcb/xcb.h>
+#  include <xcb/xproto.h>
+#  include <xcb/xcb_event.h>
 #  include <X11/Xlib.h>
 #  include <X11/Xlib-xcb.h>
 #  include <X11/keysymdef.h>
@@ -36,6 +38,8 @@ struct X11Window {
 
   xcb_connection_t *connection = nullptr;
   xcb_screen_t *screen = nullptr;
+
+  xcb_atom_t delete_window = X11InvalidId;
 
   X11Id window = X11InvalidId;
   X11Id colormap = X11InvalidId;
@@ -74,6 +78,9 @@ bool X11Window::createColormap(xcb_visualid_t visual)
   return false;
 }
 
+static const char X11_WM_PROTOCOLS[] = "WM_PROTOCOLS";
+static const char X11_WM_DELETE_WINDOW[] = "WM_DELETE_WINDOW";
+
 bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visualid_t visual)
 {
   window = x11().genId();
@@ -81,10 +88,12 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
   u32 mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
   u32 args[] = {
     0xFF0000,                                                     /* XCB_CW_BACK_PIXEL */
-    XCB_EVENT_MASK_EXPOSURE                                       /* XCB_CW_EVENT_MASK */
+    XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY,    /* XCB_CW_EVENT_MASK */
+    /*
     | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE
     | XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_MOTION
     | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
+    */
     colormap,                                                     /* XCB_CW_COLORMAP */
   };
 
@@ -93,12 +102,59 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
       0 /* x */, 0 /* y */, width, height, 0,
       XCB_WINDOW_CLASS_INPUT_OUTPUT, visual ? visual : screen->root_visual, mask, args
   );
-  auto err = xcb_request_check(connection, window_cookie);
-  if(!err) return true;
+  auto create_window_err = xcb_request_check(connection, window_cookie);
+  if(create_window_err) {  // There was an error - cleanup and signal failure
+    free(create_window_err);
 
-  // There was an error - cleanup and signal failure
-  free(err);
-  return false;
+    return false;
+  }
+
+  auto protocols_cookie = xcb_intern_atom(
+      connection, 1 /* only_if_exists */,
+      sizeof(X11_WM_PROTOCOLS)-1 /* don't include '\0' */, X11_WM_PROTOCOLS
+  );
+  auto delete_window_cookie = xcb_intern_atom(
+      connection, 0 /* only_if_exists */,
+      sizeof(X11_WM_DELETE_WINDOW)-1 /* don't include '\0' */, X11_WM_DELETE_WINDOW
+  );
+
+  xcb_generic_error_t *intern_protocols_err = nullptr;
+  xcb_generic_error_t *intern_delete_window_err = nullptr;
+
+  auto protocols_reply = xcb_intern_atom_reply(
+      connection, protocols_cookie, &intern_protocols_err
+  );
+  auto delete_reply = xcb_intern_atom_reply(
+      connection, delete_window_cookie, &intern_delete_window_err
+  );
+
+  if(intern_protocols_err || intern_delete_window_err) {
+    free(intern_protocols_err);
+    free(intern_delete_window_err);
+
+    return false;
+  }
+
+  delete_window = delete_reply->atom;
+
+  auto change_protocols_cookie = xcb_change_property_checked(
+      connection, XCB_PROP_MODE_REPLACE, window,
+      protocols_reply->atom, XCB_ATOM_ATOM,
+      32 /* bits per list item */, 1 /* num list items */, &delete_window
+  );
+
+  // Don't need the replies anymore
+  free(protocols_reply);
+  free(delete_reply);
+
+  auto change_protocols_err = xcb_request_check(connection, change_protocols_cookie);
+  if(change_protocols_err) {
+    free(change_protocols_err);
+
+    return false;
+  }
+
+  return true;   // No errors
 }
 
 void X11Window::show()
@@ -178,9 +234,27 @@ void Window::destroy()
 bool Window::doProcessMessages()
 {
 #if __sysv
-  // TODO: implement :)
+  auto connection = x11().connection<xcb_connection_t>();
 
-  return false;
+  while(xcb_generic_event_t *ev = xcb_poll_for_event(connection)) {
+    switch(XCB_EVENT_RESPONSE_TYPE(ev)) {
+    case XCB_CLIENT_MESSAGE: {
+      const auto& client_message = *(xcb_client_message_event_t *)ev;
+
+      if(client_message.data.data32[0] == p->delete_window) {
+        free(ev);
+
+        return false;
+      }
+
+      break;
+    }
+    }
+
+    free(ev);
+  }
+
+  return true;
 #else
   return false;
 #endif

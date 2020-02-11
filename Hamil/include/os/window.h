@@ -23,6 +23,8 @@ public:
   Window(int width, int height);
   virtual ~Window() = default;
 
+  void initInput();
+
   virtual void *nativeHandle() const = 0;
 
   // Process I/O messages from the OSes event loop

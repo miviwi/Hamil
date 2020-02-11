@@ -1,3 +1,4 @@
+#include "os/input.h"
 #include <common.h>
 
 #include <os/os.h>
@@ -83,6 +84,9 @@ int main(void)
 #endif
 
   sysv::Window window(1280, 720);
+
+  window.initInput();
+
   sysv::GLContext gl_context;
 
   gl_context
@@ -103,8 +107,19 @@ int main(void)
   glClear(GL_COLOR_BUFFER_BIT);
 
   window.swapBuffers();
+  while(window.processMessages()) {
+    while(auto input = window.getInput()) {
+      if(auto mouse = input->get<os::Mouse>()) {
+        printf("got some input -> os::Mouse\n");
+      } else if(auto kb = input->get<os::Keyboard>()) {
+        printf("got some input -> os::Keyboard\n");
+      }
+    }
 
-  do_sleep();
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    window.swapBuffers();    // Wait for v-sync
+  }
 
   gl_context.release();
 

@@ -250,14 +250,18 @@ HGLRC ogl_create_context(HWND hWnd)
   SetPixelFormat(hdc, pixel_format, &pfd);
 
   HGLRC temp_context = wglCreateContext(hdc);
-  assert(temp_context && "failed to create temporary ogl context");
+  if(!temp_context) {
+    os::panic("failed to create temporary ogl context", os::WGLCreateContextError);
+  }
 
   wglMakeCurrent(hdc, temp_context);
   
   int err = gl3wInit();
   if(err) os::panic("Failed to initialize gl3w!", os::GL3WInitError);
 
-  if(!gl3wIsSupported(3, 3)) os::panic("OpenGL version >= 3.3 required!", os::OpenGL3_3NotSupportedError);
+  if(!gl3wIsSupported(3, 3)) {
+    os::panic("OpenGL version >= 3.3 required!", os::OpenGL3_3NotSupportedError);
+  }
 
   get_wgl_extension_addresses();
 

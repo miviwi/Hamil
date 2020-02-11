@@ -251,6 +251,8 @@ gx::GLContext& GLContext::acquire(os::Window *window_, gx::GLContext *share)
     if(gl3w_init_result != GL3W_OK) os::panic("Failed to initialize gl3w!", os::GL3WInitError);
 
     if(!gl3wIsSupported(3, 3)) os::panic("OpenGL version >= 3.3 required!", os::OpenGL3_3NotSupportedError);
+
+    g_gl3w_init = true;
   }
 
   cleanup_x_structures();

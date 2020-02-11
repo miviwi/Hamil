@@ -6,8 +6,12 @@ void Input::deleter(Input *ptr)
 {
   if(auto mouse = ptr->get<Mouse>()) {
     delete mouse;
+
+    return;
   } else if(auto kb = ptr->get<Keyboard>()) {
     delete kb;
+
+    return;
   }
 
   assert(0);     // Unreachable

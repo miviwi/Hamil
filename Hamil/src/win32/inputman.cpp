@@ -38,6 +38,7 @@ InputDeviceManager::InputDeviceManager()
     panic("couldn't register input devices!", InputDeviceRegistartionError);
   }
 
+  m_kb_modifiers = 0;
   m_capslock = (GetKeyState(VK_CAPITAL) & 1) ? Keyboard::CapsLock : 0; //  bit 0 == toggle state
 #endif
 }

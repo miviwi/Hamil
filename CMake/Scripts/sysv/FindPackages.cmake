@@ -9,6 +9,9 @@ message ("-- Found 'X11' package")
 
 set (X11_XCB_LIBRARIES xcb X11-xcb xcb-util ${X11_LIBRARIES})
 
+find_package (Libevdev REQUIRED)
+message ("-- Found 'libevdev' package")
+
 find_package (Freetype 2.7.1 REQUIRED)
 message ("-- Found 'Freetype' package")
 
