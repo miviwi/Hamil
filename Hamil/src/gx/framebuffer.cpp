@@ -228,7 +228,7 @@ void Framebuffer::checkIfBound()
   default:                  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &bound); break;
   }
 
-  if(bound != m) assert(0 && "Framebuffer needs to be bound before use");
+  if((GLuint)bound != m) assert(0 && "Framebuffer needs to be bound before use");
 }
 
 ivec2 Framebuffer::getColorAttachement0Dimensions()

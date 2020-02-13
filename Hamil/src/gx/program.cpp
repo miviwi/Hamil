@@ -293,7 +293,7 @@ void Program::getUniformBlockDescriptors()
     glGetActiveUniformBlockiv(m, block, GL_UNIFORM_BLOCK_ACTIVE_UNIFORMS, &num_uniforms);
 
     // Check if we have enough space in the vectors
-    if(num_uniforms > indices.size()) {
+    if((size_t)num_uniforms > indices.size()) {
       indices.resize(num_uniforms);
       offsets.resize(num_uniforms);
       sizes.resize(num_uniforms);

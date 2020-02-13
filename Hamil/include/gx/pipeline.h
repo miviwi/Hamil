@@ -127,6 +127,8 @@ private:
 
   bool compare(const ConfigType config) const;
 
+  void *rawPtr();
+
   bool m_enabled[NumConfigTypes];
 };
 

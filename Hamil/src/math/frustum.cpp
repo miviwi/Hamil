@@ -86,7 +86,7 @@ bool frustum3::aabbInside(const AABB& aabb) const
   };
 
   for(const auto& plane : planes) {
-    int outside = 0;
+    size_t outside = 0;
     for(const auto& p : points) {
       if(plane.dot(p) > 0.0f) break;
 

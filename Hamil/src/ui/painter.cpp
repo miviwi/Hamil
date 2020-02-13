@@ -909,8 +909,11 @@ void VertexPainter::doAppendCommand(const Command& c, std::vector<Command>& comm
 
   // Try to merge command with previous if possible
   if(c.type == Primitive && last.type == c.type) {
-    if(c.p == last.p) {
-      last.num += c.num + 1;
+    auto& c_data = c.d;
+    auto& last_data = last.d;
+
+    if(c_data.p == last_data.p) {
+      last_data.num += c_data.num + 1;
     } else {
       commands.push_back(c);
     }

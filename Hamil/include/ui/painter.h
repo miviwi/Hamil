@@ -43,6 +43,19 @@ struct Vertex {
   Vertex(Position pos_, Color color_);
 };
 
+struct CommandData_ {
+  gx::Primitive p;
+  size_t base, offset;
+  size_t num;
+
+  // Only used when type == Text
+  ft::Font *font;
+  vec2 pos; Color color;
+
+  // Page in the Drawable image atlas
+  unsigned page;
+};
+
 // TODO:
 //    - Cache painted geometry (with a lot of vertices) based on size and color,
 //      when retrieving translate to appropriate place
@@ -70,18 +83,7 @@ public:
     CommandType type;
 
     union {
-      struct {
-        gx::Primitive p;
-        size_t base, offset;
-        size_t num;
-
-        // Only used when type == Text
-        ft::Font *font;
-        vec2 pos; Color color;
-
-        // Page in the Drawable image atlas
-        unsigned page;
-      };
+      CommandData_ d;
 
       // Only valid when type == Pipeline
       gx::Pipeline pipeline;
@@ -94,9 +96,9 @@ public:
     {
       Command c;
       c.type = Primitive;
-      c.p = prim;
-      c.base = base; c.offset = offset;
-      c.num = num;
+      c.d.p = prim;
+      c.d.base = base; c.d.offset = offset;
+      c.d.num = num;
 
       return c;
     }
@@ -106,12 +108,12 @@ public:
     {
       Command c;
       c.type = Text;
-      c.p = gx::TriangleFan;
-      c.base = base; c.offset = offset;
-      c.num = num;
+      c.d.p = gx::TriangleFan;
+      c.d.base = base; c.d.offset = offset;
+      c.d.num = num;
       
-      c.font = &font;
-      c.pos = pos; c.color = color;
+      c.d.font = &font;
+      c.d.pos = pos; c.d.color = color;
 
       return c;
     }
@@ -121,12 +123,12 @@ public:
     {
       Command c;
       c.type = Image;
-      c.p = gx::TriangleFan;
-      c.base = base; c.offset = offset;
-      c.num = num;
+      c.d.p = gx::TriangleFan;
+      c.d.base = base; c.d.offset = offset;
+      c.d.num = num;
 
-      c.pos = pos;
-      c.page = page;
+      c.d.pos = pos;
+      c.d.page = page;
 
       return c;
     }

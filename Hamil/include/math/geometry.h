@@ -651,10 +651,10 @@ inline Matrix2<T> operator*(Matrix2<T> a, Matrix2<T> b)
 using mat2  = Matrix2<float>;
 using imat2 = Matrix2<int>;
 
-PACKED_STRUCT_BEGIN
+//PACKED_STRUCT_BEGIN
 
 template <typename T>
-struct Matrix3 {
+struct alignas(16) Matrix3 {
   using Vector = Vector3<T>;
 
   T d[3*3];
@@ -686,7 +686,7 @@ struct Matrix3 {
     };
   }
 
-  const T& operator()(unsigned col, unsigned row) const { return d[col + row*3]; }
+  T operator()(unsigned col, unsigned row) const { return d[col + row*3]; }
   T& operator()(unsigned col, unsigned row) { return d[col + row*3]; }
 
   Vector row(unsigned row) const
@@ -760,7 +760,7 @@ struct Matrix3 {
 
   operator float *() { return d; }
   operator const float *() const { return d; }
-} PACKED_STRUCT_END;
+} /* PACKED_STRUCT_END */;
 
 template <typename T>
 inline Matrix3<T> operator*(const Matrix3<T>& a, const Matrix3<T>& b)

@@ -127,8 +127,9 @@ int main(int argc, char *argv[])
   constexpr ivec2 WindowSize      = { 1600, 900 };
   constexpr ivec2 FramebufferSize = { 1280, 720 };
 
-  using win32::Window;
-  Window window(WindowSize.x, WindowSize.y);
+  win32::Window window(WindowSize.x, WindowSize.y);
+
+  window.initInput();
 
   win32::GLContext gl_context;
 

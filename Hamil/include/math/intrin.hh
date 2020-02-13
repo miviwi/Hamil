@@ -120,7 +120,7 @@ void mat4_transpose(const float *a, float *out)
 // (ftp://download.intel.com/design/pentiumiii/sml/24504301.pdf)
 void mat4_inverse(const float *a, float *out)
 {
-  __m128 x[4];
+  __m128 x[4] = { _mm_undefined_ps(), _mm_undefined_ps(), _mm_undefined_ps(), _mm_undefined_ps() };
   __m128 minor[4];
   __m128 det, tmp;
 

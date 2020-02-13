@@ -180,8 +180,8 @@ LTC_CoeffsTable& LTC_CoeffsTable::fit(const brdf::BRDF_GGX& brdf)
   LTC ltc;
 
   static constexpr unsigned N = TableSize.x;
-  for(int a = N-1; a >= 0; a--) {
-    for(int t = 0; t <= N-1; t++) {
+  for(unsigned a = N-1; a >= 0; a--) {
+    for(unsigned t = 0; t <= N-1; t++) {
       float x = t / float(N-1);
       float ct = 1.0f - x*x;
 

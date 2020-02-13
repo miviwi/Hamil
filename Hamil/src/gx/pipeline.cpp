@@ -10,7 +10,8 @@ Pipeline p_current;
 
 Pipeline::Pipeline()
 {
-  memset(this, 0xFF, sizeof(*this));
+  memset(rawPtr(), 0xFF, sizeof(*this));   // Make sure the Pipeline holds only
+                                           //   known (invalid) data
   std::fill(m_enabled, m_enabled+NumConfigTypes, false);
 
   m_viewport = { -1, -1, -1, -1 };
@@ -407,6 +408,11 @@ bool Pipeline::compare(const ConfigType config) const
   }
 
   return false;
+}
+
+void *Pipeline::rawPtr()
+{
+  return (void *)this;
 }
 
 ScopedPipeline::ScopedPipeline(const Pipeline& p)

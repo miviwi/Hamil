@@ -285,7 +285,7 @@ Font::~Font()
 
 int Font::glyphIndex(int ch) const
 {
-  return ch < m_glyph_index.size() ? getGlyphIndex(ch) : -1;
+  return (size_t)ch < m_glyph_index.size() ? getGlyphIndex(ch) : -1;
 }
 
 String Font::string(const char *str, size_t length) const
@@ -613,7 +613,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHand
 
   std::vector<stbrp_rect> rects;
   rects.reserve(glyphs.size());
-  for(int i = 0; i < glyphs.size(); i++) {
+  for(size_t i = 0; i < glyphs.size(); i++) {
     auto g = (FT_BitmapGlyph)glyphs[i].m;
 
     // Spacing around glyphs
@@ -621,7 +621,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHand
       h = (stbrp_coord)(g->bitmap.rows + 2);
 
     rects.push_back(stbrp_rect{
-      i,
+      (int)i,
       w, h
     });
   }

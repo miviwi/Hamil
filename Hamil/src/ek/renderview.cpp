@@ -37,7 +37,7 @@ struct ShaderConstants {
   uint sz = ~0u;
 };
 
-enum : uint {
+enum {
   MaxForwardPassLights = 8,
 };
 
@@ -49,7 +49,7 @@ enum MaterialId : u32 {
 };
 
 #pragma pack(push, 1)
-struct LightConstants {
+struct alignas(16) LightConstants {
   vec4 v1;
   vec4 v2;
   vec4 v3;
@@ -65,7 +65,7 @@ struct LightConstants {
   //   v3 = vec4(color.rgb, 1.0)
 };
 
-struct SceneConstants {
+struct alignas(16) SceneConstants {
   mat4 view;
   mat4 projection;
 
@@ -85,7 +85,7 @@ struct SceneConstants {
   LightConstants lights[MaxForwardPassLights];
 };
 
-struct ObjectConstants {
+struct alignas(16) ObjectConstants {
   mat4 model;
   mat4 normal;
   mat4 texture;
@@ -100,7 +100,7 @@ struct ObjectConstants {
   vec4 pad_;
 };
 
-struct ObjectShadowConstants {
+struct alignas(16) ObjectShadowConstants {
   mat4 model;
 };
 #pragma pack(pop)
@@ -328,8 +328,8 @@ gx::CommandBuffer RenderView::doRender(std::vector<RenderObject>& objects)
     // Run occlusion query
     vis.occlusionQuery(vis_object);
 
-    int meshes_culled = 0;   // Number of meshes culled which are
-                             //   owned by this RenderObject
+    unsigned meshes_culled = 0;   // Number of meshes culled which are
+                                  //   owned by this RenderObject
     vis_object->foreachMesh([&](VisibilityMesh& mesh) {
 #if !defined(NDEBUG)
       if(mesh.vis_flags & VisibilityMesh::LateOut) num_full_tests++;

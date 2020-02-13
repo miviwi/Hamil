@@ -46,27 +46,27 @@ union Bits {
   i32 i;
 };
 
-static constexpr u32 F32Inf  = 0x7F800000u;
-static constexpr u32 F32Sign = 0x80000000u;
-static constexpr u32 F32MaxN = 0x477FE000u; // Max f16 as f32
-static constexpr u32 F32MinN = 0x38800000u; // Min f16 as f32
+static constexpr i32 F32Inf  = 0x7F800000;
+static constexpr i32 F32Sign = 0x80000000;
+static constexpr i32 F32MaxN = 0x477FE000; // Max f16 as f32
+static constexpr i32 F32MinN = 0x38800000; // Min f16 as f32
 
-static constexpr u32 F16Shift     = 13;
-static constexpr u32 F16SignShift = 16;
+static constexpr i32 F16Shift     = 13;
+static constexpr i32 F16SignShift = 16;
 
-static constexpr u32 F16MulN  = 0x52000000u; // (1<<23) / F32MinN
-static constexpr u32 F16MulC  = 0x33800000u; // F32MinN / (1 << (23-F16Shift))
-static constexpr u32 F16InfC  = F32Inf >> F16Shift;
-static constexpr u32 F16NaN   = (F16InfC + 1) << F16Shift;
-static constexpr u32 F16MinC  = F32MinN >> F16Shift;
-static constexpr u32 F16MaxC  = F32MaxN >> F16Shift;
-static constexpr u32 F16SignC = F32Sign >> F16Shift;
+static constexpr i32 F16MulN  = 0x52000000; // (1<<23) / F32MinN
+static constexpr i32 F16MulC  = 0x33800000; // F32MinN / (1 << (23-F16Shift))
+static constexpr i32 F16InfC  = F32Inf >> F16Shift;
+static constexpr i32 F16NaN   = (F16InfC + 1) << F16Shift;
+static constexpr i32 F16MinC  = F32MinN >> F16Shift;
+static constexpr i32 F16MaxC  = F32MaxN >> F16Shift;
+static constexpr i32 F16SignC = F32Sign >> F16Shift;
 
-static constexpr u32 F16SubC = 0x003FF;
-static constexpr u32 F16NorC = 0x00400;
+static constexpr i32 F16SubC = 0x003FF;
+static constexpr i32 F16NorC = 0x00400;
 
-static constexpr u32 F16MaxD = F16MinC - F16SubC - 1;
-static constexpr u32 F16MinD = F16InfC - F16MaxC - 1;
+static constexpr i32 F16MaxD = F16MinC - F16SubC - 1;
+static constexpr i32 F16MinD = F16InfC - F16MaxC - 1;
 
 u16 to_f16(float f)
 {

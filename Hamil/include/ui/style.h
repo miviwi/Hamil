@@ -71,7 +71,7 @@ struct Style {
     Color cursor;
   } textbox;
 
-  Style() { memset(this, 0, sizeof(*this)); }
+  Style() { memset(rawPtr(), 0, sizeof(*this)); }
 
   static Style basic_style();
 
@@ -80,6 +80,8 @@ protected:
 
 private:
   friend Ui;
+
+  void *rawPtr() { return (void *)this; }
 };
 
 

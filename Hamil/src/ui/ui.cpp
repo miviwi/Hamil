@@ -381,21 +381,24 @@ gx::CommandBuffer Ui::paint()
 
     mvp = projection;
 
-    auto num = (u32)cmd.num;
-    auto base = (u32)cmd.base;
-    auto offset = (u32)cmd.offset;
+    auto prim = cmd.d.p;
+    auto num = (u32)cmd.d.num;
+    auto base = (u32)cmd.d.base;
+    auto offset = (u32)cmd.d.offset;
+
+    const auto& pos = cmd.d.pos;
 
     switch(cmd.type) {
     case VertexPainter::Primitive:
       command_buf
         .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeShape)
-        .drawBaseVertex(cmd.p, m_vtx_id, num, base, offset);
+        .drawBaseVertex(prim, m_vtx_id, num, base, offset);
       break;
 
     case VertexPainter::Text: {
-      if(last_font_id != cmd.font->atlasId()) {
-        auto font_id = cmd.font->atlasId();
+      if(last_font_id != cmd.d.font->atlasId()) {
+        auto font_id = cmd.d.font->atlasId();
         auto subpass_id = renderpass.nextSubpassId();
         renderpass.subpass(gx::RenderPass::Subpass()
           .texture(ft::TexImageUnit, font_id, m_drawable.samplerId()));
@@ -408,25 +411,25 @@ gx::CommandBuffer Ui::paint()
       auto color_handle = m_mempool.alloc<vec4>();
       auto& color = *m_mempool.ptr<vec4>(color_handle);
 
-      color = cmd.color.normalize();
-      mvp = mvp * xform::translate(cmd.pos.x, cmd.pos.y, 0);
+      color = cmd.d.color.normalize();
+      mvp = mvp * xform::translate(pos.x, pos.y, 0);
 
       command_buf
         .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeText)
         .uniformVector4(U.ui.uTextColor, color_handle)
-        .drawBaseVertex(cmd.p, m_vtx_id, num, base, offset);
+        .drawBaseVertex(prim, m_vtx_id, num, base, offset);
       break;
     }
 
     case VertexPainter::Image:
-      mvp = mvp * xform::translate(cmd.pos.x, cmd.pos.y, 0);
+      mvp = mvp * xform::translate(pos.x, pos.y, 0);
 
       command_buf
         .uniformMatrix4x4(U.ui.uModelViewProjection, mvp_handle)
         .uniformInt(U.ui.uType, Shader_TypeImage)
-        .uniformFloat(U.ui.uImagePage, (float)cmd.page)
-        .drawBaseVertex(cmd.p, m_vtx_id, num, base, offset);
+        .uniformFloat(U.ui.uImagePage, (float)cmd.d.page)
+        .drawBaseVertex(prim, m_vtx_id, num, base, offset);
       break;
 
     case VertexPainter::Pipeline: {

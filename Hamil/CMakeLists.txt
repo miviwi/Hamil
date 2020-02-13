@@ -50,7 +50,7 @@ set (EUGENE_BUILD "${ProjectDir}/build.eugene")
 add_subdirectory ("src")
 add_subdirectory ("extern")
 
-set (CMAKE_CXX_COMPILER clang++)
+set (CMAKE_CXX_COMPILER g++)
 target_compile_options (Hamil PUBLIC
   -pipe
 
@@ -60,7 +60,9 @@ target_compile_options (Hamil PUBLIC
   -mmovbe -msse -msse2 -msse3 -mssse3 -msse4 -mf16c
 
   -Wall -Wno-switch -Wno-unknown-pragmas -Wno-unused-function
-  -Wno-writable-strings
+  -Wno-writable-strings     # clang
+  -Wno-write-strings        # gcc
+  -Wno-address-of-packed-member
 
   -g
 )
@@ -82,6 +84,10 @@ target_include_directories (Hamil PUBLIC
 target_link_libraries (Hamil PRIVATE
   HamilExtern
 
+  # math
+  m
+
+  # pthreads
   ${CMAKE_THREAD_LIBS_INIT}
 
   # FreeType 2
@@ -153,8 +159,10 @@ if (WIN32)
 endif()
 
 #     --- YouCompleteMe compilation flag database ---
-message ("-- Copying YouCompleteMe compile flags dump (compile_commands.json)")
-execute_process (
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
+add_custom_command (TARGET Hamil POST_BUILD
+  COMMAND
+    ${CMAKE_COMMAND} -E copy_if_different
+      "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
+  COMMENT
+    "-- Copying YouCompleteMe compile flags dump (compile_commands.json)"
 )

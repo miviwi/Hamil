@@ -1035,7 +1035,7 @@ void OcclusionBuffer::createCoarseTile(ivec2 tile_start, ivec2 tile_end)
       __m128 max0 = _mm_setzero_ps();
       __m128 max1 = _mm_setzero_ps();
 
-      for(int i = 0; i < offsets.size(); i++) {
+      for(size_t i = 0; i < offsets.size(); i++) {
         const auto src_quad = src + offsets[i];
 
         __m128 src_quad0 = _mm_load_ps(src_quad + 0);
