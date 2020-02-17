@@ -300,7 +300,7 @@ void LTC_CoeffsTable::averageTerms(const brdf::BRDF_GGX& brdf, const vec3& V, fl
 
       // Accumulate
       norm    += weight;
-      fresnel += weight * pow(1.0f - VdotH, 5.0f);
+      fresnel += weight * powf(1.0f - VdotH, 5.0f);
       avg_dir += L * weight;
     }
   }

@@ -158,8 +158,8 @@ Input::Ptr InputDeviceManager::doPollInput()
     default: mi->event = Mouse::Move; break;
     }
 
-    mi->dx = (float)m->lLastX*m_mouse_speed;
-    mi->dy = (float)m->lLastY*m_mouse_speed;
+    mi->dx = (float)m->lLastX*mouseSpeed();
+    mi->dy = (float)m->lLastY*mouseSpeed();
 
     doDoubleClick(mi);
 
@@ -205,7 +205,14 @@ void InputDeviceManager::doDoubleClick(Mouse *mi)
 static unsigned translate_sym(u16 vk, unsigned modifiers)
 {
   bool shift = modifiers & Keyboard::Shift,
-    caps = modifiers & Keyboard::CapsLock;
+       caps = modifiers & Keyboard::CapsLock;
+
+  bool upper = false;
+  if(caps) {
+    upper = !shift; // If CapsLock is currently ON Shift's function is inversed for letters
+  } else {
+    upper = shift;
+  }
 
 #if __win32
   if(shift) {
@@ -248,9 +255,20 @@ static unsigned translate_sym(u16 vk, unsigned modifiers)
     case VK_OEM_MINUS:  return '-';
     }
   }
-#endif
 
-  return (shift || caps) ? toupper(vk) : tolower(vk);
+  // Shift, Alt, CapsLock etc. do not have corresponding Keyboard::sym values
+  switch(vk) {
+  case VK_CONTROL:
+  case VK_SHIFT:
+  case VK_MENU:
+  case VK_LWIN:
+  case VK_RWIN: return 0;
+  }
+
+  return upper ? toupper(vk) : tolower(vk);
+#else
+  assert(0);   // Unreachable
+#endif
 }
 
 unsigned translate_key(u16 vk, unsigned modifiers)
@@ -288,6 +306,7 @@ unsigned translate_key(u16 vk, unsigned modifiers)
   case VK_LEFT:  return Keyboard::Left;
   case VK_RIGHT: return Keyboard::Right;
 
+  case VK_TAB:    return Keyboard::Tab;
   case VK_RETURN: return Keyboard::Enter;
   case VK_BACK:   return Keyboard::Backspace;
 
@@ -298,10 +317,20 @@ unsigned translate_key(u16 vk, unsigned modifiers)
   case VK_PRIOR:  return Keyboard::PageUp;
   case VK_NEXT:   return Keyboard::PageDown;
 
-  case VK_PRINT:  return Keyboard::Print;
-  case VK_SCROLL: return Keyboard::ScrollLock;
-  case VK_PAUSE:  return Keyboard::Pause;
+  case VK_NUMLOCK:  return Keyboard::NumLock;
+  case VK_SNAPSHOT: return Keyboard::Print;
+  case VK_SCROLL:   return Keyboard::ScrollLock;
+  case VK_PAUSE:    return Keyboard::Pause;
+
+  case VK_CONTROL: return Keyboard::SpecialKey | Keyboard::Ctrl;
+  case VK_SHIFT:   return Keyboard::SpecialKey | Keyboard::Shift;
+  case VK_MENU:    return Keyboard::SpecialKey | Keyboard::Alt;
+  case VK_LWIN:    // Fall-thru
+  case VK_RWIN:    return Keyboard::SpecialKey | Keyboard::Super;
+  case VK_CAPITAL: return Keyboard::SpecialKey | Keyboard::CapsLock;
   }
+#else
+  assert(0);   // Unreachable
 #endif
 
   return vk;

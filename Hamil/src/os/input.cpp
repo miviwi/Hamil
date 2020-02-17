@@ -17,6 +17,16 @@ void Input::deleter(Input *ptr)
   assert(0);     // Unreachable
 }
 
+Input::Ptr Input::invalid_ptr()
+{
+  return Input::Ptr(nullptr, &Input::deleter);
+}
+
+Input::Ptr Mouse::create()
+{
+  return Input::Ptr(new Mouse(), &Input::deleter);
+}
+
 bool Mouse::buttonDown(Button btn) const
 {
   return event == Down && ev_data == btn;
@@ -25,6 +35,23 @@ bool Mouse::buttonDown(Button btn) const
 bool Mouse::buttonUp(Button btn) const
 {
   return event == Up && ev_data == btn;
+}
+
+const char *Mouse::dbg_TypeStr() const
+{
+  switch(event) {
+  case Move:  return "Move";
+  case Up:    return "Up";
+  case Down:  return "Down";
+  case Wheel: return "Wheel";
+  }
+
+  return "<Invalid>";
+}
+
+Input::Ptr Keyboard::create()
+{
+  return Input::Ptr(new Keyboard(), &Input::deleter);
 }
 
 bool Keyboard::keyDown(unsigned k) const
@@ -45,6 +72,18 @@ bool Keyboard::modifier(unsigned mod) const
 bool Keyboard::special() const
 {
   return key > SpecialKey;
+}
+
+const char *Keyboard::dbg_TypeStr() const
+{
+  switch(event) {
+  case KeyUp:   return "KeyUp";
+  case KeyDown: return "KeyDown";
+  case SysUp:   return "SysUp";
+  case SysDown: return "SysDown";
+  }
+
+  return "<Invalid>";
 }
 
 }

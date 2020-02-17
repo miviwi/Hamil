@@ -14,6 +14,8 @@ struct Input {
   using Ptr = std::unique_ptr<Input, decltype(&Input::deleter)>;
   using Tag = const char *;
 
+  static Ptr invalid_ptr();
+
   // Use example:
   //   if(auto mouse = input.get<Mouse>()) { ... }
   template <typename T>
@@ -23,6 +25,8 @@ struct Input {
   }
 
   Time timestamp;
+
+  virtual const char *dbg_TypeStr() const = 0;
 
 protected:
   virtual Tag getTag() const = 0;
@@ -52,8 +56,12 @@ struct Mouse final : public Input {
 
   static Tag tag() { return "mouse"; }
 
+  static Input::Ptr create();
+
   bool buttonDown(Button btn) const;
   bool buttonUp(Button btn) const;
+
+  virtual const char *dbg_TypeStr() const final;
 
 protected:
   virtual Tag getTag() const { return tag(); }
@@ -84,12 +92,12 @@ struct Keyboard final : public Input {
 
     Up, Left, Down, Right,
     
-    Enter, Backspace,
+    Tab, Enter, Backspace,
 
     Insert, Home, PageUp,
     Delete, End,  PageDown,
 
-    Print, ScrollLock, Pause,
+    NumLock, Print, ScrollLock, Pause,
   };
 
   u16 event;
@@ -100,12 +108,16 @@ struct Keyboard final : public Input {
 
   static Tag tag() { return "kb"; }
 
+  static Input::Ptr create();
+
   bool keyDown(unsigned k) const;
   bool keyUp(unsigned k) const;
 
   bool modifier(unsigned mod) const;
 
   bool special() const;
+
+  virtual const char *dbg_TypeStr() const final;
 
 protected:
   virtual Tag getTag() const { return tag(); }

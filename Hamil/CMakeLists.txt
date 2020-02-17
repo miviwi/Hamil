@@ -84,6 +84,8 @@ target_include_directories (Hamil PUBLIC
 target_link_libraries (Hamil PRIVATE
   HamilExtern
 
+  stdc++    # needed for clang (?)
+
   # math
   m
 
@@ -164,5 +166,5 @@ add_custom_command (TARGET Hamil POST_BUILD
     ${CMAKE_COMMAND} -E copy_if_different
       "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
   COMMENT
-    "-- Copying YouCompleteMe compile flags dump (compile_commands.json)"
+    "-- Copying compile flags dump for YouCompleteMe (compile_commands.json)"
 )

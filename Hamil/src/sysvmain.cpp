@@ -12,6 +12,7 @@
 #include <sched/pool.h>
 #include <gx/gx.h>
 #include <gx/info.h>
+#include <gx/pipeline.h>
 #include <util/unit.h>
 #include <ft/font.h>
 
@@ -101,7 +102,7 @@ int main(void)
   printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));
   printf("extension(ARB::TextureBPTC):      %i\n", gx::info().extension(gx::ARB::TextureBPTC));
 
-  ft::Font face(ft::FontFamily("/usr/share/fonts/TTF/segoeui.ttf"), 35);
+  ft::Font face(ft::FontFamily("/usr/share/fonts/TTF/segoeuil.ttf"), 35);
 
   glClearColor(0.5f, 0.8f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -110,13 +111,25 @@ int main(void)
   while(window.processMessages()) {
     while(auto input = window.getInput()) {
       if(auto mouse = input->get<os::Mouse>()) {
-        printf("got some input -> os::Mouse\n");
+        printf("got some input -> os::Mouse(%s) [dx,dy]=[%.1f,%.1f]\n",
+            mouse->dbg_TypeStr(),
+            mouse->dx, mouse->dy
+        );
       } else if(auto kb = input->get<os::Keyboard>()) {
-        printf("got some input -> os::Keyboard\n");
+        printf("got some input -> os::Keyboard(%s) sym=%c\n", kb->dbg_TypeStr(), (char)kb->sym);
       }
     }
 
     glClear(GL_COLOR_BUFFER_BIT);
+
+    gx::Pipeline pipeline;
+    pipeline
+      .viewport(0, 0, 1280, 720)
+      .alphaBlend()
+      .use();
+
+
+    face.draw("Hello, world!", { 100.0f, 200.0f }, vec3(1.0f));
 
     window.swapBuffers();    // Wait for v-sync
   }

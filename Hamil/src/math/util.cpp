@@ -174,9 +174,19 @@ std::string to_str(const vec3& v)
   return util::fmt("vec3(%.2f, %.2f, %.2f)", v.x, v.y, v.z);
 }
 
+std::string to_str(const ivec3& v)
+{
+  return util::fmt("ivec3(%d, %d, %d)", v.x, v.y, v.z);
+}
+
 std::string to_str(const vec4& v)
 {
   return util::fmt("vec4(%.2f, %.2f, %.2f, %.2f)", v.x, v.y, v.z, v.w);
+}
+
+std::string to_str(const ivec4& v)
+{
+  return util::fmt("ivec4(%d, %d, %d, %d)", v.x, v.y, v.z, v.w);
 }
 
 std::string to_str(const mat3& m)

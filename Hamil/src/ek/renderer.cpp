@@ -30,6 +30,8 @@
 #include <uniforms.h>
 
 #include <cassert>
+#include <cmath>
+
 #include <algorithm>
 #include <random>
 

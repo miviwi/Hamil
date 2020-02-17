@@ -139,8 +139,8 @@ float IAnimationChannel::ease(AnimationEasing easing, float f)
   case EaseQuinticIn:      return fffff;
   case EaseQuinticOut:     return q*q*q*q*q + 1.0f;
   case EaseQuinticInOut:   return f < 0.5f ? 16.0f*f*f*f*f*f : 0.5f*r*r*r*r*r + 1.0f;
-  case EaseBack:           return fff - f*sin(f * PIf);
-  case EaseElastic:        return sin(-13.0f * PIf*2.0f * (f + 1.0f)) * pow(2, -10.0f*f) + 1.0f;
+  case EaseBack:           return fff - f*sinf(f * PIf);
+  case EaseElastic:        return sinf(-13.0f * PIf*2.0f * (f + 1.0f)) * powf(2, -10.0f*f) + 1.0f;
   case EaseBounce:         return ease_bounce(f);
   }
 

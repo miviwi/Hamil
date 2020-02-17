@@ -10,8 +10,11 @@ using Input = os::Input;
 using Mouse = os::Mouse;
 using Keyboard = os::Keyboard;
 
-// PIMPL struct
+// PIMPL structs
 struct InputDeviceManagerData;
+
+struct LibevdevDevice;
+struct LibevdevEvent;
 
 class InputDeviceManager final : public os::InputDeviceManager {
 public:
@@ -24,8 +27,8 @@ protected:
 private:
   InputDeviceManagerData *m_data;
 
-  unsigned m_kb_modifiers;
-  unsigned m_capslock;
+  Input::Ptr keyboardEvent(const LibevdevEvent& libevdev_ev);
+  Input::Ptr mouseEvent(const LibevdevEvent& libevdev_ev);
 };
 
 }

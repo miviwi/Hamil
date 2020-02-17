@@ -158,7 +158,9 @@ namespace math {
 std::string to_str(const vec2& v);
 std::string to_str(const ivec2& v);
 std::string to_str(const vec3& v);
+std::string to_str(const ivec3& v);
 std::string to_str(const vec4& v);
+std::string to_str(const ivec4& v);
 std::string to_str(const mat3& m);
 std::string to_str(const mat4& m);
 std::string to_str(const quat& q);
