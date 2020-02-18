@@ -49,7 +49,14 @@ struct Mouse final : public Input {
 
   u16 event;
 
+  // Stores ALL of the held buttons at the time of the input
   u16 buttons;
+  // Stores the Button directly related to the event, i.e.
+  //   - When event == Mouse::Down, ev_data stores the pressed button
+  //   - When event == Mouse::Up, ev_data stores the released button
+  //
+  // HOWEVER in the case of a Mouse::Wheel input the scroll value
+  //   is stored
   int ev_data;
 
   float dx, dy;
@@ -102,6 +109,8 @@ struct Keyboard final : public Input {
 
   u16 event;
   u16 modifiers;
+
+  Time time_held;
 
   unsigned key; // raw scancode
   unsigned sym; // printed character

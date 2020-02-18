@@ -1,6 +1,7 @@
 #pragma once
 
 #include <os/input.h>
+#include <util/ringbuffer.h>
 
 #include <deque>
 
@@ -26,6 +27,12 @@ protected:
   //   units of ticks, not seconds)
   Time tDoubleClickSpeed() const;
 
+  // Via an internal buffer and max possible double click
+  //   delay determined by tDoubleClickSpeed() determine
+  //   if 'mi' corresponds to a Mouse::DoubleClick event
+  //   and mutate it if so
+  void doDoubleClick(Mouse *mi);
+
   // Should return a nullptr immediately
   //   if there's no input available from
   //   the OS and NOT block
@@ -40,6 +47,8 @@ private:
   float m_dbl_click_seconds;
 
   std::deque<Input::Ptr> m_input_buf;
+
+  RingBuffer<Mouse> m_clicks;
 };
 
 }

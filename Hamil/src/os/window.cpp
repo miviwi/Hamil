@@ -40,9 +40,4 @@ bool Window::processMessages()
   return doProcessMessages();
 }
 
-void Window::quit()
-{
-  fprintf(stderr, "NOTE: os::Window::quit() unimplemented");
-}
-
 }

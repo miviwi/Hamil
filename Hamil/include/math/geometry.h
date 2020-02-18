@@ -1,5 +1,6 @@
 #pragma once
 
+#include <locale>
 #include <math/intrin.h>
 #include <util/structpack.h>
 
@@ -37,6 +38,7 @@ struct Vector2 {
   };
 
   static Vector2 zero() { return { (T)0, (T)0 }; }
+  static Vector2 inf();
 
   T length2() const { return dot(*this); }
   T length() const { return (T)sqrt(length2()); }
@@ -92,6 +94,13 @@ struct Vector2 {
   operator T *() { return (T *)this; }
   operator const T *() const { return (const T *)this; }
 } PACKED_STRUCT_END;
+
+template <>
+inline constexpr Vector2<float> Vector2<float>::inf()
+{
+  using FloatLimits = std::numeric_limits<float>;
+  return { FloatLimits::infinity(), FloatLimits::infinity() };
+}
 
 template <typename T>
 inline constexpr Vector2<T> operator+(Vector2<T> a, Vector2<T> b)

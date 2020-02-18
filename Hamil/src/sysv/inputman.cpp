@@ -1,4 +1,5 @@
-#include "math/util.h"
+#include "os/time.h"
+#include <cstdio>
 #include <sysv/inputman.h>
 #include <sysv/sysv.h>
 #include <sysv/time.h>
@@ -6,6 +7,7 @@
 #include <os/input.h>
 #include <os/panic.h>
 #include <math/geometry.h>
+#include <math/util.h>
 #include <util/format.h>
 
 #include <config>
@@ -15,6 +17,8 @@
 #include <cstring>
 #include <cctype>
 
+#include <array>
+#include <algorithm>
 #include <optional>
 
 // POSIX headers
@@ -107,6 +111,11 @@ enum LibevdevKeyboardEventValue {
   MouseEventButtonUp   = 0,
 };
 
+struct KeyboardKeyState {
+  bool down = false;
+  os::Time pressed_timestamp = os::InvalidTime;
+};
+
 struct InputDeviceManagerData {
 #if __sysv
   xcb_connection_t *connection = nullptr;
@@ -117,8 +126,12 @@ struct InputDeviceManagerData {
   bool mouse_is_touchpad = false;
   bool mouse_has_hi_res_wheel = false;
 
+  bool touchpad_needs_recenter = true;
+
   ivec4 touchpad_extents = ivec4::zero();    // (x, y, z, w) = (min_x, min_y, max_x, max_y)
-  ivec2 touchpad_last_pos = ivec2::zero();
+  ivec2 touchpad_last_pos = ivec2(-1, -1);
+
+  std::array<KeyboardKeyState, 256> kb_keys;
 
   struct libevdev *dev_mouse() { return mouse.device; }
   struct libevdev *dev_kb()    { return kb.device; }
@@ -202,7 +215,7 @@ static std::optional<LibevdevEvent> next_event(const LibevdevDevice& libevdev_de
           libevdev_event_type_get_name(ev.type),
           libevdev_event_code_get_name(ev.type, ev.code), ev.value
       );
-    } else if(ev.type == EV_ABS || ev.type == EV_REL) {
+    } else if((ev.type == EV_ABS || ev.type == EV_REL) && false) {
       auto abs = libevdev_get_abs_info(device, ev.code);
 
       printf("'%s' %s event (%s=%d)",
@@ -287,6 +300,7 @@ InputDeviceManager::InputDeviceManager() :
     os::panic("failed to find a keyboard device!", os::LibevdevDeviceOpenError);
   }
 
+ // m_data->mouse = open_device(mice_enum, mice_enum.numDevices() > 1 ? 1 : 0 /* use touchpad if possible*/);
   m_data->mouse = open_device(mice_enum, 0);
   m_data->kb = open_device(keyboard_enum, 0);
 
@@ -297,8 +311,9 @@ InputDeviceManager::InputDeviceManager() :
   m_data->mouse_is_touchpad = mouse_has_prop(EV_ABS, ABS_X); // 'ABS_Y' would work just as well here
   m_data->mouse_has_hi_res_wheel = mouse_has_prop(EV_REL, REL_WHEEL_HI_RES);
 
-  assert(!m_data->mouse_is_touchpad && "touchpad as mouse support unimplemented!");
+  //assert(!m_data->mouse_is_touchpad && "touchpad as mouse support unimplemented!");
 
+#if 0 
   if(m_data->mouse_is_touchpad) {
      const struct input_absinfo *abs_x = libevdev_get_abs_info(m_data->dev_mouse(), ABS_X);
      const struct input_absinfo *abs_y = libevdev_get_abs_info(m_data->dev_mouse(), ABS_Y);
@@ -308,13 +323,14 @@ InputDeviceManager::InputDeviceManager() :
      // TODO: is the extent data really needed?
      m_data->touchpad_extents = {
        abs_x->minimum, abs_y->minimum,
-       abs_x->maximum, abs_x->maximum,
+       abs_x->maximum, abs_y->maximum,
      };
 
      m_data->touchpad_last_pos = {
        abs_x->value, abs_y->value,
      };
   }
+#endif
 
   m_capslock = 0;    // FIXME: query CapsLock's current state here!
 #endif
@@ -360,11 +376,12 @@ Input::Ptr InputDeviceManager::doPollInput()
 Input::Ptr InputDeviceManager::keyboardEvent(const LibevdevEvent& libevdev_ev)
 {
   const auto& ev = libevdev_ev.ev;
+  auto timestamp = sysv::Timers::ticks();
 
   if(ev.value == KeyboardEventKeyHeld) return Input::invalid_ptr();
 
   auto input = Keyboard::create();
-  input->timestamp = sysv::Timers::ticks();
+  input->timestamp = timestamp;
 
   auto kbi = (Keyboard *)input.get();
 
@@ -399,6 +416,23 @@ Input::Ptr InputDeviceManager::keyboardEvent(const LibevdevEvent& libevdev_ev)
     if(ev.code == KEY_CAPSLOCK) m_capslock ^= Keyboard::CapsLock; // Toggles between Capslock and 0
   }
 
+  // Populate Keyboard::time_held
+  //   - Update m_data->kb_keys as well
+  auto& key_data = m_data->kb_keys.at(ev.code);
+  if(event == Keyboard::KeyDown) {
+    key_data.down = true;
+    key_data.pressed_timestamp = timestamp;
+
+    kbi->time_held = 0;
+  } else if(event == Keyboard::KeyUp) {
+    auto pressed_timestamp = key_data.pressed_timestamp;
+
+    key_data.down = false;
+    key_data.pressed_timestamp = os::InvalidTime;
+
+    kbi->time_held = timestamp - pressed_timestamp;
+  }
+
   kbi->event = event;
   kbi->modifiers = m_kb_modifiers | m_capslock;
 
@@ -408,7 +442,6 @@ Input::Ptr InputDeviceManager::keyboardEvent(const LibevdevEvent& libevdev_ev)
   return input;    // Got an EV_KEY - so return from the loop
 }
 
-// TODO: Handle Mouse::DoubleClick events
 Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
 {
   const auto& ev = libevdev_ev.ev;
@@ -423,6 +456,9 @@ Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
   input->timestamp = sysv::Timers::ticks();
 
   auto mi = (Mouse *)input.get();
+
+  mi->dx = mi->dy = 0.0f;
+  mi->ev_data = 0;
 
   u16 event = 0;
   if(ev.type == EV_KEY) {
@@ -442,17 +478,21 @@ Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
       case BTN_MIDDLE: buttons = Mouse::Middle; break;
       case BTN_4:      buttons = Mouse::X1; break;
       case BTN_5:      buttons = Mouse::X2; break;
+      }
+    } else {
+      switch(ev.code) {
+      case BTN_LEFT:           buttons = Mouse::Left; break;
+      case BTN_TOOL_DOUBLETAP: buttons = Mouse::Right; break;
 
-      // Have to recenter the touch tracking pos
-      case BTN_TOOL_FINGER: {
-        const input_absinfo *abs_x = libevdev_get_abs_info(m_data->dev_mouse(), ABS_X);
-        const input_absinfo *abs_y = libevdev_get_abs_info(m_data->dev_mouse(), ABS_Y);
+      // Have to recenter the touch tracking pos on the net EV_ABS
+      case BTN_TOUCH:
+        if(ev.value == MouseEventButtonUp) {
+          m_data->touchpad_needs_recenter = true;
+          m_data->touchpad_last_pos = { -1, -1 };
 
-        m_data->touchpad_last_pos = { abs_x->value, abs_y->value };
-
+        } 
         return Input::invalid_ptr();
       }
-    }
     }
 
     if(event == Mouse::Up) {
@@ -461,7 +501,7 @@ Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
       m_mouse_buttons |= buttons;
     }
 
-    mi->buttons = m_mouse_buttons;
+    mi->ev_data = buttons;
   } else if(ev.type == EV_REL) {
     switch(ev.code) {
     // Mouse
@@ -477,7 +517,6 @@ Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
     // Populate Mouse::dx, Mouse::dy (for REL_X,REL_Y)
     //
     // And Mouse::ev_data (for REL_WHEEL[_HI_RES]
-    mi->dx = mi->dy = 0.0f;
     switch(ev.code) {
     case REL_X: mi->dx = (float)ev.value*mouseSpeed(); break;
     case REL_Y: mi->dy = (float)ev.value*mouseSpeed(); break;
@@ -495,23 +534,67 @@ Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
     case ABS_X:
     case ABS_Y: event = Mouse::Move; break;
 
-    // TODO: translate scroll int Mouse::Wheel events here
+    // TODO: translate scroll into Mouse::Wheel events here
 
     default: assert(0);     // Unreachable (?)
     }
 
-    mi->dx = mi->dy = 0.0f;
+    auto last_pos = vec2::inf();
+    if(m_data->touchpad_needs_recenter) {    // Make the current { ABS_X, ABS_Y }
+      auto touchpad_last_pos = m_data->touchpad_last_pos;
+      switch(ev.code) {
+      case ABS_X: m_data->touchpad_last_pos = { ev.value, touchpad_last_pos.y }; break;
+      case ABS_Y: m_data->touchpad_last_pos = { touchpad_last_pos.x, ev.value }; break;
+      }
 
-    vec2 last_pos = m_data->touchpad_last_pos.cast<float>();
+      if(m_data->touchpad_last_pos.x < 0 || m_data->touchpad_last_pos.y < 0) {
+        return Input::invalid_ptr();
+      }
+
+      printf("recendered touchpad relative move center\n"
+          "     -> %s\n",
+
+          math::to_str(m_data->touchpad_last_pos).data()
+      );
+
+      // ...and make sure we don't recenter again
+      m_data->touchpad_needs_recenter = false;
+
+      return Input::invalid_ptr();   // Squash the input
+    } else {
+      last_pos = m_data->touchpad_last_pos.cast<float>();
+    }
+
+    // Populate Mouse::dx, Mouse::dy (for ABS_X,ABS_Y)
     switch(ev.code) {
-    case ABS_X: mi->dx = last_pos.x - (float)ev.value*mouseSpeed(); break;
-    case ABS_Y: mi->dy = last_pos.y - (float)ev.value*mouseSpeed(); break;
+    case ABS_X: {
+      mi->dx = (float)ev.value*mouseSpeed() - last_pos.x;
+
+      // Update the refrence point
+      m_data->touchpad_last_pos = {
+        ev.value, m_data->touchpad_last_pos.y,
+      };
+      break;
+    }
+
+    case ABS_Y: {
+      mi->dy = (float)ev.value*mouseSpeed() - last_pos.y;
+
+      // Update the refrence point
+      m_data->touchpad_last_pos = {
+        m_data->touchpad_last_pos.x, ev.value,
+      };
+      break;
+    }
 
     default: assert(0);    // Unreachable
     }
   }
 
   mi->event = event;
+  mi->buttons = m_mouse_buttons;
+
+  doDoubleClick(mi);
 
   return input;
 }

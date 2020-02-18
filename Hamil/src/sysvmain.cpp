@@ -6,6 +6,7 @@
 #include <os/time.h>
 #include <os/thread.h>
 #include <os/window.h>
+#include <cli/cli.h>
 #include <sysv/window.h>
 #include <sysv/glcontext.h>
 #include <sched/job.h>
@@ -55,34 +56,13 @@ int thread_proc()
   return 1;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
   os::init();
 
-#if 0
-  sched::WorkerPool worker_pool;
-  worker_pool.kickWorkers();
-
-  auto a_job = sched::create_job([](int job_no) -> Unit {
-    printf("job_no %d:\n", job_no);
-    do_sleep();
-    printf("    job_no %d done!\n", job_no);
-
-    return {};
-  });
-
-  auto a_job1 = a_job.clone();
-  auto a_job2 = a_job.clone();
-  auto a_job3 = a_job.clone();
-  
-  worker_pool.scheduleJob(a_job1.withParams(1));
-  worker_pool.scheduleJob(a_job2.withParams(2));
-  worker_pool.scheduleJob(a_job3.withParams(3));
-
-  worker_pool.waitWorkersIdle();
-
-  worker_pool.killWorkers();
-#endif
+  if(argc > 1) {
+    if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
+  }
 
   sysv::Window window(1280, 720);
 
@@ -102,21 +82,41 @@ int main(void)
   printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));
   printf("extension(ARB::TextureBPTC):      %i\n", gx::info().extension(gx::ARB::TextureBPTC));
 
-  ft::Font face(ft::FontFamily("/usr/share/fonts/TTF/segoeuil.ttf"), 35);
+  ft::Font face(ft::FontFamily("/usr/share/fonts/TTF/DejaVuSerif.ttf"), 20);
 
   glClearColor(0.5f, 0.8f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
   window.swapBuffers();
+
   while(window.processMessages()) {
+    os::Timers::tick();
+
     while(auto input = window.getInput()) {
+#if 1
       if(auto mouse = input->get<os::Mouse>()) {
-        printf("got some input -> os::Mouse(%s) [dx,dy]=[%.1f,%.1f]\n",
-            mouse->dbg_TypeStr(),
-            mouse->dx, mouse->dy
-        );
+        auto btn_state_str = [&](os::Mouse::Button btn) -> const char * {
+          return mouse->buttons & btn ? "down" : "up";
+        };
+
+        if(mouse->event != os::Mouse::Move || true) {
+          printf("got some input -> os::Mouse(%s) [dx,dy]=[%.1f,%.1f] Left?=%s Right?=%s\n",
+              mouse->dbg_TypeStr(),
+              mouse->dx, mouse->dy,
+              btn_state_str(os::Mouse::Left), btn_state_str(os::Mouse::Right)
+          );
+        }
       } else if(auto kb = input->get<os::Keyboard>()) {
-        printf("got some input -> os::Keyboard(%s) sym=%c\n", kb->dbg_TypeStr(), (char)kb->sym);
+        printf(
+            "got some input -> os::Keyboard(%s)\n"
+            "sym=%c time_held=%.2lf\n",
+            kb->dbg_TypeStr(),
+            (char)kb->sym, os::Timers::ticks_to_sf(kb->time_held));
+      }
+#endif
+
+      if(auto kb = input->get<os::Keyboard>()) {
+        if(kb->keyDown('Q')) window.quit();
       }
     }
 

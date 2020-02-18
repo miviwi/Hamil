@@ -1,8 +1,12 @@
+#include "os/time.h"
 #include <win32/inputman.h>
 #include <win32/panic.h>
+#include <win32/time.h>
 
 #include <config>
 
+#include <algorithm>
+#include <array>
 #include <vector>
 
 #include <cctype>
@@ -14,12 +18,24 @@
 
 namespace win32 {
 
+struct KeyboardKeyState {
+  bool down = false;
+  os::Time pressed_timestamp = os::InvalidTime;
+};
+
+struct InputDeviceManagerData {
+  std::array<KeyboardKeyState, 256> kb_keys;
+};
+
 static unsigned translate_key(u16 vk, unsigned modifiers);
 static unsigned translate_sym(u16 vk, unsigned modifiers);
 
-InputDeviceManager::InputDeviceManager()
+InputDeviceManager::InputDeviceManager() :
+  m_data(nullptr)
 {
 #if __win32
+  m_data = new InputDeviceManagerData();
+
   RAWINPUTDEVICE rid[2];
 
   // Mouse
@@ -43,6 +59,11 @@ InputDeviceManager::InputDeviceManager()
 #endif
 }
 
+InputDeviceManager::~InputDeviceManager()
+{
+  delete m_data;
+}
+
 Input::Ptr InputDeviceManager::doPollInput()
 {
 #if __win32
@@ -62,8 +83,10 @@ Input::Ptr InputDeviceManager::doPollInput()
 
     if(kb->VKey == 0xFF) return; // no mapping - ignore
 
+    auto timestamp = win32::Timers::ticks();
+
     input = Input::Ptr(new Keyboard(), &Input::deleter);
-    input->timestamp = win32::Timers::ticks();
+    input->timestamp = timestamp;
 
     auto kbi = (Keyboard *)input.get();
 
@@ -92,6 +115,23 @@ Input::Ptr InputDeviceManager::doPollInput()
       if(kb->VKey == VK_CAPITAL) m_capslock ^= Keyboard::CapsLock; // Toggles between Capslock and 0
     }
     kbi->modifiers = m_kb_modifiers | m_capslock;
+
+    // Populate Keyboard::time_held
+    //   - Update m_data->kb_keys as well
+    auto& key_data = m_data->kb_keys.at(kb->VKey);
+    if(event == Keyboard::KeyDown) {
+      key_data.down = true;
+      key_data.pressed_timestamp = timestamp;
+
+      kbi->time_held = 0;
+    } else if(event == Keyboard::KeyUp) {
+      auto pressed_timestamp = key_data.pressed_timestamp;
+
+      key_data.down = false;
+      key_data.pressed_timestamp = os::InvalidTime;
+
+      kbi->time_held = timestamp - pressed_timestamp;
+    }
 
     kbi->key = translate_key(kb->VKey, kbi->modifiers);
     kbi->sym = translate_sym(kb->VKey, kbi->modifiers);
@@ -177,29 +217,6 @@ Input::Ptr InputDeviceManager::doPollInput()
 #else
   return Input::Ptr(nullptr, &Input::deleter);
 #endif
-}
-
-void InputDeviceManager::doDoubleClick(Mouse *mi)
-{
-  if(mi->event != Mouse::Down) {
-    if(mi->dx > 5.0f || mi->dy > 5.0f) m_clicks.clear();
-
-    return;
-  }
-
-  if(!m_clicks.empty()) {
-    auto last_click = m_clicks.last();
-    auto dt = mi->timestamp - last_click.timestamp;
-
-    m_clicks.clear();
-
-    if(last_click.ev_data == mi->ev_data && dt < tDoubleClickSpeed()) {
-      mi->event = Mouse::DoubleClick;
-      return;
-    }
-  }
-
-  m_clicks.push(*mi);
 }
 
 static unsigned translate_sym(u16 vk, unsigned modifiers)

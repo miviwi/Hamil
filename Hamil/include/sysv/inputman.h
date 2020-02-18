@@ -2,6 +2,7 @@
 
 #include <os/input.h>
 #include <os/inputman.h>
+#include <util/ringbuffer.h>
 
 namespace sysv {
 

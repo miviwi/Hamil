@@ -44,6 +44,7 @@ const char *Mouse::dbg_TypeStr() const
   case Up:    return "Up";
   case Down:  return "Down";
   case Wheel: return "Wheel";
+  case DoubleClick: return "DoubleClick";
   }
 
   return "<Invalid>";

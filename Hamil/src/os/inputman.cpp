@@ -1,4 +1,6 @@
 #include <os/inputman.h>
+#include <os/time.h>
+#include <math/geometry.h>
 
 namespace os {
 
@@ -37,11 +39,37 @@ float InputDeviceManager::doubleClickSpeed() const
   return m_dbl_click_seconds;
 }
 
+void InputDeviceManager::doDoubleClick(Mouse *mi)
+{
+  // In case of some mose movenet during the clicks, check
+  //   if said movement doesn't exceed a set fudge factor
+  if(mi->event != Mouse::Down) {
+    auto d = vec2(mi->dx, mi->dy);
+    if(d.length2() > 5.0f*5.0f) m_clicks.clear();   // And if it does make sure the next click
+                                                    //   won't coun't as a double click
+    return;
+  }
+
+  if(!m_clicks.empty()) {  // This is the second Mouse::Down input of the double click...
+    auto last_click = m_clicks.last();
+    auto dt = mi->timestamp - last_click.timestamp;
+
+    m_clicks.clear();
+
+    // Ensure the clicks happened below the threshold
+    if(last_click.ev_data == mi->ev_data && dt < tDoubleClickSpeed()) {
+      mi->event = Mouse::DoubleClick;
+      return;
+    }
+  }
+
+  // ...and this is the first
+  m_clicks.push(*mi);
+}
+
 Time InputDeviceManager::tDoubleClickSpeed() const
 {
-  fprintf(stderr, "NOTE: os::InputDeviceManager::tDoubleClickSpeed() unimplemented");
-
-  return (Time)~0;
+  return Timers::s_to_ticks(m_dbl_click_seconds);
 }
 
 Input::Ptr InputDeviceManager::pollInput()
