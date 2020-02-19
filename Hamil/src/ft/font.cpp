@@ -603,8 +603,8 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHand
 
   int atlas_a = pow2_round(sqrt(total_area));
   ivec2 atlas_sz = {
-    atlas_a,
-    atlas_a*(atlas_a/2) >= total_area ? atlas_a/2 : atlas_a
+    atlas_a, atlas_a
+    //atlas_a*(atlas_a/2) >= total_area ? atlas_a/2 : atlas_a
   };
 
   stbrp_context ctx;
@@ -772,6 +772,9 @@ static const std::unordered_map<std::string, std::string> family_to_path = {
   { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
   { "segoeui", "C:\\Windows\\Fonts\\segoeui.ttf" },
 #elif __sysv
+  { "dejavu-sans",  "/usr/share/fonts/TTF/DejaVuSans.ttf" },
+  { "dejavu-serif", "/usr/share/fonts/TTF/DejaVuSerif.ttf" },
+  { "dejavu-mono",  "/usr/share/fonts/TTF/DejaVuSansMono.ttf" },
 #else
 #  error "unknown platform"
 #endif

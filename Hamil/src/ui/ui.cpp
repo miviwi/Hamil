@@ -19,6 +19,9 @@
 #include <algorithm>
 #include <memory>
 
+// Uncomment the line below to render the ui with 4xMSAA
+//#define UI_FB_NO_MULTISAMPLING 1
+
 namespace ui {
 
 struct UiUniforms : gx::Uniforms {
@@ -152,10 +155,16 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
 {
   m_style.init(m_pool);
 
+#if !defined(UI_FB_NO_MULTISAMPLING)
   m_framebuffer_tex_id = m_pool.createTexture<gx::Texture2D>("t2dUiFramebuffer",
     gx::rgba8, gx::Texture::Multisample);
   m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id)
     .initMultisample(4, FramebufferSize.cast<int>());
+#else
+  m_framebuffer_tex_id = m_pool.createTexture<gx::Texture2D>("t2dUiFramebuffer", gx::rgba8);
+  m_pool.getTexture<gx::Texture2D>(m_framebuffer_tex_id)
+    .init(FramebufferSize.cast<int>());
+#endif
 
   m_framebuffer_id = m_pool.create<gx::Framebuffer>("fbUi");
   auto& fb = m_pool.get<gx::Framebuffer>(m_framebuffer_id);
@@ -283,6 +292,11 @@ DrawableManager& Ui::drawable()
 gx::ResourcePool::Id Ui::framebufferTextureId()
 {
   return m_framebuffer_tex_id;
+}
+
+gx::ResourcePool::Id Ui::framebufferId()
+{
+  return m_framebuffer_id;
 }
 
 bool Ui::input(CursorDriver& cursor, const InputPtr& input)

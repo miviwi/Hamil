@@ -1,3 +1,5 @@
+#include "math/geometry.h"
+#include <bits/stdint-uintn.h>
 #include <sysv/window.h>
 #include <sysv/sysv.h>
 #include <sysv/x11.h>
@@ -31,9 +33,18 @@ static const char X11_WM_PROTOCOLS[]     = "WM_PROTOCOLS";
 static const char X11_WM_DELETE_WINDOW[] = "WM_DELETE_WINDOW";
 //static const char X11_WM_TAKE_FOCUS[]    = "WM_TAKE_FOCUS";
 
+static const char X11_WM_CLASS[] = "WM_CLASS";
+
+static const char Hamil_WM_CLASS[] = "Hamil\0Hamil";
+
+static constexpr char X11FixedFontName[] = "fixed";
+
 struct X11Window {
   X11Window(unsigned width, unsigned height);
   ~X11Window();
+
+  // Rertuns 'false' if the creating teh cursor failed
+  bool createNullCursor();
 
   // Returns 'false' if creating the colormap failed
   bool createColormap(xcb_visualid_t visual = 0);
@@ -49,14 +60,21 @@ struct X11Window {
 
   xcb_atom_t atom_delete_window = X11InvalidId;
 
+  X11Id cursor_font = X11InvalidId;
+  X11Id null_cursor = X11InvalidId;
   X11Id window = X11InvalidId;
   X11Id colormap = X11InvalidId;
+
+  bool have_focus = false;
 };
 
 X11Window::X11Window(unsigned width, unsigned height)
 {
   connection = x11().connection<xcb_connection_t>();
   screen = x11().screen<xcb_screen_t>();
+
+  auto create_null_cursor_success = createNullCursor();
+  if(!create_null_cursor_success) os::panic("xcb_create_glyph_cursor() failed!", os::XCBError);
 
   auto create_colormap_success = createColormap();
   if(!create_colormap_success) os::panic("xcb_create_colormap() failed!", os::XCBError);
@@ -68,6 +86,42 @@ X11Window::X11Window(unsigned width, unsigned height)
 X11Window::~X11Window()
 {
   destroy();
+}
+
+bool X11Window::createNullCursor()
+{
+  cursor_font = x11().genId();
+  null_cursor = x11().genId();
+
+  auto open_font_cookie = xcb_open_font_checked(
+      connection, cursor_font,
+      (uint16_t)sizeof(X11FixedFontName), X11FixedFontName
+  );
+  auto open_font_err = xcb_request_check(connection, open_font_cookie);
+  if(open_font_err) {
+    free(open_font_err);
+
+    return false;
+  }
+
+  auto create_cursor_cookie = xcb_create_glyph_cursor_checked(
+      connection, null_cursor,
+      cursor_font, /* source_font */ cursor_font, /* mask_font */
+      ' ', /* source_char */ ' ', /* mask_char */
+
+      // foreground
+      0, /* r */ 0, /* g */ 0, /* b */
+      // background
+      0, /* r */ 0, /* g */ 0 /* b */
+  );
+  auto create_cursor_err = xcb_request_check(connection, create_cursor_cookie);
+  if(create_cursor_err) {
+    free(create_cursor_err);
+
+    return false;
+  }
+
+  return true;
 }
 
 bool X11Window::createColormap(xcb_visualid_t visual)
@@ -90,7 +144,7 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
 {
   window = x11().genId();
 
-  u32 mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP;
+  u32 mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_COLORMAP | XCB_CW_CURSOR;
   u32 args[] = {
     0xFF0000,                                                     /* XCB_CW_BACK_PIXEL */
     XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY     /* XCB_CW_EVENT_MASK */
@@ -101,6 +155,7 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
     | XCB_EVENT_MASK_BUTTON_PRESS | XCB_EVENT_MASK_BUTTON_RELEASE,
     */
     colormap,                                                     /* XCB_CW_COLORMAP */
+    null_cursor,                                                  /* XCB_CW_CURSOR */
   };
 
   auto window_cookie = xcb_create_window_checked(
@@ -147,10 +202,23 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
     atom_delete_window,
   };
 
+  static const char WindowName[] = "Hamil";
+
   auto change_protocols_cookie = xcb_change_property_checked(
       connection, XCB_PROP_MODE_REPLACE, window,
       protocols_reply->atom, XCB_ATOM_ATOM,
       32 /* bits per list item */, wm_protocols.size() /* num list items */, wm_protocols.data()
+  );
+
+  auto change_wm_name_cookie = xcb_change_property_checked(
+      connection, XCB_PROP_MODE_REPLACE, window,
+      XCB_ATOM_WM_NAME, XCB_ATOM_STRING,
+      8 /* bits per list item (a.k.a. character) */, sizeof(WindowName), WindowName
+  );
+  auto change_wm_class_cookie = xcb_change_property_checked(
+      connection, XCB_PROP_MODE_REPLACE, window,
+      XCB_ATOM_WM_CLASS, XCB_ATOM_STRING,
+      8 /* bits per list item (a.k.a. character) */, sizeof(Hamil_WM_CLASS), Hamil_WM_CLASS
   );
 
   // Don't need the replies anymore
@@ -158,8 +226,13 @@ bool X11Window::createWindow(unsigned width, unsigned height, u8 depth, xcb_visu
   free(delete_reply);
 
   auto change_protocols_err = xcb_request_check(connection, change_protocols_cookie);
-  if(change_protocols_err) {
+
+  auto change_wm_name_err = xcb_request_check(connection, change_wm_name_cookie);
+  auto change_wm_class_err = xcb_request_check(connection, change_wm_class_cookie);
+  if(change_protocols_err || change_wm_name_err || change_wm_class_err) {
     free(change_protocols_err);
+    free(change_wm_name_err);
+    free(change_wm_class_err);
 
     return false;
   }
@@ -174,6 +247,8 @@ void X11Window::show()
 
 void X11Window::destroy()
 {
+//  xcb_free_cursor(connection, null_cursor);
+//  xcb_close_font(connection, cursor_font);
   xcb_destroy_window(connection, window);
   xcb_free_colormap(connection, colormap);
 
@@ -219,10 +294,13 @@ void Window::swapInterval(unsigned interval)
 
 void Window::captureMouse()
 {
+  // Use 'XCB_GRAB_MODE_ASYNC' for 'keyboard_mode' so global key combinations
+  //   such as Alt+F4 are passed to the window manager
+
   xcb_grab_pointer(
       p->connection, 0, /* owner_events */  // The mouse,keyboard I/O is handled via libevdev anyway
       p->window, 0, /* event_mask */
-      XCB_GRAB_MODE_SYNC, /* pointer_mode */ XCB_GRAB_MODE_SYNC, /* keyboard_mode */
+      XCB_GRAB_MODE_SYNC, /* pointer_mode */ XCB_GRAB_MODE_ASYNC, /* keyboard_mode */
       p->window, /* confine_to */ XCB_NONE, /* cursor */
       XCB_CURRENT_TIME
   );
@@ -232,6 +310,7 @@ void Window::captureMouse()
 
 void Window::releaseMouse()
 {
+  xcb_ungrab_pointer(p->connection, XCB_CURRENT_TIME);
 }
 
 void Window::resetMouse()
@@ -291,7 +370,8 @@ bool Window::doProcessMessages()
 #if __sysv
   auto connection = x11().connection<xcb_connection_t>();
 
-  resetMouse();
+  // Don't interfere with the pointer if we've lost focus
+  if(p->have_focus) resetMouse();
 
   while(xcb_generic_event_t *ev = xcb_poll_for_event(connection)) {
     switch(XCB_EVENT_RESPONSE_TYPE(ev)) {
@@ -310,10 +390,14 @@ bool Window::doProcessMessages()
 
     case XCB_FOCUS_IN:
       captureMouse();
+
+      p->have_focus = true;
       break;
 
     case XCB_FOCUS_OUT:
       releaseMouse();
+
+      p->have_focus = false;
       break; 
     }
 

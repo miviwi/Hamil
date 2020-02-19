@@ -102,6 +102,8 @@ public:
   // The DrawableManager associated with this Ui
   DrawableManager& drawable();
 
+  gx::ResourcePool::Id framebufferId();
+
   // The gx::CommandBuffer returned from paint()
   //   draws into this texture
   //  - This texture is of type Texture2D(Multisample)

@@ -1,5 +1,7 @@
 #include <ui/style.h>
 
+#include <config>
+
 namespace ui {
 
 // TODO:
@@ -7,8 +9,15 @@ namespace ui {
 Style Style::basic_style()
 {
   Style s;
+#if __win32
   s.font_style.font = { ft::FontFamily("segoeui"), 12 };
   s.font_style.monospace = { ft::FontFamily("consola"), 12 };
+#elif __sysv
+  s.font_style.font = { ft::FontFamily("dejavu-sans"), 12 };
+  s.font_style.monospace = { ft::FontFamily("dejavu-mono"), 12 };
+#else
+#  error "unknown platform"
+#endif
 
   auto color_a = Color{ 150, 150, 45 }.opacity(0.95).darken(40),
     color_b = Color{ 66, 66, 20 }.opacity(0.95).darken(40);

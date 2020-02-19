@@ -1,4 +1,9 @@
-#include "os/input.h"
+#include "ui/layout.h"
+#include "ui/cursor.h"
+#include "glcorearb.h"
+#include "gx/framebuffer.h"
+#include "ui/frame.h"
+#include <GL/gl.h>
 #include <common.h>
 
 #include <os/os.h>
@@ -6,6 +11,7 @@
 #include <os/time.h>
 #include <os/thread.h>
 #include <os/window.h>
+#include <os/input.h>
 #include <cli/cli.h>
 #include <sysv/window.h>
 #include <sysv/glcontext.h>
@@ -14,8 +20,19 @@
 #include <gx/gx.h>
 #include <gx/info.h>
 #include <gx/pipeline.h>
+#include <gx/resourcepool.h>
+#include <gx/commandbuffer.h>
 #include <util/unit.h>
 #include <ft/font.h>
+#include <ui/ui.h>
+#include <ui/uicommon.h>
+#include <ui/style.h>
+#include <ui/cursor.h>
+#include <ui/layout.h>
+#include <ui/window.h>
+#include <ui/label.h>
+#include <ek/euklid.h>
+#include <ek/renderer.h>
 
 #include <numeric>
 #include <vector>
@@ -64,7 +81,7 @@ int main(int argc, char *argv[])
     if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
   }
 
-  sysv::Window window(1280, 720);
+  sysv::Window window(1282, 722);
 
   window.initInput();
 
@@ -76,16 +93,37 @@ int main(int argc, char *argv[])
 
   gx::init();
   ft::init();
+  ui::init();
+//  ek::init();
 
   printf("extension(EXT::TextureSRGB):      %i\n", gx::info().extension(gx::EXT::TextureSRGB));
   printf("extension(ARB::ComputeShader):    %i\n", gx::info().extension(gx::ARB::ComputeShader));
   printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));
   printf("extension(ARB::TextureBPTC):      %i\n", gx::info().extension(gx::ARB::TextureBPTC));
 
-  ft::Font face(ft::FontFamily("/usr/share/fonts/TTF/DejaVuSerif.ttf"), 20);
+  gx::ResourcePool pool(1024);
+  gx::MemoryPool memory(4096);
 
-  glClearColor(0.5f, 0.8f, 0.3f, 1.0f);
-  glClear(GL_COLOR_BUFFER_BIT);
+  ui::CursorDriver cursor(1280/2, 720/2);
+  ui::Ui iface(pool, ui::Geometry(vec2(), vec2(1280.0f, 720.0f)), ui::Style::basic_style());
+
+  iface
+    .frame(ui::create<ui::WindowFrame>(iface)
+        .title("Window")
+        .content(ui::create<ui::LabelFrame>(iface)
+            .caption("Hello!")
+            .color(ui::white()))
+        .background(ui::blue().darken(0.8))
+        .geometry(ui::Geometry(vec2(200.0f, 100.0f), vec2(150.0f, 150.0f)))
+        .gravity(ui::Frame::Center))
+    ;
+
+  ft::Font face(ft::FontFamily("dejavu-serif"), 20);
+
+  auto pipeline = gx::Pipeline()
+      .viewport(0, 0, 1280, 720)
+      .clearColor(vec4(0.2f, 0.4f, 0.2, 1.0f))
+      .alphaBlend();
 
   window.swapBuffers();
 
@@ -93,7 +131,7 @@ int main(int argc, char *argv[])
     os::Timers::tick();
 
     while(auto input = window.getInput()) {
-#if 1
+#if 0
       if(auto mouse = input->get<os::Mouse>()) {
         auto btn_state_str = [&](os::Mouse::Button btn) -> const char * {
           return mouse->buttons & btn ? "down" : "up";
@@ -115,21 +153,32 @@ int main(int argc, char *argv[])
       }
 #endif
 
+      cursor.input(input);
+      if(iface.input(cursor, input)) continue;    // The input has already been handled by the ui
+
       if(auto kb = input->get<os::Keyboard>()) {
         if(kb->keyDown('Q')) window.quit();
       }
     }
 
+
+    iface.paint()
+       .execute();
+
+    cursor.paint();
+
+    pipeline.use();
+    gx::Framebuffer::bind_window(gx::Framebuffer::Draw);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    gx::Pipeline pipeline;
-    pipeline
-      .viewport(0, 0, 1280, 720)
-      .alphaBlend()
-      .use();
+    auto& ui_fb = pool.get<gx::Framebuffer>(iface.framebufferId());
 
-
-    face.draw("Hello, world!", { 100.0f, 200.0f }, vec3(1.0f));
+    ui_fb.blitToWindow(
+        ivec4{ 0, 0, 1280, 720 },
+        ivec4{ 0, 0, 1280, 720 },
+        gx::Framebuffer::ColorBit,
+        gx::Sampler::Nearest
+    );
 
     window.swapBuffers();    // Wait for v-sync
   }
