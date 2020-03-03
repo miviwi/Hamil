@@ -10,10 +10,14 @@
 
 namespace gx {
 
+// Forward declarations
+class GLContext;
 class Texture;
 class Framebuffer;
 
 class BufferView;
+class BufferBindPoint;
+// --------------------
 
 class Buffer : public Ref {
 public:
@@ -79,6 +83,8 @@ public:
   void label(const char *lbl);
 
 protected:
+  friend class BufferBindPoint;
+
   Buffer(Usage usage, GLenum target);
 
   void assertValid() const;
@@ -240,6 +246,35 @@ protected:
 
 private:
   Buffer *m;
+};
+
+enum BufferBindPointType : unsigned {
+  UniformType,
+  ShaderStorageType,
+  XformFeedbackType,
+
+  NumTypes,
+};
+
+class BufferBindPoint {
+public:
+  // - When the 'size' is not specified the whole buffer
+  //   will be bound to this bind point
+  BufferBindPoint& bind(
+      const Buffer& buffer, intptr_t offset = 0, intptr_t size = 0
+  );
+
+private:
+  friend GLContext;
+
+  BufferBindPoint(GLContext *context, BufferBindPointType type, unsigned index);
+
+  GLContext *m_context;
+
+  GLenum m_target;
+  unsigned m_index;
+
+  GLuint m_bound_buffer;
 };
 
 }

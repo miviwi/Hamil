@@ -7,6 +7,7 @@
 
 #include <uniforms.h>
 #include <gx/gx.h>
+#include <gx/context.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/texture.h>
@@ -250,7 +251,9 @@ void CursorDriver::paint()
 
   gx::ScopedPipeline sp(pipeline);
 
-  gx::tex_unit(pCursorDriver::TexImageUnit, p->tex, p->sampler);
+  gx::GLContext::current().texImageUnit(pCursorDriver::TexImageUnit)
+      .bind(p->tex, p->sampler);
+
   cursor_program->use()
     .uniformMatrix4x4(U.cursor.uModelViewProjection, modelviewprojection)
     .draw(gx::Triangles, p->vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);

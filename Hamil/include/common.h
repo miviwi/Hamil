@@ -22,10 +22,14 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
+// Helper macros
+#define STR(x) #x
+#define STRINGIFY(x) STR(x)
+
 #if defined(_MSVC_VER)
-#  define STUB() do { assert(0 && "stub " __FUNCSIG__ "!"); } while(0)
+#  define STUB() do { assert(0 && "stub " STRINGIFY(__FUNCSIG__) " called!"); } while(0)
 #else
-#  define STUB()
+#  define STUB() do { assert(0 && "stub " STRINGIFY(__PRETTY_FUNCTION__) " called!"); } while(0)
 #endif
 
 #if defined(_WIN32)

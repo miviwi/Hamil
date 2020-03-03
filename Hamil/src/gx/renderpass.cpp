@@ -1,4 +1,5 @@
 #include <gx/renderpass.h>
+#include <gx/context.h>
 #include <gx/framebuffer.h>
 #include <gx/texture.h>
 #include <gx/pipeline.h>
@@ -123,7 +124,9 @@ const RenderPass& RenderPass::begin(ResourcePool& pool) const
 
     auto& tex     = pool.getTexture(tex_id);
     auto& sampler = pool.get<Sampler>(sampler_id);
-    gx::tex_unit(tui, tex(), sampler);
+
+    gx::GLContext::current().texImageUnit(tui)
+        .bind(tex(), sampler);
   }
 
   for(unsigned bufi = 0; bufi < (unsigned)m_uniform_bufs.size(); bufi++) {
@@ -197,7 +200,9 @@ const RenderPass::Subpass& RenderPass::Subpass::use(ResourcePool& pool) const
 
     auto tex     = pool.getTexture(std::get<0>(tu.second));
     auto sampler = pool.get<Sampler>(std::get<1>(tu.second));
-    gx::tex_unit(tu.first, tex(), sampler);
+
+    gx::GLContext::current().texImageUnit(tu.first)
+        .bind(tex(), sampler);
   }
 
   for(auto it = m_uniform_bufs.cbegin(); it != m_uniform_bufs.cend(); it++) {

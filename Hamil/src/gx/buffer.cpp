@@ -1,3 +1,4 @@
+#include "gx/context.h"
 #include <gx/buffer.h>
 #include <gx/texture.h>
 #include <gx/framebuffer.h>
@@ -466,6 +467,19 @@ Buffer& BufferHandle::operator()()
 void BufferHandle::label(const char *lbl)
 {
   get().label(lbl);
+}
+
+BufferBindPoint::BufferBindPoint(GLContext *context, BufferBindPointType type, unsigned index) :
+  m_context(context), m_target(type), m_index(index),
+  m_bound_buffer(InvalidId)
+{
+}
+
+BufferBindPoint& BufferBindPoint::bind(const Buffer& buffer, intptr_t offset, intptr_t size)
+{
+  STUB();
+
+  return *this;
 }
 
 }

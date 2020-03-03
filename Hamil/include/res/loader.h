@@ -3,15 +3,15 @@
 #include <common.h>
 #include <res/resource.h>
 #include <res/io.h>
-
-#include <win32/mutex.h>
+#include <os/error.h>
+#include <os/mutex.h>
 
 #include <string>
 #include <unordered_map>
 #include <tuple>
 #include <memory>
 
-namespace win32 {
+namespace os {
 class FileQuery;
 }
 
@@ -37,16 +37,14 @@ public:
 
   virtual ~ResourceLoader() = default;
 
-  struct Error { };
-
-  struct InvalidResourceError : public Error {
+  struct InvalidResourceError final : public os::Error {
     const Resource::Id id;
     InvalidResourceError(Resource::Id id_) :
       id(id_)
     { }
   };
 
-  struct IOError : public Error {
+  struct IOError final : public os::Error {
     const std::string file;
     IOError(const std::string& file_) :
       file(file_)
@@ -116,7 +114,7 @@ private:
   //   call metaIoCompleted() which inserts into m_available. Because
   //   it can be called on multiple threads simultaneously a Mutex
   //   is needed
-  win32::Mutex m_available_mutex;
+  os::Mutex::Ptr m_available_mutex;
   std::unordered_map<Resource::Id, IOBuffer /* meta_file */>  m_available;
 };
 

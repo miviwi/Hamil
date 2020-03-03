@@ -12,9 +12,13 @@
 
 namespace gx {
 
+// Forward declarations
+class GLContext;
 class Framebuffer;
 
 class Sampler;
+class TexImageUnit;
+// --------------------
 
 class Texture : public Ref {
 public:
@@ -83,10 +87,9 @@ public:
 protected:
   friend class Framebuffer;
   friend class PixelBuffer;
+  friend class TexImageUnit;
 
   Texture(GLenum target, Format format);
-
-  friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
 
   GLenum m_target;
   Format m_format;
@@ -247,7 +250,7 @@ public:
   void label(const char *lbl);
 
 private:
-  friend void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
+  friend class TexImageUnit;
 
   static GLenum pname(ParamName name);
   static GLenum param(Param p);
@@ -255,6 +258,27 @@ private:
   GLuint m;
 };
 
-void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler);
+class TexImageUnit {
+public:
+  TexImageUnit& bind(const Texture& tex);
+  TexImageUnit& bind(const Sampler& sampler);
+  TexImageUnit& bind(const Texture& tex, const Sampler& sampler);
+
+  unsigned texImageUnitIndex() const;
+
+  GLuint boundTexture() const;
+
+private:
+  friend GLContext;
+
+  TexImageUnit(GLContext *context, unsigned slot);
+
+  GLContext *m_context;
+
+  unsigned m_slot;
+
+  GLuint m_bound_texture;
+  GLuint m_bound_sampler;
+};
 
 }

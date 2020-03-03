@@ -51,9 +51,6 @@ static int GLX_VisualAttribs[] = {
 #endif
 };
 
-static void ogl_debug_callback(GLenum source, GLenum type, GLuint id,
-                               GLenum severity, GLsizei length, GLchar *msg, const void *user);
-
 #if __sysv
 // glXCreateContextAttribsARB is an extension
 //   so it has to be defined manually
@@ -260,11 +257,6 @@ gx::GLContext& GLContext::acquire(os::Window *window_, gx::GLContext *share)
     //g_gl3w_init = true;
   }
 
-#if !defined(NDEBUG)
-  glEnable(GL_DEBUG_OUTPUT);
-  glDebugMessageCallback((GLDEBUGPROC)ogl_debug_callback, nullptr);
-#endif
-
   cleanup_x_structures();
 
   // Mark the context as successfully acquired
@@ -323,40 +315,6 @@ void GLContext::swapInterval(unsigned interval)
   assert(m_was_acquired && "the context must've been acquire()'d to change the swapInterval()!");
 
   glXSwapIntervalEXT(p->display, p->window, interval);
-}
-
-static void ogl_debug_callback(GLenum source, GLenum type, GLuint id,
-                               GLenum severity, GLsizei length, GLchar *msg, const void *user)
-{
-  const char *source_str = "";
-  switch(source) {
-  case GL_DEBUG_SOURCE_API:             source_str = "GL_API"; break;
-  case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   source_str = "GL_WINDOW_SYSTEM"; break;
-  case GL_DEBUG_SOURCE_SHADER_COMPILER: source_str = "GL_SHADER_COMPILER"; break;
-  case GL_DEBUG_SOURCE_APPLICATION:     source_str = "GL_APPLICATION"; break;
-  case GL_DEBUG_SOURCE_THIRD_PARTY:     source_str = "GL_THIRD_PARTY"; break;
-  case GL_DEBUG_SOURCE_OTHER:           source_str = "GL_OTHER"; break;
-  }
-
-  const char *type_str = "";
-  switch(type) {
-  case GL_DEBUG_TYPE_ERROR:               type_str = "error!"; break;
-  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: type_str = "deprecated"; break;
-  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  type_str = "undefined!"; break;
-  case GL_DEBUG_TYPE_PORTABILITY:         type_str = "portability"; break;
-  case GL_DEBUG_TYPE_PERFORMANCE:         type_str = "performance"; break;
-  case GL_DEBUG_TYPE_OTHER:               type_str = "other"; break;
-  }
-
-  const char *severity_str = "";
-  switch(severity) {
-  case GL_DEBUG_SEVERITY_HIGH:         severity_str = "!!!"; break;
-  case GL_DEBUG_SEVERITY_MEDIUM:       severity_str = "!!"; break;
-  case GL_DEBUG_SEVERITY_LOW:          severity_str = "!"; break;
-  case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "?"; break;
-  }
-
-  printf("%s (%s, %s): %s\n", source_str, severity_str, type_str, msg);
 }
 
 }

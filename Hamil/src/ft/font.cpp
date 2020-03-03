@@ -7,6 +7,7 @@
 #include <math/xform.h>
 #include <math/util.h>
 #include <uniforms.h>
+#include <gx/context.h>
 #include <gx/pipeline.h>
 #include <gx/program.h>
 
@@ -572,7 +573,8 @@ void Font::bindFontAltas(int unit) const
   auto& atlas   = pool.getTexture(m_atlas);
   auto& sampler = pool.get<gx::Sampler>(p->sampler_id);
 
-  gx::tex_unit(unit, atlas(), sampler);
+  gx::GLContext::current().texImageUnit(unit)
+      .bind(atlas(), sampler);
 }
 
 gx::ResourcePool::Id Font::atlasId() const

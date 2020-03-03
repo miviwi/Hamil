@@ -9,8 +9,9 @@
 #include <res/lut.h>
 
 #include <util/format.h>
-#include <win32/file.h>
-#include <win32/panic.h>
+#include <os/file.h>
+#include <os/panic.h>
+#include <os/mutex.h>
 #include <yaml/document.h>
 #include <yaml/node.h>
 #include <yaml/schema.h>
@@ -47,7 +48,8 @@ Resource::Ptr ResourceLoader::load(Resource::Id id, LoadFlags flags)
 }
 
 SimpleFsLoader::SimpleFsLoader(const char *base_path) :
-  m_path(base_path)
+  m_path(base_path),
+  m_available_mutex(os::Mutex::alloc())
 {
 }
 
@@ -94,7 +96,7 @@ const std::unordered_map<Resource::Tag, SimpleFsLoader::LoaderFn> SimpleFsLoader
 
 void SimpleFsLoader::doInit()
 {
-  win32::current_working_directory(m_path.data());
+  os::current_working_directory(m_path.data());
 
   enumAvailable("./"); // enum all resources starting from 'base_path'
 }
@@ -126,15 +128,13 @@ Resource::Ptr SimpleFsLoader::doLoad(Resource::Id id, LoadFlags flags)
 
 void SimpleFsLoader::enumAvailable(std::string path)
 {
-  using win32::FileQuery;
-
   // Snoop subdirectories first
   std::string dir_query_str = path + "*";
-  win32::FileQuery dir_query(dir_query_str.data());
+  auto dir_query = os::FileQuery::open(dir_query_str.data());
 
-  dir_query.foreach([this,&path](const char *name, FileQuery::Attributes attrs) {
+  dir_query->foreach([this,&path](const char *name, os::FileQuery::Attributes attrs) {
     // Have to manually check whether 'name' is a directory
-    bool is_directory = attrs & FileQuery::IsDirectory;
+    bool is_directory = attrs & os::FileQuery::IsDirectory;
     if(!is_directory) return;
 
     // 'name' is a directory - descend into it
@@ -143,17 +143,17 @@ void SimpleFsLoader::enumAvailable(std::string path)
 
   // Now query *.meta files (resource descriptors)
   std::string meta_query_str = path + "*.meta";
-  win32::FileQuery meta_query;
+  auto meta_query = os::FileQuery::null();
   try {
-    meta_query = win32::FileQuery(meta_query_str.data());
-  } catch(const win32::FileQuery::Error&) {
+    meta_query = os::FileQuery::open(meta_query_str.data());
+  } catch(const os::FileQuery::Error&) {
     return; // no .meta files in current directory
   }
 
   std::vector<IORequest::Ptr> reqs;
-  meta_query.foreach([this,path,&reqs](const char *name, FileQuery::Attributes attrs) {
+  meta_query->foreach([this,path,&reqs](const char *name, os::FileQuery::Attributes attrs) {
     // if there's somehow a directory that fits *.meta ignore it
-    if(attrs & FileQuery::IsDirectory) return;
+    if(attrs & os::FileQuery::IsDirectory) return;
 
     auto full_path = path + name;
 
@@ -167,9 +167,9 @@ void SimpleFsLoader::enumAvailable(std::string path)
       );
 
       manager().requestIo(req);
-    } catch(const win32::File::Error&) {
+    } catch(const os::FileQuery::Error&) {
       // panic, there really shouldn't be an exception here
-      win32::panic(util::fmt("error opening file \"%s\"", full_path).data(), win32::FileOpenError);
+      os::panic(util::fmt("error opening file \"%s\"", full_path).data(), os::FileOpenError);
     }
   });
 
@@ -187,7 +187,7 @@ void SimpleFsLoader::metaIoCompleted(std::string full_path, IORequest& req)
   printf("found resource %-25s: 0x%.16lx\n", full_path.data(), id);
 
   // Multiple threads can be executing this method simultaneously
-  auto guard = m_available_mutex.acquireScoped();
+  auto guard = m_available_mutex->acquireScoped();
   m_available.emplace(
     id,
     std::move(file)

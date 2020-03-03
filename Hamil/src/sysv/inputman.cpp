@@ -44,6 +44,11 @@
 #  include <libevdev/libevdev.h>
 #endif
 
+// Uncomment the following line to disable mapping
+//   input_evennt::type == EV_ABS events -> os::Mouse inputs
+//  - FOR DEBUG PURPOSES ONLY!
+//#define LIBEVDEV_NO_TOUCHPAD_AS_MOUSE 1
+
 namespace sysv {
 
 using x11_detail::x11;
@@ -311,7 +316,14 @@ InputDeviceManager::InputDeviceManager() :
   m_data->mouse_is_touchpad = mouse_has_prop(EV_ABS, ABS_X); // 'ABS_Y' would work just as well here
   m_data->mouse_has_hi_res_wheel = mouse_has_prop(EV_REL, REL_WHEEL_HI_RES);
 
-  //assert(!m_data->mouse_is_touchpad && "touchpad as mouse support unimplemented!");
+#if !defined(LIBEVDEV_NO_TOCHPAD_AD_MP)
+  if(m_data->mouse_is_touchpad) {
+    os::panic(
+        "sysv::InputDeviceManager: touchpad as mouse support unimplemented",
+        os::LibevdevDeviceOpenError
+    );
+  }
+#endif
 
 #if 0 
   if(m_data->mouse_is_touchpad) {

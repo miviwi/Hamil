@@ -1,17 +1,19 @@
-#include "ui/layout.h"
-#include "ui/cursor.h"
 #include "glcorearb.h"
 #include "gx/framebuffer.h"
+#include "res/res.h"
 #include "ui/frame.h"
 #include <GL/gl.h>
 #include <common.h>
 
+#include <type_traits>
+#include <util/polystorage.h>
 #include <os/os.h>
 #include <os/cpuid.h>
 #include <os/time.h>
 #include <os/thread.h>
 #include <os/window.h>
 #include <os/input.h>
+#include <os/file.h>
 #include <cli/cli.h>
 #include <sysv/window.h>
 #include <sysv/glcontext.h>
@@ -51,28 +53,6 @@
 // OpenGL
 #include <GL/gl3w.h>
 
-size_t do_sleep()
-{
-  std::random_device rd;
-  std::uniform_int_distribution<useconds_t> distribution(2000, 5000);
-
-  auto sleep_time_ms = distribution(rd);
-  auto sleep_time_us = sleep_time_ms * 1000;
-
-  printf("usleep(%zu /* %zums */)\n", (size_t)sleep_time_us, (size_t)sleep_time_ms);
-  usleep(sleep_time_us);
-
-  return sleep_time_ms;
-}
-
-int thread_proc()
-{
-  do_sleep();
-  puts("    done!");
-
-  return 1;
-}
-
 int main(int argc, char *argv[])
 {
   os::init();
@@ -89,12 +69,20 @@ int main(int argc, char *argv[])
 
   gl_context
     .acquire(&window)
-    .makeCurrent();
+    .makeCurrent()
+    .dbg_EnableMessages();
 
   gx::init();
   ft::init();
+  res::init();
   ui::init();
 //  ek::init();
+
+
+  auto some_file = os::File::create();
+  some_file->open("Makefile", os::File::Read);
+
+  printf("some_file.size()=%zu some_file.fullPath()=`%s'\n", some_file->size(), some_file->fullPath());
 
   printf("extension(EXT::TextureSRGB):      %i\n", gx::info().extension(gx::EXT::TextureSRGB));
   printf("extension(ARB::ComputeShader):    %i\n", gx::info().extension(gx::ARB::ComputeShader));
@@ -113,7 +101,7 @@ int main(int argc, char *argv[])
         .content(ui::create<ui::LabelFrame>(iface)
             .caption("Hello!")
             .color(ui::white()))
-        .background(ui::blue().darken(0.8))
+        .background(ui::blue().darkenf(0.8))
         .geometry(ui::Geometry(vec2(200.0f, 100.0f), vec2(150.0f, 150.0f)))
         .gravity(ui::Frame::Center))
     ;

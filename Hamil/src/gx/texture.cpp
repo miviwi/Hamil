@@ -1,8 +1,11 @@
+#include "gx/context.h"
+#include "gx/gx.h"
 #include <gx/texture.h>
 
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <immintrin.h>
 
 namespace gx {
 
@@ -579,16 +582,76 @@ GLenum Sampler::param(Param p)
 
 thread_local unsigned p_active_texture = ~0u;
 
+TexImageUnit::TexImageUnit(GLContext *context, unsigned slot) :
+  m_context(context), m_slot(slot),
+  m_bound_texture(InvalidId), m_bound_sampler(InvalidId)
+{
+}
+
+TexImageUnit& TexImageUnit::bind(const Texture& tex)
+{
+  assert(tex.m != InvalidId && "attempted to bind() an invalid Texture to a TexImageUnit!");
+
+  auto tex_id = tex.m;
+
+  // Only bind the texture if it's different than the current one
+  if(m_bound_texture == tex_id) return *this;
+
+  if(m_slot != p_active_texture) {
+    glActiveTexture(GL_TEXTURE0+m_slot);
+    p_active_texture = m_slot;
+
+    assert(glGetError() == GL_NO_ERROR);
+  }
+
+  glBindTexture(tex.m_target, tex_id);
+  assert(glGetError() == GL_NO_ERROR);
+
+  m_bound_texture = tex_id;
+
+  return *this;
+}
+
+TexImageUnit& TexImageUnit::bind(const Sampler& sampler)
+{
+  assert(sampler.m != InvalidId && "attempted to bind() an invalid Sampler to a TexImageUnit!");
+
+  auto sampler_id = sampler.m;
+
+  // Only bind the sampler if it's different than the current one
+  if(m_bound_sampler == sampler_id) return *this;
+
+  glBindSampler(m_slot, sampler_id);
+  m_bound_sampler = sampler_id;
+
+  assert(glGetError() == GL_NO_ERROR);
+
+  return *this;
+}
+
+TexImageUnit& TexImageUnit::bind(const Texture& tex, const Sampler& sampler)
+{
+  return bind(tex), bind(sampler);
+}
+
+unsigned TexImageUnit::texImageUnitIndex() const
+{
+  return m_slot;
+}
+
+GLuint TexImageUnit::boundTexture() const
+{
+  return m_bound_texture;
+}
+
+/*
 void tex_unit(unsigned idx, const Texture& tex, const Sampler& sampler)
 {
-  if(idx != p_active_texture) {
-    glActiveTexture(GL_TEXTURE0+idx);
-    p_active_texture = idx;
-  }
 
   glBindSampler(idx, sampler.m);
   glBindTexture(tex.m_target, tex.m);
 }
+*/
 
 static void set_default_parameters(GLenum target)
 {

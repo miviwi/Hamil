@@ -132,6 +132,7 @@ target_sources (Hamil PUBLIC
 
   "${SrcDir}/util/allocator.cpp"
   "${SrcDir}/util/bitvector.cpp"
+  "${SrcDir}/util/polystorage.cpp"
   "${SrcDir}/util/dds.cpp"
   "${SrcDir}/util/format.cpp"
   "${SrcDir}/util/hash.cpp"
@@ -149,6 +150,7 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/os/cpuid.cpp"
   "${SrcDir}/os/cpuinfo.cpp"
   "${SrcDir}/os/stdstream.cpp"
+  "${SrcDir}/os/file.cpp"
   "${SrcDir}/os/time.cpp"
   "${SrcDir}/os/input.cpp"
   "${SrcDir}/os/inputman.cpp"
@@ -184,6 +186,7 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/sysv/cpuid.cpp"
   "${SrcDir}/sysv/cpuinfo.cpp"
   "${SrcDir}/sysv/stdstream.cpp"
+  "${SrcDir}/sysv/file.cpp"
   "${SrcDir}/sysv/time.cpp"
   "${SrcDir}/sysv/inputman.cpp"
   "${SrcDir}/sysv/thread.cpp"

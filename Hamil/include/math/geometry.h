@@ -37,8 +37,8 @@ struct Vector2 {
     struct { T s, t; };
   };
 
-  static Vector2 zero() { return { (T)0, (T)0 }; }
-  static Vector2 inf();
+  static constexpr Vector2 zero() { return { (T)0, (T)0 }; }
+  static constexpr Vector2 inf();
 
   T length2() const { return dot(*this); }
   T length() const { return (T)sqrt(length2()); }

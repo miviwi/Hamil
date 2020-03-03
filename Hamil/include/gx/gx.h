@@ -19,6 +19,10 @@ namespace gx {
 
 class GxInfo;
 
+enum : uint {
+  InvalidId = ~0u,
+};
+
 enum Component  {
   Zero = GL_ZERO, One = GL_ONE,
   Red = GL_RED, Green = GL_GREEN, Blue  = GL_BLUE, Alpha = GL_ALPHA,
