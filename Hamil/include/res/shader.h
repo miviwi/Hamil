@@ -18,7 +18,7 @@ class ResourceManager;
 
 class Shader : public Resource {
 public:
-  static constexpr Tag tag() { return "shader"; }
+  static const Tag tag() { return "shader"; }
 
   static constexpr util::StaticString InlineSource = "!inline";
   static constexpr util::StaticString ImportSource = "!import";

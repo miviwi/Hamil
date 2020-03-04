@@ -138,7 +138,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
     if(!is_directory) return;
 
     // 'name' is a directory - descend into it
-    enumAvailable(path + name + "/");
+    enumAvailable(/*path +*/ std::string(name) + "/");
   });
 
   // Now query *.meta files (resource descriptors)

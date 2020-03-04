@@ -72,7 +72,7 @@ FileView::Ptr File::map(Protect prot, size_t offset, size_t size, const char *na
 #  error "unknown platform"
 #endif
 
-  view->doMap(prot, offset);
+  view->m_ptr = view->doMap(prot, offset);
 
   return view;
 }

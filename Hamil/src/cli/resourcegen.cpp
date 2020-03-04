@@ -2,7 +2,7 @@
 
 #include <yaml/document.h>
 #include <yaml/node.h>
-#include <win32/file.h>
+#include <os/file.h>
 #include <util/str.h>
 #include <util/format.h>
 #include <mesh/mesh.h>
@@ -31,20 +31,20 @@
 
 namespace cli {
 
-static yaml::Document shadergen(win32::File& file,
+static yaml::Document shadergen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
-static yaml::Document imagegen(win32::File& file,
+static yaml::Document imagegen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
-static yaml::Document texturegen(win32::File& file,
+static yaml::Document texturegen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
-static yaml::Document meshgen(win32::File& file,
+static yaml::Document meshgen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension);
 
 using GenFunc = std::function<
-  yaml::Document(win32::File& file,
+  yaml::Document(os::File& file,
     const std::string& name, const std::string& path, const std::string& extension)
   >;
 static const std::map<std::string, GenFunc> p_gen_fns = {
@@ -78,12 +78,12 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
 {
   if(resources.empty()) {
     std::function<void(const std::string&)> enum_resources = [&](const std::string& path) {
-      win32::FileQuery q((path + "*").data());
+      auto q = os::FileQuery::open((path + "*").data());
 
-      q.foreach([&](const char *name, win32::FileQuery::Attributes attrs) {
-        auto full_name = path + name;
+      q->foreach([&](const char *name, os::FileQuery::Attributes attrs) {
+          std::string full_name = /*path + */name;
 
-        if(attrs & win32::FileQuery::IsDirectory) {
+        if(attrs & os::FileQuery::IsDirectory) {
           enum_resources((full_name + "/").data());
         } else {
           resources.emplace_back(full_name);
@@ -118,9 +118,10 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
 
     printf("processing ./%s...\n", resource.data());
 
-    win32::File f(resource.data(), win32::File::Read, win32::File::OpenExisting);
+    auto f = os::File::create();
+    f->open(resource.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-    auto meta = it->second(f, name, path, extension);
+    auto meta = it->second(*f, name, path, extension);
     // Check if parsing the file succeeded
     if(!meta.get()) continue;
 
@@ -142,10 +143,11 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
       "         guid: %.1llx\n", meta("guid")->as<yaml::Scalar>()->ui());
 
 
-    win32::File f_meta(f_name.data(), win32::File::Write, win32::File::CreateAlways);
+    auto f_meta = os::File::create();
+    f_meta->open(f_name.data(), os::File::Write, os::File::ShareRead, os::File::CreateAlways);
 
     // If there's more than ULONG_MAX bytes of data - oh well
-    f_meta.write(meta_data.data(), (ulong)meta_data.size());
+    f_meta->write(meta_data.data(), (ulong)meta_data.size());
   }
 }
 
@@ -193,11 +195,11 @@ static const std::vector<PragmaInfo> p_pragmas = {
   { PragmaExport, "export", ""        },
 };
 
-static yaml::Document shadergen(win32::File& file,
+static yaml::Document shadergen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension)
 {
-  auto view = file.map(win32::File::ProtectRead);
-  auto source = view.get<const char>();
+  auto view = file.map(os::File::ProtectRead);
+  auto source = view->get<const char>();
 
   // count non-preprocessor lines
   size_t line_no = 0;
@@ -311,20 +313,21 @@ static yaml::Document shadergen(win32::File& file,
   return yaml::Document(yaml::Node::Ptr(meta));
 }
 
-static yaml::Document imagegen(win32::File& file,
+static yaml::Document imagegen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension)
 {
-  auto location = util::fmt(".%s/%s.%s", path, name, extension);
+  auto location = util::fmt("./%s/%s.%s", path, name, extension);
   std::optional<yaml::Document> params = std::nullopt;
 
   try {
-    auto fname = util::fmt(".%s/%s.imageparams", path, name);
-    win32::File f_params(fname.data(), win32::File::Read, win32::File::OpenExisting);
+    auto fname = util::fmt("./%s/%s.imageparams", path, name);
+    auto f_params = os::File::create();
+    f_params->open(fname.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-    auto f_params_view = f_params.map(win32::File::ProtectRead);
+    auto f_params_view = f_params->map(os::File::ProtectRead);
 
-    params = yaml::Document::from_string(f_params_view.get<const char>(), f_params.size());
-  } catch(const win32::File::Error&) {
+    params = yaml::Document::from_string(f_params_view->get<const char>(), f_params->size());
+  } catch(const os::Error&) {
     // No additional params...
   }
 
@@ -336,8 +339,12 @@ static yaml::Document imagegen(win32::File& file,
 
   int width, height, channels;
 
-  auto image_view = file.map(win32::File::ProtectRead);
-  auto image      = stbi_load_from_memory(image_view.get<byte>(), (int)file.size(), &width, &height, &channels, 0);
+  auto image_view = file.map(os::File::ProtectRead);
+  auto image      = stbi_load_from_memory(
+      image_view->get<byte>(), (int)file.size(),
+      &width, &height, &channels,
+      0 /* desired_channels */
+  );
 
   if(!image) throw GenError(util::fmt("%s: invalid image file!", location));
 
@@ -356,10 +363,10 @@ static yaml::Document imagegen(win32::File& file,
   return yaml::Node::Ptr(meta);
 }
 
-static yaml::Document texturegen(win32::File& file,
+static yaml::Document texturegen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension)
 {
-  auto location = util::fmt(".%s/%s.%s", path, name, extension);
+  auto location = util::fmt("./%s/%s.%s", path, name, extension);
 
   auto meta = make_meta<res::Texture>(name, path)->append(
     yaml::Scalar::from_str("location"),
@@ -369,16 +376,16 @@ static yaml::Document texturegen(win32::File& file,
   return yaml::Node::Ptr(meta);
 }
 
-static yaml::Document meshgen(win32::File& file,
+static yaml::Document meshgen(os::File& file,
   const std::string& name, const std::string& path, const std::string& extension)
 {
-  auto location = util::fmt(".%s/%s.%s", path, name, extension);
+  auto location = util::fmt("./%s/%s.%s", path, name, extension);
 
-  auto mesh_view = file.map(win32::File::ProtectRead);
+  auto mesh_view = file.map(os::File::ProtectRead);
 
   auto obj_loader = mesh::ObjLoader();
   try {
-    obj_loader.load(mesh_view.get<const char>(), file.size());
+    obj_loader.load(mesh_view->get<const char>(), file.size());
   } catch(const mesh::MeshLoader::NonTriangularFaceError&) {
     printf("Non triangular face present!\n");
     printf("    ...skipping\n");
@@ -391,7 +398,7 @@ static yaml::Document meshgen(win32::File& file,
     return yaml::Document();
   }
 
-  auto obj_mesh   = obj_loader.mesh();
+  auto obj_mesh = obj_loader.mesh();
   [[maybe_unused]] size_t num_faces = obj_mesh.faces().size();
 
   auto meta_vertex = new yaml::Mapping();
@@ -445,18 +452,20 @@ void ltc_lut_gen()
     meta("path")->as<yaml::Scalar>()->str(),
     meta("name")->as<yaml::Scalar>()->str());
 
-  win32::File f_meta(f_name.data(), win32::File::Write, win32::File::CreateAlways);
+  auto f_meta = os::File::create();
+  f_meta->open(f_name.data(), os::File::Write, os::File::ShareRead, os::File::CreateAlways);
 
   // If there's more than ULONG_MAX bytes of data - oh well
-  f_meta.write(meta_data.data(), (ulong)meta_data.size());
+  f_meta->write(meta_data.data(), (ulong)meta_data.size());
 
-  win32::File f_lut(p_ltc_ggx_lut, win32::File::Write, win32::File::CreateAlways);
+  auto f_lut = os::File::create();
+  f_lut->open(p_ltc_ggx_lut, os::File::Write, os::File::ShareRead, os::File::CreateAlways);
 
   const auto& coeffs1 = ltc_lut.coeffs1();
   const auto& coeffs2 = ltc_lut.coeffs2();
 
-  f_lut.write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(u16));
-  f_lut.write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(u16));
+  f_lut->write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(u16));
+  f_lut->write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(u16));
 }
 
 }

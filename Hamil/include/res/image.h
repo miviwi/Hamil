@@ -10,7 +10,7 @@ namespace res {
 
 class Image : public Resource {
 public:
-  static constexpr Tag tag() { return "image"; }
+  static const Tag tag() { return "image"; }
 
   enum LoadFlags : unsigned {
     FlipVertical  = 1<<0,

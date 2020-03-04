@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util/staticstring.h"
 #include <res/resource.h>
 #include <res/io.h>
 
@@ -13,7 +14,7 @@ namespace res {
 
 class Texture : public Resource {
 public:
-  static constexpr Tag tag() { return "texture"; }
+  static const Tag tag() { return "texture"; }
 
   static Resource::Ptr from_yaml(IOBuffer& image,
     const yaml::Document& doc, Id id,

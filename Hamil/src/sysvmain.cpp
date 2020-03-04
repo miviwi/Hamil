@@ -1,9 +1,14 @@
 #include "glcorearb.h"
 #include "gx/framebuffer.h"
+#include "res/handle.h"
+#include "res/image.h"
 #include "res/res.h"
+#include "res/texture.h"
 #include "ui/frame.h"
 #include <GL/gl.h>
 #include <common.h>
+
+#include <resources.h>
 
 #include <type_traits>
 #include <util/polystorage.h>
@@ -78,6 +83,10 @@ int main(int argc, char *argv[])
   ui::init();
 //  ek::init();
 
+  res::load(R.image.res.images.ids);
+
+  res::Handle<res::Image> r_pineapple = R.image.res.images.pineapple;
+
   printf("extension(EXT::TextureSRGB):      %i\n", gx::info().extension(gx::EXT::TextureSRGB));
   printf("extension(ARB::ComputeShader):    %i\n", gx::info().extension(gx::ARB::ComputeShader));
   printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));
@@ -89,6 +98,11 @@ int main(int argc, char *argv[])
   ui::CursorDriver cursor(1280/2, 720/2);
   ui::Ui iface(pool, ui::Geometry(vec2(), vec2(1280.0f, 720.0f)), ui::Style::basic_style());
 
+  auto pineapple = iface.drawable().fromImage(
+      r_pineapple->data<u8>(),
+      r_pineapple->width(), r_pineapple->height()
+  );
+
   iface
     .frame(ui::create<ui::WindowFrame>(iface)
         .title("Window")
@@ -98,6 +112,11 @@ int main(int argc, char *argv[])
         .background(ui::blue().darkenf(0.8))
         .geometry(ui::Geometry(vec2(200.0f, 100.0f), vec2(150.0f, 150.0f)))
         .gravity(ui::Frame::Center))
+    .frame(ui::create<ui::WindowFrame>(iface)
+        .title("Pineapple")
+        .content(ui::create<ui::LabelFrame>(iface)
+          .drawable(pineapple))
+        .geometry(ui::Geometry(vec2(500.0f, 100.0f), vec2(512.0f, 512.0f))))
     ;
 
   ft::Font face(ft::FontFamily("dejavu-serif"), 20);

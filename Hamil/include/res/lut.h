@@ -17,7 +17,7 @@ class ResourceManager;
 
 class LookupTable : public Resource {
 public:
-  static constexpr Tag tag() { return "lut"; }
+  static const Tag tag() { return "lut"; }
 
   enum DataType {
     r16f, r32f,

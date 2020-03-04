@@ -88,7 +88,7 @@ void File::doOpen(const char *path, Access access, Share share, OpenMode mode)
   }
 
   switch(mode) {
-  case CreateAlways:     oflag |= O_CREAT; break;
+  case CreateAlways:     oflag |= O_CREAT|O_TRUNC; break;
   case CreateNew:        oflag |= O_CREAT|O_EXCL; break;
   case OpenAlways:       oflag |= O_APPEND; break;
   case OpenExisting:     break;
@@ -102,7 +102,7 @@ void File::doOpen(const char *path, Access access, Share share, OpenMode mode)
   data().fd = fd;
 
   // No need for a fcntl(FSETLK) call
-  if(share == (ShareRead|ShareWrite)) return;
+  if(share == (ShareRead|ShareWrite) || mode == CreateAlways) return;
 
   struct flock lock;
   memset(&lock, 0, sizeof(struct flock));

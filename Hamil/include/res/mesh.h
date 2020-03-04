@@ -21,7 +21,7 @@ class ResourceManager;
 
 class Mesh : public Resource {
 public:
-  static constexpr Tag tag() { return "mesh"; }
+  static const Tag tag() { return "mesh"; }
 
   struct Error { };
 

@@ -9,7 +9,7 @@ namespace res {
 
 class Text : public Resource {
 public:
-  static constexpr Tag tag() { return "text"; }
+  static const Tag tag() { return "text"; }
 
   static Resource::Ptr from_memory(const char *buf, size_t sz, Id id,     // 'buf' is copied only when !is_static
     bool is_static = false, const std::string& name = "", const std::string& path = "");
