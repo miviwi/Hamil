@@ -116,8 +116,8 @@ public:
 
   virtual bool flush() = 0;
 
-  std::unique_ptr<FileView> map(Protect prot, size_t offset, size_t size, const char *name = nullptr);
-  std::unique_ptr<FileView> map(Protect prot, const char *name = nullptr);
+  std::shared_ptr<FileView> map(Protect prot, size_t offset, size_t size, const char *name = nullptr);
+  std::shared_ptr<FileView> map(Protect prot, const char *name = nullptr);
 
 protected:
   File(size_t storage_sz);
@@ -141,8 +141,6 @@ protected:
   }
 
 private:
-  friend FileView;
-
   bool m_open;
 
   FileData *m_data;
@@ -153,7 +151,7 @@ public:
   using Size = File::Size;
   using Protect = File::Protect;
 
-  using Ptr = std::unique_ptr<FileView>;
+  using Ptr = std::shared_ptr<FileView>;
 
   virtual ~FileView();
 

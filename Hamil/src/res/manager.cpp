@@ -92,16 +92,17 @@ ResourceManager& ResourceManager::waitIoIdle()
   return *this;
 }
 
-IOBuffer ResourceManager::mapLocation(const yaml::Scalar *location,
-  size_t offset, size_t sz)
+IOBuffer ResourceManager::mapLocation(const yaml::Scalar *location, size_t offset, size_t sz)
 {
   IOBuffer view(nullptr, 0);
 
   if(location->tag().value() == "!file") {
-    win32::File f(location->str(), win32::File::Read, win32::File::OpenExisting);
-    size_t map_sz = sz ? sz : f.size();
+    auto f = os::File::create();
+    f->open(location->str(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-    return IOBuffer(f.map(win32::File::ProtectRead, offset, map_sz));
+    size_t map_sz = sz ? sz : f->size();
+
+    return IOBuffer(f->map(os::File::ProtectRead, offset, map_sz));
   }
 
   return view;

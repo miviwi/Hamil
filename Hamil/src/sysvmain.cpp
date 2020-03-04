@@ -78,12 +78,6 @@ int main(int argc, char *argv[])
   ui::init();
 //  ek::init();
 
-
-  auto some_file = os::File::create();
-  some_file->open("Makefile", os::File::Read);
-
-  printf("some_file.size()=%zu some_file.fullPath()=`%s'\n", some_file->size(), some_file->fullPath());
-
   printf("extension(EXT::TextureSRGB):      %i\n", gx::info().extension(gx::EXT::TextureSRGB));
   printf("extension(ARB::ComputeShader):    %i\n", gx::info().extension(gx::ARB::ComputeShader));
   printf("extension(ARB::BindlessTexture):  %i\n", gx::info().extension(gx::ARB::BindlessTexture));

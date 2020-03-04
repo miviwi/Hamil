@@ -212,13 +212,13 @@ os::File& File::seek(Seek whence_, size_t offset)
 #if __sysv
   int whence = -1;
   switch(whence_) {
-  case SeekBegin:   whence = SEEK_SET;
-  case SeekCurrent: whence = SEEK_CUR;
-  case SeekEnd:     whence = SEEK_END;
+  case SeekBegin:   whence = SEEK_SET; break;
+  case SeekCurrent: whence = SEEK_CUR; break;
+  case SeekEnd:     whence = SEEK_END; break;
   }
 
   auto seek_result = lseek(data().fd, offset, whence);
-  assert(seek_result > 0);
+  assert(seek_result >= 0);
 #endif
 
   return *this;

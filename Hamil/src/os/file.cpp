@@ -105,7 +105,7 @@ FileView::~FileView()
 
 void *FileView::get() const
 {
-  assert(m_ptr && "attempted to get() a poingter to an invalid FileView!");
+  assert(m_ptr && "attempted to get() a pointer to an invalid FileView!");
 
   return m_ptr;
 }

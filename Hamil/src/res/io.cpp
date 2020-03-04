@@ -13,8 +13,8 @@ IOBuffer::IOBuffer(void *ptr, size_t sz) :
 {
 }
 
-IOBuffer::IOBuffer(win32::FileView view) :
-  m_ptr(view.get()), m_sz(view.size()),
+IOBuffer::IOBuffer(os::FileView::Ptr view) :
+  m_ptr(view->get()), m_sz(view->size()),
   m_buf(view)
 {
 }

@@ -155,7 +155,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
     // if there's somehow a directory that fits *.meta ignore it
     if(attrs & os::FileQuery::IsDirectory) return;
 
-    auto full_path = path + name;
+    auto full_path = /*path +*/ name;
 
     try {
       // A splash screen should be up on the screen here to let the

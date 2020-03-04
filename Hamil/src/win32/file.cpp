@@ -55,6 +55,8 @@ File::File(const char *path, Access access, Share share, OpenMode open) :
   if(result != TRUE) throw FileOpenError(GetLastError());
 
   m_sz = (size_t)size.QuadPart;
+#else
+  STUB();
 #endif
 }
 
@@ -218,6 +220,8 @@ FileView File::map(Protect protect, size_t offset, size_t size, const char *name
 
   return FileView(*this, mapping, protect, offset, size);
 #else
+  STUB();
+
   return FileView(*this, nullptr, ProtectNone, 0, 0);
 #endif
 }
@@ -310,8 +314,10 @@ FileQuery::FileQuery(FileQuery&& other) :
 
 FileQuery::~FileQuery()
 {
+#if __win32
   closeQuery();
   delete m_find_data;
+#endif
 }
 
 FileQuery& FileQuery::operator=(FileQuery&& other)

@@ -3,7 +3,7 @@
 #include <common.h>
 
 #include <util/unit.h>
-#include <win32/file.h>
+#include <os/file.h>
 #include <sched/job.h>
 #include <sched/pool.h>
 
@@ -20,7 +20,7 @@ class ResourceManager;
 class IORequest;
 
 // Holds file contents read from disk
-//   - Can be backed by a win32::FileView or just a regular buffer
+//   - Can be backed by a os::FileView or just a regular buffer
 class IOBuffer {
 public:
   IOBuffer() = default;
@@ -54,13 +54,13 @@ private:
   using MemoryBufferPtr = std::shared_ptr<byte[]>;
 
   IOBuffer(void *ptr, size_t sz);
-  IOBuffer(win32::FileView view);
+  IOBuffer(os::FileView::Ptr view);
 
   void *m_ptr = nullptr;
   size_t m_sz = 0;
 
   std::variant<std::monostate,
-    win32::FileView, MemoryBufferPtr
+    os::FileView::Ptr, MemoryBufferPtr
   > m_buf = std::monostate();
 };
 
