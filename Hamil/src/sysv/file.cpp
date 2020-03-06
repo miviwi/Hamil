@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <cassert>
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
@@ -306,8 +307,8 @@ void *FileView::doMap(Protect protect, size_t offset)
   if(protect == File::ProtectNone) {
     prot = PROT_NONE;
   } else {
-    if(protect & File::ProtectRead) prot |= PROT_READ;
-    if(protect & File::ProtectWrite) prot |= PROT_WRITE;
+    if(protect & File::ProtectRead)    prot |= PROT_READ;
+    if(protect & File::ProtectWrite)   prot |= PROT_WRITE;
     if(protect & File::ProtectExecute) prot |= PROT_EXEC;
   }
 
@@ -372,6 +373,12 @@ void FileQuery::foreach(IterFn fn)
   const auto& pattern = data().pattern.value();
   auto pattern_back = pattern.back();
 
+#if !defined(NDEBUG)
+  errno = 0;    // readdir() only writes to 'errno' in case of an error,
+                //   ensure it's clear so the assert() below doesn't trip
+                //   spuriously
+#endif
+
   auto dir = data().dir;
   while(auto ent = readdir(dir)) {
     std::string name = ent->d_name;
@@ -383,7 +390,7 @@ void FileQuery::foreach(IterFn fn)
     int match_err = fnmatch(pattern_back.data(), name.data(), 0);
     if(match_err == FNM_NOMATCH) continue;
 
-    // Make sure no errors have occured
+    // Make sure no errors have occurred
     assert(!match_err);
 
     bool is_dir = ent->d_type & DT_DIR;
@@ -391,6 +398,9 @@ void FileQuery::foreach(IterFn fn)
 
     fn(name.data(), (Attributes)attrs);
   }
+
+  // Make sure readdir() didn't cause an error
+  assert(!errno);
 #endif
 }
 

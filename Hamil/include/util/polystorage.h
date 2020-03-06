@@ -108,15 +108,16 @@ protected:
   template <typename Storage, typename Derived>
   static void destroy(Derived *obj)
   {
-#if !defined(NDEBUG)
     auto obj_polystorage = (WithPolymorphicStorage *)obj;
+    auto storage = (*(WithPolymorphicStorage *)obj).storage<Storage>();
 
     assert((obj_polystorage->m_dbg_object_sz == object_size<Derived, Storage>()) &&
         "The 'Storage' type passed to WithPolymorphicStorage::destroy() is different "
         "from the one which was used for WithPolymorphicStorage::alloc()!");
-#endif
 
+    storage->~Storage();
     obj->~Derived();
+
     Allocator::free(obj, object_size<Derived, Storage>());
   }
 
