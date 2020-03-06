@@ -5,7 +5,7 @@
 
 #include <math/xform.h>
 #include <math/util.h>
-#include <win32/panic.h>
+#include <os/panic.h>
 
 #include <uniforms.h>
 #include <gx/pipeline.h>
@@ -173,7 +173,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
 
   // TODO: Just panic for now...
   if(!fb.complete()) {
-    win32::panic("Couldn't create UI Framebuffer!", win32::FramebufferError);
+    os::panic("Couldn't create UI Framebuffer!", os::FramebufferError);
   }
 
   m_program_id = m_pool.create<gx::Program>(gx::make_program("pUi",

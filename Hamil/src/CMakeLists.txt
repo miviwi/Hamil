@@ -162,45 +162,59 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/os/conditionvar.cpp"
   "${SrcDir}/os/window.cpp"
   "${SrcDir}/os/glcontext.cpp"
-
-  "${SrcDir}/win32/win32.cpp"
-  "${SrcDir}/win32/clipboard.cpp"
-  "${SrcDir}/win32/conditionvar.cpp"
-  "${SrcDir}/win32/cpuid.cpp"
-  "${SrcDir}/win32/cpuinfo.cpp"
-  "${SrcDir}/win32/event.cpp"
-  "${SrcDir}/win32/file.cpp"
-  "${SrcDir}/win32/glcontext.cpp"
-  "${SrcDir}/win32/handle.cpp"
-  "${SrcDir}/win32/inputman.cpp"
-  "${SrcDir}/win32/mman.cpp"
-  "${SrcDir}/win32/mutex.cpp"
-  "${SrcDir}/win32/panic.cpp"
-  "${SrcDir}/win32/rwlock.cpp"
-  "${SrcDir}/win32/stdstream.cpp"
-  "${SrcDir}/win32/thread.cpp"
-  "${SrcDir}/win32/time.cpp"
-  "${SrcDir}/win32/waitable.cpp"
-  "${SrcDir}/win32/window.cpp"
-
-  "${SrcDir}/sysv/sysv.cpp"
-  "${SrcDir}/sysv/cpuid.cpp"
-  "${SrcDir}/sysv/cpuinfo.cpp"
-  "${SrcDir}/sysv/stdstream.cpp"
-  "${SrcDir}/sysv/file.cpp"
-  "${SrcDir}/sysv/time.cpp"
-  "${SrcDir}/sysv/inputman.cpp"
-  "${SrcDir}/sysv/thread.cpp"
-  "${SrcDir}/sysv/mutex.cpp"
-  "${SrcDir}/sysv/panic.cpp"
-  "${SrcDir}/sysv/rwlock.cpp"
-  "${SrcDir}/sysv/conditionvar.cpp"
-  "${SrcDir}/sysv/x11.cpp"
-  "${SrcDir}/sysv/window.cpp"
-  "${SrcDir}/sysv/glcontext.cpp"
+  "${SrcDir}/os/clipboard.cpp"
 
   "${SrcDir}/yaml/document.cpp"
   "${SrcDir}/yaml/node.cpp"
   "${SrcDir}/yaml/schema.cpp"
 
 )
+
+#  --- Platform specific sources ---
+if (WIN32)
+  target_sources (Hamil PUBLIC
+      "${SrcDir}/win32/win32.cpp"
+      "${SrcDir}/win32/clipboard.cpp"
+      "${SrcDir}/win32/conditionvar.cpp"
+      "${SrcDir}/win32/cpuid.cpp"
+      "${SrcDir}/win32/cpuinfo.cpp"
+      "${SrcDir}/win32/event.cpp"
+      "${SrcDir}/win32/file.cpp"
+      "${SrcDir}/win32/glcontext.cpp"
+      "${SrcDir}/win32/handle.cpp"
+      "${SrcDir}/win32/inputman.cpp"
+      "${SrcDir}/win32/mman.cpp"
+      "${SrcDir}/win32/mutex.cpp"
+      "${SrcDir}/win32/panic.cpp"
+      "${SrcDir}/win32/rwlock.cpp"
+      "${SrcDir}/win32/stdstream.cpp"
+      "${SrcDir}/win32/thread.cpp"
+      "${SrcDir}/win32/time.cpp"
+      "${SrcDir}/win32/waitable.cpp"
+      "${SrcDir}/win32/window.cpp"
+  )
+endif()
+
+if (UNIX)
+  target_sources (Hamil PUBLIC
+      "${SrcDir}/sysv/sysv.cpp"
+      "${SrcDir}/sysv/cpuid.cpp"
+      "${SrcDir}/sysv/cpuinfo.cpp"
+      "${SrcDir}/sysv/stdstream.cpp"
+      "${SrcDir}/sysv/file.cpp"
+      "${SrcDir}/sysv/time.cpp"
+      "${SrcDir}/sysv/inputman.cpp"
+      "${SrcDir}/sysv/thread.cpp"
+      "${SrcDir}/sysv/mutex.cpp"
+      "${SrcDir}/sysv/panic.cpp"
+      "${SrcDir}/sysv/rwlock.cpp"
+      "${SrcDir}/sysv/conditionvar.cpp"
+      "${SrcDir}/sysv/x11.cpp"
+      "${SrcDir}/sysv/window.cpp"
+      "${SrcDir}/sysv/glcontext.cpp"
+      "${SrcDir}/sysv/clipboard.cpp"
+  )
+endif()
+
+
+

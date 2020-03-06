@@ -4,7 +4,7 @@
 
 #include <util/hashindex.h>
 #include <util/tupleindex.h>
-#include <win32/mutex.h>
+#include <os/mutex.h>
 
 #include <atomic>
 #include <array>
@@ -44,7 +44,7 @@ protected:
   // m_locked < 0 means requireUnlocked() was called
   //  and the lock cannot be taken
   std::atomic<int> m_locked;
-  win32::Mutex m_mutex;
+  os::Mutex::Ptr m_mutex = os::Mutex::alloc();
 };
 
 template <typename... ComponentTypes>

@@ -2,7 +2,7 @@
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 
-#include <win32/panic.h>
+#include <os/panic.h>
 #include <util/format.h>
 
 #include <cassert>
@@ -255,9 +255,10 @@ void Program::link()
   std::vector<char> log(log_size);
   glGetProgramInfoLog(m, log_size, nullptr, log.data());
 
-  win32::panic(
+  os::panic(
     util::fmt("OpenGL program linking error:\n%s", log).data(),
-    win32::ShaderLinkingError);
+    os::ShaderLinkingError
+  );
 }
 
 void Program::getUniforms(const std::pair<std::string, unsigned> *offsets, size_t sz, int locations[])
@@ -370,9 +371,10 @@ Shader::Shader(Type type, const char *const sources[], size_t count)
     source_ptr++;
   }
 
-  win32::panic(
+  os::panic(
     util::fmt("OpenGL shader compilation error:\n%s\nSource: %s\n", log, source).data(),
-    win32::ShaderCompileError);
+    os::ShaderCompileError
+  );
 }
 
 Shader::~Shader()

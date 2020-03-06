@@ -4,12 +4,12 @@
 
 #include <string>
 
-namespace win32 {
+namespace sysv {
 
 class Clipboard final : public os::Clipboard {
 public:
   Clipboard();
-  virtual ~Clipboard();;
+  virtual ~Clipboard();
 
   virtual std::string string() final;
   virtual void string(const void *ptr, size_t sz) final;

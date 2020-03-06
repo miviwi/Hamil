@@ -12,7 +12,7 @@
 
 #include <util/smallvector.h>
 #include <util/tupleindex.h>
-#include <win32/rwlock.h>
+#include <os/rwlock.h>
 
 #include <vector>
 #include <array>
@@ -71,7 +71,7 @@ public:
   {
     if(id == Invalid) return;
 
-    m_lock.acquireExclusive();
+    m_lock->acquireExclusive();
 
     FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
@@ -83,7 +83,7 @@ public:
     //   resource is re-used
     free_list.append(id);
 
-    m_lock.releaseExclusive();
+    m_lock->releaseExclusive();
   }
 
   // Passing 'id' == Invalid is a no-op
@@ -141,17 +141,17 @@ public:
   template <typename T> T& get(Id id)
   {
     // Most of the time there sould be no contention here
-    m_lock.acquireShared();
+    m_lock->acquireShared();
     auto& resource = getVector<T>().at(id);
-    m_lock.releaseShared();
+    m_lock->releaseShared();
 
     return resource;
   }
   template <typename T> const T& get(Id id) const
   {
-    m_lock.acquireShared();
+    m_lock->acquireShared();
     const auto& resource = getVector<T>().at(id);
-    m_lock.releaseShared();
+    m_lock->releaseShared();
 
     return resource;
   }
@@ -210,7 +210,7 @@ private:
   template <typename T, typename... Args>
   inline std::pair<Id, T*> doCreate(Args... args)
   {
-    m_lock.acquireExclusive();
+    m_lock->acquireExclusive();
 
     FreeList& free_list = getFreeList<T>();
     auto& vec = getVector<T>();
@@ -230,12 +230,12 @@ private:
       new(resource) T(std::forward<Args>(args)...);
     }
 
-    m_lock.releaseExclusive();
+    m_lock->releaseExclusive();
 
     return std::make_pair(id, resource);
   }
 
-  mutable win32::ReaderWriterLock m_lock;
+  mutable os::ReaderWriterLock::Ptr m_lock = os::ReaderWriterLock::alloc();
 
   TupleOfVectors<
     Program,

@@ -109,7 +109,7 @@ protected:
   static void destroy(Derived *obj)
   {
     auto obj_polystorage = (WithPolymorphicStorage *)obj;
-    auto storage = (*(WithPolymorphicStorage *)obj).storage<Storage>();
+    auto storage = obj_polystorage->template storage<Storage>();
 
     assert((obj_polystorage->m_dbg_object_sz == object_size<Derived, Storage>()) &&
         "The 'Storage' type passed to WithPolymorphicStorage::destroy() is different "
@@ -146,17 +146,6 @@ private:
     return sizeof(Derived) + sizeof(Storage);
   }
 
-  // Meant to be caled ONLY by WithPolymorphicStoragePtr<T> internally!
-  template <typename Derived>
-  void destroyUnsafe()
-  {
-    auto self = (Derived *)this;
-
-    self->~Derived();
-    polystorage_detail::Allocator::free(self, (size_t)~0u);  // The default Allocator calls free()
-                                                             //   internally which discards the
-  }                                                          //   size
-
 #if !defined(NDEBUG)
   size_t m_dbg_object_sz;
 #endif
@@ -167,12 +156,6 @@ private:
 template <typename T>
 class WithPolymorphicStoragePtr {
 public:
-  /*
-  static_assert(T::UsesDefaultAllocator,
-      "WithPolymorphicStoragePtr<T> can only be used with WithPolymorphicStorage objects "
-      "which use the default Allocator");
-  */
-
   WithPolymorphicStoragePtr() : m_ptr(nullptr) { }
   WithPolymorphicStoragePtr(T *ptr) : m_ptr(ptr) { }
 

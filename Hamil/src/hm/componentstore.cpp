@@ -27,7 +27,7 @@ void IComponentStore::lock()
     // m_mutex is held until endRequireUnlocked() was
     //   called as many times as requireUnlocked()
     //   (so locked == 0)
-    m_mutex.acquire();
+    m_mutex->acquire();
 
     locked = 0;  // compare_exchange_strong() will verify
                  //   this assumption
@@ -43,7 +43,7 @@ void IComponentStore::lock()
   //   on 'm_mutex' so the counter is now in an
   //   unknown state so we'll reacquire it to
   //   wait once more
-  m_mutex.release();
+  m_mutex->release();
 
   lock();   // Retry
 }
@@ -54,7 +54,7 @@ void IComponentStore::unlock()
   assert(locked > 0 && "unlock() called more times than lock()!");
 
   // The last unlock() releases the mutex
-  if(locked == 1) m_mutex.release();
+  if(locked == 1) m_mutex->release();
 }
 
 void IComponentStore::requireUnlocked()
@@ -68,7 +68,7 @@ void IComponentStore::requireUnlocked()
     // m_mutex is held until unlock() was
     //   called as many times as lock()
     //   (so locked == 0)
-    m_mutex.acquire();
+    m_mutex->acquire();
 
     locked = 0;  // compare_exchange_strong() will verify
                  //   this assumption
@@ -79,7 +79,7 @@ void IComponentStore::requireUnlocked()
   // We'll need to reacquire the mutex because we
   //   slept through a lock() call - see note in
   //   lock() componentstore.cpp:35
-  m_mutex.release();
+  m_mutex->release();
 
   requireUnlocked();  // Retry
 }
@@ -90,7 +90,7 @@ void IComponentStore::endRequireUnlocked()
   assert(locked < 0 && "endRequireUnlocked() called more times than requireUnlocked()!");
 
   // The last endRequireUnlocked() releases the mutex
-  if(locked == -1) m_mutex.release();
+  if(locked == -1) m_mutex->release();
 }
 
 bool IComponentStore::component_valid(const Component& component)

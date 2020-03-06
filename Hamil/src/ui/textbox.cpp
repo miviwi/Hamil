@@ -1,5 +1,5 @@
 #include <ui/textbox.h>
-#include <win32/clipboard.h>
+#include <os/clipboard.h>
 
 #include <cmath>
 #include <cctype>
@@ -250,6 +250,9 @@ bool TextBoxFrame::charInput(os::Keyboard *kb)
 {
   using os::Keyboard;
 
+  STUB();
+
+#if 0
   if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) {
     switch(kb->key) {
     case 'A': // Select all
@@ -287,6 +290,7 @@ bool TextBoxFrame::charInput(os::Keyboard *kb)
   m_cursor++;
 
   m_selection.reset();
+#endif
 
   return true;
 }
