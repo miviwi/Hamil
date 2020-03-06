@@ -1,5 +1,6 @@
-#include "util/polystorage.h"
 #include <sysv/file.h>
+#include <util/polystorage.h>
+#include <os/path.h>
 
 #include <optional>
 #include <memory>
@@ -15,6 +16,8 @@
 #  include <unistd.h>
 #  include <fcntl.h>
 #  include <glob.h>
+#  include <dirent.h>
+#  include <fnmatch.h>
 #  include <sys/types.h>
 #  include <sys/stat.h>
 #  include <sys/mman.h>
@@ -46,19 +49,29 @@ struct FileData {
 
 struct FileQueryData {
 #if __sysv
-  glob_t g;
+  std::optional<os::Path> pattern = std::nullopt;
+  DIR *dir = nullptr;
 #endif
 
   void cleanup()
   {
 #if __sysv
-    globfree(&g);
+    if(dir) closedir(dir);
 #endif
   }
 };
 
-File::File() :
-  os::File(sizeof(FileData))
+File *File::alloc()
+{
+  return WithPolymorphicStorage::alloc<File, FileData>();
+}
+
+void File::destroy(File *f)
+{
+  WithPolymorphicStorage::destroy<FileData>(f);
+}
+
+File::File()
 {
   new(storage<FileData>()) FileData();
 }
@@ -69,8 +82,6 @@ File::~File()
   if(refs() > 1) return;
 
   if(isOpen()) data().cleanup();
-
-  storage<FileData>()->~FileData();
 }
 
 void File::doOpen(const char *path, Access access, Share share, OpenMode mode)
@@ -341,33 +352,44 @@ void FileQuery::destroy(FileQuery *q)
 
 FileQuery::FileQuery()
 {
+  new(storage<FileQueryData>()) FileQueryData();
 }
 
 FileQuery::~FileQuery()
 {
+  // Only CHECK the ref-count so it's not decremented twice
+  if(refs() > 1) return;
+
   data().cleanup();
 }
 
 void FileQuery::foreach(IterFn fn)
 {
 #if __sysv
-  //assert(m_data && "foreach() called on an invalid FileQuery object!");
+  assert(data().dir && data().pattern &&
+      "foreach() called on an invalid FileQuery object!");
 
-  const auto &g = data().g;
-  for(size_t i = 0; i < g.gl_pathc; i++) {
-    struct stat st;
+  const auto& pattern = data().pattern.value();
+  auto pattern_back = pattern.back();
 
-    auto stat_err = stat(g.gl_pathv[i], &st);
-    assert(!stat_err);
+  auto dir = data().dir;
+  while(auto ent = readdir(dir)) {
+    std::string name = ent->d_name;
 
-    unsigned attrs = 0;
-    if(S_ISREG(st.st_mode)) {
-      attrs |= IsFile;
-    } else if(S_ISDIR(st.st_mode)) {
-      attrs |= IsDirectory;
-    }
+    // Skip the "." (current directory) and ".." (parent directory) entries
+    if(!strcmp(name.data(), ".") || !strcmp(name.data(), "..")) continue;
 
-    fn(g.gl_pathv[i], (Attributes)attrs);
+    // Match the entry to the pattern
+    int match_err = fnmatch(pattern_back.data(), name.data(), 0);
+    if(match_err == FNM_NOMATCH) continue;
+
+    // Make sure no errors have occured
+    assert(!match_err);
+
+    bool is_dir = ent->d_type & DT_DIR;
+    unsigned attrs = is_dir ? IsDirectory : IsFile;
+
+    fn(name.data(), (Attributes)attrs);
   }
 #endif
 }
@@ -375,8 +397,13 @@ void FileQuery::foreach(IterFn fn)
 void FileQuery::doOpen(const char *path)
 {
 #if __sysv
-  auto glob_err = glob(path, GLOB_NOSORT, nullptr, &data().g);
-  if(glob_err && glob_err != GLOB_NOMATCH) throw Error();  // No matches is not considered an 'error'
+  os::Path p = path;
+
+  auto dir = opendir(p.enclosingDir().data());
+  if(!dir) throw Error();
+
+  data().pattern.emplace(std::move(p));
+  data().dir = dir;
 #endif
 }
 

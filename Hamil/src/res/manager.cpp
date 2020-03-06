@@ -97,12 +97,12 @@ IOBuffer ResourceManager::mapLocation(const yaml::Scalar *location, size_t offse
   IOBuffer view(nullptr, 0);
 
   if(location->tag().value() == "!file") {
-    auto f = os::File::create();
-    f->open(location->str(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
+    auto f = os::File::alloc();
+    f().open(location->str(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-    size_t map_sz = sz ? sz : f->size();
+    size_t map_sz = sz ? sz : f().size();
 
-    return IOBuffer(f->map(os::File::ProtectRead, offset, map_sz));
+    return IOBuffer(f().map(os::File::ProtectRead, offset, map_sz));
   }
 
   return view;

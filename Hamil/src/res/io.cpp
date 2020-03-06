@@ -136,19 +136,19 @@ Unit IORequest::performIo(IOLocation loc)
 {
   static constexpr size_t FileSizeMax = std::numeric_limits<os::File::Size>::max();
 
-  auto f = os::File::create();
-  f->open(loc.path.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
+  auto f = os::File::alloc();
+  f().open(loc.path.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-  size_t sz = loc.size ? loc.size : f->size();  // Read the whole file if 'size'
-                                                //   wasn't specified
+  size_t sz = loc.size ? loc.size : f().size();  // Read the whole file if 'size'
+                                                 //   wasn't specified
   m_result = IOBuffer::make_memory_buffer(sz);
 
   f->seek(os::File::SeekBegin, loc.offset);
   do {  // Make sure to read as much requested data as possible
-    auto read = f->read(m_result.get(), saturate<os::File::Size>(sz));
+    auto read = f().read(m_result.get(), saturate<os::File::Size>(sz));
     sz -= read;
   } while(sz >= FileSizeMax &&
-    f->seekOffset() < f->size() /* false when => requested_size > file_size */ );
+    f().seekOffset() < f().size() /* false when => requested_size > file_size */ );
 
   if(m_complete) m_complete(*this);
 

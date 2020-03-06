@@ -10,16 +10,12 @@
 
 namespace os {
 
-struct FileData {
-  u8 storage[1];
-};
-
-File::Ptr File::create()
+File::Ptr File::alloc()
 {
 #if __win32
   assert(0 && "win32::File unimplemented!");   // TODO: implement
 #elif __sysv
-  return File::Ptr(new sysv::File());
+  return File::Ptr(sysv::File::alloc());
 #else
 #  error "unkown platform"
 #endif
@@ -27,26 +23,25 @@ File::Ptr File::create()
   return File::Ptr();     // Unreachable (silence warnings)
 }
 
-File::File(size_t storage_sz) :
-  m_open(false),
-  m_data(nullptr)
+void File::destroy(File *f)
 {
-  size_t data_sz = sizeof(FileData) - sizeof(FileData::storage) + storage_sz;
+#if __win32
+  assert(0 && "win32::File unimplemented!");   // TODO: implement
+#elif __sysv
+  sysv::File::destroy((sysv::File *)f);
+#else
+#  error "unkown platform"
+#endif
+}
 
-  m_data = (FileData *)malloc(data_sz);
-  new(m_data) FileData();
-
-  memset(m_data->storage, 0, storage_sz);
+File::File() :
+  m_open(false)
+{
 }
 
 File::~File()
 {
-  if(refs() > 1) return;
-
-  if(m_data) {
-    m_data->~FileData();
-    free(m_data);
-  }
+  if(deref()) return;
 }
 
 File& File::open(const char *path, Access access, Share share, OpenMode mode)
@@ -80,16 +75,6 @@ FileView::Ptr File::map(Protect prot, size_t offset, size_t size, const char *na
 FileView::Ptr File::map(Protect prot, const char *name)
 {
   return map(prot, 0, size(), name);
-}
-
-void *File::storage()
-{
-  return m_data->storage;
-}
-
-const void *File::storage() const
-{
-  return m_data->storage;
 }
 
 FileView::FileView(File *file, size_t size, const char *name) :
@@ -137,7 +122,7 @@ File *FileView::origin() const
   return m_file;
 }
 
-void FileQuery::deleter(FileQuery *q)
+void FileQuery::destroy(FileQuery *q)
 {
 #if __win32
   assert(0 && "win32::FileQuery unimplemented!");
@@ -148,9 +133,14 @@ void FileQuery::deleter(FileQuery *q)
 #endif
 }
 
+FileQuery::~FileQuery()
+{
+  if(deref()) return;
+}
+
 FileQuery::Ptr FileQuery::null()
 {
-  return FileQuery::Ptr(nullptr, &FileQuery::deleter);
+  return FileQuery::Ptr();
 }
 
 FileQuery::Ptr FileQuery::open(const char *path)
@@ -158,7 +148,7 @@ FileQuery::Ptr FileQuery::open(const char *path)
 #if __win32
   assert(0 && "win32::FileQuery unimplemented!");
 #elif __sysv
-  auto q = FileQuery::Ptr(sysv::FileQuery::alloc(), &FileQuery::deleter);
+  auto q = FileQuery::Ptr(sysv::FileQuery::alloc());
 
   q->doOpen(path);
 

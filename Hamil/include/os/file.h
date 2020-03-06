@@ -88,9 +88,10 @@ public:
     using Error::Error;
   };
 
-  using Ptr = std::unique_ptr<File>;
+  static void destroy(File *f);
+  using Ptr = WithPolymorphicStoragePtr<File>;
 
-  static Ptr create();
+  static Ptr alloc();
 
   virtual ~File();
 
@@ -120,30 +121,14 @@ public:
   std::shared_ptr<FileView> map(Protect prot, const char *name = nullptr);
 
 protected:
-  File(size_t storage_sz);
+  File();
 
   virtual void doOpen(
       const char *path, Access access, Share share, OpenMode mode
   ) = 0;
 
-  void *storage();
-  const void *storage() const;
-
-  template <typename T>
-  T *storage()
-  {
-    return (T *)storage();
-  }
-  template <typename T>
-  const T *storage() const
-  {
-    return (const T *)storage();
-  }
-
 private:
   bool m_open;
-
-  FileData *m_data;
 };
 
 class FileView {
@@ -182,9 +167,10 @@ private:
   size_t m_size;
 };
 
-class FileQuery {
+class FileQuery : public Ref {
 public:
-  static void deleter(FileQuery *q);
+  static void destroy(FileQuery *q);
+  using Ptr = WithPolymorphicStoragePtr<FileQuery>;
 
   enum Attributes : unsigned {
     IsDirectory = 1<<0,
@@ -195,14 +181,11 @@ public:
 
   struct Error { };
 
-  using Ptr = std::unique_ptr<FileQuery, decltype(&FileQuery::deleter)>;
-
   static Ptr null();
   static Ptr open(const char *path);
 
-  FileQuery() = default;
   FileQuery(const FileQuery& other) = delete;
-  virtual ~FileQuery() = default;
+  virtual ~FileQuery();
 
   FileQuery& operator=(const FileQuery& other) = delete;
   FileQuery& operator=(FileQuery&& other);
@@ -210,6 +193,8 @@ public:
   virtual void foreach(IterFn fn) = 0;
 
 protected:
+  FileQuery() = default;
+
   virtual void doOpen(const char *path) = 0;
 
 };

@@ -76,15 +76,18 @@ static const std::map<std::string, GenFunc> p_gen_fns = {
 static const std::regex p_name_regex("^((?:[^/ ]+/)*)([^./ ]*)\\.([a-z]+)$", std::regex::optimize);
 void resourcegen(std::vector<std::string> resources, std::set<std::string> types)
 {
+  using namespace std::literals::string_literals;
+
   if(resources.empty()) {
     std::function<void(const std::string&)> enum_resources = [&](const std::string& path) {
-      auto q = os::FileQuery::open((path + "*").data());
+      auto pattern = path + "*";
+      auto q = os::FileQuery::open(pattern.data());
 
-      q->foreach([&](const char *name, os::FileQuery::Attributes attrs) {
-          std::string full_name = /*path + */name;
+      q().foreach([&](const char *name, os::FileQuery::Attributes attrs) {
+          std::string full_name = path + name + "/"s;
 
         if(attrs & os::FileQuery::IsDirectory) {
-          enum_resources((full_name + "/").data());
+          enum_resources(full_name.data());
         } else {
           resources.emplace_back(full_name);
         }
@@ -118,10 +121,10 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
 
     printf("processing ./%s...\n", resource.data());
 
-    auto f = os::File::create();
-    f->open(resource.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
+    auto f = os::File::alloc();
+    f().open(resource.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-    auto meta = it->second(*f, name, path, extension);
+    auto meta = it->second(f(), name, path, extension);
     // Check if parsing the file succeeded
     if(!meta.get()) continue;
 
@@ -143,11 +146,11 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
       "         guid: %.1llx\n", meta("guid")->as<yaml::Scalar>()->ui());
 
 
-    auto f_meta = os::File::create();
-    f_meta->open(f_name.data(), os::File::Write, os::File::ShareRead, os::File::CreateAlways);
+    auto f_meta = os::File::alloc();
+    f_meta().open(f_name.data(), os::File::Write, os::File::ShareRead, os::File::CreateAlways);
 
     // If there's more than ULONG_MAX bytes of data - oh well
-    f_meta->write(meta_data.data(), (ulong)meta_data.size());
+    f_meta().write(meta_data.data(), (ulong)meta_data.size());
   }
 }
 
@@ -321,10 +324,10 @@ static yaml::Document imagegen(os::File& file,
 
   try {
     auto fname = util::fmt("./%s/%s.imageparams", path, name);
-    auto f_params = os::File::create();
-    f_params->open(fname.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
+    auto f_params = os::File::alloc();
+    f_params().open(fname.data(), os::File::Read, os::File::ShareRead, os::File::OpenExisting);
 
-    auto f_params_view = f_params->map(os::File::ProtectRead);
+    auto f_params_view = f_params().map(os::File::ProtectRead);
 
     params = yaml::Document::from_string(f_params_view->get<const char>(), f_params->size());
   } catch(const os::Error&) {
@@ -340,7 +343,7 @@ static yaml::Document imagegen(os::File& file,
   int width, height, channels;
 
   auto image_view = file.map(os::File::ProtectRead);
-  auto image      = stbi_load_from_memory(
+  auto image = stbi_load_from_memory(
       image_view->get<byte>(), (int)file.size(),
       &width, &height, &channels,
       0 /* desired_channels */
@@ -452,20 +455,20 @@ void ltc_lut_gen()
     meta("path")->as<yaml::Scalar>()->str(),
     meta("name")->as<yaml::Scalar>()->str());
 
-  auto f_meta = os::File::create();
-  f_meta->open(f_name.data(), os::File::Write, os::File::ShareRead, os::File::CreateAlways);
+  auto f_meta = os::File::alloc();
+  f_meta().open(f_name.data(), os::File::Write, os::File::ShareRead, os::File::CreateAlways);
 
   // If there's more than ULONG_MAX bytes of data - oh well
-  f_meta->write(meta_data.data(), (ulong)meta_data.size());
+  f_meta().write(meta_data.data(), (ulong)meta_data.size());
 
-  auto f_lut = os::File::create();
-  f_lut->open(p_ltc_ggx_lut, os::File::Write, os::File::ShareRead, os::File::CreateAlways);
+  auto f_lut = os::File::alloc();
+  f_lut().open(p_ltc_ggx_lut, os::File::Write, os::File::ShareRead, os::File::CreateAlways);
 
   const auto& coeffs1 = ltc_lut.coeffs1();
   const auto& coeffs2 = ltc_lut.coeffs2();
 
-  f_lut->write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(u16));
-  f_lut->write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(u16));
+  f_lut().write(coeffs1.data(), (ulong)coeffs1.size() * sizeof(u16));
+  f_lut().write(coeffs2.data(), (ulong)coeffs2.size() * sizeof(u16));
 }
 
 }

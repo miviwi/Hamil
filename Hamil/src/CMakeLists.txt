@@ -150,6 +150,7 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/os/cpuid.cpp"
   "${SrcDir}/os/cpuinfo.cpp"
   "${SrcDir}/os/stdstream.cpp"
+  "${SrcDir}/os/path.cpp"
   "${SrcDir}/os/file.cpp"
   "${SrcDir}/os/time.cpp"
   "${SrcDir}/os/input.cpp"

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "util/polystorage.h"
 #include <common.h>
 
+#include <util/polystorage.h>
 #include <os/file.h>
 
 namespace sysv {
@@ -11,8 +11,11 @@ namespace sysv {
 struct FileData;
 struct FileQueryData;
 
-class File final : public os::File {
+class File final : public WithPolymorphicStorage<os::File> {
 public:
+  static File *alloc();
+  static void destroy(File *f);
+
   File();
   virtual ~File();
 

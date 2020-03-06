@@ -6,6 +6,7 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <algorithm>
 
 #include <cassert>
 
@@ -73,6 +74,8 @@ public:
   using Base::Base;
 
   virtual ~WithPolymorphicStorage() = default;
+
+  WithPolymorphicStorage(const WithPolymorphicStorage&) = delete;
   
   template <typename Storage, typename Derived>
   static void polystorage_deleter(Derived *ptr)
@@ -163,18 +166,35 @@ private:
 template <typename T>
 class WithPolymorphicStoragePtr {
 public:
+  /*
   static_assert(T::UsesDefaultAllocator,
       "WithPolymorphicStoragePtr<T> can only be used with WithPolymorphicStorage objects "
       "which use the default Allocator");
+  */
 
   WithPolymorphicStoragePtr() : m_ptr(nullptr) { }
   WithPolymorphicStoragePtr(T *ptr) : m_ptr(ptr) { }
+
+  WithPolymorphicStoragePtr(const WithPolymorphicStoragePtr&) = delete;
+
+  WithPolymorphicStoragePtr(WithPolymorphicStoragePtr&& other) :
+    WithPolymorphicStoragePtr()
+  {
+    std::swap(m_ptr, other.m_ptr);
+  }
+
+  WithPolymorphicStoragePtr& operator=(WithPolymorphicStoragePtr&& other)
+  {
+    std::swap(m_ptr, other.m_ptr);
+
+    return *this;
+  }
 
   ~WithPolymorphicStoragePtr()
   {
     if(!m_ptr) return;
 
-    m_ptr->template destroyUnsafe<T>();
+    T::destroy(m_ptr);
   }
 
   operator bool() { return m_ptr; }

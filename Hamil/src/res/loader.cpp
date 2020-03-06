@@ -128,21 +128,23 @@ Resource::Ptr SimpleFsLoader::doLoad(Resource::Id id, LoadFlags flags)
 
 void SimpleFsLoader::enumAvailable(std::string path)
 {
+  using namespace std::literals::string_literals;
+
   // Snoop subdirectories first
   std::string dir_query_str = path + "*";
   auto dir_query = os::FileQuery::open(dir_query_str.data());
 
-  dir_query->foreach([this,&path](const char *name, os::FileQuery::Attributes attrs) {
+  dir_query().foreach([this,&path](const char *name, os::FileQuery::Attributes attrs) {
     // Have to manually check whether 'name' is a directory
     bool is_directory = attrs & os::FileQuery::IsDirectory;
     if(!is_directory) return;
 
     // 'name' is a directory - descend into it
-    enumAvailable(/*path +*/ std::string(name) + "/");
+    enumAvailable(path + name + "/"s);
   });
 
   // Now query *.meta files (resource descriptors)
-  std::string meta_query_str = path + "*.meta";
+  auto meta_query_str = path + "*.meta"s;
   auto meta_query = os::FileQuery::null();
   try {
     meta_query = os::FileQuery::open(meta_query_str.data());
@@ -155,7 +157,7 @@ void SimpleFsLoader::enumAvailable(std::string path)
     // if there's somehow a directory that fits *.meta ignore it
     if(attrs & os::FileQuery::IsDirectory) return;
 
-    auto full_path = /*path +*/ name;
+    auto full_path = path + name;
 
     try {
       // A splash screen should be up on the screen here to let the

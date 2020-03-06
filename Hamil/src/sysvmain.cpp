@@ -14,6 +14,7 @@
 #include <util/polystorage.h>
 #include <os/os.h>
 #include <os/cpuid.h>
+#include <os/path.h>
 #include <os/time.h>
 #include <os/thread.h>
 #include <os/window.h>
@@ -116,6 +117,7 @@ int main(int argc, char *argv[])
         .title("Pineapple")
         .content(ui::create<ui::LabelFrame>(iface)
           .drawable(pineapple))
+        .background(ui::green().lightenf(0.8))
         .geometry(ui::Geometry(vec2(500.0f, 100.0f), vec2(512.0f, 512.0f))))
     ;
 
