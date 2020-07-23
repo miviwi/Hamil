@@ -8,12 +8,13 @@ _EUGENE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 _LIBCLANG_DIR = None
 if os.name == 'nt':
     _LIBCLANG_DIR = os.path.join(_EUGENE_PATH, 'extern', 'LLVM', 'win64')
+
+    # Only use the provided dynamic lib on win32
+    clang.cindex.Config.set_library_path(_LIBCLANG_DIR)
 elif os.name == 'posix':
     _LIBCLANG_DIR = os.path.join(_EUGENE_PATH, 'extern', 'LLVM', 'sysv')
 else:
     raise Exception('OS not supported by libclang!')
-
-clang.cindex.Config.set_library_path(_LIBCLANG_DIR)
 
 class CxxClass:
     def __init__(self, decl: clang.cindex.Cursor):
