@@ -1,5 +1,3 @@
-add_executable (Hamil)
-
 if (WIN32)
   set (Platform "win32")
 endif ()
@@ -45,6 +43,21 @@ configure_file (
 #     --- Eugene location/build script ---
 set (EUGENE "${SolutionDir}/Eugene/eugene")
 set (EUGENE_BUILD "${ProjectDir}/build.eugene")
+
+#     --- Create the 'Hamil' target ---
+if (WIN32)
+  set (HAMIL_EXECUTABLE_MAIN
+    "${ProjectDir}/src/winmain.cpp")
+endif()
+if (UNIX)
+  set (HAMIL_EXECUTABLE_MAIN
+    "${ProjectDir}/src/sysvmain.cpp")
+endif()
+
+add_executable(Hamil
+  # main()
+  ${HAMIL_EXECUTABLE_MAIN}
+)
 
 #     --- Project executable compilation setup ---
 add_subdirectory ("src")
@@ -112,9 +125,6 @@ target_link_libraries (Hamil PRIVATE
 )
 
 target_sources (Hamil PUBLIC
-  # main()
-  "${ProjectDir}/src/sysvmain.cpp"
-
   # OpenGL shader uniform interface structs
   "${ProjectDir}/src/programs.cpp"
 )

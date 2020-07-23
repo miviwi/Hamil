@@ -28,7 +28,7 @@ target_sources (Hamil PUBLIC
 
   "${SrcDir}/ft/cache.cpp"
   "${SrcDir}/ft/font.cpp"
-  "${SrcDir}/ft/uniforms.cpp"
+  #"${SrcDir}/ft/uniforms.cpp"
   
   "${SrcDir}/gx/gx.cpp"
   "${SrcDir}/gx/info.cpp"
