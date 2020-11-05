@@ -89,7 +89,7 @@ void resourcegen(std::vector<std::string> resources, std::set<std::string> types
         if(attrs & os::FileQuery::IsDirectory) {
           enum_resources(full_name.data());
         } else {
-          resources.emplace_back(full_name);
+          resources.emplace_back(path+name);
         }
       });
     };

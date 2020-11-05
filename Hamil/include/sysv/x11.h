@@ -48,6 +48,8 @@ public:
 
   int defaultScreen();
 
+  void disconnect();
+
 private:
   friend void init();
 

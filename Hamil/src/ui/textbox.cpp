@@ -392,7 +392,7 @@ SelectionRange TextBoxFrame::selectWord(vec2 pos) const
     return { 0, m_text.size() };
   }
 
-  auto r = SelectionRange::none();
+  [[maybe_unused]] auto r = SelectionRange::none();
 
   auto word_start = std::string::npos,
     word_end = std::string::npos;

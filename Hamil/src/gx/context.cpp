@@ -213,7 +213,9 @@ static void ogl_debug_callback(GLenum source, GLenum type, GLuint id,
   case GL_DEBUG_SEVERITY_NOTIFICATION: severity_str = "?"; break;
   }
 
+#if 0
   printf("%s (%s, %s): %s\n", source_str, severity_str, type_str, msg);
+#endif
 }
 
 }

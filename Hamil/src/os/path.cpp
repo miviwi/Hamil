@@ -29,10 +29,10 @@ const std::string& Path::path() const
 
 std::string Path::enclosingDir() const
 {
-  if(m.empty()) return "";
+  if(m.empty()) return "./";
 
   auto separator_pos = m.rfind('/');
-  if(separator_pos == std::string::npos) return m;
+  if(separator_pos == std::string::npos) return "./";
 
   return m.substr(0, separator_pos);
 }

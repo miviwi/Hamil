@@ -131,7 +131,7 @@ void HSliderFrame::paint(VertexPainter& painter, Geometry parent)
   float w = width();
   vec2 center = g.center();
 
-  float value_factor = (float)valueFactor();
+  [[maybe_unused]] float value_factor = (float)valueFactor();
 
   vec2 pos[2] = {
     { g.x + g.w*Margin, center.y },

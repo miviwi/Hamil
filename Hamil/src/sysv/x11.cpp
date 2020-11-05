@@ -70,11 +70,7 @@ X11Connection::X11Connection() :
 
 X11Connection::~X11Connection()
 {
-#if __sysv
-  xcb_disconnect(data().connection);
-#endif
-
-  delete m_data;
+  disconnect();
 }
 
 X11Id X11Connection::genId()
@@ -107,6 +103,18 @@ int X11Connection::defaultScreen()
 #else
   return -1;
 #endif
+}
+
+void X11Connection::disconnect()
+{
+  if(!m_data) return;
+
+#if __sysv
+  xcb_disconnect(data().connection);
+#endif
+
+  delete m_data;
+  m_data = nullptr;
 }
 
 X11ConnectionData& X11Connection::data()

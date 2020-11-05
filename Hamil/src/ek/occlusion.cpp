@@ -24,12 +24,22 @@
 
 namespace ek {
 
+union u__m128i_4xu32 {
+  __m128i v;
+  i32 i[4];
+};
+
+union u__m128_4xf32 {
+  __m128 v;
+  float f[4];
+};
+
 #if defined(_MSVC_VER)
 #  define m128i_i32(vector, lane_idx) ( vector.m128i_i32[lane_idx] )
 #  define m128_f32(vector, lane_idx) ( vector.m128_f32[lane_idx] )
 #else
-#  define m128i_i32(vector, lane_idx) ( (i32)vector[lane_idx] )
-#  define m128_f32(vector, lane_idx) ( (float)vector[lane_idx] )
+#  define m128i_i32(vector, lane_idx) ( ((u__m128i_4xu32 *)&vector)->i[lane_idx] )
+#  define m128_f32(vector, lane_idx) ( ((u__m128_4xf32 *)&vector)->f[lane_idx] )
 #endif
 
 // Clip triangle to bounding box defined by <min_extent; max_extent>

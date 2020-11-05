@@ -8,7 +8,7 @@
 
 namespace util {
 
-HashIndex::Index HashIndex::InvalidIndex[1] ={
+HashIndex::Index HashIndex::InvalidIndex[1] = {
   HashIndex::Invalid,
 };
 

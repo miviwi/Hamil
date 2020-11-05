@@ -66,11 +66,11 @@ private:
   void alloc(size_t hash_sz, size_t chain_sz);
   void dealloc();
 
-  size_t m_hash_sz;
-  Index *m_hash;
+  size_t m_hash_sz = 0;
+  Index *m_hash = nullptr;
 
-  size_t m_chain_sz;
-  Index *m_chain;
+  size_t m_chain_sz = 0;
+  Index *m_chain = nullptr;
 
   size_t m_granularity;
 

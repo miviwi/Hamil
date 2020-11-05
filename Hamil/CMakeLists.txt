@@ -114,7 +114,7 @@ target_link_libraries (Hamil PRIVATE
   # Bullet physics
   ${BULLET_LIBRARIES}
 
-  # Python 3.7
+  # Python 3.7+
   ${PYTHON_LIBRARIES}
 
   # X11/xcb

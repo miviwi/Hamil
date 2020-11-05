@@ -589,7 +589,7 @@ bool Font::monospace() const
 
 float Font::monospaceWidth() const
 {
-  assert(monospace() && "attempted to get width of variable-wdth font!");
+  assert(monospace() && "attempted to get width of variable-width font!");
   return charAdvance('M'); // 'M' is just a random character
 }
 
@@ -774,9 +774,9 @@ static const std::unordered_map<std::string, std::string> family_to_path = {
   { "consola", "C:\\Windows\\Fonts\\consola.ttf" },
   { "segoeui", "C:\\Windows\\Fonts\\segoeui.ttf" },
 #elif __sysv
-  { "dejavu-sans",  "/usr/share/fonts/TTF/DejaVuSans.ttf" },
-  { "dejavu-serif", "/usr/share/fonts/TTF/DejaVuSerif.ttf" },
-  { "dejavu-mono",  "/usr/share/fonts/TTF/DejaVuSansMono.ttf" },
+  { "dejavu-sans",  "/usr/share/fonts/dejavu/DejaVuSans.ttf" },
+  { "dejavu-serif", "/usr/share/fonts/dejavu/DejaVuSerif.ttf" },
+  { "dejavu-mono",  "/usr/share/fonts/dejavu/DejaVuSansMono.ttf" },
 #else
 #  error "unknown platform"
 #endif

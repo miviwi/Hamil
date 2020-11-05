@@ -20,6 +20,7 @@
 #include <os/window.h>
 #include <os/input.h>
 #include <os/file.h>
+#include <sysv/x11.h>
 #include <cli/cli.h>
 #include <sysv/window.h>
 #include <sysv/glcontext.h>
@@ -67,7 +68,8 @@ int main(int argc, char *argv[])
     if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
   }
 
-  sysv::Window window(1282, 722);
+#if 1
+  sysv::Window window(1280, 720);
 
   window.initInput();
 
@@ -187,7 +189,10 @@ int main(int argc, char *argv[])
   }
 
   gl_context.release();
-
+  window.destroy();
+  
+  sysv::x11_detail::x11().disconnect();
+#endif
   os::finalize();
 
   return 0;
