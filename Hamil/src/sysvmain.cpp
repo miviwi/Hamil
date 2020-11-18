@@ -40,6 +40,7 @@
 #include <ui/layout.h>
 #include <ui/window.h>
 #include <ui/label.h>
+#include <ui/console.h>
 #include <ek/euklid.h>
 #include <ek/renderer.h>
 
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
   ft::init();
   res::init();
   ui::init();
-//  ek::init();
+  ek::init();
 
   res::load(R.image.res.images.ids);
 
@@ -121,7 +122,10 @@ int main(int argc, char *argv[])
           .drawable(pineapple))
         .background(ui::green().lightenf(0.8))
         .geometry(ui::Geometry(vec2(500.0f, 100.0f), vec2(512.0f, 512.0f))))
+    .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
+
+  auto& ui_console = *iface.getFrameByName<ui::ConsoleFrame>("g_console");
 
   ft::Font face(ft::FontFamily("dejavu-serif"), 20);
 
@@ -137,33 +141,28 @@ int main(int argc, char *argv[])
 
     while(auto input = window.getInput()) {
 #if 0
-      if(auto mouse = input->get<os::Mouse>()) {
-        auto btn_state_str = [&](os::Mouse::Button btn) -> const char * {
-          return mouse->buttons & btn ? "down" : "up";
-        };
-
-        if(mouse->event != os::Mouse::Move || true) {
-          printf("got some input -> os::Mouse(%s) [dx,dy]=[%.1f,%.1f] Left?=%s Right?=%s\n",
-              mouse->dbg_TypeStr(),
-              mouse->dx, mouse->dy,
-              btn_state_str(os::Mouse::Left), btn_state_str(os::Mouse::Right)
-          );
-        }
-      } else if(auto kb = input->get<os::Keyboard>()) {
-        printf(
-            "got some input -> os::Keyboard(%s)\n"
-            "sym=%c time_held=%.2lf\n",
-            kb->dbg_TypeStr(),
-            (char)kb->sym, os::Timers::ticks_to_sf(kb->time_held));
-      }
 #endif
 
       cursor.input(input);
+      if(auto kb = input->get<os::Keyboard>()) {
+        if(kb->keyDown('`')) {
+          ui_console.toggle();
+        } else if(kb->modifier(os::Keyboard::Alt) && kb->keyDown('Q')) {
+          window.quit();
+        }
+
+#if 0
+          printf("modifiers=%.4x key=(%x, %d, %c)\n"
+              "     modifier(Keyboard::Alt)? %s\n",
+              kb->modifiers,
+              kb->key, kb->key, kb->key,
+              kb->modifier(os::Keyboard::Alt) ? "yes" : "no");
+#endif
+      }
+
       if(iface.input(cursor, input)) continue;    // The input has already been handled by the ui
 
-      if(auto kb = input->get<os::Keyboard>()) {
-        if(kb->keyDown('Q')) window.quit();
-      }
+
     }
 
 

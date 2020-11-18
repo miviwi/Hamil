@@ -250,9 +250,9 @@ bool TextBoxFrame::charInput(os::Keyboard *kb)
 {
   using os::Keyboard;
 
+#if 0
   STUB();
 
-#if 0
   if(iscntrl(kb->key) || kb->modifier(Keyboard::Ctrl)) {
     switch(kb->key) {
     case 'A': // Select all
@@ -283,6 +283,7 @@ bool TextBoxFrame::charInput(os::Keyboard *kb)
 
     return true;
   }
+#endif
 
   doDeleteSelection();
 
@@ -290,7 +291,6 @@ bool TextBoxFrame::charInput(os::Keyboard *kb)
   m_cursor++;
 
   m_selection.reset();
-#endif
 
   return true;
 }

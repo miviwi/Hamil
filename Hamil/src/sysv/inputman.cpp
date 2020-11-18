@@ -414,7 +414,7 @@ Input::Ptr InputDeviceManager::keyboardEvent(const LibevdevEvent& libevdev_ev)
   case KEY_RIGHTSHIFT: modifiers = Keyboard::Shift; break;
 
   case KEY_LEFTALT:
-  case KEY_RIGHTALT:   modifiers = Keyboard::Ctrl; break;
+  case KEY_RIGHTALT:   modifiers = Keyboard::Alt; break;
 
   case KEY_LEFTMETA:
   case KEY_RIGHTMETA:  modifiers = Keyboard::Super; break;
