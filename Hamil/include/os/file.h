@@ -138,6 +138,8 @@ public:
 
   using Ptr = std::shared_ptr<FileView>;
 
+  FileView(const FileView&) = delete;
+  FileView(FileView&&) = delete;
   virtual ~FileView();
 
   void *get() const;

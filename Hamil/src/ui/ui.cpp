@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <memory>
 
-// Uncomment the line below to render the ui with 4xMSAA
+// Uncomment the line below to render the ui without 4xMSAA
 //#define UI_FB_NO_MULTISAMPLING 1
 
 namespace ui {

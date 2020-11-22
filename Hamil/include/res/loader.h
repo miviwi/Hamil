@@ -75,7 +75,6 @@ class SimpleFsLoader : public ResourceLoader {
 public:
   SimpleFsLoader(const char *base_path);
 
-
 protected:
   virtual void doInit();
   virtual Resource::Ptr doLoad(Resource::Id id, LoadFlags flags);
@@ -116,6 +115,10 @@ private:
   //   is needed
   os::Mutex::Ptr m_available_mutex;
   std::unordered_map<Resource::Id, IOBuffer /* meta_file */>  m_available;
+
+  std::vector<IORequest::Ptr> m_io_reqs;   // Declared here to avoid use-after-free
+                                           //   bugs caused by reference invalidation
+                                           //   (see enumAvailable() for details)
 };
 
 }

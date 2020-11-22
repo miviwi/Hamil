@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common.h>
+#include <util/ref.h>
 
 #include <new>
 #include <memory>
@@ -115,6 +116,15 @@ protected:
         "The 'Storage' type passed to WithPolymorphicStorage::destroy() is different "
         "from the one which was used for WithPolymorphicStorage::alloc()!");
 
+    if constexpr(std::is_base_of_v<Ref, Base>) {
+      auto ref = (Ref *)obj;
+
+      if(ref->refs() > 1) {      // References to object are still around,
+        ref->deref();            //   so don't call the destructor yet
+        return;
+      }
+    }
+
     storage->~Storage();
     obj->~Derived();
 
@@ -173,6 +183,8 @@ public:
 
     return *this;
   }
+
+  WithPolymorphicStoragePtr& operator=(const WithPolymorphicStoragePtr&) = delete;
 
   ~WithPolymorphicStoragePtr()
   {

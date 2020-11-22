@@ -19,8 +19,10 @@ Animation::Animation(ChannelList channels)
 Animation::~Animation()
 {
   for(auto chan : m_channels) {
-    if(chan) delete chan;
-  }
+    if(chan) delete (AnimationChannel<float> *)chan;   // TODO: this works because for any 
+                                                       //   T the size of Animation<T> will
+                                                       //   be the same, however it isn't
+  }                                                    //   the nicest solution
 }
 
 void Animation::init(ChannelList channels)

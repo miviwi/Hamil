@@ -152,17 +152,20 @@ void SimpleFsLoader::enumAvailable(std::string path)
     return; // no .meta files in current directory
   }
 
-  std::vector<IORequest::Ptr> reqs;
-  meta_query->foreach([this,path,&reqs](const char *name, os::FileQuery::Attributes attrs) {
+  meta_query->foreach([this,path](const char *name, os::FileQuery::Attributes attrs) {
     // if there's somehow a directory that fits *.meta ignore it
     if(attrs & os::FileQuery::IsDirectory) return;
 
     auto full_path = path + name;
 
     try {
-      // A splash screen should be up on the screen here to let the
-      //   user know the application is doing something and isn't just frozen
-      auto& req = reqs.emplace_back(IORequest::read_file(full_path));
+      // The std::vector of IORequests must be a class member here, as otherwise
+      //   resizing it will cause use-after-free bugs due to emplace_back()
+      //   refernce invalidation semantics
+
+      // TODO: A splash screen should be up on the screen here to let the user
+      //       know the application is doing something and isn't just frozen
+      auto& req = m_io_reqs.emplace_back(IORequest::read_file(full_path));
       req->onCompleted(
         std::bind(&SimpleFsLoader::metaIoCompleted,
           this, full_path, std::placeholders::_1)

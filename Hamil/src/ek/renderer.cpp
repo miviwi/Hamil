@@ -74,6 +74,8 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
 
   res::load(R.texture.ids);
 
+  return;
+
 #if 0
   res::Handle<res::Texture> r_ltc_1 = R.texture.ltc_1,
     r_ltc_2 = R.texture.ltc_2;

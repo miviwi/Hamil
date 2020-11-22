@@ -81,6 +81,9 @@ public:
   
   static Ptr read_file(const std::string& path, size_t offset = 0, size_t sz = 0);
 
+  IORequest(const IORequest&) = delete;
+  IORequest(IORequest&&) = delete;
+
   sched::IJob *job();
 
   // Returns the result of the IO
