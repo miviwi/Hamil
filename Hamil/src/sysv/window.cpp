@@ -305,12 +305,16 @@ void Window::captureMouse()
       XCB_CURRENT_TIME
   );
 
-  xcb_flush(p->connection);
+  xcb_flush(p->connection);      // Make sure therequest gets processes by X right away
 }
 
 void Window::releaseMouse()
 {
   xcb_ungrab_pointer(p->connection, XCB_CURRENT_TIME);
+
+  xcb_flush(p->connection);     // Make sure the request gets processed by X (otherwise
+                                //   the cursor could remain grabbed by this Window for
+                                //   an undeterminate amount of time)
 }
 
 void Window::resetMouse()
