@@ -19,12 +19,10 @@ os::CpuInfo *create_cpuinfo()
 {
   auto self = new os::CpuInfo();
 
-#if __sysv
   auto cpuinfo = cpuinfo_detail::cpuinfo();
 
   self->m_num_logical_processors  = cpuinfo->num_threads;
   self->m_num_physical_processors = cpuinfo->num_cores;
-#endif
 
   return self;
 }
@@ -78,7 +76,7 @@ std::unique_ptr<ProcCPUInfo> ProcCPUInfo::parse_proc_cpuinfo(const std::string& 
 
     auto field_name_end_it = std::find_if_not(field_name_view.rbegin(), field_name_view.rend(),
         [](char ch) { return isspace(ch); });
-    auto field_name_trim_pos = std::distance(field_name_view.rbegin(), field_name_end_it);
+    auto field_name_trim_pos = (size_t)std::distance(field_name_view.rbegin(), field_name_end_it);
 
     auto field_value_trim_pos = field_value_view.find_first_not_of(" \t");
 

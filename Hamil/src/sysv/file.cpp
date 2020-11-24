@@ -30,35 +30,27 @@ namespace sysv {
 using SysvStat = struct stat;
 
 struct FileData {
-#if __sysv
   int fd = -1;
 
   // Lazy-initialized 
   mutable std::optional<SysvStat> st = std::nullopt;
   mutable std::unique_ptr<char[]> full_path = nullptr;
   // ----------------
-#endif
 
   void cleanup()
   {
-#if __sysv
     close(fd);
-#endif
   }
 
 };
 
 struct FileQueryData {
-#if __sysv
   std::optional<os::Path> pattern = std::nullopt;
   DIR *dir = nullptr;
-#endif
 
   void cleanup()
   {
-#if __sysv
     if(dir) closedir(dir);
-#endif
   }
 };
 
@@ -87,7 +79,6 @@ File::~File()
 
 void File::doOpen(const char *path, Access access, Share share, OpenMode mode)
 {
-#if __sysv
   int oflag = 0;
   if(access == Read) {
     oflag = O_RDONLY;
@@ -136,22 +127,18 @@ void File::doOpen(const char *path, Access access, Share share, OpenMode mode)
 
     throw FileOpenError();
   }
-#endif
 }
 
 size_t File::size() const
 {
-#if __sysv
   stat();
 
   auto st = data().st.value();
   return (size_t)st.st_size;
-#endif
 }
 
 const char *File::fullPath() const
 {
-#if __sysv
   if(data().full_path) return data().full_path.get();   // We've fetched the full path before
 
   assert(data().fd > 0 && "fullPath() can be called ONLY after open()!");
@@ -177,51 +164,35 @@ const char *File::fullPath() const
   data().full_path[full_path_len] = '\0';
 
   return data().full_path.get();
-#else
-  return nullptr;
-#endif
 }
 
 size_t File::read(void *buf, size_t sz)
 {
-#if __sysv
   assert(data().fd > 0 && "read() called before open()!");
 
   auto num_read = ::read(data().fd, buf, sz);
   if(num_read < 0) return ReadWriteFailed;
 
   return (size_t)num_read;
-#endif
-
-  return ReadWriteFailed;
 }
 
 size_t File::read(void *buf)
 {
-#if __sysv
   return read(buf, size());
-#endif
-
-  return ReadWriteFailed;
 }
 
 size_t File::write(const void *buf, size_t sz)
 {
-#if __sysv
   assert(data().fd > 0 && "write() called before open()!");
 
   auto num_written = ::write(data().fd, buf, sz);
   if(num_written < 0) return ReadWriteFailed;
 
   return (size_t)num_written;
-#endif
-
-  return ReadWriteFailed;
 }
 
 os::File& File::seek(Seek whence_, size_t offset)
 {
-#if __sysv
   int whence = -1;
   switch(whence_) {
   case SeekBegin:   whence = SEEK_SET; break;
@@ -231,41 +202,31 @@ os::File& File::seek(Seek whence_, size_t offset)
 
   auto seek_result = lseek(data().fd, offset, whence);
   assert(seek_result >= 0);
-#endif
 
   return *this;
 }
 
 size_t File::seekOffset() const
 {
-#if __sysv
   auto offset = lseek(data().fd, 0, SEEK_CUR);
 
   // Make sure the call succeeded
   if(offset < 0) return SeekOffsetInvalid;
 
   return offset;
-#else
-  return SeekOffsetInvalid;
-#endif
 }
 
 bool File::flush()
 {
-#if __sysv
   assert(data().fd > 0 && "flush() called before open()!");
 
   auto err = fsync(data().fd);
 
   return !err;
-#else
-  return false;
-#endif
 }
 
 void File::stat() const
 {
-#if __sysv
   if(data().st.has_value()) return;     // Check if stat() hasn't been called before...
 
   // ...and if not perform the syscall
@@ -275,7 +236,6 @@ void File::stat() const
   auto stat_err = ::fstat(data().fd, &data().st.value());
 
   if(stat_err) throw GetFileInfoError();
-#endif
 }
 
 FileData& File::data()
@@ -300,7 +260,6 @@ FileView::~FileView()
 
 void *FileView::doMap(Protect protect, size_t offset)
 {
-#if __sysv
   auto file = (sysv::File *)origin();
 
   int prot = 0;
@@ -318,27 +277,20 @@ void *FileView::doMap(Protect protect, size_t offset)
   assert(ptr);
 
   return ptr;
-#endif
-
-  return nullptr;
 }
 
 void FileView::doFlush(Size size)
 {
-#if __sysv
   auto sync_err = msync(m_ptr, size, MS_SYNC);
   assert(!sync_err);
-#endif
 }
 
 void FileView::unmap()
 {
-#if __sysv
   if(!m_ptr) return;
 
   auto unmap_err = munmap(m_ptr, size());
   assert(!unmap_err);
-#endif
 }
 
 FileQuery *FileQuery::alloc()
@@ -366,7 +318,6 @@ FileQuery::~FileQuery()
 
 void FileQuery::foreach(IterFn fn)
 {
-#if __sysv
   assert(data().dir && data().pattern &&
       "foreach() called on an invalid FileQuery object!");
 
@@ -401,12 +352,10 @@ void FileQuery::foreach(IterFn fn)
 
   // Make sure readdir() didn't cause an error
   assert(!errno);
-#endif
 }
 
 void FileQuery::doOpen(const char *path)
 {
-#if __sysv
   os::Path p = path;
 
   auto dir = opendir(p.enclosingDir().data());
@@ -414,7 +363,6 @@ void FileQuery::doOpen(const char *path)
 
   data().pattern.emplace(std::move(p));
   data().dir = dir;
-#endif
 }
 
 FileQueryData& FileQuery::data()
@@ -424,12 +372,10 @@ FileQueryData& FileQuery::data()
 
 bool current_working_directory(const char *dir)
 {
-#if __sysv
   auto chdir_err = chdir(dir);
   if(chdir_err) return false;
 
   return true;
-#endif
 }
 
 }

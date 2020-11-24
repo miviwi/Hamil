@@ -12,7 +12,6 @@ os::CpuId cpuid()
 {
   os::CpuId self;
 
-#if __sysv
   auto cpuinfo = cpuinfo_detail::cpuinfo();
 
   assert(cpuinfo && "os::cpuid() called before os::init()!");
@@ -37,7 +36,6 @@ os::CpuId cpuid()
 
   self.popcnt = cpuinfo->hasFlag("popcnt");
   self.f16c   = cpuinfo->hasFlag("f16c");
-#endif
 
   return self;
 }

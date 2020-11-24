@@ -94,16 +94,12 @@ private:
 };
 
 struct LibevdevDevice {
-#if __sysv
   int fd = -1;
   struct libevdev *device = nullptr;
-#endif
 };
 
 struct LibevdevEvent {
-#if __sysv
   struct input_event ev;
-#endif
 };
 
 enum LibevdevKeyboardEventValue {
@@ -122,7 +118,6 @@ struct KeyboardKeyState {
 };
 
 struct InputDeviceManagerData {
-#if __sysv
   xcb_connection_t *connection = nullptr;
 
   LibevdevDevice mouse;
@@ -140,7 +135,6 @@ struct InputDeviceManagerData {
 
   struct libevdev *dev_mouse() { return mouse.device; }
   struct libevdev *dev_kb()    { return kb.device; }
-#endif
 };
 
 LibevdevEnumDevices LibevdevEnumDevices::enum_by_type(DeviceType type)
@@ -292,7 +286,6 @@ static unsigned translate_key(int code, unsigned modifiers);
 InputDeviceManager::InputDeviceManager() :
   m_data(nullptr)
 {
-#if __sysv
   m_data = new InputDeviceManagerData();
 
   auto mice_enum = LibevdevEnumDevices::enum_by_type(DeviceMouse);
@@ -345,15 +338,12 @@ InputDeviceManager::InputDeviceManager() :
 #endif
 
   m_capslock = 0;    // FIXME: query CapsLock's current state here!
-#endif
 }
 
 InputDeviceManager::~InputDeviceManager()
 {
-#if __sysv
   close_device(m_data->mouse);
   close_device(m_data->kb);
-#endif
 
   delete m_data;
 }
@@ -362,7 +352,6 @@ Input::Ptr InputDeviceManager::doPollInput()
 {
   auto input = Input::invalid_ptr();
 
-#if __sysv
   // Poll the keyboard...
   while(std::optional<LibevdevEvent> opt_ev = next_event(m_data->kb)) {
     const auto& ev = opt_ev.value();
@@ -379,8 +368,6 @@ Input::Ptr InputDeviceManager::doPollInput()
     // TODO: Merge series of EV_REL events into a single Mouse::Move event
     if(auto input = mouseEvent(ev)) return input;
   }
-
-#endif
 
   return input;
 }
@@ -614,7 +601,6 @@ Input::Ptr InputDeviceManager::mouseEvent(const LibevdevEvent& libevdev_ev)
 // TODO: move this into an externally generated table?
 static int translate_code(int code)
 {
-#if __sysv
   switch(code) {
   case KEY_1: return '1';
   case KEY_2: return '2';
@@ -712,7 +698,6 @@ static int translate_code(int code)
 
   default: return -1;
   }
-#endif
 
   assert(0);    // Unreachable
   return -1;
@@ -728,7 +713,6 @@ static unsigned translate_sym(int code, unsigned modifiers)
   // If CapsLock is currently ON Shift's function is inversed for letters
   bool upper = caps ? !shift : shift;
 
-#if __sysv
   if (shift) {
     switch(code) {
     case KEY_1: return '!';
@@ -780,20 +764,13 @@ static unsigned translate_sym(int code, unsigned modifiers)
     case KEY_MINUS:      return '-';
     }
   }
-#endif
 
   return upper ? toupper(ch) : tolower(ch);
 }
 
 static unsigned translate_key(int code, unsigned modifiers)
 {
-#if __sysv
   return translate_code(code);
-#endif
-
-  // Unreachable
-  assert(0);
-  return -1;
 }
 
 }

@@ -15,23 +15,18 @@ namespace sysv {
 
 ConditionVariable::ConditionVariable()
 {
-#if __sysv
   auto error = pthread_cond_init(&m, nullptr);
   assert(!error && "failed to initialize sysv::ConditionVariable!");
-#endif
 }
 
 ConditionVariable::~ConditionVariable()
 {
-#if __sysv
   auto error = pthread_cond_destroy(&m);
   assert(!error && "failed to destroy sysv::ConditionVariable!");
-#endif
 }
 
 bool ConditionVariable::sleep(os::Mutex& mutex_, ulong timeout_ms)
 {
-#if __sysv
   auto& mutex = (sysv::Mutex&)mutex_;
 
   int error = -1;
@@ -54,27 +49,20 @@ bool ConditionVariable::sleep(os::Mutex& mutex_, ulong timeout_ms)
   }
 
   return !error;
-#else
-  return false;
-#endif
 }
 
 os::ConditionVariable& ConditionVariable::wake()
 {
-#if __sysv
   auto error = pthread_cond_signal(&m);
   assert(!error && "sysv::ConditionVariable::wake() failed!");
-#endif
 
   return *this;
 }
 
 os::ConditionVariable& ConditionVariable::wakeAll()
 {
-#if __sysv
   auto error = pthread_cond_broadcast(&m);
   assert(!error && "sysv::ConditionVariable::wakeAll() failed!");
-#endif
 
   return *this;
 }

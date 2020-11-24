@@ -3,7 +3,7 @@
 #include <config>
 
 #if __sysv
-#include <unistd.h>
+#  include <unistd.h>
 #endif
 
 #include <cassert>
@@ -17,7 +17,6 @@ static char g_xmessage_button[256];
 
 void panic(const char *reason, int exit_code)
 {
-#if __sysv
   snprintf(g_xmessage_button, sizeof(g_xmessage_button),
       XMESSAGE_EXIT_BUTTON_LABEL ":%d", exit_code);
 
@@ -28,7 +27,6 @@ void panic(const char *reason, int exit_code)
       reason,
       (char *)nullptr
   );
-#endif
 }
 
 }

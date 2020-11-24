@@ -16,7 +16,6 @@ alignas(u64) volatile u64 p_ticks;
 
 u64 p_ticks_per_s;
 
-#if __sysv
 // Integer divide x and y rounding UP
 static u64 ceil_div(u64 x, u64 y);
 
@@ -25,22 +24,17 @@ static u64 rdtsc();
 // Returns the number of TSC ticks in 10us (microseconds)
 //   - calculated using the usleep() call
 static u64 calibrate_tsc_ticks_in_10us();
-#endif
 
 void Timers::init()
 {
-#if __sysv
   p_ticks_per_s = calibrate_tsc_ticks_in_10us() * (os::Timers::s_to_us / (Time)10);
 
   tick();
-#endif
 }
 
 void Timers::finalize()
 {
 }
-
-#if __sysv
 
 static u64 ceil_div(u64 x, u64 y)
 {
@@ -106,7 +100,5 @@ Time Timers::ticks_per_s()
 {
   return (Time)p_ticks_per_s;
 }
-
-#endif              // __sysv
 
 }

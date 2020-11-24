@@ -51,7 +51,6 @@ void finalize()
 
 void init_cpuinfo()
 {
-#if __sysv
   // Passed to read() as the 'nbyte' (desired amount
   //   of bytes to read) argument
   constexpr size_t CpuinfoReadBlockSize = 1024;
@@ -70,9 +69,8 @@ void init_cpuinfo()
     ssize_t bytes_read = read(cpuinfo_fd, buf_ptr, CpuinfoReadBlockSize);
     if(bytes_read < 0) throw std::runtime_error("read() error!");   // Should be unreachable under
                                                                     //   regular circumstances
-
     // No more data to read
-    if(bytes_read < CpuinfoReadBlockSize) {
+    if(bytes_read < (ssize_t)CpuinfoReadBlockSize) {
       size_t proper_size = (cpuinfo_buf.size() - CpuinfoReadBlockSize) + (size_t)bytes_read;
       cpuinfo_buf.resize(proper_size + 1 /* space for '\0' */);
 
@@ -90,7 +88,6 @@ void init_cpuinfo()
 
   // Parse the /proc/cpuinfo data and store it for later
   p_cpuinfo = cpuinfo_detail::ProcCPUInfo::parse_proc_cpuinfo(cpuinfo_buf.data());
-#endif
 }
 
 namespace cpuinfo_detail {
@@ -106,7 +103,6 @@ ProcCPUInfo *cpuinfo()
 
 namespace thread_detail {
 
-#if __sysv
 const int ThreadSuspendResumeSignal = SIGUSR1;
 
 static void thread_suspend_resume_sigaction(int sig, siginfo_t *info, void *ucontext)
@@ -115,15 +111,11 @@ static void thread_suspend_resume_sigaction(int sig, siginfo_t *info, void *ucon
 
   sysv::Thread::thread_suspend_resume(action);
 }
-#else
-const int ThreadSuspendResumeSignal = -1;
-#endif
 
 }
 
 void init_signal()
 {
-#if __sysv
   struct sigaction sa;
   memset(&sa, 0, sizeof(sa));
 
@@ -144,7 +136,6 @@ void init_signal()
     perror("sigaction()");
     exit(1);
   }
-#endif
 }
 
 namespace x11_detail {

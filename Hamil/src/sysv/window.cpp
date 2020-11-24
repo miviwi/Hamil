@@ -371,7 +371,6 @@ void Window::destroy()
 
 bool Window::doProcessMessages()
 {
-#if __sysv
   auto connection = x11().connection<xcb_connection_t>();
 
   // Don't interfere with the pointer if we've lost focus
@@ -409,9 +408,6 @@ bool Window::doProcessMessages()
   }
 
   return true;
-#else
-  return false;
-#endif
 }
 
 os::InputDeviceManager *Window::acquireInputManager()

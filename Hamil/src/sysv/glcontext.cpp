@@ -28,7 +28,6 @@ namespace sysv {
 using x11_detail::x11;
 
 static int GLX_VisualAttribs[] = {
-#if __sysv
   GLX_X_RENDERABLE, True,
   GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
 
@@ -46,12 +45,8 @@ static int GLX_VisualAttribs[] = {
   GLX_DOUBLEBUFFER, True,
 
   None,
-#else
-  0,
-#endif
 };
 
-#if __sysv
 // glXCreateContextAttribsARB is an extension
 //   so it has to be defined manually
 using glXCreateContextAttribsARBFn = GLXContext (*)(
@@ -69,10 +64,8 @@ static bool g_swapinterval_queried = false;
 static glXSwapIntervalEXTFn glXSwapIntervalEXT = nullptr;
 
 static bool g_gl3w_init = false;
-#endif
 
 struct GLContextData {
-#if __sysv
   Display *display = nullptr;
 
   GLXContext context = nullptr;
@@ -82,21 +75,17 @@ struct GLContextData {
 
   bool createContext(const GLXFBConfig& fb_config, Window *window, gx::GLContext *share);
   bool createContextLegacy(const GLXFBConfig& fb_config, Window *window, gx::GLContext *share);
-#endif
 };
 
 GLContextData::~GLContextData()
 {
-#if __sysv
   if(window) glXDestroyWindow(display, window);
   if(context) glXDestroyContext(display, context);
-#endif
 }
 
 bool GLContextData::createContext(
     const GLXFBConfig& fb_config, Window *window, gx::GLContext *share)
 {
-#if __sysv
   if(!g_createcontextattribs_queried) {
     glXCreateContextAttribsARB = (glXCreateContextAttribsARBFn)
       glXGetProcAddressARB((const GLubyte *)"glXCreateContextAttribsARB");
@@ -135,15 +124,11 @@ bool GLContextData::createContext(
   if(!context) return false;
 
   return true;
-#else
-  return false;
-#endif
 }
 
 bool GLContextData::createContextLegacy(
     const GLXFBConfig& fb_config, Window *window, gx::GLContext *share)
 {
-#if __sysv
   context = glXCreateNewContext(
       display, fb_config, GLX_RGBA_TYPE,
       /* shareList */ share ? (GLXContext)share->nativeHandle() : nullptr,
@@ -151,9 +136,6 @@ bool GLContextData::createContextLegacy(
   );
 
   return context;
-#else
-  return false;
-#endif
 }
 
 GLContext::GLContext() :
@@ -169,18 +151,13 @@ GLContext::~GLContext()
 
 void *GLContext::nativeHandle() const
 {
-#if __sysv
   return p ? p->context : nullptr;
-#else
-  return nullptr;
-#endif
 }
 
 gx::GLContext& GLContext::acquire(os::Window *window_, gx::GLContext *share)
 {
   auto window = (sysv::Window *)window_;
 
-#if __sysv
   auto display = x11().xlibDisplay<Display>();
 
   int num_fb_configs = 0;
@@ -261,14 +238,12 @@ gx::GLContext& GLContext::acquire(os::Window *window_, gx::GLContext *share)
 
   // Mark the context as successfully acquired
   m_was_acquired = true;
-#endif
 
   return *this;
 }
 
 void GLContext::doMakeCurrent()
 {
-#if __sysv
   assert(m_was_acquired && "the context must've been acquire()'d to makeCurrent()!");
 
   auto display  = p->display;
@@ -279,12 +254,10 @@ void GLContext::doMakeCurrent()
   if(!success) throw AcquireError();
 
 //  postMakeCurrentHook();
-#endif
 }
 
 void GLContext::doRelease()
 {
-#if __sysv
   // This method will only be called when the
   //   GLContext's backing resources ACTUALLY
   //   need to be released
@@ -292,7 +265,6 @@ void GLContext::doRelease()
 
   p = nullptr;
   m_was_acquired = false;
-#endif
 }
 
 bool GLContext::wasInit() const
@@ -304,10 +276,8 @@ void GLContext::swapBuffers()
 {
   assert(m_was_acquired && "the context must've been acquire()'d to swapBuffers()!");
 
-#if __sysv
   auto drawable = (GLXDrawable)p->window;
   glXSwapBuffers(p->display, drawable);
-#endif
 }
 
 void GLContext::swapInterval(unsigned interval)

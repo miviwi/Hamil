@@ -25,7 +25,6 @@
 namespace sysv {
 
 struct ThreadData {
-#if __sysv
   pthread_t self;
 
   std::atomic<bool> terminated;
@@ -37,7 +36,6 @@ struct ThreadData {
                                          //   when it has been serviced
   pthread_mutex_t suspend_resume_cond_mutex = PTHREAD_MUTEX_INITIALIZER;
   pthread_cond_t suspend_resume_cond = PTHREAD_COND_INITIALIZER;
-#endif
 
   Thread::Id id = Thread::InvalidId;
 
@@ -51,14 +49,11 @@ struct ThreadData {
 
   void cleanup()
   {
-#if __sysv
     destroy_cond(&terminate_cond, &terminate_cond_mutex);
     destroy_cond(&suspend_resume_cond, &suspend_resume_cond_mutex);
-#endif
   }
 
 private:
-#if __sysv
   static void destroy_cond(pthread_cond_t *cond, pthread_mutex_t *cond_mutex)
   {
     auto cond_destroy_error = pthread_cond_destroy(cond);
@@ -67,12 +62,10 @@ private:
     auto cond_mutex_destroy_error = pthread_mutex_destroy(cond_mutex);
     assert(!cond_mutex_destroy_error);
   }
-#endif
 };
 
 void *Thread::thread_proc_trampoline(void *arg)
 {
-#if __sysv
   using thread_detail::ThreadSuspendResumeAction;
 
   auto self = (ThreadData *)arg;
@@ -96,7 +89,6 @@ void *Thread::thread_proc_trampoline(void *arg)
   assert(!broadcast_error);
 
   return nullptr;
-#endif
 }
 
 thread_detail::ThreadSuspendResumeAction *Thread::wait_suspend_resume_signal()
@@ -124,7 +116,6 @@ thread_detail::ThreadSuspendResumeAction *Thread::wait_suspend_resume_signal()
 
 void Thread::thread_suspend_resume(thread_detail::ThreadSuspendResumeAction *action)
 {
-#if __sysv
   using thread_detail::ThreadSuspendResumeAction;
 
   auto self = (ThreadData *)action->thread_data;
@@ -154,7 +145,6 @@ void Thread::thread_suspend_resume(thread_detail::ThreadSuspendResumeAction *act
     
     return thread_suspend_resume(action);
   }
-#endif
 }
 
 Thread::Thread() :
@@ -190,7 +180,6 @@ os::Thread& Thread::dbg_SetName(const char *name)
   assert(id() != InvalidId &&    // make sure the Thread has has create() called on it
       "Thread must have had create() called on it before calling dbg_SetName()!");
 
-#if __sysv
   // Thread names can be at most 16 characters long (including the terminating '\0'),
   //   so trim the provided name so it meets this requirement
   size_t name_len = std::min<size_t>(strlen(name), 15);
@@ -198,8 +187,6 @@ os::Thread& Thread::dbg_SetName(const char *name)
 
   auto error = pthread_setname_np(data().self, trimmed_name.data());
   assert(!error);
-#endif
-
 #endif
 
   return *this;
@@ -221,7 +208,6 @@ os::Thread& Thread::suspend()
 
 os::Thread& Thread::raiseThreadSuspendResumeAction(int action)
 {
-#if __sysv
   using thread_detail::ThreadSuspendResumeAction;
 
   auto self_tid = gettid();
@@ -255,18 +241,16 @@ os::Thread& Thread::raiseThreadSuspendResumeAction(int action)
 
     suspend_resume_ack_val = (u32)self_tid;   // Make sure the 'expected' value given to
   }                                           //   compare_exchange_strong() is what we want
-#endif
 
   return *this;
 }
 
 os::Thread& Thread::affinity(uintptr_t mask)
 {
-#if __sysv
   cpu_set_t cpus;
   CPU_ZERO(&cpus);
 
-  for(int cpu = 0; cpu < sizeof(mask)*CHAR_BIT; cpu++) {
+  for(unsigned cpu = 0; cpu < sizeof(mask)*CHAR_BIT; cpu++) {
     int cpu_active = mask&1;
     mask >>= 1;
 
@@ -277,7 +261,6 @@ os::Thread& Thread::affinity(uintptr_t mask)
 
   auto result = sched_setaffinity(gettid(), sizeof(cpus), &cpus);
   if(result < 0) throw SetAffinityError();
-#endif
 
   return *this;
 }
@@ -293,7 +276,6 @@ os::WaitResult Thread::wait(ulong timeout_ms)
 {
   assert(id() != InvalidId && "a Thread must've had create() called on it before calling wait()!");
 
-#if __sysv
   auto cond = &data().terminate_cond;
   auto cond_mutex = &data().terminate_cond_mutex;
 
@@ -335,14 +317,10 @@ os::WaitResult Thread::wait(ulong timeout_ms)
   if(wait_error) return os::WaitFailed;
 
   return os::WaitObject0;
-#else
-  return os::WaitFailed;
-#endif
 }
 
 void Thread::doCreate(Fn fn, bool suspended)
 {
-#if __sysv
   pthread_attr_t attr;
   auto attr_init_error = pthread_attr_init(&attr);
   if(attr_init_error) throw CreateError();
@@ -368,7 +346,6 @@ void Thread::doCreate(Fn fn, bool suspended)
   
   auto attr_destroy_error = pthread_attr_destroy(&attr);
   assert(!attr_destroy_error);
-#endif
 }
 
 ThreadData& Thread::data()
