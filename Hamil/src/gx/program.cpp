@@ -196,7 +196,7 @@ void Program::draw(Primitive p, const VertexArray& vtx, size_t offset, size_t nu
 {
   vtx.use();
 
-  glDrawArrays(p, (int)offset, (GLsizei)num);
+  glDrawArrays(gl_prim(p), (int)offset, (GLsizei)num);
 }
 
 void Program::draw(Primitive p, const VertexArray& vtx, size_t num)
@@ -206,9 +206,13 @@ void Program::draw(Primitive p, const VertexArray& vtx, size_t num)
 
 void Program::draw(Primitive p, const IndexedVertexArray& vtx, size_t offset, size_t num)
 {
-  vtx.use();
+  auto idx_type = gl_type(vtx.indexType());
 
-  glDrawElements(p, (GLsizei)num, vtx.indexType(), (void *)(offset * vtx.indexSize()));
+  vtx.use();
+  glDrawElements(
+      gl_prim(p), (GLsizei)num, idx_type,
+      (void *)(offset * vtx.indexSize())
+  );
 }
 
 void Program::draw(Primitive p, const IndexedVertexArray& vtx, size_t num)
@@ -219,9 +223,13 @@ void Program::draw(Primitive p, const IndexedVertexArray& vtx, size_t num)
 void Program::drawBaseVertex(Primitive p,
  const IndexedVertexArray& vtx, size_t base, size_t offset, size_t num)
 {
-  vtx.use();
+  auto idx_type = gl_type(vtx.indexType());
 
-  glDrawElementsBaseVertex(p, (GLsizei)num, vtx.indexType(), (void *)(offset * vtx.indexSize()), (int)base);
+  vtx.use();
+  glDrawElementsBaseVertex(
+      gl_prim(p), (GLsizei)num, idx_type,
+      (void *)(offset * vtx.indexSize()), (int)base
+  );
 }
 
 void Program::label(const char *lbl)

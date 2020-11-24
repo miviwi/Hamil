@@ -457,9 +457,9 @@ CommandBuffer::u32 CommandBuffer::op_data(u32 op)
 }
 
 static constexpr Primitive p_primitive_lut[] ={
-  Points,
-  Lines, LineLoop, LineStrip,
-  Triangles, TriangleFan, TriangleStrip,
+  Primitive::Points,
+  Primitive::Lines, Primitive::LineLoop, Primitive::LineStrip,
+  Primitive::Triangles, Primitive::TriangleFan, Primitive::TriangleStrip,
 
   (Primitive)~0u, // Sentinel
 };
@@ -503,15 +503,15 @@ CommandBuffer::CommandWithExtra CommandBuffer::make_draw(Primitive p,
   // See p_primitive_lut above
   u32 primitive = 0;
   switch(p) {
-  case Points: primitive = 0; break;
+  case Primitive::Points: primitive = 0; break;
 
-  case Lines:     primitive = 1; break;
-  case LineLoop:  primitive = 2; break;
-  case LineStrip: primitive = 3; break;
+  case Primitive::Lines:     primitive = 1; break;
+  case Primitive::LineLoop:  primitive = 2; break;
+  case Primitive::LineStrip: primitive = 3; break;
 
-  case Triangles:     primitive = 4; break;
-  case TriangleFan:   primitive = 5; break;
-  case TriangleStrip: primitive = 6; break;
+  case Primitive::Triangles:     primitive = 4; break;
+  case Primitive::TriangleFan:   primitive = 5; break;
+  case Primitive::TriangleStrip: primitive = 6; break;
 
   default: primitive = 7; break; // Assign to sentinel
   }

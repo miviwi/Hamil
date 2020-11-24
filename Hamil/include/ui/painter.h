@@ -108,7 +108,7 @@ public:
     {
       Command c;
       c.type = Text;
-      c.d.p = gx::TriangleFan;
+      c.d.p = gx::Primitive::TriangleFan;
       c.d.base = base; c.d.offset = offset;
       c.d.num = num;
       
@@ -123,7 +123,7 @@ public:
     {
       Command c;
       c.type = Image;
-      c.d.p = gx::TriangleFan;
+      c.d.p = gx::Primitive::TriangleFan;
       c.d.base = base; c.d.offset = offset;
       c.d.num = num;
 

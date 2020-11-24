@@ -41,7 +41,7 @@ public:
     pool(64),
     allocator(NumBufferChars),
     buf(gx::Buffer::Dynamic), 
-    ind(gx::Buffer::Dynamic, gx::u16),
+    ind(gx::Buffer::Dynamic, gx::Type::u16),
     vtx(fmt, buf, ind)
   {
     sampler_id = pool.create<gx::Sampler>("sFt",
@@ -182,8 +182,8 @@ std::unique_ptr<gx::Program> font_program;
 
 const gx::VertexFormat pFt::fmt = 
   gx::VertexFormat()
-    .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
-    .attr(gx::u16, 2, gx::VertexFormat::UnNormalized);
+    .attr(gx::Type::i16, 2, gx::VertexFormat::UnNormalized)
+    .attr(gx::Type::u16, 2, gx::VertexFormat::UnNormalized);
 
 const static auto pipeline =
   gx::Pipeline()
@@ -468,6 +468,8 @@ String Font::writeVertsAndIndices(const char *str, StridePtr<Position> pos, Stri
 
 void Font::draw(const String& str, vec2 pos, vec4 color) const
 {
+  using Primitive = gx::Primitive;
+
   pString *p_str = str.get();
   assert(p_str->m == *m && "Drawing string with wrong Font!");
 
@@ -481,7 +483,7 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
   font_program->use()
     .uniformMatrix4x4(U.font.uModelViewProjection, mvp)
     .uniformVector4(U.font.uColor, color)
-    .drawBaseVertex(gx::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
+    .drawBaseVertex(Primitive::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
   p->vtx.end();
 }
 
@@ -650,7 +652,7 @@ void Font::populateRenderData(const std::vector<pGlyph>& glyphs, gx::TextureHand
     }
   }
 
-  atlas().init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::u8);
+  atlas().init(img.data(), 0, atlas_sz.s, atlas_sz.t, gx::r, gx::Type::u8);
 
   // Populate render data
   for(unsigned i = 0; i < glyphs.size(); i++) {

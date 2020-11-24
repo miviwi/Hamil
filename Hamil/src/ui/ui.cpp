@@ -150,7 +150,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_renderpass_id(gx::ResourcePool::Invalid),
   m_drawable(m_pool),
   m_buf(gx::Buffer::Dynamic),
-  m_ind(gx::Buffer::Dynamic, gx::u16),
+  m_ind(gx::Buffer::Dynamic, gx::Type::u16),
   m_vtx_id(gx::ResourcePool::Invalid)
 {
   m_style.init(m_pool);

@@ -41,15 +41,15 @@ const mesh::Mesh& Mesh::mesh() const
 }
 
 static const std::unordered_map<std::string, gx::Primitive> p_mesh_prims = {
-  { "points", gx::Points },
+  { "points", gx::Primitive::Points },
 
-  { "lines",     gx::Lines     },
-  { "lineloop",  gx::LineLoop  },
-  { "linestrip", gx::LineStrip },
+  { "lines",     gx::Primitive::Lines     },
+  { "lineloop",  gx::Primitive::LineLoop  },
+  { "linestrip", gx::Primitive::LineStrip },
 
-  { "triangles",     gx::Triangles     },
-  { "trianglefan",   gx::TriangleFan   },
-  { "trianglestrip", gx::TriangleStrip },
+  { "triangles",     gx::Primitive::Triangles     },
+  { "trianglefan",   gx::Primitive::TriangleFan   },
+  { "trianglestrip", gx::Primitive::TriangleStrip },
 };
 
 using MeshLoaderFactoryFn = std::function<mesh::MeshLoader *()>;

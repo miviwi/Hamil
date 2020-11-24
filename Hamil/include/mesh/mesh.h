@@ -59,7 +59,7 @@ struct Mesh {
   gx::ResourcePool::Id vertex_array_id = gx::ResourcePool::Invalid;
 
   u16 vertex_array_flags = 0;
-  u16 array_primitive = (u16)gx::Triangles;
+  u16 array_primitive = (u16)gx::Primitive::Triangles;
   u32 base = None, offset = None, num = 0;
 };
 

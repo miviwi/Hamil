@@ -77,7 +77,9 @@ enum Format : uint {
   bptc_sf = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT,
 };
 
-enum Type : uint {
+enum class Type : uint {
+  Invalid = GL_INVALID_ENUM,
+
   i8  = GL_BYTE,  u8  = GL_UNSIGNED_BYTE,
   i16 = GL_SHORT, u16 = GL_UNSIGNED_SHORT,
   i32 = GL_INT,   u32 = GL_UNSIGNED_INT,
@@ -109,6 +111,14 @@ enum CompareFunc {
   Equal   = GL_EQUAL,   NotEqual     = GL_NOTEQUAL,
 };
 
+enum class Primitive {
+  Invalid = GL_INVALID_ENUM,
+
+  Points = GL_POINTS,
+  Lines = GL_LINES, LineStrip = GL_LINE_STRIP, LineLoop =  GL_LINE_LOOP,
+  Triangles = GL_TRIANGLES, TriangleStrip = GL_TRIANGLE_STRIP, TriangleFan = GL_TRIANGLE_FAN,
+};
+
 // Ordered according to CubeMap FBO layer indices
 static constexpr std::array<Face, NumFaces> Faces = {
   PosX, NegX,
@@ -133,6 +143,12 @@ bool is_color_format(Format fmt);
 
 // Returns 'true' when 'fmt' corresponds to a compressed format
 bool is_compressed_format(Format fmt);
+
+[[using gnu: always_inline]]
+inline GLenum gl_prim(Primitive p) { return (GLenum)p; }
+
+[[using gnu: always_inline]]
+inline  GLenum gl_type(Type t) { return (GLenum)t; }
 
 // Must be called AFTER creating a win32::Window!
 void init();

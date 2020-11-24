@@ -463,33 +463,33 @@ gx::Type DDSImage::texType() const
   switch(m_format) {
   case RGB8:
   case ARGB8:
-  case ABGR8: return gx::u8;
+  case ABGR8: return gx::Type::u8;
 
-  case XRGB8: return gx::u32_8888r;
-  case XBGR8: return gx::u32_8888;
+  case XRGB8: return gx::Type::u32_8888r;
+  case XBGR8: return gx::Type::u32_8888;
 
-  case RGB565:   return gx::u16_565;
+  case RGB565:   return gx::Type::u16_565;
   case XRGB1555:
-  case ARGB1555: return gx::u16_5551;
+  case ARGB1555: return gx::Type::u16_5551;
 
   case A2BGR10:
-  case A2RGB10: return gx::u32_10_10_10_2;
+  case A2RGB10: return gx::Type::u32_10_10_10_2;
 
   case GR16:
-  case ABGR16: return gx::u16;
+  case ABGR16: return gx::Type::u16;
 
   case A8:
   case L8:
-  case AL8: return gx::u8;
-  case L16: return gx::u16;
+  case AL8: return gx::Type::u8;
+  case L16: return gx::Type::u16;
 
   case R16F:
   case GR16F:
-  case ABGR16F: return gx::f16;
+  case ABGR16F: return gx::Type::f16;
 
   case R32F:
   case GR32F:
-  case ABGR32F: return gx::f32;
+  case ABGR32F: return gx::Type::f32;
   }
 
   return (gx::Type)~0u;
@@ -795,20 +795,20 @@ gx::Type DDSImage::texTypeDX10() const
   case RGBA32F:
   case RGB32F:
   case RG32F:
-  case DX10_R32F: return gx::f32;
+  case DX10_R32F: return gx::Type::f32;
 
-  case RGBA16:  return gx::u16;
-  case RGBA16F: return gx::f16;
+  case RGBA16:  return gx::Type::u16;
+  case RGBA16F: return gx::Type::f16;
 
-  case RGB10A2:    return gx::u32_2_10_10_10r;
-  case R11G11B10F: return gx::f10_f10_f11r;
+  case RGB10A2:    return gx::Type::u32_2_10_10_10r;
+  case R11G11B10F: return gx::Type::f10_f10_f11r;
 
   case RGBA8:
   case SRGB8_A8:
   case BGRA8:
   case SBGR8_A8:
   case R8:
-  case RG8: return gx::u8;
+  case RG8: return gx::Type::u8;
   }
 
   return (gx::Type)~0u;

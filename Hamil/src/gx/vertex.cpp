@@ -65,7 +65,7 @@ GLint VertexFormat::attrSize(unsigned idx) const
 
 GLenum VertexFormat::attrType(unsigned idx) const
 {
-  return m_descs[idx].type;
+  return gl_type(m_descs[idx].type);
 }
 
 GLboolean VertexFormat::attrNormalized(unsigned idx) const
@@ -82,17 +82,17 @@ size_t VertexFormat::byteSize(Desc desc)
 {
   size_t size = desc.size;
   switch(desc.type) {
-  case i8:
-  case u8:  size *= 1; break;
-  case f16:
-  case i16:
-  case u16: size *= 2; break;
-  case f32:
-  case i32:
-  case u32: size *= 4; break;
-  case f64: size *= 8; break;
+  case Type::i8:
+  case Type::u8:  size *= 1; break;
+  case Type::f16:
+  case Type::i16:
+  case Type::u16: size *= 2; break;
+  case Type::f32:
+  case Type::i32:
+  case Type::u32: size *= 4; break;
+  case Type::f64: size *= 8; break;
 
-  case fixed: size *= 4; break;
+  case Type::fixed: size *= 4; break;
   }
   return size;
 }

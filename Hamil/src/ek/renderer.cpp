@@ -65,7 +65,7 @@ void RenderLUT::generateGaussian(gx::ResourcePool& pool)
     gx::r32f);
   auto blur_kernel = pool.getTexture(tex_id);
   blur_kernel()
-    .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::f32);
+    .init(kernel.data(), 0, (unsigned)kernel.size(), gx::r, gx::Type::f32);
 }
 
 void RenderLUT::generateLTC(gx::ResourcePool& pool)
@@ -98,10 +98,10 @@ void RenderLUT::generateLTC(gx::ResourcePool& pool)
   ltc().init(TexSize.s, TexSize.t, 2);
   ltc().upload(coeffs1, /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 0, TexSize.s, TexSize.t, 1,
-    gx::rgba, gx::f16);
+    gx::rgba, gx::Type::f16);
   ltc().upload(coeffs2, /* mip */ 0,
     /* x */ 0, /* y */ 0, /* z */ 1, TexSize.s, TexSize.t, 1,
-    gx::rgba, gx::f16);
+    gx::rgba, gx::Type::f16);
 }
 
 void RenderLUT::generateHBAONoise(gx::ResourcePool& pool)
@@ -130,7 +130,7 @@ void RenderLUT::generateHBAONoise(gx::ResourcePool& pool)
   auto noise_tex = pool.getTexture(tex_id);
 
   noise_tex()
-    .init(noise.data(), 0, NoiseSize.s, NoiseSize.t, gx::rgb, gx::f32);
+    .init(noise.data(), 0, NoiseSize.s, NoiseSize.t, gx::rgb, gx::Type::f32);
 }
 
 class RendererData {

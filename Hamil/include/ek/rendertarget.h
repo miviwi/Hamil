@@ -13,7 +13,7 @@
 
 namespace gx {
 enum Format : uint;
-enum Type : uint;
+enum class Type : uint;
 
 class ResourcePool;
 class TextureHandle;

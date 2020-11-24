@@ -226,9 +226,9 @@ Type IndexBuffer::elemType() const
 unsigned IndexBuffer::elemSize() const
 {
   switch(m_type) {
-  case u8:  return 1;
-  case u16: return 2;
-  case u32: return 4;
+  case Type::u8:  return 1;
+  case Type::u16: return 2;
+  case Type::u32: return 4;
   }
 
   return 0;
@@ -326,66 +326,66 @@ PixelBuffer::PixelBuffer(Usage usage, TransferDirection xfer_dir) :
 }
 
 void PixelBuffer::uploadTexture(Texture& tex,
-  unsigned mip, unsigned w, unsigned h, Format fmt, Type type, size_t off)
+  unsigned mip, unsigned w, unsigned h, Format fmt, Type t, size_t off)
 {
   assertUpload();
 
   use();
   tex.use();
 
-  glTexImage2D(tex.m_target, mip, tex.m_format, w, h, 0, fmt, type, (void *)(uintptr_t)off);
+  glTexImage2D(tex.m_target, mip, tex.m_format, w, h, 0, fmt, gl_type(t), (void *)(uintptr_t)off);
 
   unbind();
 }
 
 void PixelBuffer::uploadTexture(Texture& tex,
-  unsigned mip, unsigned w, unsigned h, unsigned d, Format fmt, Type type, size_t off)
+  unsigned mip, unsigned w, unsigned h, unsigned d, Format fmt, Type t, size_t off)
 {
   assertUpload();
 
   use();
   tex.use();
 
-  glTexImage3D(tex.m_target, mip, tex.m_format, w, h, d, 0, fmt, type, (void *)(uintptr_t)off);
+  glTexImage3D(tex.m_target, mip, tex.m_format, w, h, d, 0, fmt, gl_type(t), (void *)(uintptr_t)off);
 
   unbind();
 }
 
 void PixelBuffer::uploadTexture(Texture& tex,
-  unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h, Format fmt, Type type, size_t off)
+  unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h, Format fmt, Type t, size_t off)
 {
   assertUpload();
 
   use();
   tex.use();
 
-  glTexSubImage2D(tex.m_target, mip, x, y, w, h, fmt, type, (void *)(uintptr_t)off);
+  glTexSubImage2D(tex.m_target, mip, x, y, w, h, fmt, gl_type(t), (void *)(uintptr_t)off);
 
   unbind();
 }
 
 void PixelBuffer::uploadTexture(Texture& tex,
   unsigned mip, unsigned x, unsigned y, unsigned z, unsigned w, unsigned h, unsigned d,
-  Format fmt, Type type, size_t off)
+  Format fmt, Type t, size_t off)
 {
   assertUpload();
 
   use();
   tex.use();
 
-  glTexSubImage3D(tex.m_target, mip, x, y, z, w, h, d, fmt, type, (void *)(uintptr_t)off);
+  glTexSubImage3D(tex.m_target, mip, x, y, z, w, h, d, fmt, gl_type(t), (void *)(uintptr_t)off);
 
   unbind();
 }
 
-void PixelBuffer::downloadTexture(Texture& tex, unsigned mip, Format fmt, Type type, size_t off)
+void PixelBuffer::downloadTexture(Texture& tex, unsigned mip, Format fmt, Type t, size_t off)
 {
   assertDownload();
 
   use();
   tex.use();
 
-  glGetTexImage(tex.m_target, mip, fmt, type, (void *)(uintptr_t)off);
+  glGetTexImage(tex.m_target, mip, fmt, gl_type(t), (void *)(uintptr_t)off);
 
   unbind();
 }
@@ -397,7 +397,7 @@ void PixelBuffer::downloadFramebuffer(Framebuffer& fb,
 }
 
 void PixelBuffer::downloadFramebuffer(Framebuffer& fb,
-  int x, int y, int w, int h, Format fmt, Type type, unsigned attachment, size_t off)
+  int x, int y, int w, int h, Format fmt, Type t, unsigned attachment, size_t off)
 {
   assertDownload();
 
@@ -405,7 +405,7 @@ void PixelBuffer::downloadFramebuffer(Framebuffer& fb,
   fb.use(gx::Framebuffer::Read);
 
   glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment);
-  glReadPixels(x, y, w, h, fmt, type, (void *)(uintptr_t)off);
+  glReadPixels(x, y, w, h, fmt, gl_type(t), (void *)(uintptr_t)off);
 
   unbind();
 }

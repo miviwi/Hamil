@@ -171,9 +171,9 @@ MeshLoader& ObjLoader::doStreamIndexed(const gx::VertexFormat& fmt,
     for(const auto& face : mesh.faces()) {
       // Loop-invariant code motion should fix this up :)
       switch(ind_buf.get<gx::IndexBuffer>().elemType()) {
-      case gx::u8:  for(const auto& vert: face) *bytes++  = (u8)vert.v; break;
-      case gx::u16: for(const auto& vert: face) *shorts++ = (u16)vert.v; break;
-      case gx::u32: for(const auto& vert: face) *ints++   = (u32)vert.v; break;
+      case gx::Type::u8:  for(const auto& vert: face) *bytes++  = (u8)vert.v; break;
+      case gx::Type::u16: for(const auto& vert: face) *shorts++ = (u16)vert.v; break;
+      case gx::Type::u32: for(const auto& vert: face) *ints++   = (u32)vert.v; break;
 
       default: assert(0); // unreachable
       }

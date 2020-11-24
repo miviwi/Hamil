@@ -455,7 +455,7 @@ void DrawableManager::uploadAtlas()
   auto& buf = staging().get<gx::PixelBuffer>();
 
   buf.uploadTexture(atlas().get(), /* level */ 0,
-    AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::u8);
+    AtlasSize.s, AtlasSize.t, numAtlasPages(), gx::rgba, gx::Type::u8);
 }
 
 }

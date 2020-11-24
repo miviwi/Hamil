@@ -140,8 +140,8 @@ std::unique_ptr<gx::Program> cursor_program;
 
 const gx::VertexFormat pCursorDriver::Fmt =
   gx::VertexFormat()
-    .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
-    .attr(gx::u16, 2, gx::VertexFormat::UnNormalized);
+    .attr(gx::Type::i16, 2, gx::VertexFormat::UnNormalized)
+    .attr(gx::Type::u16, 2, gx::VertexFormat::UnNormalized);
 
 static const auto pipeline =
   gx::Pipeline()
@@ -208,7 +208,7 @@ void CursorDriver::init()
   p->sampler = gx::Sampler::edgeclamp2d();
 
   auto tex = decode_texture(p_tex);
-  p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::u8);
+  p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::Type::u8);
   p->tex.swizzle(gx::Red, gx::Red, gx::Red, gx::Green);
 
   p->tex.label("t2dCursor");
@@ -244,6 +244,8 @@ void CursorDriver::paint()
 {
   if(!m_shown) return;
 
+  constexpr auto prim = gx::Primitive::Triangles;
+
   mat4 modelviewprojection = mat4::identity()
     *xform::ortho(0, 0, FramebufferSize.y, FramebufferSize.x, 0.0f, 1.0f)
     *xform::translate(m_pos)
@@ -256,7 +258,7 @@ void CursorDriver::paint()
 
   cursor_program->use()
     .uniformMatrix4x4(U.cursor.uModelViewProjection, modelviewprojection)
-    .draw(gx::Triangles, p->vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);
+    .draw(prim, p->vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);
 }
 
 void CursorDriver::type(Type type)

@@ -44,18 +44,18 @@ void Texture::init(unsigned w)
   set_default_parameters(m_target);
 }
 
-void Texture::init(const void *data, unsigned mip, unsigned w, Format format, Type type)
+void Texture::init(const void *data, unsigned mip, unsigned w, Format format, Type t)
 {
   use();
-  glTexImage1D(m_target, mip, m_format, w, 0, format, type, data);
+  glTexImage1D(m_target, mip, m_format, w, 0, format, gl_type(t), data);
 
   set_default_parameters(m_target);
 }
 
-void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned w, Format format, Type type)
+void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned w, Format format, Type t)
 {
   use();
-  glTexSubImage1D(m_target, mip, x, w, format, type, data);
+  glTexSubImage1D(m_target, mip, x, w, format, gl_type(t), data);
 }
 
 void Texture::use()
@@ -80,10 +80,10 @@ void Texture::init(ivec2 sz)
   init((unsigned)sz.x, (unsigned)sz.y);
 }
 
-void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type type)
+void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, Format format, Type t)
 {
   use();
-  glTexImage2D(m_target, mip, m_format, w, h, 0, format, type, data);
+  glTexImage2D(m_target, mip, m_format, w, h, 0, format, gl_type(t), data);
 
   set_default_parameters(m_target);
 }
@@ -96,10 +96,10 @@ void Texture::init(const void *data, unsigned mip, ivec2 sz, Format format, Type
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned w, unsigned h,
-                       Format format, Type type)
+                       Format format, Type t)
 {
   use();
-  glTexSubImage2D(m_target, mip, x, y, w, h, format, type, data);
+  glTexSubImage2D(m_target, mip, x, y, w, h, format, gl_type(t), data);
 }
 
 void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, size_t data_size)
@@ -128,10 +128,10 @@ void Texture::init(unsigned w, unsigned h, unsigned d)
 }
 
 void Texture::init(const void *data, unsigned mip, unsigned w, unsigned h, unsigned d,
-  Format format, Type type)
+  Format format, Type t)
 {
   use();
-  glTexImage3D(m_target, 0, m_format, w, h, d, 0, format, type, data);
+  glTexImage3D(m_target, 0, m_format, w, h, d, 0, format, gl_type(t), data);
 
   set_default_parameters(m_target);
 }
@@ -144,10 +144,10 @@ void Texture::init(const void *data, unsigned mip, ivec3 sz, Format format, Type
 }
 
 void Texture::upload(const void *data, unsigned mip, unsigned x, unsigned y, unsigned z,
-                     unsigned w, unsigned h, unsigned d, Format format, Type type)
+                     unsigned w, unsigned h, unsigned d, Format format, Type t)
 {
   use();
-  glTexSubImage3D(m_target, mip, x, y, z, w, h, d, format, type, data);
+  glTexSubImage3D(m_target, mip, x, y, z, w, h, d, format, gl_type(t), data);
 }
 
 void Texture::init(Face face, unsigned l)
@@ -168,19 +168,19 @@ void Texture::initAllFaces(unsigned l)
   set_default_parameters(m_target);
 }
 
-void Texture::init(const void *data, unsigned mip, Face face, unsigned l, Format format, Type type)
+void Texture::init(const void *data, unsigned mip, Face face, unsigned l, Format format, Type t)
 {
   use();
-  glTexImage2D(face, mip, m_format, l, l, 0, format, type, data);
+  glTexImage2D(face, mip, m_format, l, l, 0, format, gl_type(t), data);
 
   set_default_parameters(m_target);
 }
 
 void Texture::upload(const void *data, unsigned mip, Face face, unsigned x, unsigned y,
-  unsigned w, unsigned h, Format format, Type type)
+  unsigned w, unsigned h, Format format, Type t)
 {
   use();
-  glTexSubImage2D(face, mip, x, y, w, h, format, type, data);
+  glTexSubImage2D(face, mip, x, y, w, h, format, gl_type(t), data);
 }
 
 void Texture::init(const void *data, unsigned mip, Face face, unsigned l, size_t data_size)

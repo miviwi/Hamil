@@ -12,9 +12,9 @@ namespace ui {
 
 const gx::VertexFormat VertexPainter::Fmt = 
   gx::VertexFormat()
-    .attr(gx::i16, 2, gx::VertexFormat::UnNormalized)
-    .attr(gx::u8, 4)
-    .attrAlias(1, gx::u16, 2, gx::VertexFormat::UnNormalized)
+    .attr(gx::Type::i16, 2, gx::VertexFormat::UnNormalized)
+    .attr(gx::Type::u8, 4)
+    .attrAlias(1, gx::Type::u16, 2, gx::VertexFormat::UnNormalized)
   ;
 
 Vertex::Vertex() :
@@ -83,7 +83,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
     });
 
     appendCommand(Command::primitive(
-      gx::TriangleFan,
+      gx::Primitive::TriangleFan,
       0, offset,
       4
     ));
@@ -111,7 +111,7 @@ VertexPainter& VertexPainter::line(vec2 a, vec2 b, float width, LineCap cap, flo
   });
 
   appendCommand(Command::primitive(
-    gx::TriangleFan,
+    gx::Primitive::TriangleFan,
     0, offset,
     4
   ));
@@ -154,7 +154,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
     });
 
     appendCommand(Command::primitive(
-      gx::TriangleFan,
+      gx::Primitive::TriangleFan,
       0, offset,
       4
     ));
@@ -187,7 +187,7 @@ VertexPainter& VertexPainter::lineBorder(vec2 a, vec2 b, float width,
   });
 
   appendCommand(Command::primitive(
-    gx::LineStrip,
+    gx::Primitive::LineStrip,
     0, offset,
     4 + 1
   ));
@@ -220,7 +220,7 @@ VertexPainter& VertexPainter::rect(Geometry g, Color a, Color b, Color c, Color 
   });
 
   appendCommand(Command::primitive(
-    gx::TriangleFan,
+    gx::Primitive::TriangleFan,
     0, offset,
     4
   ));
@@ -251,7 +251,7 @@ VertexPainter& VertexPainter::border(Geometry g, float width, Color a, Color b, 
     });
 
     appendCommand(Command::primitive(
-      gx::LineLoop,
+      gx::Primitive::LineLoop,
       0, offset,
       4
     ));
@@ -303,7 +303,7 @@ VertexPainter& VertexPainter::circleSegment(vec2 pos, float radius,
   appendVertices({ { point(end_angle), a } });
 
   appendCommand(Command::primitive(
-    gx::TriangleFan,
+    gx::Primitive::TriangleFan,
     0, offset,
     num_verts + 2
   ));
@@ -346,7 +346,7 @@ VertexPainter& VertexPainter::arc(vec2 pos, float radius, float start_angle, flo
   appendVertices({ { point(end_angle), c } });
 
   appendCommand(Command::primitive(
-    gx::LineStrip,
+    gx::Primitive::LineStrip,
     0, offset,
     num_verts+1
   ));
@@ -373,7 +373,7 @@ VertexPainter& VertexPainter::roundedRect(Geometry g, float radius, unsigned cor
     });
 
     appendCommand(Command::primitive(
-      gx::TriangleFan,
+      gx::Primitive::TriangleFan,
       0, offset,
       4
     ));
@@ -490,7 +490,7 @@ VertexPainter& VertexPainter::roundedBorder(Geometry g, float radius, unsigned c
   }
 
   appendCommand(Command::primitive(
-    gx::LineLoop,
+    gx::Primitive::LineLoop,
     0, offset,
     num_verts
   ));
@@ -535,7 +535,7 @@ VertexPainter& VertexPainter::triangle(vec2 pos, float h, float angle, Color col
   });
 
   appendCommand(Command::primitive(
-    gx::TriangleFan,
+    gx::Primitive::TriangleFan,
     0, offset,
     3
   ));
