@@ -97,18 +97,16 @@ int main(int argc, char *argv[])
   });
 
   auto probe_cached_proto = [&](const hm::EntityPrototype& proto) {
-    printf("hm::CachedPrototype(0x%.16lx):\n        ", proto.hash());
-
-    proto_cache.dbg_PrintPrototypeCacheStats();
+    //printf("hm::CachedPrototype(0x%.8x):\n        ", proto.hash());
 
     auto cached_proto = proto_cache.probe(proto);
     if(!cached_proto.has_value()) {
-      puts("    hm::EntityPrototypeCache::probe() -> std::nullopt!\n");
+      puts("    hm::EntityPrototypeCache::probe() -> std::nullopt!\n\n");
       return;
     }
 
     printf(
-        "    .numChunks=%zu .numEntities=%zu\n",
+        "    .numChunks=%zu .numEntities=%zu\n\n",
         cached_proto->numChunks(), cached_proto->numEntities()
     );
   };
@@ -137,14 +135,44 @@ int main(int argc, char *argv[])
   auto my_chunk = my_proto_cached->allocChunk();
   auto my_chunk2 = my_proto2_cached->allocChunk();
 
-  auto print_my_chunk = [&](hm::PrototypeChunkHandle& chunk) {
-    printf("    .capacity=%zu .entityBaseIndex=%u\n",
-        chunk.capacity(), chunk.entityBaseIndex()
-    );
+  //my_proto_cached->allocChunk();
+
+  for(int i = 0; i < my_proto_cached->prototype().chunkCapacity()*1.5; i++) {
+    auto id = my_proto_cached->allocEntity();
+    if(id != hm::CachedPrototype::AllocEntityInvalidId) continue;
+
+    my_proto_cached->allocChunk();
+    my_proto_cached->allocEntity();
+  }
+
+  for(int i = 0; i < 4; i++)
+    my_proto2_cached->allocEntity();
+
+  auto print_my_chunk = [&](const hm::PrototypeChunkHandle& chunk) {
+    chunk.dbg_PrintChunkStats();
+    puts("");
   };
 
-  print_my_chunk(my_chunk);
-  print_my_chunk(my_chunk2);
+  print_my_chunk(my_proto_cached->chunkForEntityId(0));
+  print_my_chunk(my_proto_cached->chunkForEntityId(100));
+  print_my_chunk(my_proto2_cached->chunkForEntityId(0));
+
+  auto entity_99_go = my_proto_cached->componentDataForEntityId(
+      hm::ComponentProto::GameObject, 99
+  );
+  auto entity_99_tx = my_proto_cached->componentDataForEntityId(
+      hm::ComponentProto::Transform, 99
+  );
+
+  auto tx_data_offset = (u8 *)entity_99_tx - (u8 *)entity_99_go;
+
+  printf("entity_99_go=%p entity_99_tx=%p\n"
+      "    hm::Transform offset: %zu\n\n",
+      entity_99_go, entity_99_tx,
+      tx_data_offset
+  );
+
+  proto_cache.dbg_PrintPrototypeCacheStats();
 
   //probe_cached_proto(my_proto);
 

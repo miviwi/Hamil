@@ -71,6 +71,14 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
   return CachedPrototype::from_cache_line(cache_line);
 }
 
+std::optional<EntityPrototype> EntityPrototypeCache::protoByCacheId(u32 cache_id) const
+{
+  const auto proto = protoByIndex(cache_id);
+  if(!proto) return std::nullopt;
+
+  return proto->proto;
+}
+
 auto EntityPrototypeCache::protoByIndex(size_t idx) ->
     Entry *
 {
@@ -93,19 +101,20 @@ auto EntityPrototypeCache::protoByIndex(size_t idx) const ->
 
 void EntityPrototypeCache::dbg_PrintPrototypeCacheStats() const
 {
+#if !defined(NDEBUG)
   auto print_proto = [](const detail::CacheEntry& entry) {
-    printf("%s =>\n",
-        util::to_str(entry.proto.components()).data()
+    printf("EntityPrototype[%s] { .numChunks=%zu } =>\n",
+        util::to_str(entry.proto.components()).data(),
+        entry.numChunks()
     );
 
     entry.proto.dbg_PrintComponents();
 
-    printf("        .numChunks=%zu\n",
-        entry.numChunks()
-    );
+    printf("\n");
   };
 
-  printf("m_pages.size()=%zu m_num_protos=%zu\n",
+  printf("EntityPrototypeCache@%p { m_pages.size()=%zu, m_num_protos=%zu } =>\n",
+      this,
       m_pages.size(), m_num_protos
   );
 
@@ -120,6 +129,7 @@ void EntityPrototypeCache::dbg_PrintPrototypeCacheStats() const
   for(size_t i = 0; i < m_num_protos%detail::CachePage::NumEntriesPerPage; i++) {
     print_proto(m_pages.back().protos[i]);
   }
+#endif
 }
 
 }

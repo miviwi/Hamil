@@ -72,6 +72,8 @@ public:
   //    is forbidden and could result in UB
   CachedPrototype fill(const EntityPrototype& proto);
 
+  std::optional<EntityPrototype> protoByCacheId(u32 proto_cache_id) const;
+
   void dbg_PrintPrototypeCacheStats() const;
 
 private:

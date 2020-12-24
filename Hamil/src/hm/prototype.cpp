@@ -28,18 +28,6 @@ namespace hm {
   return id;
 }
 
-INTRIN_INLINE unsigned find_msb(u64 x)
-{
-  ulong id;
-#if __win32
-#  error "unimplemented! :)"
-#else
-  id = sizeof(x)*CHAR_BIT - __builtin_clzll(x);
-#endif
-
-  return id;
-}
-
 EntityPrototype::Hash EntityPrototype::hash_type_map(const ComponentTypeMap& components)
 {
   const auto h = util::ByteXXHash(sizeof(components.bits));
@@ -174,6 +162,7 @@ EntityPrototype EntityPrototype::drop(ComponentProtoId id) const
 
 void EntityPrototype::dbg_PrintComponents() const
 {
+#if !defined(NDEBUG)
   foreachProtoId([this](hm::ComponentProtoId id) {
     auto mc = hm::metaclass_from_protoid(id);
 
@@ -185,6 +174,7 @@ void EntityPrototype::dbg_PrintComponents() const
         componentDataOffsetInSoAEntityChunk(id)
     );
   });
+#endif
 }
 
 }

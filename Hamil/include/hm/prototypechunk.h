@@ -60,7 +60,7 @@ public:
   //           can be combined
   static UnknownPrototypeChunk *alloc();
 
-protected:
+//protected:
   UnknownPrototypeChunk() = default;    // Force using a derived class
 
   template <typename T>
@@ -85,23 +85,20 @@ protected:
     return (const T *)(m_data + off);
   }
 
-  u8 m_data[PrototypeChunkSize];
-
 private:
+  u8 m_data[PrototypeChunkSize];
 };
 
 // The more though I give it the more I believe that this class
-//   could be not even 'marginally' useful but in fact useless
-// TODO: Dig into this and refactor appropriately
+//   doesn't solve any problems as EntityPrototypes must allow
+//   run-time promotion/demotion (inclusion of more/less Components)
+//   regardless if it can be done at compile time, which will cause
+//   duplication of data offset/size calculation logic for chunks in
+//   TMP-style code. Can already see the maintenance nightmare :)
+// TODO: Throw this out - or..?
 template <typename... Components>
 class PrototypeChunk : public UnknownPrototypeChunk {
 public:
-  /*
-  static_assert(
-      sizeof(PrototypeChunk) == PrototypeChunkSize,
-      "no virtual methods allowed in UnknownPrototypeChunk derived classes!"
-  );
-  */
 
 private:
   enum : size_t {

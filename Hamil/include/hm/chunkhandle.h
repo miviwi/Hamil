@@ -5,6 +5,7 @@
 namespace hm {
 
 // Forward declarations
+class EntityPrototype;
 class UnknownPrototypeChunk;
 
 // Logically this data should be stored along with
@@ -15,6 +16,10 @@ class UnknownPrototypeChunk;
 //   instead of  intreleaved)
 //  TODO: does this boost perf? (or at leat not harm it)
 struct PrototypeChunkHeader {
+#if !defined(NDEBUG)
+  const EntityPrototype *dbg_proto;
+#endif
+
   u32 base_offset;   // Global offset of this chunk's first entity,
                      //   calculated as if all the entities with
                      //   the same type are stored sequentially 
@@ -27,7 +32,6 @@ struct PrototypeChunkHeader {
 
   u32 num_entities;  // Number of entities currently stored in this chunk
 
-  u32 prototype_cache_id;
 };
 
 // Handle to a single PrototypeChunk's data along with it's associated
@@ -57,7 +61,9 @@ public:
 
   // Returns 'true' when all available entity slots of this chunk
   //   have been filled
-  bool full() const { return m_header.capacity < m_header.num_entities; }
+  bool full() const { return m_header.num_entities >= m_header.capacity; }
+
+  void dbg_PrintChunkStats() const;
 
 private:
   PrototypeChunkHandle() = default;   // Disallow direct instantiation

@@ -14,13 +14,27 @@
 
 namespace hm {
 
+// Compact set of bits used to identify/store the data associated with
+//   a given Entity where each bit signifies inclusion of an object
+//   of hm::Component-derived type (said types are collected and
+//   enumerated, assiging unique bit-indices by Eugene.componentgen
+//   prior to compilation) among the data of an Entity.
+// Utility methods are also provided to calculate offsets/strides
+//   for a Component's data according to desired layout (SoA/AoS)
+//   in memory,
+//  as well as to iterate over included Components in a predictable
+//   order
 class EntityPrototype {
 public:
   using ComponentTypeMap = util::FixedBitVector<NumComponentProtoIdBits>;
 
+  // Can store a hash-like value for a given EntityPrototype (computed
+  //   via EntityPrototype::hash() call) used by 'EntityPrototypeCache'
+  //   objects internally to index a util::HashIndex
+  //  - Usage of this type (or of the hash_type_map()/hash() methods)
+  //    in client code should never (?) be seen as it's mainly
+  //    an implementation detail
   using Hash = util::HashIndex::Key;
-
-  static Hash hash_type_map(const ComponentTypeMap& components);
 
   EntityPrototype() = default;
   EntityPrototype(std::initializer_list<ComponentProtoId> components);
@@ -42,11 +56,21 @@ public:
   //   prototype's ComponentTypeMap
   size_t numProtoComponents() const;
 
+  // Returns the number of tuples consisting of all Components
+  //   included in this prototype (specified by constructor
+  //   agruments and further extend()/drop() calls) which
+  //   can be stored in an UnknownPrototypeChunk-sized region
+  //   of memory (i.e. PrototypeChunkSize-bytes long) always
+  //   rounded DOWN to an integer
+  //  - In other words: let 'e' denote Entities with prototypes
+  //    matching this one, it follows that chunkCapacity() will
+  //    return the number of elements in a PrototypeChunkSize'd
+  //    block of memory containing an e[] (array of 'e')
   size_t chunkCapacity() const;
 
-  // Returns the number of bytes needed to store
-  //   a single instance of all components included
-  //   in this EntityPrototype
+  // Returns the number of bytes needed to store a
+  //   tuple of Components for an Entity which
+  //   has a matching prototype
   //  XXX: when a prototype has no Components the
   //       returned value == 0, which makes some
   //       kind of sense and helps in
@@ -103,6 +127,9 @@ public:
 
 private:
   static ComponentProtoId find_and_clear_lsb(u64 *components);
+
+  // Called by hash() internally to compute it's result
+  static Hash hash_type_map(const ComponentTypeMap& components);
 
   EntityPrototype(ComponentTypeMap components);
 
