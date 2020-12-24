@@ -14,14 +14,20 @@
 namespace hm {
 
 struct EntityMeta {
-  EntityPrototype proto;    // Can be used to unambiguously determine
-                            //   the Entity's PrototypeChunks
+  u32 proto_cache_id;    // Used to retrieve the CachedPrototype containing
+                         //   the PrototypeChunk which holds the Component data
+                         //   of the Entity
 
-  size_t offset;      // Global offset, i.e. in the range
-                      //    [0; Prototype.NumEntities]
-                      //  into the PrototypeChunks for this
-                      //  Entity counted as if all of them
-                      //  are stored sequentially in memory
+  u32 entity_id;    // The id assigned to this entity by allocEntity()/reassigned
+                    //   during chunk compaction, prototype promotion/demotion etc.
+                    //   used to index into it's CachedPrototype's chunk array
+                    //   and into the data slots of the chunk
+                    //  - Can be used to retrieve the enclosing chunk via
+                    //        CachedPrototype::chunkForEntityId(),
+                    //    or a pointer to a particular Component's data via
+                    //        CachedPrototype::componentDataForEntityId(),
+                    //    if QnD access (ex. in non-performance sensitive code
+                    //    paths) is good enough
 };
 
 class EntityManager : public IEntityManager {

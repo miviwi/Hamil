@@ -21,6 +21,13 @@ public:
 
   const EntityPrototype& prototype() const;
 
+  // Returns a value which is guaranteed to uniquely identify
+  //   a CachedPrototype for an EntityPrototype in the scope of
+  //   an EntityPrototypeCache
+  //  - Can be passed to EntityPrototypeCache::protoByCacheId()
+  //    to retrieve this CachedPrototype
+  u32 cacheId() const;
+
   // Returns the number of PrototypeChunks allocated
   //   for this prototype
   //  - TODO: what happens when a chunk gets emptied?
@@ -48,7 +55,12 @@ public:
   //   context of this CachedPrototype
   //  - If 'AllocEntityInvalidId' is returned the allocation failed
   //    for some reason (i.e. AllocEntityInvalidId is NOT a valid
-  //    CachedPrototype entity id)
+  //    CachedPrototype entity id).
+  //    Most likely the tail chunk's capacity (and thus the capacity
+  //    of all the allocated chunks, as the Component data in a chunk
+  //    will never have any holes created by ex. removing an Entity
+  //    as it's continually defragemented/kept tighly packed) ran out
+  //    and a new chunk must be allocated via allocChunk()
   // XXX: should a new chunk be allocated if all are full() instead
   //    of failing (returning AllocEntityInvalidId)?
   u32 allocEntity();

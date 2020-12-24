@@ -63,6 +63,16 @@ public:
   //   have been filled
   bool full() const { return m_header.num_entities >= m_header.capacity; }
 
+  // Returns 'true' if all of the chunk's capacity() is vacant
+  bool empty() const { return m_header.num_entities == 0; }
+
+  // Returns 'true' when this chunk is purgeable, that is it's memory can
+  //   be freed/reused without any perceeding operations.
+  //  - Chunks are considered 'purgeable' if they are empty() and there is
+  //    at least one more with the same EntityPrototype (the first chunk
+  //    for a given prototype is always kept around)
+  bool purgeable() const { return m_header.base_offset > 0 && empty(); }
+
   void dbg_PrintChunkStats() const;
 
 private:

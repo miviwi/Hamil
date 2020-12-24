@@ -22,10 +22,17 @@ namespace detail {
 struct CacheEntry {
   EntityPrototype proto;
 
+  // Used to uniquely (in the owning EntityPrototypeCache's scope)
+  //   identify CachedPrototypes with matching EntityPrototypes
+  //  - Can be passed to EntityPrototypeCache::protoByCacheId()
+  //    to retrieve a CachedPrototype instead of doing a probe()
+  //    with an EntityPrototype
+  u32 cache_id;
+
   using Chunk = UnknownPrototypeChunk;
 
-  util::SmallVector<PrototypeChunkHeader, 64> headers;
-  util::SmallVector<Chunk *, 64 - sizeof(EntityPrototype)> chunks;
+  util::SmallVector<PrototypeChunkHeader, 64 - sizeof(EntityPrototype)> headers;
+  util::SmallVector<Chunk *, 64 - sizeof(u32)> chunks;
   
   size_t numChunks() const;
 
@@ -72,7 +79,9 @@ public:
   //    is forbidden and could result in UB
   CachedPrototype fill(const EntityPrototype& proto);
 
-  std::optional<EntityPrototype> protoByCacheId(u32 proto_cache_id) const;
+  // - Calling this method with an invalid 'proto_cache_id' is
+  //   forbidden and results in UB
+  CachedPrototype protoByCacheId(u32 proto_cache_id);
 
   void dbg_PrintPrototypeCacheStats() const;
 

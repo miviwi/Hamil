@@ -65,18 +65,20 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
 
   // Initialize the CacheEntry...
   cache_line->proto = proto;
+  cache_line->cache_id = cache_line_idx;
 
   m_protos_hash.add(proto.hash(), cache_line_idx);
 
   return CachedPrototype::from_cache_line(cache_line);
 }
 
-std::optional<EntityPrototype> EntityPrototypeCache::protoByCacheId(u32 cache_id) const
+CachedPrototype EntityPrototypeCache::protoByCacheId(u32 cache_id)
 {
-  const auto proto = protoByIndex(cache_id);
-  if(!proto) return std::nullopt;
+  auto proto = protoByIndex(cache_id);
 
-  return proto->proto;
+  assert(proto && "protoByCacheId() given invalid 'proto_cache_id'!");
+
+  return CachedPrototype::from_cache_line(proto);
 }
 
 auto EntityPrototypeCache::protoByIndex(size_t idx) ->

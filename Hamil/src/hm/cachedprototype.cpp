@@ -38,6 +38,13 @@ const EntityPrototype& CachedPrototype::prototype() const
   return m_cached->proto;
 }
 
+u32 CachedPrototype::cacheId() const
+{
+  assert(m_cached);
+
+  return m_cached->cache_id;
+}
+
 size_t CachedPrototype::numEntities() const
 {
   if(m_cached->chunks.empty()) return 0;  // Cleaner code with early-out :)
@@ -176,12 +183,14 @@ Component *CachedPrototype::componentDataForEntityId(
 
   const auto entity_index_in_chunk = id - header.base_offset;
 
+  const auto data_stride = mc->staticData().data_size;
+
   const auto chunk_offset = proto.componentDataOffsetInSoAEntityChunk(component);
-  const auto data_stride  = mc->staticData().data_size;
+  const auto entity_offset = chunk_offset + entity_index_in_chunk*data_stride;
 
-  const auto component_data = chunk->arrayAtOffset<u8>(chunk_offset);
+  const auto component_data = chunk->arrayAtOffset<Component>(entity_offset);
 
-  return (Component *)(component_data + entity_index_in_chunk*data_stride);
+  return component_data;
 }
 
 u32 CachedPrototype::chunkIdxForEntityId(u32 entity_id)
