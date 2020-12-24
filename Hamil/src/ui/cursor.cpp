@@ -8,6 +8,7 @@
 #include <uniforms.h>
 #include <gx/gx.h>
 #include <gx/context.h>
+#include <gx/resourcepool.h>
 #include <gx/buffer.h>
 #include <gx/vertex.h>
 #include <gx/texture.h>
@@ -29,18 +30,77 @@ public:
   };
 
   pCursorDriver() :
-    buf(gx::Buffer::Static),
-    vtx(Fmt, buf),
-    tex(gx::rg)
-  { }
+    pool(4),
+    buf(gx::BufferHandle::null()),
+    pipeline(nullptr)
+  {
+    buf_id = pool.createBuffer<gx::VertexBuffer>("bvCursor",
+        gx::Buffer::Static);
+
+    buf = pool.getBuffer(buf_id);
+
+    vtx_id = pool.create<gx::VertexArray>("aCursor",
+        Fmt, buf.get<gx::VertexBuffer>());
+
+    sampler_id = pool.create<gx::Sampler>(gx::Sampler::edgeclamp2d());
+
+    tex_id = pool.createTexture<gx::Texture2D>("t2dCursor",
+        gx::rg);
+
+    tex = pool.getTexture(tex_id);
+
+    program_id = pool.create<gx::Program>(gx::make_program(
+         "pCursor",
+         { vs_src }, { fs_src }, U.cursor
+    ));
+
+    pipeline = gx::Pipeline(&pool)
+      .add<gx::Pipeline::VertexInput>([this](auto& vi) {
+          vi.with_array(vtx_id);
+      })
+      .add<gx::Pipeline::InputAssembly>([](auto& ia) {
+          ia.with_primitive(gx::Primitive::Triangles);
+      })
+      .add<gx::Pipeline::Scissor>([](auto& sc) {
+          sc.no_test();
+      })
+      .add<gx::Pipeline::Blend>([](auto& b) {
+          b.premult_alpha_blend();
+      })
+      .add<gx::Pipeline::Program>(program_id);
+  }
+
+  ~pCursorDriver()
+  {
+    // We have to release the handles manually as otherwise
+    //   gx::~ResourcePool() could be called before their
+    //   dtors (gx::~BufferHandle()/gx::~TextureHandle),
+    //   which would be a bug, as no external reference to a
+    //   ResourcePool's resource can exist before it's
+    //   freed
+    buf.release();
+    tex.release();
+  }
+
+  gx::ResourcePool pool;
 
   static const gx::VertexFormat Fmt;
+  gx::ResourcePool::Id buf_id = gx::ResourcePool::Invalid;
+  gx::ResourcePool::Id vtx_id = gx::ResourcePool::Invalid;
 
-  gx::VertexBuffer buf;
-  gx::VertexArray vtx;
+  gx::ResourcePool::Id sampler_id = gx::ResourcePool::Invalid;
+  gx::ResourcePool::Id tex_id     = gx::ResourcePool::Invalid;
 
-  gx::Sampler sampler;
-  gx::Texture2D tex;
+  static const char *vs_src;
+  static const char *fs_src;
+  gx::ResourcePool::Id program_id = gx::ResourcePool::Invalid;
+
+  gx::BufferHandle buf;
+  //gx::VertexArray vtx;
+
+  gx::TextureHandle tex;
+
+  gx::Pipeline pipeline;
 };
 
 struct Vertex {
@@ -101,7 +161,7 @@ struct CursorUniforms : gx::Uniforms {
   Sampler uTex;
 };
 
-static const char *vs_src = R"VTX(
+const char *pCursorDriver::vs_src = R"VTX(
 uniform mat4 uModelViewProjection;
 
 uniform sampler2D uTex;
@@ -121,7 +181,7 @@ void main() {
 }
 )VTX";
 
-static const char *fs_src = R"FRAG(
+const char *pCursorDriver::fs_src = R"FRAG(
 uniform sampler2D uTex;
 
 in VertexData {
@@ -136,16 +196,11 @@ void main() {
 )FRAG";
 
 std::unique_ptr<pCursorDriver> p;
-std::unique_ptr<gx::Program> cursor_program;
 
 const gx::VertexFormat pCursorDriver::Fmt =
   gx::VertexFormat()
     .attr(gx::Type::i16, 2, gx::VertexFormat::UnNormalized)
     .attr(gx::Type::u16, 2, gx::VertexFormat::UnNormalized);
-
-static const auto pipeline =
-  gx::Pipeline()
-    .premultAlphaBlend();
 
 static std::vector<Vertex> generate_verts(const Cursor *cursors)
 {
@@ -199,26 +254,14 @@ void CursorDriver::init()
 {
   p = std::make_unique<pCursorDriver>();
 
-  p->buf.label("bvCursor");
-  p->vtx.label("aCursor");
-
   auto vtx = generate_verts(p_cursors);
-  p->buf.init(vtx.data(), vtx.size());
-
-  p->sampler = gx::Sampler::edgeclamp2d();
+  p->buf().init(vtx.data(), vtx.size());
 
   auto tex = decode_texture(p_tex);
-  p->tex.init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::Type::u8);
-  p->tex.swizzle(gx::Red, gx::Red, gx::Red, gx::Green);
+  p->tex().init(tex.get(), 0, TextureSize.s, TextureSize.t, gx::rg, gx::Type::u8);
+  p->tex().swizzle(gx::Red, gx::Red, gx::Red, gx::Green);
 
-  p->tex.label("t2dCursor");
-
-  cursor_program = std::make_unique<gx::Program>(gx::make_program(
-    "pCursor",
-    { vs_src }, { fs_src }, U.cursor
-  ));
-
-  cursor_program->use()
+  p->pool.get<gx::Program>(p->program_id).use()
     .uniformSampler(U.cursor.uTex, pCursorDriver::TexImageUnit);
 }
 
@@ -251,14 +294,16 @@ void CursorDriver::paint()
     *xform::translate(m_pos)
     *xform::scale(1.0f);
 
-  gx::ScopedPipeline sp(pipeline);
+  gx::ScopedPipeline sp(p->pipeline);
+
+  auto& vtx = p->pool.get<gx::VertexArray>(p->vtx_id);
 
   gx::GLContext::current().texImageUnit(pCursorDriver::TexImageUnit)
-      .bind(p->tex, p->sampler);
+      .bind(p->tex(), p->pool.get<gx::Sampler>(p->sampler_id));
 
-  cursor_program->use()
+  p->pool.get<gx::Program>(p->program_id).use()
     .uniformMatrix4x4(U.cursor.uModelViewProjection, modelviewprojection)
-    .draw(prim, p->vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);
+    .draw(prim, vtx, m_type*pCursorDriver::NumCursorVerts, pCursorDriver::NumCursorVerts);
 }
 
 void CursorDriver::type(Type type)

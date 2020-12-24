@@ -26,7 +26,7 @@ namespace gx {
 //   can become invalid when it is exceeded
 class ResourcePool {
 public:
-  using Id = ::u32;
+  using Id = u32;
 
   enum : Id {
     Invalid = ~0u,

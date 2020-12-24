@@ -9,6 +9,10 @@ namespace hm {
 
 // TODO: temporary
 struct Material : public Component {
+  using ConstructorParamPack = std::tuple<
+    u32 /* entity */
+  >;
+
   Material(u32 entity);
 
   static Tag tag() { return "Material"; }

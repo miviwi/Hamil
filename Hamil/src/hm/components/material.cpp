@@ -3,7 +3,7 @@
 namespace hm {
 
 Material::Material(u32 entity) :
-  Component(entity)
+  Component()
 {
 }
 

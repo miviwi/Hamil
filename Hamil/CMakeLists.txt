@@ -77,8 +77,13 @@ target_compile_options (Hamil PUBLIC
   -Wno-write-strings        # gcc
   -Wno-address-of-packed-member
 
+#  -fsanitize=address
+
   -g
 )
+#target_link_options (Hamil PUBLIC
+#  -fsanitize=address
+#)
 
 #target_compile_definitions (Hamil PUBLIC
 #  NDEBUG

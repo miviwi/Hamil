@@ -4,6 +4,8 @@
 
 #include <util/ref.h>
 
+#include <utility>
+
 namespace gx {
 
 class Fence : public Ref {
@@ -50,7 +52,8 @@ public:
   void label(const char *lbl);
 
 private:
-  void /* GLsync */ *m;
+  using FenceHandle = void /* GLsync */ *;
+  FenceHandle m;
 
 #if !defined(NDEBUG)
   bool m_waited = true;

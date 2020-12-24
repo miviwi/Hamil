@@ -4,10 +4,14 @@
 
 #include <math/geometry.h>
 
+#include <tuple>
+
 namespace hm {
 
 // TODO: temporary
 struct Light : public Component {
+  using ConstructorParamPack = std::tuple<u32>;
+
   Light(u32 entity);
 
   static Tag tag() { return "Light"; }

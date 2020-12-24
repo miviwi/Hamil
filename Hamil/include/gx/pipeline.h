@@ -4,29 +4,25 @@
 
 #include <math/geometry.h>
 
+#include <type_traits>
 #include <array>
 #include <variant>
+#include <optional>
+#include <algorithm>
+#include <utility>
 
 namespace gx {
 
-// Forward declaration
+// Forward declarations
 class Program;
+class ResourcePool;
 
 class Pipeline {
 public:
-  enum FrontFace {
-    Clockwise = GL_CW,
-    CounterClockwise = GL_CCW,
-  };
+  using ResourceId = u32;   // Must match ResourcePool::Id
 
-  enum CullMode {
-    Front = GL_FRONT,
-    Back = GL_BACK,
-    FrontAndBack = GL_FRONT_AND_BACK,
-  };
-
-  enum StateParam : uint32_t {
-    CullNone,
+  enum StateParam : u32 {
+    CullNone = 0,
     CullFront = (1<<0), CullBack = (1<<1), CullFrontAndBack = CullFront|CullBack,
 
     FrontFaceCCW = 0, FrontFaceCW = 1,
@@ -38,6 +34,9 @@ public:
     CompareFuncLess = 4, CompareFuncLessEqual = 5,
     CompareFuncGreater = 6, CompareFuncGreaterEqual = 7,
 
+    BlendFuncAdd = 0, BlendFuncSub = 1,
+    BlendFuncMin = 2, BlendFuncMax = 3,
+
     Factor0 = 0, Factor1 = 1, 
     FactorSrcColor = 2, Factor1MinusSrcColor = 3,
     FactorDstColor = 4, Factor1MinusDstColor = 5,
@@ -48,35 +47,42 @@ public:
     FactorSrcAlpha_Saturate = 14,
   };
 
-  struct VertexInput {
-    GLuint array;
+  struct RawConfigStruct {
+    // 4 u32's of space at most allocated to one StateStruct variant
+    u8 raw[4 * sizeof(u32)];
+  };
+
+  struct /*alignas(sizeof(RawConfigStruct))*/ VertexInput {
+    ResourceId array = ~0u;
     Type indices_type = Type::Invalid;
 
-    auto with_array(GLuint array_) -> VertexInput&
+    auto with_array(ResourceId array_) -> VertexInput&
     {
       array = array_;
 
       return *this;
     }
 
-    auto with_indexed_array(GLuint array_, Type inds_type) -> VertexInput&
+    auto with_indexed_array(ResourceId array_, Type inds_type) -> VertexInput&
     {
       array = array_;
       indices_type = inds_type;
 
       return *this;
     }
+
+    bool isIndexed() const { return indices_type != Type::Invalid; }
   };
 
-  struct InputAssembly {
-    u16 /* GLPrimitive  */ primitive;
+  struct /*alignas(sizeof(RawConfigStruct))*/ InputAssembly {
+    Primitive primitive = gx::Primitive::Invalid;
 
-    u16 primitive_restart = false;
-    u32 restart_index;
+    u32 primitive_restart = false;
+    u32 restart_index = 0;
 
     auto with_primitive(Primitive prim) -> InputAssembly&
     {
-      primitive = (u16)prim;
+      primitive = prim;
 
       return *this;
     }
@@ -90,8 +96,8 @@ public:
     }
   };
 
-  struct Viewport {
-    u16 x, y, w, h;
+  struct /*alignas(sizeof(RawConfigStruct))*/ Viewport {
+    u16 x = 0, y = 0, w = 0, h = 0;
 
     Viewport(u16 w_, u16 h_) :
       x(0), y(0), w(w_), h(h_)
@@ -101,9 +107,9 @@ public:
     { }
   };
 
-  struct Scissor {
+  struct /*alignas(sizeof(RawConfigStruct))*/ Scissor {
     u32 scissor = false;
-    u16 x, y, w, h;
+    i16 x = 0, y = 0, w = 0, h = 0;
 
     auto no_test() -> Scissor&
     {
@@ -112,7 +118,7 @@ public:
       return *this;
     }
 
-    auto with_test(u16 x_, u16 y_, u16 w_, u16 h_) -> Scissor&
+    auto with_test(i16 x_, i16 y_, i16 w_, i16 h_) -> Scissor&
     {
       scissor = true;
       x = x_;
@@ -122,12 +128,24 @@ public:
 
       return *this;
     }
+
+    auto with_test(ivec4 sc) -> Scissor&
+    {
+      return with_test(sc.x, sc.y, sc.z, sc.w);
+    }
   };
 
-  struct Rasterizer {
+  struct /*alignas(sizeof(RawConfigStruct))*/ Rasterizer {
     u32 cull_mode : 2;
     u32 front_face : 1;
     u32 polygon_mode : 2;
+
+    Rasterizer()
+    {
+      cull_mode = CullNone;
+      front_face = FrontFaceCCW;
+      polygon_mode = PolygonModeFilled;
+    }
 
     auto no_cull_face(u32 poly_mode = PolygonModeFilled) -> Rasterizer&
     {
@@ -151,9 +169,15 @@ public:
   };
 
   // TODO: stencil test parameters
-  struct DepthStencil {
+  struct /*alignas(sizeof(RawConfigStruct))*/ DepthStencil {
     u32 depth_test : 1;
     u32 depth_func : 3;
+
+    DepthStencil()
+    {
+      depth_test = false;
+      depth_func = CompareFuncNever;
+    }
 
     auto no_depth_test() -> DepthStencil&
     {
@@ -171,10 +195,19 @@ public:
     }
   };
 
-  struct Blend {
+  struct /*alignas(sizeof(RawConfigStruct))*/ Blend {
     u32 blend : 1;
+    u32 func : 2;
     u32 src_factor : 4;
     u32 dst_factor : 4;
+
+    Blend()
+    {
+      blend = false;
+      func = BlendFuncAdd;
+      src_factor = Factor1;
+      dst_factor = Factor0;
+    }
 
     auto no_blend() -> Blend&
     {
@@ -186,27 +219,60 @@ public:
     auto alpha_blend() -> Blend&
     {
       blend = true;
+
+      func = BlendFuncAdd;
       src_factor = FactorSrcAlpha;
+      dst_factor = Factor1MinusSrcAlpha;
+
+      return *this;
+    }
+
+    auto premult_alpha_blend() -> Blend&
+    {
+      blend = true;
+
+      func = BlendFuncAdd;
+      src_factor = Factor1;
       dst_factor = Factor1MinusSrcAlpha;
 
       return *this;
     }
   };
 
-  struct Program {
-    Program *p;
+  struct /*alignas(sizeof(RawConfigStruct))*/ ClearColor {
+    float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
 
-    auto use(Program& program) -> Program&
-    {
-      p = &program;
+    ClearColor(float r_, float g_, float b_) :
+      r(r_), g(g_), b(b_), a(1.0f)
+    { }
 
-      return *this;
-    }
+    ClearColor(float r_, float g_, float b_, float a_) :
+      r(r_), g(g_), b(b_), a(a_)
+    { }
+
+    ClearColor(const vec4& c) :
+      ClearColor(c.r, c.g, c.b, c.a)
+    { }
   };
 
-  struct RawConfigStruct {
-    // 4 u32's of space at most allocated to one StateStruct variant
-    u8 raw[4 * sizeof(u32)];
+  struct /*alignas(sizeof(RawConfigStruct))*/ ClearDepth {
+    float z = 1.0f;
+
+    ClearDepth(float z_) : z(z_) { }
+
+    ClearDepth() = default;
+  };
+
+  struct /*alignas(sizeof(RawConfigStruct))*/ SeamlessCubemap {
+    u32 seamless = false;
+
+    SeamlessCubemap(bool seamless_) : seamless(seamless_) { }
+  };
+
+  struct /*alignas(sizeof(RawConfigStruct))*/ Program {
+    ResourceId /* gx::Program */ id = ~0u;
+
+    Program(ResourceId id_) : id(id_) { }
   };
 
   using ConfigStruct = std::variant<
@@ -214,6 +280,8 @@ public:
 
     VertexInput, InputAssembly, Viewport, Scissor,
     Rasterizer, DepthStencil, Blend,
+    ClearColor, ClearDepth,
+    SeamlessCubemap,
     Program,
 
     RawConfigStruct
@@ -221,71 +289,150 @@ public:
 
   static Pipeline current();
 
-  Pipeline();
+  Pipeline(ResourcePool *pool);
+
+  // Add a ConfigStruct to the configuration of this Pipeline
+  //  - When the first (and only) argument is a callable which matches
+  //    the signature void(Config&) it will be called with the created
+  //    Config object
+  //  - Otherwise the method's arguments will be passed to the Config
+  //    object's constructor
+  //  - A given ConfigStruct object kind can be add()'ed to a Pipeline only
+  //    ONCE!
+  //
+  //   Usage:
+  //       auto pipeline = gx::Pipeline()
+  //           .add<gx::Pipeline::Viewport>(1280, 720)
+  //           .add<gx::Pipeline::InputAssembly>([](auto& ia) {
+  //             ia.with_primitive(gx::Primitive::TraingleStrip);
+  //           });
+  //
+  template <typename Config, typename FnOrArg0, typename... Args>
+  Pipeline& add(FnOrArg0 fn_or_arg0, Args... args)
+  {
+    assert(!getConfig<Config>() &&
+        "GLPipeline::add<State>() can be called for a given State only ONCE!");
+
+    if constexpr(std::is_invocable_v<FnOrArg0, Config&>) { // The first argument matches void(Config&)
+      static_assert(sizeof...(Args) == 0,
+          "GLPipeline::add<Config>() accepts EITHER a callable or"
+          "constructor arguments (both given)"
+      );
+
+      auto& config = m_configs[m_num_configs].emplace<Config>();
+
+      fn_or_arg0(config);
+    } else {      // Pass the arguments to the constructor
+      m_configs[m_num_configs].emplace<Config>(
+          std::forward<FnOrArg0>(fn_or_arg0), std::forward<Args>(args)...
+      );
+    }
+
+    m_num_configs++;
+
+    return *this;
+  }
+
+  template <typename Config, typename FnOrArg0, typename... Args>
+  Pipeline& replace(FnOrArg0 fn_or_arg0, Args... args)
+  {
+    auto pconfig = getConfig<Config>();
+
+    if(!pconfig)   // Fall back to add() if Config isn't already present
+      return add<Config>(std::forward<FnOrArg0>(fn_or_arg0), std::forward<Args>(args)...);
+
+    if constexpr(std::is_invocable_v<FnOrArg0, Config&>) {
+      static_assert(sizeof...(Args) == 0,
+          "GLPipeline::replace<Config>() accepts EITHER a callable or"
+          "constructor arguments (both given)"
+      );
+
+      *pconfig = Config();    // Reset the Config to it's default state
+      fn_or_arg0(*pconfig);
+    } else {
+      *pconfig = Config(std::forward<FnOrArg0>(fn_or_arg0), std::forward<Args>(args)...);
+    }
+
+    return *this;
+  }
+
+  Pipeline clone() const
+  {
+    return Pipeline(*this);
+  }
 
   const Pipeline& use() const;
 
-  Pipeline& viewport(int x, int y, int w, int h);
-  Pipeline& scissor(int x, int y, int w, int h);
-  Pipeline& scissor(ivec4 rect);
-  Pipeline& alphaBlend();
-  Pipeline& premultAlphaBlend();
-  Pipeline& additiveBlend();
-  Pipeline& subtractiveBlend();
-  Pipeline& multiplyBlend();
-  Pipeline& blendColor(vec4 color);
-  Pipeline& depthTest(CompareFunc func);
-  Pipeline& cull(FrontFace front, CullMode mode);
-  Pipeline& cull(CullMode mode);
-  Pipeline& clearColor(vec4 color);
-  Pipeline& clearDepth(float depth);
-  Pipeline& clearStencil(int stencil);
-  Pipeline& clear(vec4 color, float depth);
-  Pipeline& wireframe();
-  Pipeline& primitiveRestart(unsigned index);
+  Pipeline& draw(size_t offset, size_t num);
+  Pipeline& draw(size_t num);
 
-  Pipeline& writeDepthOnly();
-  Pipeline& depthStencilMask(bool depth, uint stencil);
-  Pipeline& writeColorOnly();
-  Pipeline& colorMask(bool red, bool green, bool blue, bool alpha);
-
-  Pipeline& noScissor();
-  Pipeline& noBlend();
-  Pipeline& noDepthTest();
-  Pipeline& noCull();
-  Pipeline& filledPolys();
-
-  Pipeline& currentScissor();
-
-  Pipeline& seamlessCubemap();
-  Pipeline& noSeamlessCubemap();
-
-  bool isEnabled(unsigned what);
+  Pipeline& drawBaseVertex(size_t base, size_t offset, size_t num);
 
 private:
   using ConfigStructArray = std::array<ConfigStruct, std::variant_size_v<ConfigStruct>-2>;
   //                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  //              Don't reserve slots for the null-ConfigStruct object and StateStructRaw
+  //              Don't reserve slots for the null-ConfigStruct object and RawConfigStruct
+  //
+  // - Use a std::array instead of a std::vector to avoid dynamic memory allocations
   
   // The values MUST be arranged in accordance with the order
   //   of the StateStruct std::variant Types!
-  enum class ConfigTypeId {
+  enum class ConfigId {
     None,
 
     VertexInput, InputAssembly, Viewport, Scissor,
     Rasterizer, DepthStencil, Blend,
+    ClearColor, ClearDepth,
+    SeamlessCubemap,
     Program,
 
     RawConfigStruct,
   };
 
-  void disable(unsigned config) const;
-  void enable(unsigned config) const;
+  struct ConfigDiff {
+    std::optional<ConfigStruct> current = std::nullopt;
+    std::optional<ConfigStruct> next    = std::nullopt;
+  };
 
-  bool compare(const unsigned config) const;
+  using ConfigDiffArray = std::array<ConfigDiff, std::variant_size_v<ConfigStruct>-2>;
+  //                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  //                                             See comment below ConfigStructArray
 
-  size_t m_num_state_structs = 0;
-  ConfigStructArray m_config;
+  static size_t sizeof_config_struct(const ConfigStruct& conf);
+  static RawConfigStruct *raw_config(const ConfigStruct& conf);
+
+  // Diffs 'm_configs' with 'other' and returns the differences
+  ConfigDiffArray diff(const ConfigStructArray& other) const;
+
+  void useConfig(const ConfigStruct& current, const ConfigStruct& next) const;
+
+  void enableConfig(const ConfigStruct& config) const;
+  void disableConfig(const ConfigStruct& config) const;
+
+  template <typename Config>
+  Config *getConfig()
+  {
+    Config *state = nullptr;
+    for(size_t i = 0; i < m_num_configs; i++) {   // Iterate only the filled entries
+      auto& s = m_configs[i];
+
+      if(auto pstate = std::get_if<Config>(&s)) {
+        state = pstate;
+        break;
+      }
+    }
+
+    return state;
+  }
+
+  ResourcePool *m_pool = nullptr;
+
+  size_t m_num_configs = 0;   // Tracks how many Configs have been add()'ed to this
+                              //   Pipeline so far (std::array has static size so
+                              //   we must keep this number ourselves so it can be
+                              //   used instead of a std::vector)
+
+  ConfigStructArray m_configs;  // Initialized to { std::monostate, ... } in the ctor
 };
 
 class ScopedPipeline {
@@ -294,7 +441,7 @@ public:
   ~ScopedPipeline();
 
 private:
-  Pipeline m;
+  Pipeline m_previous;
 };
 
 }

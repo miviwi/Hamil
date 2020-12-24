@@ -11,7 +11,12 @@ namespace hm {
 
 bool IComponentStore::compare_component(u32 id, Component *component)
 {
+  STUB();
+
+  /*
   return id == component->entity().id();
+  */
+  return false;
 }
 
 void IComponentStore::lock()
@@ -100,7 +105,10 @@ bool IComponentStore::component_valid(const Component& component)
 
 void IComponentStore::reap_component(Component *component)
 {
+  STUB();
+  /*
   component->m_entity = Entity();
+  */
 }
 
 template <typename Tuple>

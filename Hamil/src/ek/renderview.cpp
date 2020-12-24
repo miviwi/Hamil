@@ -409,11 +409,20 @@ gx::ResourcePool& RenderView::pool()
 
 gx::Pipeline RenderView::createPipeline()
 {
-  auto pipeline = gx::Pipeline()
-    .viewport(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w)
-    .depthTest(gx::LessEqual)
-    .cull(gx::Pipeline::Back)
-    .noBlend();
+  auto pipeline = gx::Pipeline(&renderer().pool())
+    .add<gx::Pipeline::Viewport>(m_viewport.x, m_viewport.y, m_viewport.z, m_viewport.w)
+    .add<gx::Pipeline::Scissor>([](auto& s) {
+        s.no_test();
+    })
+    .add<gx::Pipeline::Rasterizer>([](auto& r) {
+        r.with_cull_face(gx::Pipeline::CullBack);
+    })
+    .add<gx::Pipeline::DepthStencil>([](auto& ds) {
+        ds.with_depth_test(gx::Pipeline::CompareFuncLessEqual);
+    })
+    .add<gx::Pipeline::Blend>([](auto& b) {
+        b.no_blend();
+    });
 
   return pipeline;
 }
@@ -505,7 +514,8 @@ u32 RenderView::createShadowRenderPass()
   pass
     .framebuffer(framebuffer_id)
     .pipeline(pipeline
-      .clear({ 0.0f, 0.0f, 0.0f, 0.0f }, 1.0f))
+      .add<gx::Pipeline::ClearColor>(0.0f, 0.0f, 0.0f, 0.0f)
+      .add<gx::Pipeline::ClearDepth>(1.0f))
     .clearOp(gx::RenderPass::ClearColorDepth);
 
   return id;

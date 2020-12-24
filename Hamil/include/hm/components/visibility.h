@@ -7,9 +7,13 @@
 namespace hm {
 
 struct Visibility : public Component {
+  using ConstructorParamPack = std::tuple<
+    u32 /* entity */
+  >;
+
   Visibility(u32 entity);
 
-  static constexpr Tag tag() { return "visibility"; }
+  static const Tag tag() { return "visibility"; }
 
   ek::VisibilityObject *visObject();
   const ek::VisibilityObject *visObject() const;

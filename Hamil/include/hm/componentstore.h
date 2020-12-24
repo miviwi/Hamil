@@ -15,6 +15,7 @@
 
 namespace hm {
 
+// Forward declaration
 class Component;
 
 class IComponentStore {

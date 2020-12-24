@@ -9,6 +9,7 @@
 namespace gx {
 
 RenderPass::RenderPass() :
+  m_pipeline(nullptr),
   m_clear(NoClear)
 {
   for(auto& tu : m_texunits) tu = { ResourcePool::Invalid, ResourcePool::Invalid };
@@ -160,7 +161,7 @@ RenderPass::Subpass::Subpass() :
 {
 }
 
-RenderPass::Subpass& RenderPass::Subpass::pipeline(const Pipeline & pipeline)
+RenderPass::Subpass& RenderPass::Subpass::pipeline(const Pipeline& pipeline)
 {
   m_pipeline = pipeline;
 

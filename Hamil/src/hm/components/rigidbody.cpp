@@ -7,7 +7,7 @@
 namespace hm {
 
 RigidBody::RigidBody(u32 entity, bt::RigidBody rb_) :
-  Component(entity),
+  Component(),
   rb(rb_), shape(rb_.collisionShape())
 {
   rb.user(entity);

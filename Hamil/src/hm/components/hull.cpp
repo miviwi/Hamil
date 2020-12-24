@@ -3,7 +3,7 @@
 namespace hm {
 
 Hull::Hull(u32 entity) :
-  Component(entity)
+  Component()
 {
 }
 

@@ -1,5 +1,6 @@
 #include <ui/painter.h>
 #include <ui/drawable.h>
+#include <gx/resourcepool.h>
 
 #include <cassert>
 #include <cmath>
@@ -32,20 +33,40 @@ Vertex::Vertex(Position pos_, Color color_) :
 {
 }
 
-VertexPainter::VertexPainter() :
+VertexPainter::VertexPainter(gx::ResourcePool& pool) :
   m_overlay(false),
+  m_pool(pool),
+  m_vtx_id(gx::ResourcePool::Invalid),
   m_buf(nullptr), m_buf_rover(nullptr), m_buf_end(nullptr),
-  m_ind(nullptr), m_ind_rover(nullptr), m_ind_end(nullptr)
+  m_ind(nullptr), m_ind_rover(nullptr), m_ind_end(nullptr),
+  m_current_pipeline(nullptr)
 {
   m_commands.reserve(32);
 }
 
+VertexPainter& VertexPainter::useVertexArray(gx::Pipeline::ResourceId vtx_id)
+{
+  m_vtx_id = vtx_id;
+
+  return *this;
+}
+
 gx::Pipeline VertexPainter::defaultPipeline(ivec4 scissor)
 {
-  return gx::Pipeline()
-    .premultAlphaBlend()
-    .scissor(scissor)
-    .primitiveRestart(Vertex::RestartIndex);
+  return gx::Pipeline(&m_pool)
+    .add<gx::Pipeline::VertexInput>([this](auto& vi) {
+        vi.with_indexed_array(m_vtx_id, gx::Type::u16);
+    })
+    .add<gx::Pipeline::InputAssembly>([](auto& ia) {
+        ia.with_primitive(gx::Primitive::TriangleFan)
+          .with_restart_index(Vertex::RestartIndex);
+    })
+    .add<gx::Pipeline::Blend>([](auto& b) {
+        b.premult_alpha_blend();
+    })
+    .add<gx::Pipeline::Scissor>([=](auto& sc) {
+        sc.with_test(scissor);
+    });
 }
 
 VertexPainter& VertexPainter::begin(Vertex *verts, size_t num_verts, u16 *inds, size_t num_inds)
@@ -824,6 +845,8 @@ VertexPainter& VertexPainter::pipeline(const gx::Pipeline& pipeline)
 {
   appendCommand(Command::switch_pipeline(pipeline));
 
+  m_current_pipeline = pipeline.clone();
+
   return *this;
 }
 
@@ -907,13 +930,25 @@ void VertexPainter::doAppendCommand(const Command& c, std::vector<Command>& comm
 
   Command& last = commands.back();
 
+  if(c.type != Pipeline) {
+    if(last.d.p != c.d.p) {   // Primitive changed...
+      auto new_pipeline = m_current_pipeline.clone()
+          .replace<gx::Pipeline::InputAssembly>([=](auto& ia) {
+              ia.with_primitive(c.d.p)
+                .with_restart_index(Vertex::RestartIndex);
+          });
+
+      commands.push_back(Command::switch_pipeline(new_pipeline));
+    }
+  }
+
   // Try to merge command with previous if possible
   if(c.type == Primitive && last.type == c.type) {
     auto& c_data = c.d;
     auto& last_data = last.d;
 
     if(c_data.p == last_data.p) {
-      last_data.num += c_data.num + 1;
+      last_data.num += c_data.num + 1;   // Merge possible!
     } else {
       commands.push_back(c);
     }

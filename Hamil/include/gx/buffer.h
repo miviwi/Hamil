@@ -221,6 +221,11 @@ class BufferHandle : public Ref {
 public:
   ~BufferHandle();
 
+  static BufferHandle null()
+  {
+    return { nullptr };
+  }
+
   template <typename Buf, typename... Args>
   static BufferHandle create(Args... args)
   {
@@ -237,6 +242,12 @@ public:
 
   Buffer& get();
   Buffer& operator()();
+
+  // Decrements the pointed-to Buffer's reference count
+  //   and sets the pointer to it to 'nullptr'
+  //  - Equivalent to:
+  //        handle = gx::BufferHandle::null()
+  BufferHandle& release();
 
   // Needed for ResourcePool::create(const char *label, ...)
   void label(const char *lbl);

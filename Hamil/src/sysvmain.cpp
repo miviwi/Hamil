@@ -11,7 +11,10 @@
 #include <resources.h>
 
 #include <type_traits>
+#include <util/unit.h>
 #include <util/polystorage.h>
+#include <util/fixedbitvector.h>
+#include <util/abstracttuple.h>
 #include <os/os.h>
 #include <os/cpuid.h>
 #include <os/path.h>
@@ -31,7 +34,6 @@
 #include <gx/pipeline.h>
 #include <gx/resourcepool.h>
 #include <gx/commandbuffer.h>
-#include <util/unit.h>
 #include <ft/font.h>
 #include <ui/ui.h>
 #include <ui/uicommon.h>
@@ -43,6 +45,17 @@
 #include <ui/console.h>
 #include <ek/euklid.h>
 #include <ek/renderer.h>
+#include <hm/hamil.h>
+#include <hm/entity.h>
+#include <hm/component.h>
+#include <hm/componentmeta.h>
+#include <hm/prototype.h>
+#include <hm/prototypecache.h>
+#include <hm/prototypechunk.h>
+#include <hm/cachedprototype.h>
+#include <hm/chunkhandle.h>
+#include <components.h>
+#include <hm/components/all.h>
 
 #include <numeric>
 #include <vector>
@@ -61,6 +74,12 @@
 // OpenGL
 #include <GL/gl3w.h>
 
+
+namespace hm {
+
+
+}
+
 int main(int argc, char *argv[])
 {
   os::init();
@@ -69,7 +88,135 @@ int main(int argc, char *argv[])
     if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
   }
 
-#if 1
+  auto proto_cache = hm::EntityPrototypeCache();
+
+  auto my_proto = hm::EntityPrototype({
+      hm::ComponentProto::GameObject,
+      hm::ComponentProto::Transform,
+      hm::ComponentProto::Light,
+  });
+
+  auto probe_cached_proto = [&](const hm::EntityPrototype& proto) {
+    printf("hm::CachedPrototype(0x%.16lx):\n        ", proto.hash());
+
+    proto_cache.dbg_PrintPrototypeCacheStats();
+
+    auto cached_proto = proto_cache.probe(proto);
+    if(!cached_proto.has_value()) {
+      puts("    hm::EntityPrototypeCache::probe() -> std::nullopt!\n");
+      return;
+    }
+
+    printf(
+        "    .numChunks=%zu .numEntities=%zu\n",
+        cached_proto->numChunks(), cached_proto->numEntities()
+    );
+  };
+
+  //probe_cached_proto(my_proto);
+
+  proto_cache.fill(my_proto);
+  //probe_cached_proto(my_proto);
+
+  auto my_proto2 = hm::EntityPrototype({
+      hm::ComponentProto::GameObject,
+      hm::ComponentProto::Transform,
+      hm::ComponentProto::Visibility,
+      hm::ComponentProto::Hull,
+      hm::ComponentProto::Mesh,
+  });
+
+  proto_cache.fill(my_proto2);
+  probe_cached_proto(my_proto2);
+
+  auto my_proto_cached = proto_cache.probe(my_proto);
+  auto my_proto2_cached = proto_cache.probe(my_proto2);
+  assert(my_proto_cached.has_value() && my_proto2_cached.has_value() &&
+      "hm::EntityPrototypeCache hasn't been fill()'ed?");
+
+  auto my_chunk = my_proto_cached->allocChunk();
+  auto my_chunk2 = my_proto2_cached->allocChunk();
+
+  auto print_my_chunk = [&](hm::PrototypeChunkHandle& chunk) {
+    printf("    .capacity=%zu .entityBaseIndex=%u\n",
+        chunk.capacity(), chunk.entityBaseIndex()
+    );
+  };
+
+  print_my_chunk(my_chunk);
+  print_my_chunk(my_chunk2);
+
+  //probe_cached_proto(my_proto);
+
+#if 0
+  auto my_proto = hm::EntityPrototype({
+      hm::ComponentProto::GameObject,
+      hm::ComponentProto::Transform,
+      hm::ComponentProto::Light,
+  });
+
+  printf("EntityPrototype(%zu Components):\n", my_proto.numProtoComponents());
+  my_proto.dbg_PrintComponents();
+
+  puts("");
+
+  auto my_proto2 = hm::EntityPrototype({
+      hm::ComponentProto::GameObject,
+      hm::ComponentProto::Transform,
+      hm::ComponentProto::Visibility,
+      hm::ComponentProto::Hull,
+      hm::ComponentProto::Mesh,
+  });
+
+  printf("EntityPrototype(%zu Components):\n", my_proto2.numProtoComponents());
+  my_proto2.dbg_PrintComponents();
+#endif
+
+
+#if 0
+  auto rb_metaclass = hm::metaclass_from_protoid(hm::ComponentProto::RigidBody);
+
+  const auto rb_static = rb_metaclass->staticData();
+
+  printf(
+      "hm::metaclass_from_protoid(hm::RigidBody).static:\n"
+      "      .proto_id  = %s (%u)\n"
+      "      .data_size = %zu\n"
+      "      .flags     = 0x%.8x\n",
+      hm::protoid_to_str(rb_static.protoid).data(), rb_static.protoid,
+      rb_static.data_size,
+      rb_static.flags
+  );
+
+  using SomeChunkB = hm::PrototypeChunk<
+    hm::GameObject, hm::Transform, hm::RigidBody
+  >;
+
+  SomeChunkB chunk_b;
+
+  auto go_b = chunk_b.storage<hm::GameObject>();
+  auto t_b  = chunk_b.storage<hm::Transform>();
+  auto rb_b = chunk_b.storage<hm::RigidBody>();
+
+  printf(
+      "&PrototypeChunk<GameObject, Transform, RigidBody>: %p\n"
+      "        sizeof=%zu NumComponentsPerType=%zu\n"
+      "    .storage<GameObject>: %p (offset=%zu)\n"
+      "    .storage<Transform>:  %p (offset=%zu)\n"
+      "    .storage<RigidBody>:  %p (offset=%zu)\n"
+      "\n",
+    &chunk_b.m_storage,
+    sizeof(SomeChunkB), SomeChunkB::NumComponentsPerType,
+    go_b, (u8 *)go_b-(u8 *)&chunk_b.m_storage,
+    t_b, (u8 *)t_b-(u8 *)&chunk_b.m_storage,
+    rb_b, (u8 *)rb_b-(u8 *)&chunk_b.m_storage
+  );
+
+
+  return 0;
+#endif
+
+#if 0
   sysv::Window window(1280, 720);
 
   window.initInput();
@@ -113,14 +260,14 @@ int main(int argc, char *argv[])
         .content(ui::create<ui::LabelFrame>(iface)
             .caption("Hello!")
             .color(ui::white()))
-        .background(ui::blue().darkenf(0.8))
+        .background(ui::blue().darkenf(0.8).opacity(0.4))
         .geometry(ui::Geometry(vec2(200.0f, 100.0f), vec2(150.0f, 150.0f)))
         .gravity(ui::Frame::Center))
     .frame(ui::create<ui::WindowFrame>(iface)
         .title("Pineapple")
         .content(ui::create<ui::LabelFrame>(iface)
           .drawable(pineapple))
-        .background(ui::green().lightenf(0.8))
+        .background(ui::green().lightenf(0.0))
         .geometry(ui::Geometry(vec2(500.0f, 100.0f), vec2(512.0f, 512.0f))))
     .frame(ui::create<ui::ConsoleFrame>(iface, "g_console"))
     ;
@@ -129,10 +276,16 @@ int main(int argc, char *argv[])
 
   ft::Font face(ft::FontFamily("dejavu-serif"), 20);
 
-  auto pipeline = gx::Pipeline()
-      .viewport(0, 0, 1280, 720)
-      .clearColor(vec4(0.2f, 0.4f, 0.2, 1.0f))
-      .alphaBlend();
+  auto pipeline = gx::Pipeline(&pool)
+      .add<gx::Pipeline::Viewport>(0, 0, 1280, 720)
+      .add<gx::Pipeline::Scissor>([](auto& sc) {
+          sc.no_test();
+      })
+      .add<gx::Pipeline::ClearColor>(vec4(0.2f, 0.4f, 0.2, 1.0f))
+      .add<gx::Pipeline::Blend>([](auto& b) {
+          b.alpha_blend();
+      })
+  ;
 
   window.swapBuffers();
 

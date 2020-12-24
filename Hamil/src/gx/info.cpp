@@ -37,6 +37,11 @@ size_t GxInfo::maxTextureUnits() const
   return m_max_tex_image_units;
 }
 
+size_t GxInfo::maxLabelLength() const
+{
+  return m_max_label_length;
+}
+
 bool GxInfo::extension(const std::string& name) const
 {
   auto it = m_extensions.find(name);
@@ -62,6 +67,7 @@ GxInfo *GxInfo::create()
   p_glGet(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &self->m_min_uniform_buf_alignment);
   p_glGet(GL_MAX_UNIFORM_BUFFER_BINDINGS, &self->m_max_uniform_bindings);
   p_glGet(GL_MAX_TEXTURE_IMAGE_UNITS, &self->m_max_tex_image_units);
+  p_glGet(GL_MAX_LABEL_LENGTH, &self->m_max_label_length);
 
   for(int i = 0; i < num_extensions; i++) {
     // glGetStringi returns a GLubyte *

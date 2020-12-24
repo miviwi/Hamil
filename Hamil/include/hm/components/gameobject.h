@@ -39,10 +39,14 @@ private:
 };
 
 struct GameObject : public Component {
+  using ConstructorParamPack = std::tuple<
+    u32 /* entity */, const std::string& /* name */, u32 /* parent */
+  >;
+
   GameObject(u32 entity, const std::string& name_, u32 parent);
   GameObject(u32 entity, const std::string& name_);
 
-  static constexpr Tag tag() { return "GameObject"; }
+  static const Tag tag() { return "GameObject"; }
 
   const char *name() const;
 

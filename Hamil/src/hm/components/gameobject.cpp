@@ -11,7 +11,7 @@ static constexpr float CompactionThreshold = 0.3f; // More than 30% dead childre
                                                    //   compactChildren() to be invoked
 
 GameObject::GameObject(u32 entity, const std::string& name_, u32 parent_) :
-  Component(entity),
+  Component(),
   m_parent(parent_)
 {
   size_t sz = name_.size() + 1;       // Add space for '\0'

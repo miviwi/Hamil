@@ -171,6 +171,11 @@ public:
     return new Tex(std::forward<Args>(args)...);
   }
 
+  static TextureHandle null()
+  {
+    return { nullptr };
+  }
+
   template <typename T>
   T& get()
   {
@@ -181,6 +186,12 @@ public:
 
   Texture& get();
   Texture& operator()();
+
+  // Decrements the pointed-to Texture's reference count
+  //   and sets the pointer to it to 'nullptr'
+  //  - Equivalent to:
+  //        handle = gx::TextureHandle::null()
+  TextureHandle& release();
 
   // Needed for ResourcePool::create(const char *label, ...)
   void label(const char *lbl);

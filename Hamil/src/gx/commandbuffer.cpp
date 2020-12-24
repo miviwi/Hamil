@@ -322,16 +322,22 @@ void CommandBuffer::drawCommand(CommandWithExtra op, u32 base, u32 offset)
 
   switch(op_opcode(op.command)) {
   case OpDraw:
-    m_program->draw(primitive, m_pool->get<VertexArray>(array), offset, num);
+    Pipeline::current()
+        .draw(offset, num);
+    //m_program->draw(primitive, m_pool->get<VertexArray>(array), offset, num);
     return;
 
   case OpDrawIndexed:
-    m_program->draw(primitive, m_pool->get<IndexedVertexArray>(array), offset, num);
+    Pipeline::current()
+        .draw(offset, num);
+    //m_program->draw(primitive, m_pool->get<IndexedVertexArray>(array), offset, num);
     m_last_draw = array;
     break;
 
   case OpDrawBaseVertex:
-    m_program->drawBaseVertex(primitive, m_pool->get<IndexedVertexArray>(array), base, offset, num);
+    Pipeline::current()
+        .drawBaseVertex(base, offset, num);
+    //m_program->drawBaseVertex(primitive, m_pool->get<IndexedVertexArray>(array), base, offset, num);
     m_last_draw = array;
     break;
 

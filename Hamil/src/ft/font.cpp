@@ -8,6 +8,7 @@
 #include <math/util.h>
 #include <uniforms.h>
 #include <gx/context.h>
+#include <gx/resourcepool.h>
 #include <gx/pipeline.h>
 #include <gx/program.h>
 
@@ -38,29 +39,80 @@ public:
   };
 
   pFt() :
-    pool(64),
+    pool(4),
     allocator(NumBufferChars),
-    buf(gx::Buffer::Dynamic), 
-    ind(gx::Buffer::Dynamic, gx::Type::u16),
-    vtx(fmt, buf, ind)
+    buf(gx::BufferHandle::null()), ind(gx::BufferHandle::null()),
+    pipeline(nullptr)
   {
     sampler_id = pool.create<gx::Sampler>("sFt",
       gx::Sampler::edgeclamp2d_linear());
+
+    program_id = pool.create<gx::Program>(gx::make_program(
+        "pFt",
+        { vs_src }, { Font::frag_shader, fs_src }, U.font
+      ));
+
+    buf_id = pool.createBuffer<gx::VertexBuffer>("bvFt",
+        gx::Buffer::Dynamic);
+    ind_id = pool.createBuffer<gx::IndexBuffer>("biFt",
+        gx::Buffer::Dynamic, gx::Type::u16);
+
+    buf = pool.getBuffer(buf_id);
+    ind = pool.getBuffer(ind_id);
+
+    vtx_id = pool.create<gx::IndexedVertexArray>("iaFt",
+        fmt, buf.get<gx::VertexBuffer>(), ind.get<gx::IndexBuffer>());
+
+    pipeline = gx::Pipeline(&pool)
+      .add<gx::Pipeline::VertexInput>([this](auto& vi) {
+          vi.with_indexed_array(vtx_id, gx::Type::u16);
+      })
+      .add<gx::Pipeline::InputAssembly>([](auto& ia) {
+          ia.with_primitive(gx::Primitive::TriangleFan)
+            .with_restart_index(PrimitiveRestartIndex);
+      })
+      .add<gx::Pipeline::Blend>([](auto& b) {
+          b.alpha_blend();
+      })
+      .add<gx::Pipeline::Program>(program_id);
+  }
+
+  ~pFt()
+  {
+    // We have to release the handles manually as otherwise
+    //   gx::~ResourcePool() could be called before their
+    //   dtors (gx::~BufferHandle()/gx::~TextureHandle),
+    //   which would be a bug, as no external reference to a
+    //   ResourcePool's resource can exist before it's
+    //   freed
+    buf.release();
+    ind.release();
   }
 
   // Private resource pool
   gx::ResourcePool pool;
 
   // gx::Sampler::edgeclamp2d_linear()
-  gx::ResourcePool::Id sampler_id;
+  gx::ResourcePool::Id sampler_id = gx::ResourcePool::Invalid;
+
+  static const char *vs_src;
+  static const char *fs_src;
+
+  gx::ResourcePool::Id program_id = gx::ResourcePool::Invalid;
 
   // Manages space for vertices and indices in 'vtx'
   FreeListAllocator allocator;
 
   static const gx::VertexFormat fmt;
-  gx::VertexBuffer buf;
-  gx::IndexBuffer ind;
-  gx::IndexedVertexArray vtx;
+  gx::ResourcePool::Id buf_id = gx::ResourcePool::Invalid;
+  gx::ResourcePool::Id ind_id = gx::ResourcePool::Invalid;
+  gx::ResourcePool::Id vtx_id = gx::ResourcePool::Invalid;
+
+  gx::BufferHandle buf;
+  gx::BufferHandle ind;
+  //gx::IndexedVertexArray vtx;
+
+  gx::Pipeline pipeline;
 };
 
 class pFace {
@@ -123,7 +175,7 @@ struct Vertex {
 
 FT_Library ft;
 
-static const char *vs_src = R"VTX(
+const char *pFt::vs_src = R"VTX(
 
 uniform sampler2D uAtlas;
 uniform mat4 uModelViewProjection;
@@ -158,7 +210,7 @@ vec4 sampleFontAtlas(in sampler2D atlas, vec2 uv)
 
 )FRAG";
 
-static const char *fs_src = R"FRAG(
+const char *pFt::fs_src = R"FRAG(
 
 uniform sampler2D uAtlas;
 uniform vec4 uColor;
@@ -178,18 +230,11 @@ void main() {
 unsigned atlas_id = 0;
 
 std::unique_ptr<pFt> p;
-std::unique_ptr<gx::Program> font_program;
 
 const gx::VertexFormat pFt::fmt = 
   gx::VertexFormat()
     .attr(gx::Type::i16, 2, gx::VertexFormat::UnNormalized)
     .attr(gx::Type::u16, 2, gx::VertexFormat::UnNormalized);
-
-const static auto pipeline =
-  gx::Pipeline()
-    .currentScissor()
-    .alphaBlend()
-    .primitiveRestart(PrimitiveRestartIndex);
 
 void init()
 {
@@ -198,20 +243,10 @@ void init()
 
   p = std::make_unique<pFt>();
 
-  p->buf.label("bvFt");
-  p->ind.label("biFt");
+  p->buf().init(sizeof(Vertex)*4, pFt::NumBufferChars);
+  p->ind().init(sizeof(u16)*6, pFt::NumBufferChars);
 
-  p->vtx.label("iaFt");
-
-  p->buf.init(sizeof(Vertex)*4, pFt::NumBufferChars);
-  p->ind.init(sizeof(u16)*6, pFt::NumBufferChars);
-
-  font_program = std::make_unique<gx::Program>(gx::make_program(
-    "pFt",
-    { vs_src }, { Font::frag_shader, fs_src }, U.font
-  ));
-
-  font_program->use()
+  p->pool.get<gx::Program>(p->program_id).use()
     .uniformSampler(U.font.uAtlas, TexImageUnit);
 }
 
@@ -223,7 +258,6 @@ void finalize()
   ft = nullptr;
 
   p.reset();
-  font_program.reset();
 }
 
 Font::Font(const FontFamily& family, unsigned height, gx::ResourcePool *pool) :
@@ -306,8 +340,8 @@ String Font::string(const char *str, size_t length) const
   s->allocated = length;
   s->base = ptr*NumCharVerts; s->offset = ptr*NumCharIndices;
 
-  p->buf.upload(vtx.data(), ptr*NumCharVerts, vtx.size());
-  p->ind.upload(inds.data(), ptr*NumCharIndices, inds.size());
+  p->buf().upload(vtx.data(), ptr*NumCharVerts, vtx.size());
+  p->ind().upload(inds.data(), ptr*NumCharIndices, inds.size());
 
   return s;
 }
@@ -476,15 +510,17 @@ void Font::draw(const String& str, vec2 pos, vec4 color) const
   mat4 mvp = xform::ortho(0.0f, 0.0f, 720.0f, 1280.0f, 0.0f, 1.0f)
     *xform::translate(floor(pos.x), floor(pos.y), 0.0f);
 
-  gx::ScopedPipeline sp(pipeline);
+  auto& vtx = p->pool.get<gx::IndexedVertexArray>(p->vtx_id);
+
+  gx::ScopedPipeline sp(p->pipeline);
 
   bindFontAltas();
 
-  font_program->use()
+  p->pool.get<gx::Program>(p->program_id).use()
     .uniformMatrix4x4(U.font.uModelViewProjection, mvp)
     .uniformVector4(U.font.uColor, color)
-    .drawBaseVertex(Primitive::TriangleFan, p->vtx, p_str->base, p_str->offset, p_str->num);
-  p->vtx.end();
+    .drawBaseVertex(Primitive::TriangleFan, vtx, p_str->base, p_str->offset, p_str->num);
+  vtx.end();
 }
 
 void Font::draw(const std::string& str, vec2 pos, vec4 color) const

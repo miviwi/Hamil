@@ -342,6 +342,17 @@ Texture& TextureHandle::operator()()
   return get();
 }
 
+TextureHandle& TextureHandle::release()
+{
+  if(!deref()) {
+    delete m;    // We are the only handle to this Texture so we must free it
+  }
+
+  m = nullptr;
+
+  return *this;
+}
+
 void TextureHandle::label(const char *lbl)
 {
   get().label(lbl);

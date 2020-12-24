@@ -14,6 +14,11 @@
 #include <vector>
 #include <initializer_list>
 
+namespace gx {
+// Forward declaration
+class ResourcePool;
+}
+
 namespace ui {
 
 class Drawable;
@@ -89,7 +94,7 @@ public:
       gx::Pipeline pipeline;
     };
 
-    Command() : pipeline() { }
+    Command() : pipeline(nullptr) { }
 
     // To be used with Shader_TypeShape
     static Command primitive(gx::Primitive prim, size_t base, size_t offset, size_t num)
@@ -173,9 +178,11 @@ public:
   //   - Corresponds to the 'Vertex' class
   static const gx::VertexFormat Fmt;
 
-  VertexPainter();
+  VertexPainter(gx::ResourcePool& pool);
 
-  static gx::Pipeline defaultPipeline(ivec4 scissor);
+  VertexPainter& useVertexArray(gx::Pipeline::ResourceId vtx_id);
+
+  gx::Pipeline defaultPipeline(ivec4 scissor);
 
   // Must be called before painting anything after calling end()
   VertexPainter& begin(Vertex *verts, size_t num_verts, u16 *inds, size_t num_inds);
@@ -279,6 +286,10 @@ private:
   // Are we painting the overlay?
   bool m_overlay;
 
+  gx::ResourcePool& m_pool;
+
+  gx::Pipeline::ResourceId m_vtx_id;
+
   // VertexBuffer view pointer
   Vertex *m_buf;
   // Current write offset in VertexBuffer
@@ -294,6 +305,9 @@ private:
   // End of the IndexBuffer
   //   IndexBuffer size == m_ind_end-m_ind
   u16 *m_ind_end;
+
+  gx::Primitive m_last_primitive = gx::Primitive::Invalid;
+  gx::Pipeline m_current_pipeline;
 
   std::vector<Command> m_commands;
   std::vector<Command> m_overlay_commands;

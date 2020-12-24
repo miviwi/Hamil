@@ -1,13 +1,6 @@
 #pragma once
 
-#include <xmmintrin.h>
-#include <pmmintrin.h>
-#include <emmintrin.h>
-
-#if !defined(NO_AVX)
-#  include <smmintrin.h>
-#  include <immintrin.h>
-#endif
+#include <util/simd.h>
 
 #include <cassert>
 #include "intrin.h"

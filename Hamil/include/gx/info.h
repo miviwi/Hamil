@@ -54,6 +54,9 @@ public:
   //   - glGet(GL_MAX_TEXTURE_IMAGE_UNITS)
   size_t maxTextureUnits() const;
 
+  //   - glGet(GL_MAX_LABEL_LENGTH)
+  size_t maxLabelLength() const;
+
   // Returns 'true' when the extension with the name string 'name'
   //   is supported on the current system
   //  - See above for some predefined const name strings
@@ -91,6 +94,9 @@ private:
 
   // GL_MAX_TEXTURE_IMAGE_UNITS
   size_t m_max_tex_image_units;
+
+  // GL_MAX_LABEL_LENGTH
+  size_t m_max_label_length;
 
   std::unordered_set<std::string> m_extensions;
 };

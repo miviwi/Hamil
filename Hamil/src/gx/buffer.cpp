@@ -449,19 +449,32 @@ BufferHandle::BufferHandle(Buffer *buf) :
 
 BufferHandle::~BufferHandle()
 {
-  if(deref()) return;
+  if(!m || deref()) return;
 
   delete m;
 }
 
 Buffer& BufferHandle::get()
 {
+  assert(m && "attempted to BufferHandle::get() on null BufferHandle!");
+
   return *m;
 }
 
 Buffer& BufferHandle::operator()()
 {
   return get();
+}
+
+BufferHandle& BufferHandle::release()
+{
+  if(!deref()) {
+    delete m;   // We are the only handle to this Buffer so we must free it
+  }
+
+  m = nullptr;
+
+  return *this;
 }
 
 void BufferHandle::label(const char *lbl)

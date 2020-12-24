@@ -8,24 +8,36 @@
 
 #include <array>
 #include <vector>
+#include <tuple>
 
 namespace hm {
 
-struct GameObject;
-
-// Base class for Eugene/ComponentGen definitions.
+// Base class for Eugene.componentgen definitions.
 //   - Derived classes (i.e. 'Components') must be declared
 //     in the 'hm' namespace
+//   - The derived class' (Component's) layout and size
+//     determines what will be stored for each instance
+//     in PrototypeChunks and be available for Systems
+//   - Special static methods (some of which MUST be
+//     overridden!) value's will be accessible from
+//     ComponentMetaclasses and determine that for ex.
+//     a Component is a 'Tag' i.e. dataless component
 class Component {
 public:
-  using Tag = util::StaticString;
+  using Tag = ComponentTag;
 
-  Component(Entity e);
+  // If a Component has no default constructor (one without parameters)
+  //   this type must be redefined to a tuple of valid constructor args
+  using ConstructorParamPack = std::tuple<>;
 
-  static constexpr Tag tag() { return "Component"; }
-  
-  Entity entity() const;
-  GameObject& gameObject() const;
+  Component();
+
+  // - MUST be overridden by every Component (derived class)
+  //   and be globally unique!
+  static const Tag tag() { return "Component"; }
+
+  // - Override only when necessary
+  static constexpr u32 flags() { return 0; }
 
   // Only returns 'true' when it's Entity is != Invalid and alive()
   operator bool() const;
@@ -34,8 +46,6 @@ public:
 
 private:
   friend class IComponentStore;
-
-  Entity m_entity;
 };
 
 }

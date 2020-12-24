@@ -33,7 +33,7 @@ PyObject *PyInit_hpy()
     .addObject("yaml",  PyInit_yaml())
     .addObject("res",   PyInit_res())
     .addObject("bt",    PyInit_bt())
-    .addObject("hm",    PyInit_hm())
+    //.addObject("hm",    PyInit_hm())
     ;
 
   return *self;

@@ -221,6 +221,10 @@ private:
     struct {
       T data[InlineElems];
     } m_inline;
+
+    struct {
+      u8 pad_[N - sizeof(u32)];      // Pad the SmallVector's size to 'N' bytes
+    } m_pad_;                        //   accounting for the rest of the members
   };
 
   void alloc(u32 new_sz)

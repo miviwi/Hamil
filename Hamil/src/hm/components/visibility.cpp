@@ -3,7 +3,7 @@
 namespace hm {
 
 Visibility::Visibility(u32 entity) :
-  Component(entity)
+  Component()
 {
 }
 

@@ -8,9 +8,13 @@
 namespace hm {
 
 struct Mesh : public Component {
+  using ConstructorParamPack = std::tuple<
+    u32 /* entity */, mesh::Mesh
+  >;
+
   Mesh(u32 entity, const mesh::Mesh& mesh);
 
-  static constexpr Tag tag() { return "Mesh"; }
+  static const Tag tag() { return "Mesh"; }
 
   util::SmallVector<mesh::Mesh, 64> m;
 };

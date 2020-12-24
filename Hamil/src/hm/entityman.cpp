@@ -1,5 +1,6 @@
 #include <hm/entityman.h>
 #include <hm/componentman.h>
+#include <hm/prototype.h>
 #include <hm/componentref.h>
 #include <hm/components/gameobject.h>
 
@@ -11,6 +12,17 @@
 #include <vector>
 
 namespace hm {
+
+struct EntityMeta {
+  EntityPrototype proto;    // Can be used to unambiguously determine
+                            //   the Entity's PrototypeChunks
+
+  size_t offset;      // Global offset, i.e. in the range
+                      //    [0; Prototype.NumEntities]
+                      //  into the PrototypeChunks for this
+                      //  Entity counted as if all of them
+                      //  are stored sequentially in memory
+};
 
 class EntityManager : public IEntityManager {
 public:
@@ -70,11 +82,13 @@ Entity EntityManager::createEntity()
 Entity EntityManager::findEntity(const std::string& name)
 {
   Entity e = Entity::Invalid;
+  /*
   components().foreach([&](ComponentRef<GameObject> game_object) {
     if(game_object().name() == name) {
       e = game_object().entity();
     }
   });
+  */
 
   return e;
 }

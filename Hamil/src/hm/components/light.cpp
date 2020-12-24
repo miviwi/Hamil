@@ -3,7 +3,7 @@
 namespace hm {
 
 Light::Light(u32 entity) :
-  Component(entity)
+  Component()
 {
 }
 

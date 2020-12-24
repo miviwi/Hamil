@@ -98,6 +98,10 @@ void Fence::label(const char *lbl)
 
   m_label = new char[len]();  // initialize to 0
   memcpy(m_label, lbl, len);
+
+  if(m) {
+    glObjectPtrLabel(m, -1, m_label);
+  }
 #endif
 }
 

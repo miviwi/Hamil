@@ -72,7 +72,7 @@ void main() {
   if(uType != TypeText) pos *= fixed_factor; // TypeText vertices are already normalized
 
   vertex.uv = iUV;
-  vertex.color = iColor;
+  vertex.color = vec4(iColor.rgb*iColor.a, iColor.a);
 
   gl_Position = uModelViewProjection * vec4(pos, 0, 1);
 }
@@ -99,21 +99,22 @@ layout(location = 0) out vec4 color;
 vec4 text()
 {
   vec4 sample = sampleFontAtlas(uFontAtlas, fragment.uv);
+  vec4 color  = uTextColor * sample;
 
-  return uTextColor * sample;
+  return vec4(color.rgb*color.a, color.a);
 }
 
 vec4 shape()
 {
-  return fragment.color;
-}
+  return fragment.color;    // The per-vertex color was already premultiplied
+}                           //   by the vertex shader
 
 vec4 image()
 {
   ivec3 atlas_sz = textureSize(uImageAtlas, 0);
   vec4 sample    = texture(uImageAtlas, vec3(fragment.uv / atlas_sz.st, uImagePage));
 
-  return sample;
+  return vec4(sample.rgb*sample.a, sample.a);
 }
 
 void main() {
@@ -149,6 +150,7 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_program_id(gx::ResourcePool::Invalid),
   m_renderpass_id(gx::ResourcePool::Invalid),
   m_drawable(m_pool),
+  m_painter(m_pool),
   m_buf(gx::Buffer::Dynamic),
   m_ind(gx::Buffer::Dynamic, gx::Type::u16),
   m_vtx_id(gx::ResourcePool::Invalid)
@@ -183,11 +185,19 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
   m_renderpass_id = m_pool.create<gx::RenderPass>();
   m_pool.get<gx::RenderPass>(m_renderpass_id)
     .framebuffer(m_framebuffer_id)
-    .pipeline(gx::Pipeline()
-      .viewport(0, 0, FramebufferSize.s, FramebufferSize.t)
-      .noDepthTest()
-      .premultAlphaBlend()
-      .clearColor(transparent().normalize()))
+    .pipeline(gx::Pipeline(&m_pool)
+      .add<gx::Pipeline::Viewport>(0, 0, FramebufferSize.s, FramebufferSize.t)
+      .add<gx::Pipeline::Scissor>([](auto& sc) {
+          sc.no_test();
+      })
+      .add<gx::Pipeline::DepthStencil>([](auto& ds) {
+          ds.no_depth_test();
+      })
+      .add<gx::Pipeline::Blend>([](auto& b) {
+          b.premult_alpha_blend();
+      })
+      .add<gx::Pipeline::ClearColor>(transparent().normalize())
+    )
     .textures({
       { DrawableManager::TexImageUnit, { m_drawable.atlasId(), m_drawable.samplerId() } },
 
@@ -204,6 +214,8 @@ Ui::Ui(gx::ResourcePool& pool, Geometry geom, const Style& style) :
     VertexPainter::Fmt, m_buf, m_ind);
 
   m_fence_id = m_pool.create<gx::Fence>("fUiPaintDone");
+
+  m_painter.useVertexArray(m_vtx_id);
 }
 
 Ui::~Ui()
