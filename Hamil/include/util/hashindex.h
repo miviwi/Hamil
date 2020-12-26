@@ -41,6 +41,7 @@ public:
   Index next(Index idx) const;
 
   template <typename Fn>
+  [[using gnu: always_inline]]
   Index find(Key key, Fn compare)
   {
     for(auto index = first(key); index != Invalid; index = next(index)) {
