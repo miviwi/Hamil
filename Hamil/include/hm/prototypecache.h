@@ -62,6 +62,8 @@ struct CachePage {
 class EntityPrototypeCache {
 public:
   using ComponentTypeMap = EntityPrototype::ComponentTypeMap;
+
+  enum : u32 { ProtoCacheIdInvalid = ~0u };
   
   EntityPrototypeCache();
   EntityPrototypeCache(const EntityPrototypeCache& other) = delete;

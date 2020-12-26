@@ -47,6 +47,7 @@
 #include <ek/renderer.h>
 #include <hm/hamil.h>
 #include <hm/entity.h>
+#include <hm/entityman.h>
 #include <hm/component.h>
 #include <hm/componentmeta.h>
 #include <hm/prototype.h>
@@ -88,14 +89,35 @@ int main(int argc, char *argv[])
     if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
   }
 
-  auto proto_cache = hm::EntityPrototypeCache();
+  hm::init();
 
-  auto my_proto = hm::EntityPrototype({
+  auto my_proto_desc = hm::EntityPrototype({
       hm::ComponentProto::GameObject,
       hm::ComponentProto::Transform,
       hm::ComponentProto::Light,
   });
+  auto my_proto2_desc = hm::EntityPrototype({
+      hm::ComponentProto::GameObject,
+      hm::ComponentProto::Transform,
+      hm::ComponentProto::Visibility,
+      hm::ComponentProto::Hull,
+      hm::ComponentProto::Mesh,
+  });
+  
+  auto my_proto = hm::entities().prototype(my_proto_desc);
+  auto my_proto2 = hm::entities().prototype(my_proto2_desc);
 
+  printf("  my_proto[0x%.8x] .prototype=%s\n",
+      my_proto.cacheId(), util::to_str(my_proto.prototype().components()).data()
+  );
+  printf(" my_proto2[0x%.8x] .prototype=%s\n",
+      my_proto2.cacheId(), util::to_str(my_proto2.prototype().components()).data()
+  );
+
+  auto e = hm::entities().createEntity(my_proto2);
+  auto e2 = hm::entities().createEntity(my_proto2);
+
+#if 0
   auto probe_cached_proto = [&](const hm::EntityPrototype& proto) {
     //printf("hm::CachedPrototype(0x%.8x):\n        ", proto.hash());
 
@@ -111,72 +133,6 @@ int main(int argc, char *argv[])
     );
   };
 
-  //probe_cached_proto(my_proto);
-
-  proto_cache.fill(my_proto);
-  //probe_cached_proto(my_proto);
-
-  auto my_proto2 = hm::EntityPrototype({
-      hm::ComponentProto::GameObject,
-      hm::ComponentProto::Transform,
-      hm::ComponentProto::Visibility,
-      hm::ComponentProto::Hull,
-      hm::ComponentProto::Mesh,
-  });
-
-  proto_cache.fill(my_proto2);
-  probe_cached_proto(my_proto2);
-
-  auto my_proto_cached = proto_cache.probe(my_proto);
-  auto my_proto2_cached = proto_cache.probe(my_proto2);
-  assert(my_proto_cached.has_value() && my_proto2_cached.has_value() &&
-      "hm::EntityPrototypeCache hasn't been fill()'ed?");
-
-  auto my_chunk = my_proto_cached->allocChunk();
-  auto my_chunk2 = my_proto2_cached->allocChunk();
-
-  //my_proto_cached->allocChunk();
-
-  for(int i = 0; i < my_proto_cached->prototype().chunkCapacity()*1.5; i++) {
-    auto id = my_proto_cached->allocEntity();
-    if(id != hm::CachedPrototype::AllocEntityInvalidId) continue;
-
-    my_proto_cached->allocChunk();
-    my_proto_cached->allocEntity();
-  }
-
-  for(int i = 0; i < 4; i++)
-    my_proto2_cached->allocEntity();
-
-  auto print_my_chunk = [&](const hm::PrototypeChunkHandle& chunk) {
-    chunk.dbg_PrintChunkStats();
-    puts("");
-  };
-
-  print_my_chunk(my_proto_cached->chunkForEntityId(0));
-  print_my_chunk(my_proto_cached->chunkForEntityId(100));
-  print_my_chunk(my_proto2_cached->chunkForEntityId(0));
-
-  auto entity_99_go = my_proto_cached->componentDataForEntityId(
-      hm::ComponentProto::GameObject, 99
-  );
-  auto entity_99_tx = my_proto_cached->componentDataForEntityId(
-      hm::ComponentProto::Transform, 99
-  );
-
-  auto tx_data_offset = (u8 *)entity_99_tx - (u8 *)entity_99_go;
-
-  printf("entity_99_go=%p entity_99_tx=%p\n"
-      "    hm::Transform offset: %zu\n\n",
-      entity_99_go, entity_99_tx,
-      tx_data_offset
-  );
-
-  proto_cache.dbg_PrintPrototypeCacheStats();
-
-  //probe_cached_proto(my_proto);
-
-#if 0
   auto my_proto = hm::EntityPrototype({
       hm::ComponentProto::GameObject,
       hm::ComponentProto::Transform,

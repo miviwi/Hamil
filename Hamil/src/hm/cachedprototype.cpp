@@ -135,7 +135,9 @@ Component *CachedPrototype::chunkComponentDataByIndex(
 
 u32 CachedPrototype::allocEntity()
 {
-  auto wtail_chunk_idx = numChunks() - 1;   // Allocate at the last chunk - the 'tail'
+  if(numChunks() < 1) return AllocEntityInvalidId;
+
+  auto wtail_chunk_idx = numChunks() - 1;   // Allocate in the last 'tail' chunk
   assert(wtail_chunk_idx < std::numeric_limits<u32>::max());
 
   auto tail_idx = (u32)wtail_chunk_idx;  // assert() ensures no truncation...

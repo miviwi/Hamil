@@ -24,6 +24,15 @@ namespace hm {
 //   in memory,
 //  as well as to iterate over included Components in a predictable
 //   order
+// TODO: rename hm::EntityPrototype -> hm::EntityPrototypeDesc,
+//    along with hm::CachedPrototype -> hm::EntityPrototype,
+//  which better reflects their function, ex. an EntityPrototype
+//  object NEEDS a matching 'CachedPrototype' to instantiate
+//  Entities with it - an object's 'cached' state shouldn't
+//  determine it's capabilities (assuming common definitions
+//  for a cache and it's mode of operation)
+// Seeing as I like the current mental model of their relation
+//  a name change should do just fine :)
 class EntityPrototype {
 public:
   using ComponentTypeMap = util::FixedBitVector<NumComponentProtoIdBits>;

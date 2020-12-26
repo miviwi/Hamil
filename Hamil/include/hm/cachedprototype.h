@@ -15,6 +15,10 @@ struct CacheEntry;
 }
 // --------------------
 
+// TODO: rename hm::EntityPrototype -> hm::EntityPrototypeDesc,
+//    along with hm::CachedPrototype -> hm::EntityPrototype,
+//  which better reflects their function (see comment in
+//  hm/prototype.h for further thougths..)
 class CachedPrototype {
 public:
   enum : u32 { AllocEntityInvalidId = ~0u };

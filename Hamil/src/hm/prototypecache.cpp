@@ -105,8 +105,8 @@ void EntityPrototypeCache::dbg_PrintPrototypeCacheStats() const
 {
 #if !defined(NDEBUG)
   auto print_proto = [](const detail::CacheEntry& entry) {
-    printf("EntityPrototype[%s] { .numChunks=%zu } =>\n",
-        util::to_str(entry.proto.components()).data(),
+    printf("EntityPrototype[%s] { .cache_id=0x%.8x, .numChunks=%zu } =>\n",
+        util::to_str(entry.proto.components()).data(), entry.cache_id,
         entry.numChunks()
     );
 
