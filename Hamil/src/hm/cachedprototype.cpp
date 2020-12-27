@@ -158,7 +158,7 @@ u32 CachedPrototype::allocEntity()
   return entity_id;
 }
 
-PrototypeChunkHandle CachedPrototype::chunkForEntityId(u32 entity_id)
+PrototypeChunkHandle CachedPrototype::chunkForEntityAllocId(u32 entity_id)
 {
   auto chunk_idx = chunkIdxForEntityId(entity_id);
 

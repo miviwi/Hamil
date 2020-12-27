@@ -9,7 +9,6 @@
 #include <math/brdf.h>
 #include <math/ltc.h>
 #include <hm/component.h>
-#include <hm/componentman.h>
 #include <hm/components/gameobject.h>
 #include <hm/components/transform.h>
 #include <hm/components/mesh.h>
@@ -584,7 +583,7 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   auto frustum = view.constructFrustum();
 
   // Make the Components immutable
-  hm::components().lock();
+  //hm::components().lock();
 
   // Finish setting up the RenderView
   view.visibility()
@@ -596,7 +595,7 @@ Renderer::ObjectVector Renderer::doExtractForView(hm::Entity scene, RenderView& 
   });
 
   // Done reading components
-  hm::components().unlock();
+  //hm::components().unlock();
 
   if(!view.wantsOcclusionCulling()) return objects;
 

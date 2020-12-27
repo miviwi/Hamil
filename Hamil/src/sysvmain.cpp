@@ -114,6 +114,8 @@ int main(int argc, char *argv[])
       my_proto2.cacheId(), util::to_str(my_proto2.prototype().components()).data()
   );
 
+  auto ee = hm::entities().createEntity(my_proto);
+
   auto e = hm::entities().createEntity(my_proto2);
   auto e2 = hm::entities().createEntity(my_proto2);
 

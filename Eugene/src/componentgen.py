@@ -131,7 +131,6 @@ def main(db, args):
 
 #include <hm/hamil.h>
 #include <hm/componentmeta.h>
-#include <hm/componentstore.h>
 #include <util/staticstring.h>
 
 #include <string>
@@ -294,15 +293,6 @@ static_assert(
             write_metaclass_from_type_func_spec(header, component=component)
 
         header.write("""
-class ComponentStore : public ComponentStoreBase<""")
-
-        for i, component in enumerate(components):
-            header.write(f"\n{' '*4}{component}")
-
-            if i+1 < len(components): header.write(',')
-
-        header.write("""
-> { };
 
 ComponentTag tag_from_string(const std::string& tag);
 ComponentTag tag_from_protoid(ComponentProtoId protoid);

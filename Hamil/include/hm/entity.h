@@ -1,7 +1,6 @@
 #pragma once
 
 #include <hm/hamil.h>
-#include <hm/componentman.h>
 #include <hm/componentref.h>
 
 #include <utility>
@@ -40,19 +39,18 @@ public:
   template <typename T>
   ComponentRef<T> component()
   {
-    return components().getComponentById<T>(id());
+    return {nullptr};
   }
 
   template <typename T, typename... Args>
   ComponentRef<T> addComponent(Args&&... args)
   {
-    return components().createComponent<T>(id(), std::forward<Args>(args)...);
+    return {nullptr};
   }
 
   template <typename T>
   void removeComponent()
   {
-    components().removeComponent<T>(id());
   }
 
   GameObject& gameObject();

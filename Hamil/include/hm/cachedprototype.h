@@ -73,7 +73,7 @@ public:
   //   'entity_id' is stored, in particular stored under the index =>
   //           entity_id - chunk.entityBaseIndex()
   //    where 'chunk' is the handle returned by this method
-  PrototypeChunkHandle chunkForEntityId(u32 entity_id);
+  PrototypeChunkHandle chunkForEntityAllocId(u32 alloc_id);
 
   // Returns a pointer to data for Component denoted by 'component'
   //   owned by entity under allocation-id 'id'

@@ -2,7 +2,6 @@
 
 #include <hm/hamil.h>
 #include <hm/entity.h>
-#include <hm/componentman.h>
 
 #include <memory>
 #include <string>
@@ -12,7 +11,6 @@ namespace hm {
 // Forward declarations
 class EntityPrototype;
 class CachedPrototype;
-class IComponentManager;
 
 class IEntityManager {
 public:
@@ -38,6 +36,6 @@ public:
   virtual bool alive(EntityId id) = 0;
 };
 
-IEntityManager::Ptr create_entity_manager(IComponentManager::Ptr component_man);
+IEntityManager::Ptr create_entity_manager();
 
 }

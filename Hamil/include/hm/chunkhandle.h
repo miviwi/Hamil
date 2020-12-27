@@ -50,6 +50,8 @@ public:
   //   - See PrototypeChunkHeader::base_offset description above
   u32 entityBaseIndex() const { return m_header.base_offset; }
 
+  u32 chunkIndexByPrototype() const { return m_header.base_offset / m_header.capacity; }
+
   // Returns the maximum number of entities which can be stored
   //   in PrototypeChunks of this underlying type (given a concrete
   //   PrototypeChunk<Components...> and another with matching
