@@ -14,7 +14,8 @@ class UnknownPrototypeChunk;
 //   allow an AoS type layout for the chunks (i.e.
 //   in another array beside the one with actual data
 //   instead of  intreleaved)
-//  TODO: does this boost perf? (or at leat not harm it)
+//  TODO: does this boost perf? (or make no difference
+//        in the worst case)
 struct PrototypeChunkHeader {
 #if !defined(NDEBUG)
   const EntityPrototype *dbg_proto;

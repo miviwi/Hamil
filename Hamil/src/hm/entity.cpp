@@ -31,12 +31,13 @@ bool Entity::operator!=(const Entity& other) const
 
 bool Entity::alive() const
 {
-  return entities().alive(id());
+  //return entities().alive(id());
+  return false;
 }
 
 void Entity::destroy()
 {
-  entities().destroyEntity(id());
+  //entities().destroyEntity(id());
 }
 
 GameObject& Entity::gameObject()

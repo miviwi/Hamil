@@ -1,36 +1,29 @@
 #include <hm/hamil.h>
-#include <hm/entity.h>
-#include <hm/entityman.h>
-#include <hm/component.h>
-
-#include <hm/components/all.h>
+#include <hm/world.h>
 
 #include <util/format.h>
 
+#include <cassert>
+
 namespace hm {
 
-IEntityManager::Ptr p_entity_man;
+World::Ptr p_default_world;
 
 void init()
 {
-  p_entity_man = create_entity_manager();
+  p_default_world.reset(World::alloc());
 }
 
 void finalize()
 {
-  p_entity_man.reset();
+  p_default_world.reset();
 }
 
-IComponentManager& components()
+World& world()
 {
-  STUB();
+  assert(p_default_world && "hm::world() called without hm::init()!");
 
-  return *(IComponentManager *)nullptr;
-}
-
-IEntityManager& entities()
-{
-  return *p_entity_man;
+  return *p_default_world;
 }
 
 void frame()

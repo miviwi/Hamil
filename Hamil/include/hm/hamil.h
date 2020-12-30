@@ -9,8 +9,7 @@ namespace hm {
 // Forward declarations
 struct ComponentProto;
 
-class IComponentManager;
-class IEntityManager;
+class World;
 // --------------------
 
 // Type wide enough to store any ComponentProto::Id bit index
@@ -28,9 +27,15 @@ static constexpr unsigned NumComponentProtoIdBits = 128;
 void init();
 void finalize();
 
-IComponentManager& components();
-IEntityManager& entities();
+// Returns a reference to a freshly-allocated World, allocated during hm::init()
+//   - This World had ONLY alloc() called and NOT createEmpty() (or another
+//     method to initialize it's internal structures).
+//   XXX: This gives the flexibility to pick an initialization method depending
+//      on context (ex. from serialized data when loading a save file)
+World& world();
 
+// TODO: was this intended to do anything..?
+//   get rid of it if not :)
 void frame();
 
 }

@@ -58,6 +58,8 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/hm/prototypechunk.cpp"
   "${SrcDir}/hm/cachedprototype.cpp"
   "${SrcDir}/hm/chunkhandle.cpp"
+  "${SrcDir}/hm/chunkman.cpp"
+  "${SrcDir}/hm/world.cpp"
   "${SrcDir}/hm/components/gameobject.cpp"
   "${SrcDir}/hm/components/hull.cpp"
   "${SrcDir}/hm/components/light.cpp"

@@ -3,6 +3,7 @@
 #include <hm/prototypecache.h>
 #include <hm/cachedprototype.h>
 #include <hm/prototypechunk.h>
+#include <hm/chunkman.h>
 #include <hm/componentref.h>
 #include <hm/components/gameobject.h>
 
@@ -93,6 +94,8 @@ public:
 
   virtual bool alive(EntityId id) final;
 
+  virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) final;
+
 private:
   EntityId newId();
 
@@ -124,6 +127,8 @@ private:
   EntityId entityIdByProtoAndChunkRelOffset(const CachedPrototype& proto, u32 off);
 
   util::MaxLength32BitLFSR m_next_id;
+
+  ChunkManager *m_chunk_man = nullptr;
 
   EntityPrototypeCache m_proto_cache;
 
@@ -196,6 +201,8 @@ CachedPrototype EntityManager::prototype(const EntityPrototype& proto)
 
 Entity EntityManager::createEntity(CachedPrototype proto)
 {
+  assert(m_chunk_man && "createEntity() called before a ChunkManager was injected!");
+
   auto id = newId();
 
   // Crude way to check if 'proto' is owned by this EntityManager
@@ -208,7 +215,7 @@ Entity EntityManager::createEntity(CachedPrototype proto)
   auto alloc_id = proto.allocEntity();
   if(alloc_id == CachedPrototype::AllocEntityInvalidId) {
     // No more space in the current chunk - alloc a fresh one and retry
-    chunk = proto.allocChunk();
+    chunk = proto.allocChunk(m_chunk_man);
 
     alloc_id = proto.allocEntity();   // Retry with fresh chunk...
   }
@@ -337,6 +344,13 @@ bool EntityManager::alive(EntityId id)
   return meta.alloc_id != CachedPrototype::AllocEntityInvalidId;
 }
 
+IEntityManager& EntityManager::injectChunkManager(ChunkManager *chunk_man)
+{
+  m_chunk_man = chunk_man;
+
+  return *this;
+}
+
 EntityId EntityManager::newId()
 {
   return m_next_id.next();
@@ -346,7 +360,7 @@ u32 EntityManager::entityMetaIdxById(EntityId id)
 {
   // XXX: Confirm from disassembly that the loop from find() gets inlined
   //   along with the 'compare' callback invocations inside it,
-  //  otherwise rewrite this manually...
+  //  otherwise do it 'by hand'...
   return m_entities_hash.find(id,
       [this](EntityId id, u32 index) -> bool { return m_entities_meta[index].id == id; }
   );

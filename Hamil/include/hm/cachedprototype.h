@@ -9,6 +9,7 @@ class Component;
 class PrototypeChunkHandle;
 class EntityPrototype;
 class EntityPrototypeCache;
+class ChunkManager;
 
 namespace detail {
 struct CacheEntry;
@@ -46,7 +47,7 @@ public:
   //  - 'idx' MUST be < numChunks()!
   PrototypeChunkHandle chunkByIndex(size_t idx);
 
-  PrototypeChunkHandle allocChunk();
+  PrototypeChunkHandle allocChunk(ChunkManager *chunk_man);
 
   // Returns a pointer to the array of Component data denoted by 'component'
   //   stored in the chunk retrieved by chunkByIndex(idx) downcast to Component[]

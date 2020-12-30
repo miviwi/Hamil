@@ -2,6 +2,7 @@
 
 #include <common.h>
 #include <util/ref.h>
+#include <util/unit.h>
 
 #include <new>
 #include <memory>
@@ -24,6 +25,13 @@ struct Allocator {
 //   with PIMPL data members. The efficiency is achieved
 //   by inlining the "PIMPL" data into the class so that
 //   only one allocation is necessary.
+//  - Classes that don't inherit from a base are also possible:
+//       class MyNonDerivedClass : WithPolymorphicStorage<> {
+//         /* ... */
+//       };
+//    by inheriting from WithPolymorphicStorage, but providing
+//    an empty list of template parameters to it (internally
+//    this makes 'Unit' a base class)
 //
 // Usage:
 //   // The PIMPL data
@@ -36,18 +44,13 @@ struct Allocator {
 //
 //   class MyClass : public WithPolymorphicStorage<MyClassBase> {
 //   public:
-//     // 'MyClass' derives indirectly from 'MyClassBase'
+//     // 'MyClass' derives indirectly from 'MyClassBase' by
+//     //   inheriting from WithPolymorphicStorage
 //
 //     static MyClass *create();
 //     static void destroy(MyClass *obj);
 //
 //     virtual void doSomething() { puts("quack!"); }
-//
-//   private:
-//     MyClass() = default;     // Instances of 'MyClass' MUST be created via
-//                              //   a call to WithPolymorphicStorage::alloc(),
-//                              //   making the constructor 'private' ensures
-//                              //   that's the case
 //   };
 //
 // ------------- In some *.cpp file... -------------
@@ -57,15 +60,15 @@ struct Allocator {
 //
 //   MyClass *MyClass::create()
 //   {
-//      return WithPolymorphicStorage<MyClass, MyClassStorage>();
+//     return WithPolymorphicStorage::alloc<MyClass, MyClassStorage>();
 //   }
 //
 //   void MyClass::destroy(MyClass *obj)
 //   {
-//     WithPolymorphicStorage::destroy(MyClassStorage>(obj);
+//     WithPolymorphicStorage::destroy<MyClassStorage>(obj);
 //   }
 //
-template <typename Base, typename Allocator = polystorage_detail::Allocator>
+template <typename Base = Unit, typename Allocator = polystorage_detail::Allocator>
 class WithPolymorphicStorage : public Base {
 public:
   static constexpr bool UsesDefaultAllocator = std::is_same_v<

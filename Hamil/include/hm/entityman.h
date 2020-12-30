@@ -11,6 +11,7 @@ namespace hm {
 // Forward declarations
 class EntityPrototype;
 class CachedPrototype;
+class ChunkManager;
 
 class IEntityManager {
 public:
@@ -34,6 +35,9 @@ public:
   virtual void destroyEntity(EntityId id) = 0;
 
   virtual bool alive(EntityId id) = 0;
+
+  virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) = 0;
+
 };
 
 IEntityManager::Ptr create_entity_manager();

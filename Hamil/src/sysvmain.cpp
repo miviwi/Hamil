@@ -55,6 +55,8 @@
 #include <hm/prototypechunk.h>
 #include <hm/cachedprototype.h>
 #include <hm/chunkhandle.h>
+#include <hm/chunkman.h>
+#include <hm/world.h>
 #include <components.h>
 #include <hm/components/all.h>
 
@@ -91,6 +93,9 @@ int main(int argc, char *argv[])
 
   hm::init();
 
+  auto& world = hm::world()
+    .createEmpty();
+
   auto my_proto_desc = hm::EntityPrototype({
       hm::ComponentProto::GameObject,
       hm::ComponentProto::Transform,
@@ -103,9 +108,9 @@ int main(int argc, char *argv[])
       hm::ComponentProto::Hull,
       hm::ComponentProto::Mesh,
   });
-  
-  auto my_proto = hm::entities().prototype(my_proto_desc);
-  auto my_proto2 = hm::entities().prototype(my_proto2_desc);
+
+  auto my_proto = world.entities().prototype(my_proto_desc);
+  auto my_proto2 = world.entities().prototype(my_proto2_desc);
 
   printf("  my_proto[0x%.8x] .prototype=%s\n",
       my_proto.cacheId(), util::to_str(my_proto.prototype().components()).data()
@@ -114,10 +119,10 @@ int main(int argc, char *argv[])
       my_proto2.cacheId(), util::to_str(my_proto2.prototype().components()).data()
   );
 
-  auto ee = hm::entities().createEntity(my_proto);
+  auto ee = world.entities().createEntity(my_proto);
 
-  auto e = hm::entities().createEntity(my_proto2);
-  auto e2 = hm::entities().createEntity(my_proto2);
+  auto e = world.entities().createEntity(my_proto2);
+  auto e2 = world.entities().createEntity(my_proto2);
 
 #if 0
   auto probe_cached_proto = [&](const hm::EntityPrototype& proto) {

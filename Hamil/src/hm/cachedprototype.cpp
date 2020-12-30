@@ -2,6 +2,7 @@
 #include <hm/prototype.h>
 #include <hm/prototypecache.h>
 #include <hm/prototypechunk.h>
+#include <hm/chunkman.h>
 
 #include <components.h>
 
@@ -84,9 +85,9 @@ PrototypeChunkHandle CachedPrototype::chunkByIndex(size_t idx)
   return PrototypeChunkHandle::from_header_and_chunk(header, chunk_ptr);
 }
 
-PrototypeChunkHandle CachedPrototype::allocChunk()
+PrototypeChunkHandle CachedPrototype::allocChunk(ChunkManager *chunk_man)
 {
-  assert(m_cached &&                                         // Sanity check
+  assert(chunk_man && m_cached &&                               // Sanity check
       m_cached->headers.size() == m_cached->chunks.size());
 
   // Allocate space for a new PrototypeChunkHeader...
@@ -96,7 +97,7 @@ PrototypeChunkHandle CachedPrototype::allocChunk()
   auto header = &m_cached->headers.back();
 
   // Do the same for the PrototypeChunk itself...
-  auto chunk = UnknownPrototypeChunk::alloc();
+  auto chunk = chunk_man->allocChunk();
   m_cached->chunks.emplace(chunk);
 
   const auto& proto = m_cached->proto;
