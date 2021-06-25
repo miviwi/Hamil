@@ -7,6 +7,7 @@
 #include <utility>
 #include <algorithm>
 #include <exception>
+#include <stdexcept>
 
 namespace util {
 

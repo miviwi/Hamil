@@ -271,3 +271,8 @@ Hamil/extern/freetype2/include/freetype/config/ftoption.h
 
 __pycache__
 *.pyd
+
+# VSCode project files
+.vscode/
+**/.vscode/
+*.code-workspace

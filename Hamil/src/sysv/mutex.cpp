@@ -1,6 +1,7 @@
 #include <sysv/mutex.h>
 
 #include <cassert>
+#include <cerrno>
 
 namespace sysv {
 

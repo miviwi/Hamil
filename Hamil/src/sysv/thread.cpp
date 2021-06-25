@@ -7,6 +7,7 @@
 #include <new>
 #include <atomic>
 #include <algorithm>
+#include <string>
 
 #include <cassert>
 #include <cerrno>

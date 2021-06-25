@@ -3,6 +3,7 @@
 #include <config>
 
 #include <cassert>
+#include <cerrno>
 
 namespace sysv {
 
