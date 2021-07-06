@@ -16,7 +16,7 @@ void init()
 
 void finalize()
 {
-  p_default_world.reset();
+  World::destroy(p_default_world.release());
 }
 
 World& world()

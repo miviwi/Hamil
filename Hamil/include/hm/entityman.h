@@ -12,12 +12,23 @@ namespace hm {
 class EntityPrototype;
 class CachedPrototype;
 class ChunkManager;
+class EntityQuery;
+class EntityQueryParams;
 
 class IEntityManager {
 public:
   using Ptr = std::unique_ptr<IEntityManager>;
 
   virtual ~IEntityManager() = default;
+
+  // Stores a reference to 'chunk_man' internally, which will be used upon
+  //   future calls to createEntity(), findEntity(), destroyEntity(), ...
+  //  - The reference is a WEAK reference, which means not only is the caller
+  //    responsible for destroying the ChunkManager but also ensuring that
+  //    it's lifetime doesn't expire before the EntityManager's
+  //  - Reassigning via this method is NOT allowed as there is a lot of
+  //    internal state which gets entangled with 'chunk_man'
+  virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) = 0;
 
   // Returns a handle to an EntityPrototype (a 'CachedPrototype') which
   //   includes exactly the components specified by 'proto' i.e.
@@ -36,7 +47,7 @@ public:
 
   virtual bool alive(EntityId id) = 0;
 
-  virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) = 0;
+  virtual EntityQuery createEntityQuery(const EntityQueryParams& params) = 0;
 
 };
 

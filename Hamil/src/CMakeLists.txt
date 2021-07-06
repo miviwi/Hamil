@@ -53,6 +53,8 @@ target_sources (Hamil PUBLIC
   "${SrcDir}/hm/componentref.cpp"
   "${SrcDir}/hm/entity.cpp"
   "${SrcDir}/hm/entityman.cpp"
+  "${SrcDir}/hm/entityquery.cpp"
+  "${SrcDir}/hm/queryparams.cpp"
   "${SrcDir}/hm/prototype.cpp"
   "${SrcDir}/hm/prototypecache.cpp"
   "${SrcDir}/hm/prototypechunk.cpp"

@@ -5,7 +5,8 @@
 #include <hm/prototypechunk.h>
 #include <hm/chunkman.h>
 #include <hm/componentref.h>
-#include <hm/components/gameobject.h>
+#include <hm/entityquery.h>
+#include <hm/queryparams.h>
 
 #include <util/lfsr.h>
 #include <util/hashindex.h>
@@ -17,6 +18,7 @@
 #include <vector>
 
 #include <cassert>
+#include <components.h>
 
 namespace hm {
 
@@ -96,15 +98,17 @@ public:
 
   virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) final;
 
+  virtual EntityQuery createEntityQuery(const EntityQueryParams& params) final;
+
 private:
   EntityId newId();
 
   u32 entityMetaIdxById(EntityId id);
 
-  // Calculates 'group_id' for the specified CachedPrototype's tail chunk 
+  // Calculates 'group_id' for the specified CachedPrototype's tail chunk
   //   - proto.numChunks() MUST be > 0 (i.e. at least one chunk
   //     was allocated) before calling this method!
-  u64 groupIdForTailChunkOf(const CachedPrototype& proto) const;
+  [[nodiscard]] u64 groupIdForTailChunkOf(const CachedPrototype& proto) const;
 
   // Calculates 'group_id' of Entity with specified EntityPrototype,
   //   stored at allocation-index 'alloc_id' of the prototype
@@ -135,7 +139,7 @@ private:
   util::HashIndex m_entities_hash;
   std::vector<EntityMeta> m_entities_meta;
 
-  // EntityId -> (proto_cache_id, alloc_id) lookups are facillitated by
+  // EntityId -> (proto_cache_id, alloc_id) lookups are facilitated by
   //   maintaining a util::HashIndex where Entity ids are used as keys
   //   and are mapped into EntityMeta[] indices
   // However, it turns out that also supporting fast REVERSE lookups (so
@@ -146,7 +150,7 @@ private:
   //   will happen continually at non-trivial rates during simulation
   //   having a sub-optimal reverse EntityId lookup (such as a linear
   //   search) could cripple the whole system's performance.
-  // The obvious/naive way of keeping a 'mirror' [index]->[EntityId] 
+  // The obvious/naive way of keeping a 'mirror' [index]->[EntityId]
   //   util::HashIndex for this purpose turns out impossible, unfortunately,
   //   as this would require always storing EntityMeta data for entities
   //   grouped by prototype (need to map 'alloc_id' -> EntityMeta[index],
@@ -171,7 +175,7 @@ private:
   //   creating/destroying them etc. and per-chunk overhead to maintain
   //   the new 'group_id'->group_start_offset mapping.
   //   On the other hand - this mapping uses an order of magnitude less
-  //   memory compared to the mapping of the 'navie' way as we store
+  //   memory compared to the mapping of the 'naive' way as we store
   //   per-chunk granularity data vs. per-entity for 'naive' mapping.
   //   Significant because cache pressure/pollution is reduced.
   // XXX: This scheme increases code complexity significantly enough to warrant
@@ -346,9 +350,70 @@ bool EntityManager::alive(EntityId id)
 
 IEntityManager& EntityManager::injectChunkManager(ChunkManager *chunk_man)
 {
+  assert(!m_chunk_man &&
+      "EntityManager::injectChunkManager() can be called only ONCE for a given manager instance");
+
   m_chunk_man = chunk_man;
 
   return *this;
+}
+
+EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
+{
+  const auto& params = (const IEntityQueryParams&)params_;
+
+  auto q = EntityQuery::empty_query();
+
+  foreach_component_access([this,&params,&q](ComponentAccess access) {
+    auto [ offset, length ] = params.componentsForAccess(access);
+    if(!length) return;   // Skip empty groups
+
+    using ComponentAccessGroup = util::SmallVector<ComponentProtoId>;
+    std::array<ComponentAccessGroup, 3> access_groups = {
+        ComponentAccessGroup(),   // QueryKind::AllOf
+        ComponentAccessGroup(),   // QueryKind::AnyOf
+        ComponentAccessGroup(),   // QueryKind::NoneOf
+    };
+
+    // For each component in group...
+    for(unsigned i = 0; i < length; i++) {
+      auto component_idx = offset+i;
+      auto [ kind, component ] = params.componentByIndex(component_idx);
+
+      switch(kind) {
+      case IEntityQueryParams::AllOf:  access_groups[0].append(component); break;
+      case IEntityQueryParams::AnyOf:  access_groups[1].append(component); break;
+      case IEntityQueryParams::NoneOf: access_groups[2].append(component); break;
+      }
+    }
+
+    printf("%u => {\n"
+        "\tQueryKind::AllOf=(",
+        (unsigned)access
+    );
+    for(auto c : access_groups[0]) printf("%s, ", protoid_to_str(c).data());
+    printf(")\n");
+    printf("\tQueryKind::AnyOf=(");
+    for(auto c : access_groups[1]) printf("%s, ", protoid_to_str(c).data());
+    printf(")\n");
+    printf("\tQueryKind::NoneOf=(");
+    for(auto c : access_groups[2]) printf("%s, ", protoid_to_str(c).data());
+    printf(")\n"
+           "}\n");
+
+    q.withAccessByPtr(access,
+        { access_groups[0].data(), access_groups[0].size() },
+        { access_groups[1].data(), access_groups[1].size() },
+        { access_groups[2].data(), access_groups[2].size() }
+    );
+
+
+
+  });
+
+  //q.withReadOnly({ ComponentProto::GameObject, ComponentProto::Transform });
+
+  return q;
 }
 
 EntityId EntityManager::newId()
@@ -359,7 +424,7 @@ EntityId EntityManager::newId()
 u32 EntityManager::entityMetaIdxById(EntityId id)
 {
   // XXX: Confirm from disassembly that the loop from find() gets inlined
-  //   along with the 'compare' callback invocations inside it,
+  //  along with the 'compare' callback invocations inside it,
   //  otherwise do it 'by hand'...
   return m_entities_hash.find(id,
       [this](EntityId id, u32 index) -> bool { return m_entities_meta[index].id == id; }
@@ -418,7 +483,7 @@ EntityId EntityManager::entityIdByProtoAndAllocId(
 
   auto group_chunk = protoGroupChunkById(group_id);
   if(!group_chunk) return Entity::Invalid;
-  
+
   auto group_meta_off = group_chunk->group_entities_offset;
   auto entity_off_in_chunk = alloc_id - group_chunk->chunk_base_index;
 
@@ -440,7 +505,7 @@ EntityId EntityManager::entityIdByProtoAndChunkRelOffset(
   auto group_meta_off = group_chunk->group_entities_offset;
 
   const auto& meta = m_entities_meta.at(group_meta_off + chunk_rel_off);
-  
+
   return meta.id;
 }
 

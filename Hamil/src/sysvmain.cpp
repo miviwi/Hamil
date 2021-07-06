@@ -1,20 +1,16 @@
-#include "glcorearb.h"
-#include "gx/framebuffer.h"
-#include "res/handle.h"
-#include "res/image.h"
-#include "res/res.h"
-#include "res/texture.h"
-#include "ui/frame.h"
-#include <GL/gl.h>
 #include <common.h>
 
+// Hamil/Generated  <-  Eugene
 #include <resources.h>
+#include <components.h>
 
-#include <type_traits>
+//   util
 #include <util/unit.h>
 #include <util/polystorage.h>
 #include <util/fixedbitvector.h>
 #include <util/abstracttuple.h>
+
+//   os
 #include <os/os.h>
 #include <os/cpuid.h>
 #include <os/path.h>
@@ -23,28 +19,52 @@
 #include <os/window.h>
 #include <os/input.h>
 #include <os/file.h>
+
+//   sysv
 #include <sysv/x11.h>
-#include <cli/cli.h>
 #include <sysv/window.h>
 #include <sysv/glcontext.h>
+
+//   cli
+#include <cli/cli.h>
+
+//   sched
 #include <sched/job.h>
 #include <sched/pool.h>
+
+//   gx
 #include <gx/gx.h>
 #include <gx/info.h>
 #include <gx/pipeline.h>
 #include <gx/resourcepool.h>
 #include <gx/commandbuffer.h>
+#include <gx/framebuffer.h>
+
+//   ft
 #include <ft/font.h>
+
+//   res
+#include <res/handle.h>
+#include <res/image.h>
+#include <res/res.h>
+#include <res/texture.h>
+
+//   ui
 #include <ui/ui.h>
 #include <ui/uicommon.h>
 #include <ui/style.h>
 #include <ui/cursor.h>
+#include <ui/frame.h>
 #include <ui/layout.h>
 #include <ui/window.h>
 #include <ui/label.h>
 #include <ui/console.h>
+
+//   ek
 #include <ek/euklid.h>
 #include <ek/renderer.h>
+
+// hm
 #include <hm/hamil.h>
 #include <hm/entity.h>
 #include <hm/entityman.h>
@@ -57,31 +77,22 @@
 #include <hm/chunkhandle.h>
 #include <hm/chunkman.h>
 #include <hm/world.h>
-#include <components.h>
+#include <hm/queryparams.h>
+#include <hm/entityquery.h>
 #include <hm/components/all.h>
 
+//   libc++/STL
+#include <type_traits>
 #include <numeric>
 #include <vector>
 #include <array>
 #include <random>
 
+//   libc
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
 #include <cstdio>
-
-// SysV
-#include <unistd.h>
-#include <time.h>
-
-// OpenGL
-#include <GL/gl3w.h>
-
-
-namespace hm {
-
-
-}
 
 int main(int argc, char *argv[])
 {
@@ -91,6 +102,7 @@ int main(int argc, char *argv[])
     if(auto exit_code = cli::args(argc, argv)) exit(exit_code);
   }
 
+#if 1
   hm::init();
 
   auto& world = hm::world()
@@ -121,8 +133,12 @@ int main(int argc, char *argv[])
 
   auto ee = world.entities().createEntity(my_proto);
 
-  auto e = world.entities().createEntity(my_proto2);
-  auto e2 = world.entities().createEntity(my_proto2);
+//  auto e = world.entities().createEntity(my_proto2);
+//  auto e2 = world.entities().createEntity(my_proto2);
+
+  auto eq = world.entities().createEntityQuery(hm::EntityQueryParams::create_dbg());
+
+#endif
 
 #if 0
   auto probe_cached_proto = [&](const hm::EntityPrototype& proto) {
@@ -333,9 +349,11 @@ int main(int argc, char *argv[])
 
   gl_context.release();
   window.destroy();
-  
+
   sysv::x11_detail::x11().disconnect();
 #endif
+
+
   os::finalize();
 
   return 0;

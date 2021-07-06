@@ -176,10 +176,12 @@ if (WIN32)
 endif()
 
 #     --- YouCompleteMe compilation flag database ---
-add_custom_command (TARGET Hamil POST_BUILD
-  COMMAND
-    ${CMAKE_COMMAND} -E copy_if_different
-      "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
-  COMMENT
-    "-- Copying compile flags dump for YouCompleteMe (compile_commands.json)"
-)
+if (DUMP_COMPILE_COMMANDS)
+  add_custom_command (TARGET Hamil POST_BUILD
+    COMMAND
+      ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_BINARY_DIR}/../compile_commands.json" "${ProjectDir}/compile_commands.json"
+    COMMENT
+      "-- Copying compile flags dump for YouCompleteMe (compile_commands.json)"
+  )
+endif()
