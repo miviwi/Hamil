@@ -128,6 +128,14 @@ struct alignas(sizeof(u128)) FixedBitVector<128> {
   //   of this and other
   FixedBitVector bitAnd(const FixedBitVector& other) const;
 
+  // Returns a new FixedBitVector which is the bitwise OR
+  //   of this and other
+  FixedBitVector bitOr(const FixedBitVector& other) const;
+
+  // Returns a new FixedBitVector which is a bitwise
+  //   negation (NOT) of this vector
+  FixedBitVector bitNot() const;
+
   // Returns a new FixedBitVector shifted right logically
   //   i.e. without retaining the sign, by 'amount' bits
   FixedBitVector shiftRight(unsigned amount) const;

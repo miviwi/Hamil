@@ -11,6 +11,7 @@
 #include <array>
 #include <tuple>
 #include <memory>
+#include <functional>
 
 namespace hm {
 
@@ -22,8 +23,22 @@ enum class ComponentAccess : unsigned;
 
 class EntityQuery {
 public:
+  enum UnionOp {
+    UnionInvalid,
+    UnionAll,
+    UnionAny,
+    UnionNone,
+  };
+
   EntityQuery(const EntityQuery&) = delete;
   EntityQuery(EntityQuery&& other) = default;     // TODO: define this explicitly!
+
+  using ComponentIterFn = std::function<void(ComponentProtoId, UnionOp, ComponentAccess)>;
+
+  const EntityQuery& foreachComponent(ComponentIterFn&& fn) const;
+  const EntityQuery& foreachComponentGroupedByAccess(ComponentIterFn&& fn) const;
+
+  void dbg_PrintQueryComponents(bool group_by_access = true) const;
 
 //semi-protected:
   using EntityManagerKey = util::PasskeyFor<EntityManager>;
@@ -33,48 +48,17 @@ public:
   static EntityQuery empty_query(EntityManagerKey = {});
 
   //    --------------  EntityManager internal  -----------------
-  using ComponentTypeList = std::initializer_list<ComponentProtoId>;
   using ComponentTypeListPtr = std::tuple<const ComponentProtoId *, size_t /* num */>;
 
-  // Append a QueryConditions set allowing AccessNone to Component data 'm_conds'
-  EntityQuery& withNoAccess(
-      ComponentTypeList all, ComponentTypeList any = {}, ComponentTypeList none = {},
-      EntityManagerKey = {}
-  );
-
-  // Append a QueryConditions set allowing AccessReadOnly to Component data 'm_conds'
-  EntityQuery& withReadOnly(
-      ComponentTypeList all, ComponentTypeList any = {}, ComponentTypeList none = {},
-      EntityManagerKey = {}
-  );
-
-  // Append a QueryConditions set allowing AccessWriteOnly to Component data 'm_conds'
-  EntityQuery& withWriteOnly(
-      ComponentTypeList all, ComponentTypeList any = {}, ComponentTypeList none = {},
-      EntityManagerKey = {}
-  );
-
-  // Append a QueryConditions set allowing AccessReadWrite to Component data 'm_conds'
-  EntityQuery& withReadWrite(
-      ComponentTypeList all, ComponentTypeList any = {}, ComponentTypeList none = {},
-      EntityManagerKey = {}
-  );
-
-  EntityQuery& withAccessByPtr(
-      ComponentAccess access,
-      ComponentTypeListPtr all, ComponentTypeListPtr any, ComponentTypeListPtr none,
-      EntityManagerKey = {}
-  );
-
+  EntityQuery& allWithAccess(ComponentAccess access, ComponentTypeListPtr all, EntityManagerKey = {});
+  EntityQuery& anyWithAccess(ComponentAccess access, ComponentTypeListPtr any, EntityManagerKey = {});
+  EntityQuery& noneWithAccess(ComponentAccess access, ComponentTypeListPtr none, EntityManagerKey = {});
   //    ---------------------------------------------------------
 
 protected:
   EntityQuery() = default;
 
 private:
-  template <size_t N = 64>
-  using ComponentTypeVec = util::SmallVector<ComponentProtoId, N>;
-
   enum ConditionAccessMode {
     AccessNone,
     AccessReadOnly,
@@ -82,12 +66,8 @@ private:
     AccessReadWrite,
 
     NumAccessModes,
-  };
 
-  struct QueryConditions {
-    ComponentTypeVec<128> all;
-    ComponentTypeVec< 32> any;
-    ComponentTypeVec< 32> none;
+    AccessInvalid = -1,
   };
 
   using ComponentTypeMap = EntityPrototype::ComponentTypeMap;
@@ -96,9 +76,7 @@ private:
   EntityQuery& withConditions(
       const ComponentTypeListPtr& all, const ComponentTypeListPtr& any, const ComponentTypeListPtr& none)
   {
-    auto conds_for_access = std::addressof(std::get<AccessMode>(m_conds));
-
-    return withConditionsByAccess(all, any, none, conds_for_access);
+    return withConditionsByAccess(all, any, none, AccessMode);
   }
 
   EntityQuery& withConditionsByAccess(
@@ -106,7 +84,24 @@ private:
       ConditionAccessMode access
   );
 
-  std::array<QueryConditions, NumAccessModes> m_conds;
+  ComponentTypeMap jointComponentTypeMask() const;
+
+  static ConditionAccessMode to_access_mode(ComponentAccess access);
+  static ComponentAccess from_access_mode(ConditionAccessMode access_mode);
+
+  static ComponentProtoId find_and_clear_lsb(u64 *components);
+
+  template <typename Fn>
+  static void foreach_bit_qword(u64 components, u64 base, Fn&& fn)
+  {
+    while(components) {
+      auto next = find_and_clear_lsb(&components);
+
+      fn(base + next);
+    }
+  }
+
+  void assertComponentNotAdded(ComponentProtoId component);
 
   struct {
     ComponentTypeMap all;

@@ -238,7 +238,7 @@ Entity EntityManager::createEntity(CachedPrototype proto)
     auto group_chunk_idx = m_entity_groups.size();
 
     // Append a new PrototypeGroupChunk descriptor for
-    //   the freshly-alllocated PrototypeChunk...
+    //   the freshly-allocated PrototypeChunk...
     auto& group_chunk = m_entity_groups.emplace_back();
 
     assert(entity_groups_meta_off < std::numeric_limits<u32>::max());
@@ -252,7 +252,7 @@ Entity EntityManager::createEntity(CachedPrototype proto)
     // Finally - store it's index in group_id -> PrototypeGroupChunk util::HashIndex
     m_entity_groups_hash.add((u32)group_chunk.group_id, group_chunk_idx);
 
-    // Expand the EntityMeta array to accomadate the new chunk's capacity
+    // Expand the EntityMeta array to accommodate the new chunk's capacity
     m_entities_meta.resize(entity_groups_meta_off + chunk->capacity());
 
     entity_group_chunk = &group_chunk;
@@ -364,7 +364,7 @@ EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
 
   auto q = EntityQuery::empty_query();
 
-  foreach_component_access([this,&params,&q](ComponentAccess access) {
+  foreach_component_access([&params,&q](ComponentAccess access) {
     auto [ offset, length ] = params.componentsForAccess(access);
     if(!length) return;   // Skip empty groups
 
@@ -387,31 +387,21 @@ EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
       }
     }
 
-    printf("%u => {\n"
-        "\tQueryKind::AllOf=(",
-        (unsigned)access
-    );
-    for(auto c : access_groups[0]) printf("%s, ", protoid_to_str(c).data());
-    printf(")\n");
-    printf("\tQueryKind::AnyOf=(");
-    for(auto c : access_groups[1]) printf("%s, ", protoid_to_str(c).data());
-    printf(")\n");
-    printf("\tQueryKind::NoneOf=(");
-    for(auto c : access_groups[2]) printf("%s, ", protoid_to_str(c).data());
-    printf(")\n"
-           "}\n");
-
-    q.withAccessByPtr(access,
-        { access_groups[0].data(), access_groups[0].size() },
-        { access_groups[1].data(), access_groups[1].size() },
-        { access_groups[2].data(), access_groups[2].size() }
-    );
-
-
-
+    q.allWithAccess(access, { access_groups[0].data(), access_groups[0].size() });
+    q.anyWithAccess(access, { access_groups[1].data(), access_groups[1].size() });
+    q.noneWithAccess(access, { access_groups[2].data(), access_groups[2].size() });
   });
 
-  //q.withReadOnly({ ComponentProto::GameObject, ComponentProto::Transform });
+  q.dbg_PrintQueryComponents();
+
+  const auto aproto = EntityPrototype({
+    ComponentProto::GameObject,
+    ComponentProto::Transform,
+    ComponentProto::Hull,
+  });
+  printf("params.prototypeMatches(<\n");
+  aproto.dbg_PrintComponents();
+  printf("\t\t>)? %s\n", params.prototypeMatches(aproto) ? "yes" : "no");
 
   return q;
 }

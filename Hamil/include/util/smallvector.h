@@ -188,6 +188,9 @@ public:
   T *begin() { return data(); }
   T *end() { return data() + m_sz; }
 
+  const T *begin() const { return data(); }
+  const T *end() const { return data() + m_sz; }
+
   const T *cbegin() const { return data(); }
   const T *cend() const { return data() + m_sz; }
 
@@ -211,7 +214,7 @@ public:
 
 private:
   u32 m_sz;
-      
+
   union {
     struct {
       u32 capacity;

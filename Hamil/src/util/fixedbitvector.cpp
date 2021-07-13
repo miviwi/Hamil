@@ -50,6 +50,26 @@ FixedBitVector<128> FixedBitVector<128>::bitAnd(const FixedBitVector<128>& other
   return result;
 }
 
+FixedBitVector<128> FixedBitVector<128>::bitOr(const FixedBitVector<128>& other) const
+{
+  auto result = clone();
+
+  result.bits.hi |= other.bits.hi;
+  result.bits.lo |= other.bits.lo;
+
+  return result;
+}
+
+FixedBitVector<128> FixedBitVector<128>::bitNot() const
+{
+  auto result = clone();
+
+  result.bits.hi = ~result.bits.hi;
+  result.bits.lo = ~result.bits.lo;
+
+  return result;
+}
+
 //#if defined(NO_SSE) && defined(NO_AVX)
 
 FixedBitVector<128> FixedBitVector<128>::shiftRight(unsigned amount) const

@@ -1,4 +1,5 @@
 #include <hm/queryparams.h>
+#include <hm/prototype.h>
 
 #include <components.h>
 
@@ -94,6 +95,31 @@ RequestedComponent EntityQueryParams::componentByIndex(unsigned index) const
   assert(index < m_req.size() && "EntityQueryParams::componentByIndex() index out of range!");
 
   return m_req.at(index);
+}
+
+bool EntityQueryParams::prototypeMatches(const EntityPrototype& prototype) const
+{
+  auto remaining_mask = prototype.components();
+   for(auto&& [ kind, component ] : m_req) {
+     switch(kind) {
+     case IEntityQueryParams::AllOf:
+       if(!prototype.includes(component)) return false;
+
+     case IEntityQueryParams::AnyOf:
+       break;
+
+     case IEntityQueryParams::NoneOf:
+       if(prototype.includes(component)) return false;
+
+     default: assert(0);   // unreachable
+     }
+
+     remaining_mask.clearMut(component);
+   }
+
+  if(remaining_mask.popcount()) return false;
+
+  return true;
 }
 
 }
