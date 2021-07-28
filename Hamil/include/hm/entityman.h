@@ -50,7 +50,12 @@ public:
   //  - 'proto' must've been created via a call to THIS IEntityManager's
   //     prototype() method, otherwise expect UB
   virtual Entity createEntity(CachedPrototype proto) = 0;
+
+  // These methods are MUCH slower compared to using EntityQueries,
+  //   so they should be used in special cases
   virtual Entity findEntity(const std::string& name) = 0;
+  virtual Entity findEntityByIndex(const CachedPrototype& proto, u32 alloc_id) const = 0;
+
   virtual void destroyEntity(EntityId id) = 0;
 
   virtual bool alive(EntityId id) = 0;

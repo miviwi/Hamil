@@ -99,7 +99,7 @@ public:
   }
 
   // Fn must have a signature compatible with:
-  //    - void(ComponentType&, size_t entity_idx, size_t chunk_idx)
+  //    - void(ComponentType&, u32 alloc_id, u32 chunk_idx)
   //  'compatible' meaning the types must match, but
   //  arity isn't imposed (unary+)
   template <
@@ -125,9 +125,9 @@ public:
 
       if constexpr (FnNumArgs == 1) {
         fn(component);
-      } else if(FnNumArgs == 2) {
+      } else if constexpr (FnNumArgs == 2) {
         fn(component, entity_idx);
-      } else if(FnNumArgs == 3) {
+      } else if constexpr (FnNumArgs == 3) {
         fn(component, entity_idx, chunk_idx);
       } else {
         static_assert(FnNumArgs <= 2, "TODO: unimplemented 'Fn' call...");
@@ -165,8 +165,7 @@ private:
   PrototypeChunk             *m_chunk        = nullptr;
 
   u32 m_proto_chunk_idx = /* sentinel */ ~0u;
-
-  u32 m_proto_cacheid = /* EntityProttotypeCache::ProtoCacheIdInvalid */ ~0u;
+  u32 m_proto_cacheid   = /* EntityProttotypeCache::ProtoCacheIdInvalid */ ~0u;
 
   mutable std::optional<CachedPrototype> m_proto = std::nullopt;    // Lazy-init
 };

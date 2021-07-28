@@ -41,7 +41,7 @@ public:
   Index next(Index idx) const;
 
   template <typename Fn>
-  Index find(Key key, Fn compare)
+  inline Index find(Key key, Fn compare) const
   {
     for(auto index = first(key); index != Invalid; index = next(index)) {
       if(compare(key, index)) return index;

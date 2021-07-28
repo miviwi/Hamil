@@ -181,7 +181,7 @@ EntityQuery& EntityQuery::collectEntities()
   auto& entity = *m_entity;
 
   // Constructing the CollectedChunksLists vector freezes the query's current component set
-  auto& collected = m_chunks.emplace();
+  [[maybe_unused]] auto& collected = m_chunks.emplace();
 
   entity.prototypeCache()
       .foreachCachedProto([this](const PrototypeDesc& proto_desc) {

@@ -85,23 +85,6 @@ PrototypeChunkHandle CachedPrototype::chunkByIndex(size_t idx) const
   return PrototypeChunkHandle::from_header_and_chunk(header, chunk_ptr);
 }
 
-Entity CachedPrototype::entityIdByAllocId(u32 alloc_id) const
-{
-  assert(m_cached && alloc_id != CachedPrototype::AllocEntityInvalidId);
-
-  auto chunk_head = m_cached->chunkAt(0);
-
-  u32 chunk_idx  = alloc_id / chunk_head.capacity(),
-      entity_idx = alloc_id % chunk_head.capacity();
-
-  assert(chunk_idx < m_cached->chunks.size()); // Sanity check...
-
-  const auto& chunk_header = m_cached->headers.at(chunk_idx);
-
-
-  chunk_header.capacity,
-}
-
 PrototypeChunkHandle CachedPrototype::allocChunk(ChunkManager *chunk_man)
 {
   assert(chunk_man && m_cached &&                               // Sanity check
@@ -176,7 +159,7 @@ u32 CachedPrototype::allocEntity()
   return entity_id;
 }
 
-PrototypeChunkHandle CachedPrototype::chunkForEntityAllocId(u32 entity_id)
+PrototypeChunkHandle CachedPrototype::chunkForEntityAllocId(u32 entity_id) const
 {
   auto chunk_idx = chunkIdxForEntityId(entity_id);
 
@@ -213,7 +196,7 @@ Component *CachedPrototype::componentDataForEntityId(
   return component_data;
 }
 
-u32 CachedPrototype::chunkIdxForEntityId(u32 entity_id)
+u32 CachedPrototype::chunkIdxForEntityId(u32 entity_id) const
 {
   assert(entity_id < numEntities() &&
       "'entity_id' for CachedPrototype::chunkForEntityId() out of range!");

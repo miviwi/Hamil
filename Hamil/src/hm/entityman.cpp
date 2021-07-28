@@ -93,6 +93,7 @@ public:
 
   virtual Entity createEntity(CachedPrototype proto) final;
   virtual Entity findEntity(const std::string& name) final;
+  virtual Entity findEntityByIndex(const CachedPrototype& proto, u32 alloc_id) const final;
   virtual void destroyEntity(EntityId id) final;
 
   virtual bool alive(EntityId id) final;
@@ -117,15 +118,15 @@ private:
   // Calculates 'group_id' of Entity with specified EntityPrototype,
   //   stored at allocation-index 'alloc_id' of the prototype
   //  - Does no validation of 'alloc_id' - careful!
-  u64 groupIdForProtoAndAllocId(const CachedPrototype& proto, u32 alloc_id);
+  u64 groupIdForProtoAndAllocId(const CachedPrototype& proto, u32 alloc_id) const;
 
   // Returns a pointer to the descriptor of the CURRENT 'tail' chunk
   //   in the specified prototype's group
   //  - Can return 'nullptr' if the descriptor's index can't be found
   //    in 'm_entity_groups_hash'
-  PrototypeGroupChunk *tailChunkProtoGroupOf(const CachedPrototype& proto);
+  const PrototypeGroupChunk *tailChunkProtoGroupOf(const CachedPrototype& proto) const;
 
-  PrototypeGroupChunk *protoGroupChunkById(u64 group_id);
+  const PrototypeGroupChunk *protoGroupChunkById(u64 group_id) const;
 
   // Given a CachedPrototype handle and an 'alloc_id' of an Entity,
   //   retrieve it's EntityId (EntityMeta.id) by querying for the
@@ -241,7 +242,7 @@ Entity EntityManager::createEntity(CachedPrototype proto)
   // Entities offset relative to it's enclosing chunk
   auto entity_index_in_chunk = alloc_id - tail_chunk_idx*chunk_capacity;
 
-  PrototypeGroupChunk *entity_group_chunk = nullptr;
+  const PrototypeGroupChunk *entity_group_chunk = nullptr;
   if(chunk.has_value()) {     // Check if a fresh chunk had to be allocated...
     auto entity_groups_meta_off = m_entities_meta.size();
     auto group_chunk_idx = m_entity_groups.size();
@@ -304,6 +305,22 @@ Entity EntityManager::findEntity(const std::string& name)
   */
 
   return e;
+}
+
+Entity EntityManager::findEntityByIndex(const CachedPrototype& proto, u32 alloc_id) const
+{
+  assert(alloc_id != CachedPrototype::AllocEntityInvalidId);
+
+  auto group_id = groupIdForProtoAndAllocId(proto, alloc_id);
+  auto group_chunk = protoGroupChunkById(group_id);
+
+  auto base_offset   = group_chunk->group_entities_offset;
+  auto entity_offset = alloc_id - group_chunk->chunk_base_index;
+
+  const auto& entity_meta = m_entities_meta.at(base_offset + entity_offset);
+  const auto& entity_id = entity_meta.id;
+
+  return Entity(entity_id);
 }
 
 void EntityManager::destroyEntity(EntityId id)
@@ -430,14 +447,14 @@ u64 EntityManager::groupIdForTailChunkOf(const CachedPrototype& proto) const
   return interleave_dwords((u32)tail_chunk_idx, protocid);
 }
 
-PrototypeGroupChunk *EntityManager::tailChunkProtoGroupOf(const CachedPrototype& proto)
+const PrototypeGroupChunk *EntityManager::tailChunkProtoGroupOf(const CachedPrototype& proto) const
 {
   auto group_id = groupIdForTailChunkOf(proto);
 
   return protoGroupChunkById(group_id);
 }
 
-u64 EntityManager::groupIdForProtoAndAllocId(const CachedPrototype& proto, u32 alloc_id)
+u64 EntityManager::groupIdForProtoAndAllocId(const CachedPrototype& proto, u32 alloc_id) const
 {
   auto protocid = proto.cacheId();
 
@@ -449,7 +466,7 @@ u64 EntityManager::groupIdForProtoAndAllocId(const CachedPrototype& proto, u32 a
   return interleave_dwords(chunk_idx, protocid);
 }
 
-PrototypeGroupChunk *EntityManager::protoGroupChunkById(u64 group_id)
+const PrototypeGroupChunk *EntityManager::protoGroupChunkById(u64 group_id) const
 {
   // TODO: would something more clever than just chopping off topmost bits help?
   auto gid = (u32)group_id;

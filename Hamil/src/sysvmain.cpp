@@ -125,8 +125,8 @@ int main(int argc, char *argv[])
   auto my_proto2 = world.entities().prototype(my_proto2_desc);
 
 
-  for(auto i = 0; i < 250; i++) world.entities().createEntity(my_proto);
-  for(auto i = 0; i < 25; i++) world.entities().createEntity(my_proto2);
+  for(auto i = 0; i < 12; i++) world.entities().createEntity(my_proto);
+  for(auto i = 0; i < 5; i++) world.entities().createEntity(my_proto2);
 
 
   /*
@@ -177,13 +177,18 @@ int main(int argc, char *argv[])
     .prototypeBoundChunk(my_proto, 0)
     .componentDataForeach<hm::Transform>(
       [&](hm::Transform& t, u32 entity_idx) {
-        auto& chunk = world.entities()
+        auto chunk = world.entities()
             .prototypeBoundChunk(my_proto, 0);
         auto chunk_ptr = chunk.data();
 
-        world.entities().prototype().
+        auto entity = world.entities().findEntityByIndex(my_proto, entity_idx);
+        // world.entities().prototypeCache().
 
         printf(
+            "Entity{ id: 0x%.8x, alloc_id: %.8x }\n"
+            "\t\tprototype=%s\n\n",
+            entity.id(), entity_idx,
+            util::to_str(my_proto.prototype().components()).data()
         );
       }
     );

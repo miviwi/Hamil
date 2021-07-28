@@ -47,8 +47,6 @@ public:
   //  - 'idx' MUST be < numChunks()!
   PrototypeChunkHandle chunkByIndex(size_t idx) const;
 
-  Entity entityIdByAllocId(u32 alloc_id) const;
-
   PrototypeChunkHandle allocChunk(ChunkManager *chunk_man);
 
   // Returns a pointer to the array of Component data denoted by 'component'
@@ -76,7 +74,7 @@ public:
   //   'entity_id' is stored, in particular stored under the index =>
   //           entity_id - chunk.entityBaseIndex()
   //    where 'chunk' is the handle returned by this method
-  PrototypeChunkHandle chunkForEntityAllocId(u32 alloc_id);
+  PrototypeChunkHandle chunkForEntityAllocId(u32 alloc_id) const;
 
   // Returns a pointer to data for Component denoted by 'component'
   //   owned by entity under allocation-id 'id'
@@ -91,7 +89,7 @@ private:
   //   -  For internal use only (in EntityPrototypeCache)
   static CachedPrototype from_cache_line(detail::CacheEntry *line);
 
-  u32 chunkIdxForEntityId(u32 entity_id);
+  u32 chunkIdxForEntityId(u32 entity_id) const;
 
   detail::CacheEntry *m_cached = nullptr;
 };
