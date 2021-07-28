@@ -10,6 +10,7 @@
 #include <util/lambdatraits.h>
 
 #include <memory>
+#include <atomic>
 #include <vector>
 #include <optional>
 #include <functional>
@@ -26,7 +27,10 @@ class EntityQuery;
 namespace detail {
 
 struct CacheEntry {
-  enum { CacheIdInvalid = 0 };
+  enum {
+    CacheIdInvalid   = 0u,
+    VersionUndefined = 0u,
+  };
 
   EntityPrototype proto;
 
@@ -37,14 +41,27 @@ struct CacheEntry {
   //    with an EntityPrototype
   u32 cache_id;
 
+  u32 version;         // Incremented with every change to this EntityPrototype's
+                       //   set of chunks (so - when a new chunk is allocated,
+                       //   gets reclaimed, etc.)
+                       // The initial version is 0, a reserved value used as
+                       //   a placeholder for uninitialized CacheEntries
+                       //  - Maybe a std::atomic will be necessary here?
+
   using Chunk = UnknownPrototypeChunk;
 
   util::SmallVector<PrototypeChunkHeader, 64 - sizeof(EntityPrototype)> headers;
-  util::SmallVector<Chunk *, 64 - sizeof(u32)> chunks;
+  util::SmallVector<Chunk *, 64 - sizeof(u32)*2> chunks;
 
   size_t numChunks() const;
 
   PrototypeChunkHandle chunkAt(size_t idx) const;
+
+  // Increments 'version' and returns it's new value
+  u32 upgrade();
+
+  // If the given version is < this entry's returns 'true'
+  bool obselete(u32 v) const;
 };
 
 struct CachePage {

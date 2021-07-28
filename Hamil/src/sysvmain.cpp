@@ -153,6 +153,41 @@ int main(int argc, char *argv[])
   eq.collectEntities()
     .dbg_PrintCollectedChunks();
 
+  auto& chunk_man = *world.entities()
+      .chunkManager();
+
+  auto print_chunk = [&](hm::CachedPrototype &proto, size_t chunk_idx)
+  {
+    auto c = world.entities()
+                 .prototypeBoundChunk(proto, chunk_idx);
+
+    printf(
+        "PrototypeChunk<%s> (%zu entities) ->\n"
+        "\tGameObject:    %p -> %p\n"
+        "\tHull:          %p -> %p\n",
+        util::to_str(proto.prototype().components()).data(),
+        proto.chunkByIndex(chunk_idx).numEntities(),
+        c.componentDataArrayBegin<hm::GameObject>(),
+        c.componentDataArrayEnd<hm::GameObject>(),
+        c.componentDataArrayBegin<hm::Transform>(),
+        c.componentDataArrayEnd<hm::Transform>());
+  };
+
+  world.entities()
+    .prototypeBoundChunk(my_proto, 0)
+    .componentDataForeach<hm::Transform>(
+      [&](hm::Transform& t, u32 entity_idx) {
+        auto& chunk = world.entities()
+            .prototypeBoundChunk(my_proto, 0);
+        auto chunk_ptr = chunk.data();
+
+        world.entities().prototype().
+
+        printf(
+        );
+      }
+    );
+
 #endif
 
 #if 0
@@ -368,8 +403,7 @@ int main(int argc, char *argv[])
   sysv::x11_detail::x11().disconnect();
 #endif
 
+    os::finalize();
 
-  os::finalize();
-
-  return 0;
-}
+    return 0;
+  }

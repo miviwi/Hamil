@@ -184,8 +184,9 @@ EntityQuery& EntityQuery::collectEntities()
   auto& collected = m_chunks.emplace();
 
   entity.prototypeCache()
-      .foreachCachedProto([this,&collected](const PrototypeDesc& proto_desc) {
+      .foreachCachedProto([this](const PrototypeDesc& proto_desc) {
           auto proto = proto_desc.prototype;
+          auto& collected = m_chunks.value();
 
           // Test if chunk is compatible with the query...
           if(!m_params->prototypeMatches(proto)) return;
@@ -382,6 +383,8 @@ void EntityQuery::dbg_PrintCollectedChunks() const
 
   for(const auto& chunk_list : m_chunks.value()) {
     auto proto_cid = chunk_list.proto_cacheid;
+    if(!proto_cid /* ???: blank/placeholder cache ids shouldn't show up here... */) continue;
+
     auto proto = proto_cache.protoByCacheId(proto_cid);
 
     const auto chunk_components = component_mask

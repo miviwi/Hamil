@@ -66,13 +66,13 @@ size_t CachedPrototype::numEntities() const
   //   so account for that below
   auto tail_len = last_chunk.numEntities();
 
-  size_t num_entities = chunk_capacity * (/* full chunks */ num_chunks-1) 
+  size_t num_entities = chunk_capacity * (/* full chunks */ num_chunks-1)
     + tail_len /* account for the tail... */;
 
   return num_entities;
 }
 
-PrototypeChunkHandle CachedPrototype::chunkByIndex(size_t idx)
+PrototypeChunkHandle CachedPrototype::chunkByIndex(size_t idx) const
 {
   assert(idx < numChunks() && "chunk 'idx' out of range! (> numChunks())");
   assert(idx < std::numeric_limits<u32>::max()); // Sanity check ;)
@@ -83,6 +83,23 @@ PrototypeChunkHandle CachedPrototype::chunkByIndex(size_t idx)
   auto chunk_ptr     = m_cached->chunks.at(trunc_idx);
 
   return PrototypeChunkHandle::from_header_and_chunk(header, chunk_ptr);
+}
+
+Entity CachedPrototype::entityIdByAllocId(u32 alloc_id) const
+{
+  assert(m_cached && alloc_id != CachedPrototype::AllocEntityInvalidId);
+
+  auto chunk_head = m_cached->chunkAt(0);
+
+  u32 chunk_idx  = alloc_id / chunk_head.capacity(),
+      entity_idx = alloc_id % chunk_head.capacity();
+
+  assert(chunk_idx < m_cached->chunks.size()); // Sanity check...
+
+  const auto& chunk_header = m_cached->headers.at(chunk_idx);
+
+
+  chunk_header.capacity,
 }
 
 PrototypeChunkHandle CachedPrototype::allocChunk(ChunkManager *chunk_man)

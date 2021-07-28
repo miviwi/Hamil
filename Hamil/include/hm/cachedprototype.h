@@ -45,7 +45,9 @@ public:
   size_t numEntities() const;
 
   //  - 'idx' MUST be < numChunks()!
-  PrototypeChunkHandle chunkByIndex(size_t idx);
+  PrototypeChunkHandle chunkByIndex(size_t idx) const;
+
+  Entity entityIdByAllocId(u32 alloc_id) const;
 
   PrototypeChunkHandle allocChunk(ChunkManager *chunk_man);
 

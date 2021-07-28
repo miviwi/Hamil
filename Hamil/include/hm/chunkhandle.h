@@ -2,11 +2,14 @@
 
 #include <hm/hamil.h>
 
+#include <type_traits>
+
 namespace hm {
 
 // Forward declarations
 class EntityPrototype;
 class UnknownPrototypeChunk;
+class PrototypeChunk;
 
 // Logically this data should be stored along with
 //   PrototypeChunk<Component...> component data for
@@ -23,7 +26,7 @@ struct PrototypeChunkHeader {
 
   u32 base_offset;   // Global offset of this chunk's first entity,
                      //   calculated as if all the entities with
-                     //   the same type are stored sequentially 
+                     //   the same type are stored sequentially
                      //   in a single array
 
   u32 capacity;   // Stores the number of entities which this
@@ -75,6 +78,20 @@ public:
   //    at least one more with the same EntityPrototype (the first chunk
   //    for a given prototype is always kept around)
   bool purgeable() const { return m_header.base_offset > 0 && empty(); }
+
+  template <typename PrototypeChunkType = PrototypeChunk>
+  PrototypeChunkType *get()
+  {
+    static_assert(std::is_base_of_v<UnknownPrototypeChunk, PrototypeChunkType>);
+    return (PrototypeChunkType *)m_chunk;
+  }
+
+  template <typename PrototypeChunkType = PrototypeChunk>
+  const PrototypeChunkType *get() const
+  {
+    static_assert(std::is_base_of_v<UnknownPrototypeChunk, PrototypeChunkType>);
+    return (const PrototypeChunkType *)m_chunk;
+  }
 
   void dbg_PrintChunkStats() const;
 

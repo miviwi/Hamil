@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <tuple>
+#include <variant>
 
 namespace util {
 
@@ -32,11 +33,17 @@ struct LambdaTraitsImpl<Ret (Fn::*)(Args...) const> {
 // Need specialization for 0-ary functions
 template <typename Fn, typename Ret>
 struct LambdaTraitsImpl<Ret (Fn::*)() const> {
+  using Unit = std::monostate;
+
   using FnType  = std::function<Ret()>;
   using RetType = Ret;
 
   using Arguments = std::tuple<>;
   static constexpr auto NumArguments = 0;
+
+  template <size_t N> using ArgType = Unit;
+
+  using Arg1stType = Unit;
 
   static FnType to_function(Fn const& fn)
   {

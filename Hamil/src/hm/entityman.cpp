@@ -102,6 +102,8 @@ public:
 
   virtual EntityQuery createEntityQuery(const IEntityQueryParams *params) final;
 
+  virtual BoundPrototypeChunk prototypeBoundChunk(const CachedPrototype& proto, u32 idx) final;
+
 private:
   EntityId newId();
 
@@ -391,6 +393,16 @@ EntityQuery EntityManager::createEntityQuery(const IEntityQueryParams *pparams)
 #endif
 
   return q;
+}
+
+BoundPrototypeChunk EntityManager::prototypeBoundChunk(const CachedPrototype& proto, u32 idx)
+{
+  assert(idx < proto.numChunks() && "'chunk_idx' > number of chunks for this prototype!");
+
+  auto chunk_handle  = proto.chunkByIndex(idx);
+  auto proto_cacheid = proto.cacheId();
+
+  return BoundPrototypeChunk::create_handle(&m_proto_cache, chunk_handle.get(), idx, proto_cacheid);
 }
 
 EntityId EntityManager::newId()

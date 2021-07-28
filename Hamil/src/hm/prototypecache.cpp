@@ -46,16 +46,16 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
   assert(!probe(proto) &&
       "EntityPrototypeCache::fill() called with the same 'proto' twice!");
 
-  using Page = detail::CachePage;
+  using namespace detail;
 
-  if(m_num_protos+1 >= m_pages.size()*Page::NumEntriesPerPage) {
+  if(m_num_protos+1 >= m_pages.size()*CachePage::NumEntriesPerPage) {
     // Have to allocate a new detail::CachePage...
     m_pages.emplace_back();
   }
 
   auto& page = m_pages.back();
 
-  const auto off_in_page = m_num_protos % Page::NumEntriesPerPage;
+  const auto off_in_page = m_num_protos % CachePage::NumEntriesPerPage;
   auto cache_line = &page.protos[off_in_page];
 
   // Store the new entry's index into the HashIndex
@@ -66,6 +66,7 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
   // Initialize the CacheEntry...
   cache_line->proto = proto;
   cache_line->cache_id = cache_line_idx+1;
+  cache_line->version = CacheEntry::VersionUndefined;  //std::atomic(CacheEntry::VersionUndefined);
 
   m_protos_hash.add(proto.hash(), cache_line_idx);
 
@@ -74,7 +75,7 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
 
 CachedPrototype EntityPrototypeCache::protoByCacheId(u32 cache_id) const
 {
-  auto proto = protoByIndex(cache_id);
+  auto proto = protoByIndex(cache_id-1 /* cache_id==0 is reserved */);
 
   assert(proto && "protoByCacheId() given invalid 'proto_cache_id'!");
 
@@ -112,8 +113,10 @@ auto EntityPrototypeCache::protoByIndex(size_t idx) ->
 {
   if(idx >= m_num_protos) return nullptr;     // idx out of range
 
-  const auto page_idx = idx / detail::CachePage::NumEntriesPerPage,
-        inpage_idx = idx % detail::CachePage::NumEntriesPerPage;
+  static constexpr size_t CachePageSize = detail::CachePage::NumEntriesPerPage;
+
+  const auto page_idx = idx / CachePageSize,
+             inpage_idx = idx % CachePageSize;
 
   auto& page = m_pages[page_idx];
 
@@ -221,6 +224,16 @@ PrototypeChunkHandle CacheEntry::chunkAt(size_t idx) const
   auto chunk   = chunks.at(trunc_idx);
 
   return PrototypeChunkHandle::from_header_and_chunk(header, chunk);
+}
+
+u32 CacheEntry::upgrade()
+{
+  return ++version;
+}
+
+bool CacheEntry::obselete(u32 v) const
+{
+  return (v != VersionUndefined) && (v < version);
 }
 
 }

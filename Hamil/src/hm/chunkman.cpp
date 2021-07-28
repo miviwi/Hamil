@@ -1,4 +1,9 @@
 #include <hm/chunkman.h>
+#include <hm/chunkhandle.h>
+#include <hm/prototype.h>
+#include <hm/prototypechunk.h>
+#include <hm/cachedprototype.h>
+#include <hm/entityman.h>
 
 #include <cassert>
 

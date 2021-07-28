@@ -9,6 +9,13 @@
 
 namespace hm {
 
+// Forward declarations
+class CachedPrototype;
+class PrototypeChunk;
+class BoundPrototypeChunk;
+class IEntityManager;
+// --------------------
+
 // 4MiB of PrototypeChunks/page = 4MiB / 16KiB (per chunk) = 256 chunks/page
 static constexpr size_t ChunkAllocatorPageSize = (4 * 1024*1024)/PrototypeChunkSize;
 
@@ -42,7 +49,7 @@ public:
 
 private:
   // Allocates a fresh ChunkAllocatorPage and stores a pointer to it
-  //   at tthe tail of the slab returning the index at which it has 
+  //   at tthe tail of the slab returning the index at which it has
   //   been placed
   size_t acquireNewPage();
 

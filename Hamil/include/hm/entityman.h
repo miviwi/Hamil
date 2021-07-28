@@ -13,6 +13,7 @@ class EntityPrototype;
 class EntityPrototypeCache;
 class CachedPrototype;
 class ChunkManager;
+class BoundPrototypeChunk;
 class EntityQuery;
 class IEntityQueryParams;
 class EntityQueryParams;
@@ -56,6 +57,7 @@ public:
 
   virtual EntityQuery createEntityQuery(const IEntityQueryParams *params) = 0;
 
+  virtual BoundPrototypeChunk prototypeBoundChunk(const CachedPrototype& proto, u32 idx) = 0;
 };
 
 IEntityManager::Ptr create_entity_manager();
