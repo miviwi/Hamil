@@ -1,33 +1,34 @@
 #include <hm/entityquery.h>
 #include <hm/queryparams.h>
-#include <hm/cachedprototype.h>
 #include <hm/entityman.h>
+#include <hm/cachedprototype.h>
+#include <hm/prototypecache.h>
+#include <hm/chunkhandle.h>
 
 #include <components.h>
 
 #include <config>
+
+#include <utility>
 
 #include <cassert>
 #include <cstdio>
 
 namespace hm::detail {
 
-CollectedChunkList CollectedChunkList::null_chunk()
+CollectedChunkList CollectedChunkList::create_null()
 {
   return {
     .collected_version = InvalidVersion,
-    .proto_cacheid     = 0,
-    .chunks_list       = nullptr,
+    .proto_cacheid     = EntityPrototypeCache::ProtoCacheIdInvalid,
   };
 }
 
-CollectedChunkList CollectedChunkList::chunk(
-    u32 protocid, PrototypeChunk *chunks, int version)
+CollectedChunkList CollectedChunkList::create_empty(u32 protocid, int version)
 {
   return {
     .collected_version = version,
     .proto_cacheid     = protocid,
-    .chunks_list       = chunks,
   };
 }
 
@@ -35,7 +36,8 @@ CollectedChunkList CollectedChunkList::chunk(
 
 namespace hm {
 
-EntityQuery EntityQuery::empty_query(IEntityManager *entity_man, EntityManagerKey)
+EntityQuery EntityQuery::empty_query(
+    IEntityManager *entity_man, EntityManagerKey)
 {
   return EntityQuery(entity_man);
 }
@@ -122,14 +124,40 @@ const EntityQuery& EntityQuery::foreachComponentGroupedByAccess(ComponentIterFn&
   return *this;
 }
 
+EntityQuery& EntityQuery::injectCreationParams(IEntityQueryParams *params, EntityManagerKey)
+{
+  m_params = params;
+
+  return *this;
+}
+
 EntityQuery& EntityQuery::collectEntities()
 {
   assert(!m_chunks.has_value() && "EntityQuery::collectEntities() can be called only ONCE per query");
+  assert(m_params && "EntityQuery::injectCreationParams() MUST be called before this method");
+
+  using namespace std::placeholders;
+
+  using PrototypeDesc = EntityPrototypeCache::PrototypeDesc;
 
   // Constructing the CollectedChunksLists vector freezes the query's current component set
-  auto& chunks = m_chunks.emplace();
+  auto& collected = m_chunks.emplace();
 
-  return *this;
+  m_entity->prototypeCache()
+      ->foreachCachedProto([this,&collected](const PrototypeDesc& proto_desc) {
+          auto proto = proto_desc.prototype;
+
+          // Test if chunk is compatible with the query...
+          if(!m_params->prototypeMatches(proto)) return;
+
+          //   ...and reserve a new CollectedChunkList for it
+          collected.emplace();
+
+          auto& chunks = collected.back().chunks_list;
+          proto_desc.foreachChunkOfPrototype([&](PrototypeChunkHandle h) { chunks.append(h); });
+      });
+
+      return *this;
 }
 
 void EntityQuery::dbg_PrintQueryComponents(bool group_by_access) const

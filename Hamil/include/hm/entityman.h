@@ -10,6 +10,7 @@ namespace hm {
 
 // Forward declarations
 class EntityPrototype;
+class EntityPrototypeCache;
 class CachedPrototype;
 class ChunkManager;
 class EntityQuery;
@@ -38,6 +39,8 @@ public:
   //     cold) for a given EntityPrototype and yields it's return value
   //  - Further calls with matching 'proto' return cached object
   virtual CachedPrototype prototype(const EntityPrototype& proto) = 0;
+
+  virtual const EntityPrototypeCache *prototypeCache() const = 0;
 
   //  - 'proto' must've been created via a call to THIS IEntityManager's
   //     prototype() method, otherwise expect UB

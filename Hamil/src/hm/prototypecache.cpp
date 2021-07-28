@@ -176,17 +176,15 @@ size_t PrototypeDesc::numEntities() const
   return (num_chunks-1)*CachePage::NumEntriesPerPage + tail_chunk.numEntities();
 }
 
-auto PrototypeDesc::foreachChunkOfPrototype(ProtoChunkIterFn&& fn) const
-    -> const PrototypeDesc&
+const PrototypeDesc& PrototypeDesc::foreachChunkOfPrototype(ProtoChunkIterFn&& fn) const
 {
   const size_t num_chunks = _cache_ref->numChunks();
   for(size_t chunk_idx = 0; chunk_idx < num_chunks; chunk_idx++) {
     const auto& header = _cache_ref->headers.at(chunk_idx);
 
-    u32 base_offset  = header.base_offset,
-        num_entities = header.num_entities;
+    u32 num_entities = header.num_entities;
 
-    fn(_cache_ref->chunkAt(chunk_idx), base_offset, num_entities);
+    fn(_cache_ref->chunkAt(chunk_idx), chunk_idx, num_entities);
   }
 
   return *this;

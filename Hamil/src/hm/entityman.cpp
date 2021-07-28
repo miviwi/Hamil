@@ -89,6 +89,7 @@ public:
   EntityManager();
 
   virtual CachedPrototype prototype(const EntityPrototype& proto) final;
+  virtual const EntityPrototypeCache *prototypeCache() const final;
 
   virtual Entity createEntity(CachedPrototype proto) final;
   virtual Entity findEntity(const std::string& name) final;
@@ -201,6 +202,11 @@ CachedPrototype EntityManager::prototype(const EntityPrototype& proto)
   }
 
   return m_proto_cache.fill(proto);
+}
+
+const EntityPrototypeCache *EntityManager::prototypeCache() const
+{
+  return &m_proto_cache;
 }
 
 Entity EntityManager::createEntity(CachedPrototype proto)

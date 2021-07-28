@@ -3,6 +3,7 @@
 #include <hm/hamil.h>
 #include <hm/entity.h>
 #include <hm/prototype.h>
+#include <hm/chunkhandle.h>
 
 #include <util/passkey.h>
 #include <util/smallvector.h>
@@ -18,9 +19,11 @@ namespace hm {
 
 // Forward declarations
 class IEntityManager;
+class IEntityQueryParams;
 class EntityManager;
-class EntityQueryParams;
+class EntityPrototypeCache;
 class PrototypeChunk;
+class PrototypeChunkHandle;
 
 enum class ComponentAccess : unsigned;
 // --------------------
@@ -30,13 +33,16 @@ namespace detail {
 struct CollectedChunkList {
   enum { InvalidVersion = -1 };
 
-  static CollectedChunkList null_chunk();
-  static CollectedChunkList chunk(u32 protocid, PrototypeChunk *chunks, int version = InvalidVersion);
+  using HandleList = util::SmallVector<PrototypeChunkHandle, 56 /* so sizeof(CollectedChunkList)==64 */> ;
+
+  static CollectedChunkList create_null();
+  static CollectedChunkList create_empty(u32 protocid, int version = InvalidVersion);
 
   int collected_version;
   u32 proto_cacheid;
-  PrototypeChunk *chunks_list;
+  HandleList chunks_list;
 };
+static_assert(sizeof(CollectedChunkList) == 64, "fix CollectedChunkList size");
 
 }
 
@@ -68,6 +74,10 @@ public:
   // The constructors are marked private as creating EntityQueries can be done
   //  only via an EntityManager instance from eg. the default hm::world()
   static EntityQuery empty_query(IEntityManager *entity_man, EntityManagerKey = {});
+
+  // 'params' should point to the EntityQueryParams structure used to set up this query
+  //  - MUST be called before collectEntities()
+  EntityQuery& injectCreationParams(IEntityQueryParams *params, EntityManagerKey = {}); // TODO: fix memory leak :)
 
   //    --------------  EntityManager internal  -----------------
   using ComponentTypeListPtr = std::tuple<const ComponentProtoId *, size_t /* num */>;
@@ -130,7 +140,8 @@ private:
 
   void assertComponentNotAdded(ComponentProtoId component);
 
-  IEntityManager *m_entity = nullptr;
+  IEntityQueryParams *m_params = nullptr;
+  IEntityManager *m_entity     = nullptr;
 
   struct {
     ComponentTypeMap all;

@@ -7,11 +7,14 @@
 #include <util/hashindex.h>
 #include <util/smallvector.h>
 #include <util/passkey.h>
+#include <util/lambdatraits.h>
 
 #include <memory>
 #include <vector>
 #include <optional>
 #include <functional>
+#include <type_traits>
+#include <utility>
 
 namespace hm {
 
@@ -76,11 +79,40 @@ public:
     size_t numEntities() const;
 
     using ProtoChunkIterFn = std::function<
-        void(PrototypeChunkHandle, u32 /* base_offset */, u32 /* num_entities */)
+        void(PrototypeChunkHandle, u32 /* chunk_idx */, u32 /* num_entities */)
     >;
+
+    // Calls 'fn' with a PrototypeChunkHandle for every
+    //   EntityPrototype's set of chunks inserted into the cache
     const PrototypeDesc& foreachChunkOfPrototype(ProtoChunkIterFn&& fn) const;
 
-  private:
+    template <
+        typename PartialFn,
+        typename PartiaalFnEnabler = std::enable_if_t<
+               std::is_invocable_v<PartialFn, PrototypeChunkHandle>
+            || std::is_invocable_v<PartialFn, PrototypeChunkHandle, u32 /* chunk_idx */>>
+    >
+    const PrototypeDesc& foreachChunkOfPrototype(PartialFn&& fn) const
+    {
+      using FnTraits = util::LambdaTraits<PartialFn>;
+
+      constexpr auto num_fn_args = std::tuple_size_v<typename FnTraits::Arguments>;
+      static_assert(num_fn_args > 0 && num_fn_args < 3);     // Sanity check, should be unreachable
+
+      if constexpr(num_fn_args == 1) {           /* PartialFn:  void(PrototypeChunkHandle) */
+        foreachChunkOfPrototype(
+            [fn = std::move(fn)](auto c, auto /* idx */, auto /* num_entities */) { fn(c); }
+        );
+      } else if constexpr(num_fn_args == 2) {    /*        ...  void(PrototypeChunkHandle, u32 chunk_idx) */
+        foreachChunkOfPrototype(
+            [fn = std::move(fn)](auto c, auto idx, auto /* num_entities */) { fn(c, idx); }
+        );
+      }
+
+      return *this;
+    }
+
+private:
     friend EntityPrototypeCache;
 
     const detail::CacheEntry *_cache_ref = nullptr;
