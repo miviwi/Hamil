@@ -97,29 +97,30 @@ RequestedComponent EntityQueryParams::componentByIndex(unsigned index) const
   return m_req.at(index);
 }
 
-bool EntityQueryParams::prototypeMatches(const EntityPrototype& prototype) const
+bool EntityQueryParams::prototypeMatches(const EntityPrototype& prototype, bool exact_match) const
 {
   auto remaining_mask = prototype.components();
-   for(auto&& [ kind, component ] : m_req) {
-     switch(kind) {
-     case IEntityQueryParams::AllOf:
-       if(!prototype.includes(component)) return false;
+  for(auto&& [ kind, component ] : m_req) {
+    switch(kind) {
+    case IEntityQueryParams::AllOf:
+      if(!prototype.includes(component)) return false;    // Required component not included!
 
-     case IEntityQueryParams::AnyOf:
-       break;
+    case IEntityQueryParams::AnyOf:
+      break;      // XXX: no need to do anything here..?
 
-     case IEntityQueryParams::NoneOf:
-       if(prototype.includes(component)) return false;
+    case IEntityQueryParams::NoneOf:
+      if(prototype.includes(component)) return false;     // Includes a forbidden component!
 
-     default: assert(0);   // unreachable
-     }
+    default: assert(0);   // unreachable
+    }
 
-     remaining_mask.clearMut(component);
-   }
+    remaining_mask.clearMut(component);
+  }
 
-  if(remaining_mask.popcount()) return false;
+  if(!exact_match) return true;
 
-  return true;
+  // Check if 'prototype' doesn't have any remaining stray components
+  return !remaining_mask.gtZero();
 }
 
 }

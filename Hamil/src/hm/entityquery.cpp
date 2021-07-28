@@ -1,5 +1,6 @@
 #include <hm/entityquery.h>
 #include <hm/queryparams.h>
+#include <hm/entityman.h>
 
 #include <components.h>
 
@@ -10,9 +11,16 @@
 
 namespace hm {
 
-EntityQuery EntityQuery::empty_query(EntityManagerKey)
+EntityQuery EntityQuery::empty_query(IEntityManager *entity_man, EntityManagerKey)
 {
-  return EntityQuery();
+  return EntityQuery(entity_man);
+}
+
+EntityQuery::EntityQuery(IEntityManager *entity_man) :
+  m_entity(entity_man),
+  m_union_op({ ComponentTypeMap::zero(), ComponentTypeMap::zero(), ComponentTypeMap::zero() }),
+  m_access_mask({ ComponentTypeMap::zero(), ComponentTypeMap::zero() })
+{
 }
 
 const EntityQuery& EntityQuery::foreachComponent(ComponentIterFn&& fn) const

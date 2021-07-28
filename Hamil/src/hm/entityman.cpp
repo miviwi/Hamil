@@ -362,7 +362,7 @@ EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
 {
   const auto& params = (const IEntityQueryParams&)params_;
 
-  auto q = EntityQuery::empty_query();
+  auto q = EntityQuery::empty_query(this);
 
   foreach_component_access([&params,&q](ComponentAccess access) {
     auto [ offset, length ] = params.componentsForAccess(access);

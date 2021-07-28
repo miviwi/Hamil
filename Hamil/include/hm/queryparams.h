@@ -67,7 +67,7 @@ public:
   //  - 'index' must fall in the range [0; numQueryComponents()-1]
   virtual RequestedComponent componentByIndex(unsigned index) const = 0;
 
-  virtual bool prototypeMatches(const EntityPrototype& prototype) const = 0;
+  virtual bool prototypeMatches(const EntityPrototype& prototype, bool exact_match = false) const = 0;
 
   friend EntityManager;   // Examined in EntityManager::createEntityQuery() to build
                           //   the resulting EntityQuery object
@@ -92,7 +92,7 @@ private:
   virtual unsigned numQueryComponents() const final;
   virtual ComponentGroupMeta componentsForAccess(ComponentAccess access) const final;
   virtual RequestedComponent componentByIndex(unsigned index) const final;
-  virtual bool prototypeMatches(const EntityPrototype& prototype) const final;
+  virtual bool prototypeMatches(const EntityPrototype& prototype, bool exact_match) const final;
 
   util::SmallVector<RequestedComponent, 256> m_req;
 

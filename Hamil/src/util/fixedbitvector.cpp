@@ -40,6 +40,11 @@ bool FixedBitVector<128>::equal(const FixedBitVector<128>& other) const
   return hi_eq & lo_eq;    // Use bitwise AND to avoid generating Jcc (jump conditional)
 }
 
+bool FixedBitVector<128>::gtZero() const
+{
+  return (bits.hi | bits.lo) > 0;
+}
+
 FixedBitVector<128> FixedBitVector<128>::bitAnd(const FixedBitVector<128>& other) const
 {
   auto result = clone();

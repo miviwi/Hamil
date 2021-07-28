@@ -16,6 +16,7 @@
 namespace hm {
 
 // Forward declarations
+class IEntityManager;
 class EntityManager;
 class EntityQueryParams;
 
@@ -45,7 +46,7 @@ public:
 
   // The constructors are marked private as creating EntityQueries can be done
   //  only via an EntityManager instance from eg. the default hm::world()
-  static EntityQuery empty_query(EntityManagerKey = {});
+  static EntityQuery empty_query(IEntityManager *entity_man, EntityManagerKey = {});
 
   //    --------------  EntityManager internal  -----------------
   using ComponentTypeListPtr = std::tuple<const ComponentProtoId *, size_t /* num */>;
@@ -56,7 +57,7 @@ public:
   //    ---------------------------------------------------------
 
 protected:
-  EntityQuery() = default;
+  EntityQuery(IEntityManager *entity_man);
 
 private:
   enum ConditionAccessMode {
@@ -102,6 +103,8 @@ private:
   }
 
   void assertComponentNotAdded(ComponentProtoId component);
+
+  IEntityManager *m_entity = nullptr;
 
   struct {
     ComponentTypeMap all;

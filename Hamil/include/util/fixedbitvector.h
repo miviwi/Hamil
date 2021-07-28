@@ -124,6 +124,10 @@ struct alignas(sizeof(u128)) FixedBitVector<128> {
 
   bool equal(const FixedBitVector& other) const;
 
+  // Returns the result of the comparison
+  //     - this > 0
+  bool gtZero() const;
+
   // Returns a new FixedBitVector which is the bitwise AND
   //   of this and other
   FixedBitVector bitAnd(const FixedBitVector& other) const;
