@@ -6,16 +6,19 @@
 
 #include <util/hashindex.h>
 #include <util/smallvector.h>
+#include <util/passkey.h>
 
 #include <memory>
 #include <vector>
 #include <optional>
+#include <functional>
 
 namespace hm {
 
 // Forward declarations
 class PrototypeChunkHandle;
 class CachedPrototype;
+class EntityQuery;
 
 namespace detail {
 
@@ -33,10 +36,10 @@ struct CacheEntry {
 
   util::SmallVector<PrototypeChunkHeader, 64 - sizeof(EntityPrototype)> headers;
   util::SmallVector<Chunk *, 64 - sizeof(u32)> chunks;
-  
+
   size_t numChunks() const;
 
-  PrototypeChunkHandle chunkAt(size_t idx);
+  PrototypeChunkHandle chunkAt(size_t idx) const;
 };
 
 struct CachePage {
@@ -64,7 +67,25 @@ public:
   using ComponentTypeMap = EntityPrototype::ComponentTypeMap;
 
   enum : u32 { ProtoCacheIdInvalid = ~0u };
-  
+
+  struct PrototypeDesc {
+    u32 cache_id = ProtoCacheIdInvalid;     // See CacheEntry::cache_id
+    EntityPrototype prototype;
+
+    size_t numChunks() const;
+    size_t numEntities() const;
+
+    using ProtoChunkIterFn = std::function<
+        void(PrototypeChunkHandle, u32 /* base_offset */, u32 /* num_entities */)
+    >;
+    const PrototypeDesc& foreachChunkOfPrototype(ProtoChunkIterFn&& fn) const;
+
+  private:
+    friend EntityPrototypeCache;
+
+    const detail::CacheEntry *_cache_ref = nullptr;
+  };
+
   EntityPrototypeCache();
   EntityPrototypeCache(const EntityPrototypeCache& other) = delete;
 
@@ -86,6 +107,13 @@ public:
   CachedPrototype protoByCacheId(u32 proto_cache_id);
 
   void dbg_PrintPrototypeCacheStats() const;
+
+//semi-protected:
+
+  using EntityQueryKey = util::PasskeyFor<EntityQuery>;
+
+  using CachedProtoIterFn = std::function<void(const PrototypeDesc&)>;
+  const EntityPrototypeCache& foreachCachedProto(CachedProtoIterFn&& fn, EntityQueryKey = {}) const;
 
 private:
   using Entry = detail::CacheEntry;

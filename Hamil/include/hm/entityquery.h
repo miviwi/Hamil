@@ -10,6 +10,7 @@
 #include <initializer_list>
 #include <array>
 #include <tuple>
+#include <optional>
 #include <memory>
 #include <functional>
 
@@ -19,8 +20,25 @@ namespace hm {
 class IEntityManager;
 class EntityManager;
 class EntityQueryParams;
+class PrototypeChunk;
 
 enum class ComponentAccess : unsigned;
+// --------------------
+
+namespace detail {
+
+struct CollectedChunkList {
+  enum { InvalidVersion = -1 };
+
+  static CollectedChunkList null_chunk();
+  static CollectedChunkList chunk(u32 protocid, PrototypeChunk *chunks, int version = InvalidVersion);
+
+  int collected_version;
+  u32 proto_cacheid;
+  PrototypeChunk *chunks_list;
+};
+
+}
 
 class EntityQuery {
 public:
@@ -38,6 +56,9 @@ public:
 
   const EntityQuery& foreachComponent(ComponentIterFn&& fn) const;
   const EntityQuery& foreachComponentGroupedByAccess(ComponentIterFn&& fn) const;
+
+  // Populate internal list of matching entity PrototypeChunks
+  EntityQuery& collectEntities();
 
   void dbg_PrintQueryComponents(bool group_by_access = true) const;
 
@@ -72,6 +93,11 @@ private:
   };
 
   using ComponentTypeMap = EntityPrototype::ComponentTypeMap;
+
+  using CollectedChunkList = detail::CollectedChunkList;
+  static constexpr size_t CollectedChunksInlineSize = 256;
+
+  using CollectedChunks = util::SmallVector<CollectedChunkList, CollectedChunksInlineSize>;
 
   template <ConditionAccessMode AccessMode>
   EntityQuery& withConditions(
@@ -116,6 +142,9 @@ private:
     ComponentTypeMap read;
     ComponentTypeMap write;
   } m_access_mask;
+
+  std::optional<CollectedChunks> m_chunks = std::nullopt;
+
 };
 
 }

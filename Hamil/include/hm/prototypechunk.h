@@ -53,6 +53,9 @@ private:
 };
 
 // XXX: here lay the chunk with compile-time known layout...
-using PrototypeChunk = UnknownPrototypeChunk;
+class PrototypeChunk : public UnknownPrototypeChunk {
+public:
+  using UnknownPrototypeChunk::UnknownPrototypeChunk;
+};
 
 }

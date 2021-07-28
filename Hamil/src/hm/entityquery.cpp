@@ -1,5 +1,6 @@
 #include <hm/entityquery.h>
 #include <hm/queryparams.h>
+#include <hm/cachedprototype.h>
 #include <hm/entityman.h>
 
 #include <components.h>
@@ -8,6 +9,29 @@
 
 #include <cassert>
 #include <cstdio>
+
+namespace hm::detail {
+
+CollectedChunkList CollectedChunkList::null_chunk()
+{
+  return {
+    .collected_version = InvalidVersion,
+    .proto_cacheid     = 0,
+    .chunks_list       = nullptr,
+  };
+}
+
+CollectedChunkList CollectedChunkList::chunk(
+    u32 protocid, PrototypeChunk *chunks, int version)
+{
+  return {
+    .collected_version = version,
+    .proto_cacheid     = protocid,
+    .chunks_list       = chunks,
+  };
+}
+
+}
 
 namespace hm {
 
@@ -98,6 +122,16 @@ const EntityQuery& EntityQuery::foreachComponentGroupedByAccess(ComponentIterFn&
   return *this;
 }
 
+EntityQuery& EntityQuery::collectEntities()
+{
+  assert(!m_chunks.has_value() && "EntityQuery::collectEntities() can be called only ONCE per query");
+
+  // Constructing the CollectedChunksLists vector freezes the query's current component set
+  auto& chunks = m_chunks.emplace();
+
+  return *this;
+}
+
 void EntityQuery::dbg_PrintQueryComponents(bool group_by_access) const
 {
   auto component_iter_fn = [](
@@ -159,6 +193,9 @@ EntityQuery& EntityQuery::withConditionsByAccess(
     const ComponentTypeListPtr& all, const ComponentTypeListPtr& any, const ComponentTypeListPtr& none,
     ConditionAccessMode access)
 {
+  assert(!m_chunks.has_value()
+      && "an EntityQuery's set of components is immutable after a call to collectEntities()");
+
   auto for_op = [this,access](const ComponentTypeListPtr& components, ComponentTypeMap *type_map) {
     auto [ component, sz ] = components;
     for(size_t i = 0; i < sz; i++, component++) {

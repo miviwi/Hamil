@@ -31,7 +31,7 @@ auto EntityPrototypeCache::probe(const EntityPrototype& proto) ->
   );
 
   if(index == util::HashIndex::Invalid) return std::nullopt;
-  
+
   // Calculate the appropriate index into 'm_pages', then
   //   into the CachePage itself and fetch a pointer to
   //   the desired CacheEntry
@@ -47,7 +47,7 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
       "EntityPrototypeCache::fill() called with the same 'proto' twice!");
 
   using Page = detail::CachePage;
-  
+
   if(m_num_protos+1 >= m_pages.size()*Page::NumEntriesPerPage) {
     // Have to allocate a new detail::CachePage...
     m_pages.emplace_back();
@@ -79,6 +79,30 @@ CachedPrototype EntityPrototypeCache::protoByCacheId(u32 cache_id)
   assert(proto && "protoByCacheId() given invalid 'proto_cache_id'!");
 
   return CachedPrototype::from_cache_line(proto);
+}
+
+const EntityPrototypeCache& EntityPrototypeCache::foreachCachedProto(
+      CachedProtoIterFn&& fn, EntityQueryKey
+  ) const
+{
+  using namespace detail;
+
+  static constexpr size_t NumPageEntries = CachePage::NumEntriesPerPage;
+
+  for(const auto& cache_page : m_pages) {
+    for(size_t entry_idx = 0; entry_idx < NumPageEntries; entry_idx++) {
+      const auto& entry = cache_page.protos[entry_idx];
+
+      PrototypeDesc proto_desc;
+      proto_desc.cache_id   = entry.cache_id;
+      proto_desc.prototype  = entry.proto;
+      proto_desc._cache_ref = &entry;
+
+      fn(proto_desc);
+    }
+  }
+
+  return *this;
 }
 
 auto EntityPrototypeCache::protoByIndex(size_t idx) ->
@@ -134,6 +158,40 @@ void EntityPrototypeCache::dbg_PrintPrototypeCacheStats() const
 #endif
 }
 
+using PrototypeDesc = EntityPrototypeCache::PrototypeDesc;
+size_t PrototypeDesc::numChunks() const
+{
+  return _cache_ref->numChunks();
+}
+
+size_t PrototypeDesc::numEntities() const
+{
+  using namespace detail;
+
+  // We rely on entities being tightly packed in the chunks,
+  //  a guaranteed property of the chunk cache
+  auto num_chunks = numChunks();
+  const auto& tail_chunk = _cache_ref->chunkAt(num_chunks-1);
+
+  return (num_chunks-1)*CachePage::NumEntriesPerPage + tail_chunk.numEntities();
+}
+
+auto PrototypeDesc::foreachChunkOfPrototype(ProtoChunkIterFn&& fn) const
+    -> const PrototypeDesc&
+{
+  const size_t num_chunks = _cache_ref->numChunks();
+  for(size_t chunk_idx = 0; chunk_idx < num_chunks; chunk_idx++) {
+    const auto& header = _cache_ref->headers.at(chunk_idx);
+
+    u32 base_offset  = header.base_offset,
+        num_entities = header.num_entities;
+
+    fn(_cache_ref->chunkAt(chunk_idx), base_offset, num_entities);
+  }
+
+  return *this;
+}
+
 }
 
 namespace hm::detail {
@@ -145,7 +203,7 @@ size_t CacheEntry::numChunks() const
   return headers.size();
 }
 
-PrototypeChunkHandle CacheEntry::chunkAt(size_t idx)
+PrototypeChunkHandle CacheEntry::chunkAt(size_t idx) const
 {
   assert(idx < headers.size() && "CacheEntry::chunkAt() idx out of bounds!");
 
