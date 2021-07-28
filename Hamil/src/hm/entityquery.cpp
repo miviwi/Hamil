@@ -3,12 +3,14 @@
 #include <hm/entityman.h>
 #include <hm/cachedprototype.h>
 #include <hm/prototypecache.h>
+#include <hm/chunkman.h>
 #include <hm/chunkhandle.h>
 
 #include <components.h>
 
 #include <config>
 
+#include <new>
 #include <utility>
 
 #include <cassert>
@@ -47,6 +49,33 @@ EntityQuery::EntityQuery(IEntityManager *entity_man) :
   m_union_op({ ComponentTypeMap::zero(), ComponentTypeMap::zero(), ComponentTypeMap::zero() }),
   m_access_mask({ ComponentTypeMap::zero(), ComponentTypeMap::zero() })
 {
+}
+
+EntityQuery::EntityQuery(EntityQuery&& other) noexcept :
+  EntityQuery()
+{
+  std::swap(*this, other);
+}
+
+EntityQuery& EntityQuery::operator=(EntityQuery&& other) noexcept
+{
+  std::swap(*this, other);
+  return *this;
+}
+
+void EntityQuery::swap(EntityQuery &other) noexcept
+{
+  std::swap(m_params, other.m_params);
+  std::swap(m_entity, other.m_entity);
+
+  std::swap(m_union_op.all, other.m_union_op.all);
+  std::swap(m_union_op.any, other.m_union_op.any);
+  std::swap(m_union_op.none, other.m_union_op.none);
+
+  std::swap(m_access_mask.read, other.m_access_mask.read);
+  std::swap(m_access_mask.write, other.m_access_mask.write);
+
+  std::swap(m_chunks, other.m_chunks);
 }
 
 const EntityQuery& EntityQuery::foreachComponent(ComponentIterFn&& fn) const
@@ -124,9 +153,16 @@ const EntityQuery& EntityQuery::foreachComponentGroupedByAccess(ComponentIterFn&
   return *this;
 }
 
-EntityQuery& EntityQuery::injectCreationParams(IEntityQueryParams *params, EntityManagerKey)
+EntityQuery&& EntityQuery::injectCreationParams(IEntityQueryParams *p, EntityManagerKey) &&
 {
-  m_params = params;
+  m_params = p;
+
+  return std::move(*this);
+}
+
+EntityQuery& EntityQuery::injectCreationParams(IEntityQueryParams *p, EntityManagerKey) &
+{
+  m_params = p;
 
   return *this;
 }
@@ -158,36 +194,6 @@ EntityQuery& EntityQuery::collectEntities()
       });
 
       return *this;
-}
-
-void EntityQuery::dbg_PrintQueryComponents(bool group_by_access) const
-{
-  auto component_iter_fn = [](
-      ComponentProtoId c, EntityQuery::UnionOp op, ComponentAccess access)
-  {
-    const char *op_str = "";
-    switch(op) {
-    case EntityQuery::UnionAll: op_str = "EntityQuery::UnionAll"; break;
-    case EntityQuery::UnionAny: op_str = "EntityQuery::UnionAny"; break;
-    case EntityQuery::UnionNone: op_str = "EntityQuery::UnionNone"; break;
-    }
-
-    const char *access_str = "";
-    switch(access) {
-    case ComponentAccess::None: access_str = "ComponentAccess::None"; break;
-    case ComponentAccess::ReadOnly: access_str = "ComponentAccess::ReadOnly"; break;
-    case ComponentAccess::WriteOnly: access_str = "ComponentAccess::WriteOnly"; break;
-    case ComponentAccess::ReadWrite: access_str = "ComponentAccess::ReadWrite"; break;
-    }
-
-    printf("%s(%s, %s)\n", protoid_to_str(c).data(), op_str, access_str);
-  };
-
-  if(group_by_access) {
-    foreachComponentGroupedByAccess(component_iter_fn);
-  } else {
-    foreachComponent(component_iter_fn);
-  }
 }
 
 EntityQuery& EntityQuery::allWithAccess(
@@ -302,4 +308,63 @@ void EntityQuery::assertComponentNotAdded(ComponentProtoId c)
       && "a given component can be set only once for a given query!");
 }
 
+void EntityQuery::dbg_PrintQueryComponents(bool group_by_access) const
+{
+  auto component_iter_fn = [](
+      ComponentProtoId c, EntityQuery::UnionOp op, ComponentAccess access)
+  {
+    const char *op_str = "";
+    switch(op) {
+    case EntityQuery::UnionAll: op_str = "EntityQuery::UnionAll"; break;
+    case EntityQuery::UnionAny: op_str = "EntityQuery::UnionAny"; break;
+    case EntityQuery::UnionNone: op_str = "EntityQuery::UnionNone"; break;
+    }
+
+    const char *access_str = "";
+    switch(access) {
+    case ComponentAccess::None: access_str = "ComponentAccess::None"; break;
+    case ComponentAccess::ReadOnly: access_str = "ComponentAccess::ReadOnly"; break;
+    case ComponentAccess::WriteOnly: access_str = "ComponentAccess::WriteOnly"; break;
+    case ComponentAccess::ReadWrite: access_str = "ComponentAccess::ReadWrite"; break;
+    }
+
+    printf("%s(%s, %s)\n", protoid_to_str(c).data(), op_str, access_str);
+  };
+
+  if(group_by_access) {
+    foreachComponentGroupedByAccess(component_iter_fn);
+  } else {
+    foreachComponent(component_iter_fn);
+  }
+}
+
+void EntityQuery::dbg_PrintCollectedChunks() const
+{
+  const auto component_mask = jointComponentTypeMask();
+
+  printf("\n\n\t\t\t[[EntityQuery@%p (%u components)]]\n",
+         this, (unsigned)component_mask.popcount());
+  if(!m_chunks) {
+    printf("\t\t...need to collectEntities() before they can be displayed!");
+    return;
+  }
+
+  auto& proto_cache = (EntityPrototypeCache&) *m_entity->prototypeCache();
+  // const auto& chunk_man   = *m_entity->chunkManager();
+
+  for(const auto& chunk_list : m_chunks.value()) {
+    auto proto_cid = chunk_list.proto_cacheid;
+    auto proto = proto_cache.protoByCacheId(proto_cid);
+
+    proto.prototype().dbg_PrintComponents();
+
+    for(auto&& hchunk : chunk_list.chunks_list) {
+      printf("[[PrototypeChunk@0x%.16lx]]\n", ((uintptr_t)(void *)&hchunk));
+      hchunk.dbg_PrintChunkStats();
+      printf("[[        ---------        ]]\n\n");
+    }
+  }
+
+  printf("\t\t\t[[      -----------       ]]\n\n");
+}
 }

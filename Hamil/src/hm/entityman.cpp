@@ -98,6 +98,7 @@ public:
   virtual bool alive(EntityId id) final;
 
   virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) final;
+  virtual ChunkManager *chunkManager() final;
 
   virtual EntityQuery createEntityQuery(const EntityQueryParams& params) final;
 
@@ -285,33 +286,6 @@ Entity EntityManager::createEntity(CachedPrototype proto)
   //m_entities_meta.push_back(meta);
   m_entities_hash.add(id, meta_idx);
 
-  /*
-  auto tail_group_idx_of_groups = m_entity_groups_hash.find(tail_group_id,
-      [this](u32 key, u32 index) { return m_entity_groups.at(index).
-      */
-
-  printf(
-      "EntityManager::createEntity() =>\n"
-      "    id=0x%.8x proto_cache_id=0x%.4x alloc_id=0x%.8x\n"
-      "    index<EntityMeta>=%lu\n"
-      "    entity_group_chunk[%p]:\n"
-      "        .group_id=0x%.16lx\n"
-      "        .group_entities_offset=0x%.8x\n"
-      "\n",
-      id, proto.cacheId(), alloc_id,
-      meta_idx,
-      entity_group_chunk,
-      entity_group_chunk->group_id, entity_group_chunk->group_entities_offset
-  );
-
-  printf(
-      "groupIdForProtoAndAllocId(proto, alloc_id=0x%.8x)=%.16lx\n"
-      "entityIdByProtoAndAllocId(proto, alloc_id)=0x%.8x\n"
-      "\n",
-      meta.alloc_id,
-      groupIdForProtoAndAllocId(proto, meta.alloc_id),
-      entityIdByProtoAndAllocId(proto, meta.alloc_id)
-  );
 
   return id;
 }
@@ -364,6 +338,11 @@ IEntityManager& EntityManager::injectChunkManager(ChunkManager *chunk_man)
   return *this;
 }
 
+ChunkManager *EntityManager::chunkManager()
+{
+  return m_chunk_man;
+}
+
 EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
 {
   const auto& params = (const IEntityQueryParams&)params_;
@@ -398,6 +377,7 @@ EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
     q.noneWithAccess(access, { access_groups[2].data(), access_groups[2].size() });
   });
 
+#if 0
   q.dbg_PrintQueryComponents();
 
   const auto aproto = EntityPrototype({
@@ -408,6 +388,7 @@ EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
   printf("params.prototypeMatches(<\n");
   aproto.dbg_PrintComponents();
   printf("\t\t>)? %s\n", params.prototypeMatches(aproto) ? "yes" : "no");
+#endif
 
   return q;
 }

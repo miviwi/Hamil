@@ -59,13 +59,13 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
   auto cache_line = &page.protos[off_in_page];
 
   // Store the new entry's index into the HashIndex
-  const auto cache_line_idx = m_num_protos;
+  const auto cache_line_idx = m_num_protos;   // '0' is reserved
 
   m_num_protos++;     //  ...and move rover forward
 
   // Initialize the CacheEntry...
   cache_line->proto = proto;
-  cache_line->cache_id = cache_line_idx;
+  cache_line->cache_id = cache_line_idx+1;
 
   m_protos_hash.add(proto.hash(), cache_line_idx);
 
@@ -92,6 +92,8 @@ const EntityPrototypeCache& EntityPrototypeCache::foreachCachedProto(
   for(const auto& cache_page : m_pages) {
     for(size_t entry_idx = 0; entry_idx < NumPageEntries; entry_idx++) {
       const auto& entry = cache_page.protos[entry_idx];
+
+      if(!entry.cache_id) break;    // The page isn't full, bail out
 
       PrototypeDesc proto_desc;
       proto_desc.cache_id   = entry.cache_id;
@@ -171,6 +173,8 @@ size_t PrototypeDesc::numEntities() const
   // We rely on entities being tightly packed in the chunks,
   //  a guaranteed property of the chunk cache
   auto num_chunks = numChunks();
+  if(!num_chunks) return 0;     // Must early-out here or chunkAt() will segfault
+
   const auto& tail_chunk = _cache_ref->chunkAt(num_chunks-1);
 
   return (num_chunks-1)*CachePage::NumEntriesPerPage + tail_chunk.numEntities();

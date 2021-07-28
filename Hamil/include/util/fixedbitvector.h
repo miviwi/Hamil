@@ -7,6 +7,7 @@
 #include <limits>
 #include <array>
 #include <algorithm>
+#include <utility>
 #include <string>
 
 #include <cassert>
@@ -114,6 +115,12 @@ struct alignas(sizeof(u128)) FixedBitVector<128> {
 
   FixedBitVector clone() const { return FixedBitVector(*this); }
 
+  void swap(FixedBitVector& other)
+  {
+    std::swap(bits.lo, other.bits.lo);
+    std::swap(bits.hi, other.bits.hi);
+  }
+
   // Sets/clears the bit at position 'idx' starting at 0
   //   and moving from LSB -> MSB
   FixedBitVector set(unsigned idx) const;
@@ -195,3 +202,16 @@ enum BitVectorStringifyType {
 std::string to_str(const BitVector128& v, BitVectorStringifyType type = StringifyHex);
 
 }
+
+namespace std {
+
+using v128 = util::FixedBitVector<128>;
+
+template<>
+inline void swap<v128>(v128& lhs, v128& rhs) noexcept
+{
+  lhs.swap(rhs);
+}
+
+}
+

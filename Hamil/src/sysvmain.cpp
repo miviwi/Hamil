@@ -124,19 +124,31 @@ int main(int argc, char *argv[])
   auto my_proto = world.entities().prototype(my_proto_desc);
   auto my_proto2 = world.entities().prototype(my_proto2_desc);
 
-  printf("  my_proto[0x%.8x] .prototype=%s\n",
-      my_proto.cacheId(), util::to_str(my_proto.prototype().components()).data()
-  );
-  printf(" my_proto2[0x%.8x] .prototype=%s\n",
-      my_proto2.cacheId(), util::to_str(my_proto2.prototype().components()).data()
-  );
+  world.entities().prototypeCache()
+      ->foreachCachedProto([](hm::EntityPrototypeCache::PrototypeDesc p) {
+          printf("PrototypeDesc -> EntityPrototype<0x%u> (%u chunks/%u entities)\n",
+              p.cache_id, (u32)p.numChunks(), (u32)p.numEntities());
+          p.prototype.dbg_PrintComponents();
+          printf("\t\t\t[[       ===         ]]\n\n");
+      })
+      .dbg_PrintPrototypeCacheStats();
 
-  auto ee = world.entities().createEntity(my_proto);
+  for(auto i = 0; i < 250; i++) world.entities().createEntity(my_proto);
+  for(auto i = 0; i < 25; i++) world.entities().createEntity(my_proto2);
+
+
 
 //  auto e = world.entities().createEntity(my_proto2);
 //  auto e2 = world.entities().createEntity(my_proto2);
+  auto query_params = hm::EntityQueryParams::create_dbg();
 
-  auto eq = world.entities().createEntityQuery(hm::EntityQueryParams::create_dbg());
+  hm::EntityQuery eq(
+      world.entities()
+          .createEntityQuery(query_params)
+          .injectCreationParams(&query_params));
+
+  eq.collectEntities()
+    .dbg_PrintCollectedChunks();
 
 #endif
 

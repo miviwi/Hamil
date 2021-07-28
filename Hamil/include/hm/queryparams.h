@@ -76,7 +76,7 @@ protected:
   IEntityQueryParams() = default;   // Disallow direct instantiation
 };
 
-class EntityQueryParams final : IEntityQueryParams {
+class EntityQueryParams final : public IEntityQueryParams {
 public:
   static EntityQueryParams create_empty();
   static EntityQueryParams create_dbg();

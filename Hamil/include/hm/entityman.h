@@ -31,6 +31,9 @@ public:
   //    internal state which gets entangled with 'chunk_man'
   virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) = 0;
 
+  // Returns the ChunkManager instance injected via injectChunkManager()/nullptr
+  virtual ChunkManager *chunkManager() = 0;
+
   // Returns a handle to an EntityPrototype (a 'CachedPrototype') which
   //   includes exactly the components specified by 'proto' i.e.
   //      -  cached.components() == proto,   where 'cached' is the return value

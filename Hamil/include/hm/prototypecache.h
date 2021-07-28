@@ -26,6 +26,8 @@ class EntityQuery;
 namespace detail {
 
 struct CacheEntry {
+  enum { CacheIdInvalid = 0 };
+
   EntityPrototype proto;
 
   // Used to uniquely (in the owning EntityPrototypeCache's scope)
@@ -92,7 +94,7 @@ public:
                std::is_invocable_v<PartialFn, PrototypeChunkHandle>
             || std::is_invocable_v<PartialFn, PrototypeChunkHandle, u32 /* chunk_idx */>>
     >
-    const PrototypeDesc& foreachChunkOfPrototype(PartialFn&& fn) const
+    inline const PrototypeDesc& foreachChunkOfPrototype(PartialFn&& fn) const
     {
       using FnTraits = util::LambdaTraits<PartialFn>;
 

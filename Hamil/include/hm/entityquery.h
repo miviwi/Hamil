@@ -12,6 +12,7 @@
 #include <array>
 #include <tuple>
 #include <optional>
+#include <utility>
 #include <memory>
 #include <functional>
 
@@ -56,7 +57,9 @@ public:
   };
 
   EntityQuery(const EntityQuery&) = delete;
-  EntityQuery(EntityQuery&& other) = default;     // TODO: define this explicitly!
+  EntityQuery(EntityQuery&& other) noexcept;
+
+  EntityQuery& operator=(EntityQuery&& other) noexcept;
 
   using ComponentIterFn = std::function<void(ComponentProtoId, UnionOp, ComponentAccess)>;
 
@@ -66,7 +69,10 @@ public:
   // Populate internal list of matching entity PrototypeChunks
   EntityQuery& collectEntities();
 
+  void swap(EntityQuery& other) noexcept;
+
   void dbg_PrintQueryComponents(bool group_by_access = true) const;
+  void dbg_PrintCollectedChunks() const;
 
 //semi-protected:
   using EntityManagerKey = util::PasskeyFor<EntityManager>;
@@ -77,7 +83,8 @@ public:
 
   // 'params' should point to the EntityQueryParams structure used to set up this query
   //  - MUST be called before collectEntities()
-  EntityQuery& injectCreationParams(IEntityQueryParams *params, EntityManagerKey = {}); // TODO: fix memory leak :)
+  EntityQuery& injectCreationParams(IEntityQueryParams *p, EntityManagerKey = {}) &; // TODO: fix memory leak :)
+  EntityQuery&& injectCreationParams(IEntityQueryParams *p, EntityManagerKey = {}) &&;
 
   //    --------------  EntityManager internal  -----------------
   using ComponentTypeListPtr = std::tuple<const ComponentProtoId *, size_t /* num */>;
@@ -88,7 +95,7 @@ public:
   //    ---------------------------------------------------------
 
 protected:
-  EntityQuery(IEntityManager *entity_man);
+  EntityQuery(IEntityManager *entity_man = nullptr);
 
 private:
   enum ConditionAccessMode {
@@ -141,7 +148,7 @@ private:
   void assertComponentNotAdded(ComponentProtoId component);
 
   IEntityQueryParams *m_params = nullptr;
-  IEntityManager *m_entity     = nullptr;
+  IEntityManager     *m_entity = nullptr;
 
   struct {
     ComponentTypeMap all;
@@ -159,3 +166,16 @@ private:
 };
 
 }
+
+namespace std {
+
+using EntityQuery = hm::EntityQuery;
+
+template <>
+inline void swap<EntityQuery>(EntityQuery& lhs, EntityQuery& rhs) noexcept
+{
+  lhs.swap(rhs);
+}
+
+}
+
