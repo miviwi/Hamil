@@ -12,14 +12,15 @@ namespace hm {
 using ComponentGroupMeta = IEntityQueryParams::ComponentGroupMeta;
 using RequestedComponent = IEntityQueryParams::RequestedComponent;
 
-EntityQueryParams EntityQueryParams::create_empty()
+const IEntityQueryParams *EntityQueryParams::create_empty()
 {
-  return EntityQueryParams();
+  return new EntityQueryParams();
 }
 
-EntityQueryParams EntityQueryParams::create_dbg()
+const IEntityQueryParams *EntityQueryParams::create_dbg()
 {
-  auto params = EntityQueryParams();
+  auto params_ptr = create_empty();
+  auto& params = *(EntityQueryParams *)params_ptr;
 
   params.m_group_offsets[0] = 0;
   params.m_group_offsets[1] = 3;
@@ -50,7 +51,7 @@ EntityQueryParams EntityQueryParams::create_dbg()
       .component = hm::ComponentProto::Hull,
   });
 
-  return params;
+  return params_ptr;
 }
 
 EntityQueryParams::EntityQueryParams() :

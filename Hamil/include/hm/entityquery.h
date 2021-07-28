@@ -4,6 +4,7 @@
 #include <hm/entity.h>
 #include <hm/prototype.h>
 #include <hm/chunkhandle.h>
+#include <hm/queryparams.h>
 
 #include <util/passkey.h>
 #include <util/smallvector.h>
@@ -20,7 +21,6 @@ namespace hm {
 
 // Forward declarations
 class IEntityManager;
-class IEntityQueryParams;
 class EntityManager;
 class EntityPrototypeCache;
 class PrototypeChunk;
@@ -69,6 +69,9 @@ public:
   // Populate internal list of matching entity PrototypeChunks
   EntityQuery& collectEntities();
 
+  using EntityIterFn = std::function<void(Entity, u32 /* alloc_id */)>;
+  EntityQuery& foreachEntity(EntityIterFn&& fn);
+
   void swap(EntityQuery& other) noexcept;
 
   void dbg_PrintQueryComponents(bool group_by_access = true) const;
@@ -79,12 +82,14 @@ public:
 
   // The constructors are marked private as creating EntityQueries can be done
   //  only via an EntityManager instance from eg. the default hm::world()
-  static EntityQuery empty_query(IEntityManager *entity_man, EntityManagerKey = {});
+  static EntityQuery empty_query(
+      const IEntityManager *entity_man, EntityManagerKey = {}
+  );
 
   // 'params' should point to the EntityQueryParams structure used to set up this query
   //  - MUST be called before collectEntities()
-  EntityQuery& injectCreationParams(IEntityQueryParams *p, EntityManagerKey = {}) &; // TODO: fix memory leak :)
-  EntityQuery&& injectCreationParams(IEntityQueryParams *p, EntityManagerKey = {}) &&;
+  EntityQuery& injectCreationParams(const IEntityQueryParams *p, EntityManagerKey = {}) &;
+  EntityQuery&& injectCreationParams(const IEntityQueryParams *p, EntityManagerKey = {}) &&;
 
   //    --------------  EntityManager internal  -----------------
   using ComponentTypeListPtr = std::tuple<const ComponentProtoId *, size_t /* num */>;
@@ -95,7 +100,7 @@ public:
   //    ---------------------------------------------------------
 
 protected:
-  EntityQuery(IEntityManager *entity_man = nullptr);
+  EntityQuery(const IEntityManager *entity_man = nullptr);
 
 private:
   enum ConditionAccessMode {
@@ -147,8 +152,8 @@ private:
 
   void assertComponentNotAdded(ComponentProtoId component);
 
-  IEntityQueryParams *m_params = nullptr;
-  IEntityManager     *m_entity = nullptr;
+  std::unique_ptr<const IEntityQueryParams>  m_params;
+  const IEntityManager                      *m_entity;
 
   struct {
     ComponentTypeMap all;

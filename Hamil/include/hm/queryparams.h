@@ -6,6 +6,7 @@
 
 #include <type_traits>
 #include <array>
+#include <memory>
 
 namespace hm {
 
@@ -51,6 +52,8 @@ public:
     ComponentProtoId component;
   };
 
+  using Ptr = std::unique_ptr<const IEntityQueryParams>;
+
   virtual ~IEntityQueryParams() = default;
 
   virtual unsigned numQueryComponents() const = 0;
@@ -78,8 +81,8 @@ protected:
 
 class EntityQueryParams final : public IEntityQueryParams {
 public:
-  static EntityQueryParams create_empty();
-  static EntityQueryParams create_dbg();
+  static const IEntityQueryParams *create_empty();
+  static const IEntityQueryParams *create_dbg();
 
   virtual ~EntityQueryParams() = default;
 

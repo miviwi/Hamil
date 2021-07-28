@@ -138,7 +138,7 @@ private:
 
   // - Calling this method with an invalid 'proto_cache_id' is
   //   forbidden and results in UB
-  CachedPrototype protoByCacheId(u32 proto_cache_id);
+  CachedPrototype protoByCacheId(u32 proto_cache_id) const;
 
   void dbg_PrintPrototypeCacheStats() const;
 

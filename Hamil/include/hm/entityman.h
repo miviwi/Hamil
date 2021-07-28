@@ -14,11 +14,12 @@ class EntityPrototypeCache;
 class CachedPrototype;
 class ChunkManager;
 class EntityQuery;
+class IEntityQueryParams;
 class EntityQueryParams;
 
 class IEntityManager {
 public:
-  using Ptr = std::unique_ptr<IEntityManager>;
+  using Ptr = std::shared_ptr<IEntityManager>;
 
   virtual ~IEntityManager() = default;
 
@@ -43,7 +44,7 @@ public:
   //  - Further calls with matching 'proto' return cached object
   virtual CachedPrototype prototype(const EntityPrototype& proto) = 0;
 
-  virtual const EntityPrototypeCache *prototypeCache() const = 0;
+  virtual const EntityPrototypeCache& prototypeCache() const = 0;
 
   //  - 'proto' must've been created via a call to THIS IEntityManager's
   //     prototype() method, otherwise expect UB
@@ -53,7 +54,7 @@ public:
 
   virtual bool alive(EntityId id) = 0;
 
-  virtual EntityQuery createEntityQuery(const EntityQueryParams& params) = 0;
+  virtual EntityQuery createEntityQuery(const IEntityQueryParams *params) = 0;
 
 };
 

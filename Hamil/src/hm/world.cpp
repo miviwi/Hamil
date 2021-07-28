@@ -3,6 +3,7 @@
 #include <hm/chunkman.h>
 
 #include <new>
+#include <memory>
 
 #include <cassert>
 
@@ -51,6 +52,13 @@ IEntityManager& World::entities()
   assert(storage<WorldData>()->entities && "World::entities() called before create!");
 
   return *storage<WorldData>()->entities;
+}
+
+std::weak_ptr<IEntityManager> World::entitiesRef()
+{
+  assert(storage<WorldData>()->entities && "World::entitiesRef() called before create!");
+
+  return storage<WorldData>()->entities;
 }
 
 }

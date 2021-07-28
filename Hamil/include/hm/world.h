@@ -31,6 +31,8 @@ public:
   //   the World beforehand is UB!
   IEntityManager& entities();
 
+  std::weak_ptr<IEntityManager> entitiesRef();
+
 };
 
 }

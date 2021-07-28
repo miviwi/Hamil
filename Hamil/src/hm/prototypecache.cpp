@@ -72,13 +72,13 @@ auto EntityPrototypeCache::fill(const EntityPrototype& proto) ->
   return CachedPrototype::from_cache_line(cache_line);
 }
 
-CachedPrototype EntityPrototypeCache::protoByCacheId(u32 cache_id)
+CachedPrototype EntityPrototypeCache::protoByCacheId(u32 cache_id) const
 {
   auto proto = protoByIndex(cache_id);
 
   assert(proto && "protoByCacheId() given invalid 'proto_cache_id'!");
 
-  return CachedPrototype::from_cache_line(proto);
+  return CachedPrototype::from_cache_line(const_cast<detail::CacheEntry *>(proto));
 }
 
 const EntityPrototypeCache& EntityPrototypeCache::foreachCachedProto(
@@ -93,7 +93,7 @@ const EntityPrototypeCache& EntityPrototypeCache::foreachCachedProto(
     for(size_t entry_idx = 0; entry_idx < NumPageEntries; entry_idx++) {
       const auto& entry = cache_page.protos[entry_idx];
 
-      if(!entry.cache_id) break;    // The page isn't full, bail out
+      if(!entry.cache_id || !entry.numChunks()) break;    // The page hasn't been init/is empty
 
       PrototypeDesc proto_desc;
       proto_desc.cache_id   = entry.cache_id;
@@ -173,7 +173,9 @@ size_t PrototypeDesc::numEntities() const
   // We rely on entities being tightly packed in the chunks,
   //  a guaranteed property of the chunk cache
   auto num_chunks = numChunks();
-  if(!num_chunks) return 0;     // Must early-out here or chunkAt() will segfault
+
+  // _cache_ref->chunkAt() will segfault for idx==0
+  assert(num_chunks > 0 && "attempted calculating numEntities() for NULL prototype!");
 
   const auto& tail_chunk = _cache_ref->chunkAt(num_chunks-1);
 

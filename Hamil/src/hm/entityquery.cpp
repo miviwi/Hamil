@@ -38,16 +38,18 @@ CollectedChunkList CollectedChunkList::create_empty(u32 protocid, int version)
 
 namespace hm {
 
+static const auto p_null_cmap = util::FixedBitVector<128>::zero();
+
 EntityQuery EntityQuery::empty_query(
-    IEntityManager *entity_man, EntityManagerKey)
+    const IEntityManager *entity_man, EntityManagerKey)
 {
-  return EntityQuery(entity_man);
+  return EntityQuery(std::move(entity_man));
 }
 
-EntityQuery::EntityQuery(IEntityManager *entity_man) :
+EntityQuery::EntityQuery(const IEntityManager *entity_man) :
   m_entity(entity_man),
-  m_union_op({ ComponentTypeMap::zero(), ComponentTypeMap::zero(), ComponentTypeMap::zero() }),
-  m_access_mask({ ComponentTypeMap::zero(), ComponentTypeMap::zero() })
+  m_union_op({ p_null_cmap, p_null_cmap, p_null_cmap }),
+  m_access_mask({ p_null_cmap, p_null_cmap })
 {
 }
 
@@ -153,16 +155,16 @@ const EntityQuery& EntityQuery::foreachComponentGroupedByAccess(ComponentIterFn&
   return *this;
 }
 
-EntityQuery&& EntityQuery::injectCreationParams(IEntityQueryParams *p, EntityManagerKey) &&
+EntityQuery&& EntityQuery::injectCreationParams(const IEntityQueryParams *p, EntityManagerKey) &&
 {
-  m_params = p;
+  m_params = IEntityQueryParams::Ptr(p);
 
   return std::move(*this);
 }
 
-EntityQuery& EntityQuery::injectCreationParams(IEntityQueryParams *p, EntityManagerKey) &
+EntityQuery& EntityQuery::injectCreationParams(const IEntityQueryParams *p, EntityManagerKey) &
 {
-  m_params = p;
+  m_params = IEntityQueryParams::Ptr(p);
 
   return *this;
 }
@@ -170,17 +172,19 @@ EntityQuery& EntityQuery::injectCreationParams(IEntityQueryParams *p, EntityMana
 EntityQuery& EntityQuery::collectEntities()
 {
   assert(!m_chunks.has_value() && "EntityQuery::collectEntities() can be called only ONCE per query");
-  assert(m_params && "EntityQuery::injectCreationParams() MUST be called before this method");
+  assert(m_params.get() && "EntityQuery::injectCreationParams() MUST be called before this method");
 
   using namespace std::placeholders;
 
   using PrototypeDesc = EntityPrototypeCache::PrototypeDesc;
 
+  auto& entity = *m_entity;
+
   // Constructing the CollectedChunksLists vector freezes the query's current component set
   auto& collected = m_chunks.emplace();
 
-  m_entity->prototypeCache()
-      ->foreachCachedProto([this,&collected](const PrototypeDesc& proto_desc) {
+  entity.prototypeCache()
+      .foreachCachedProto([this,&collected](const PrototypeDesc& proto_desc) {
           auto proto = proto_desc.prototype;
 
           // Test if chunk is compatible with the query...
@@ -193,7 +197,29 @@ EntityQuery& EntityQuery::collectEntities()
           proto_desc.foreachChunkOfPrototype([&](PrototypeChunkHandle h) { chunks.append(h); });
       });
 
-      return *this;
+  return *this;
+}
+
+EntityQuery& EntityQuery::foreachEntity(EntityIterFn&& fn)
+{
+  using namespace detail;
+
+  if(!m_chunks.has_value()) {
+    collectEntities();      // Collect the chunks if this is the query's first foreach
+  }
+
+  // Sanity checks
+  assert(m_entity && m_chunks.has_value());
+
+  const auto& entity = *m_entity;
+
+ for(auto&& chunk_handles : m_chunks.value()) {
+   for(auto&& hchunk : chunk_handles.chunks_list) {
+     // TODO: call 'fn' with a reference to the entity and it's chunk index
+   }
+ }
+
+  return *this;
 }
 
 EntityQuery& EntityQuery::allWithAccess(
@@ -342,29 +368,40 @@ void EntityQuery::dbg_PrintCollectedChunks() const
 {
   const auto component_mask = jointComponentTypeMask();
 
-  printf("\n\n\t\t\t[[EntityQuery@%p (%u components)]]\n",
-         this, (unsigned)component_mask.popcount());
+  printf("\n\n\t\t\t[[EntityQuery@%p (%u components)]]\n"
+        "\tmask: %s\n",
+         this, (unsigned)component_mask.popcount(),
+         util::to_str(component_mask/*, util::StringifyBinary */).data()
+  );
   if(!m_chunks) {
     printf("\t\t...need to collectEntities() before they can be displayed!");
     return;
   }
 
-  auto& proto_cache = (EntityPrototypeCache&) *m_entity->prototypeCache();
-  // const auto& chunk_man   = *m_entity->chunkManager();
+  const auto& proto_cache = (const EntityPrototypeCache&)m_entity->prototypeCache();
 
   for(const auto& chunk_list : m_chunks.value()) {
     auto proto_cid = chunk_list.proto_cacheid;
     auto proto = proto_cache.protoByCacheId(proto_cid);
 
+    const auto chunk_components = component_mask
+        .bitAnd(proto.prototype().components());
+
+    printf("Components:\n"
+        "prototype&mask = %s\n",
+        util::to_str(chunk_components/*, util::StringifyBinary */).data()
+    );
     proto.prototype().dbg_PrintComponents();
+    printf("\n");
 
     for(auto&& hchunk : chunk_list.chunks_list) {
       printf("[[PrototypeChunk@0x%.16lx]]\n", ((uintptr_t)(void *)&hchunk));
       hchunk.dbg_PrintChunkStats();
-      printf("[[        ---------        ]]\n\n");
+      printf("\t[[        ---------        ]]\n\n");
     }
   }
 
-  printf("\t\t\t[[      -----------       ]]\n\n");
+  printf("\n\n");
 }
+
 }

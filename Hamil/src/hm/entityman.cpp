@@ -89,7 +89,7 @@ public:
   EntityManager();
 
   virtual CachedPrototype prototype(const EntityPrototype& proto) final;
-  virtual const EntityPrototypeCache *prototypeCache() const final;
+  virtual const EntityPrototypeCache& prototypeCache() const final;
 
   virtual Entity createEntity(CachedPrototype proto) final;
   virtual Entity findEntity(const std::string& name) final;
@@ -100,7 +100,7 @@ public:
   virtual IEntityManager& injectChunkManager(ChunkManager *chunk_man) final;
   virtual ChunkManager *chunkManager() final;
 
-  virtual EntityQuery createEntityQuery(const EntityQueryParams& params) final;
+  virtual EntityQuery createEntityQuery(const IEntityQueryParams *params) final;
 
 private:
   EntityId newId();
@@ -205,9 +205,9 @@ CachedPrototype EntityManager::prototype(const EntityPrototype& proto)
   return m_proto_cache.fill(proto);
 }
 
-const EntityPrototypeCache *EntityManager::prototypeCache() const
+const EntityPrototypeCache& EntityManager::prototypeCache() const
 {
-  return &m_proto_cache;
+  return m_proto_cache;
 }
 
 Entity EntityManager::createEntity(CachedPrototype proto)
@@ -343,9 +343,9 @@ ChunkManager *EntityManager::chunkManager()
   return m_chunk_man;
 }
 
-EntityQuery EntityManager::createEntityQuery(const EntityQueryParams& params_)
+EntityQuery EntityManager::createEntityQuery(const IEntityQueryParams *pparams)
 {
-  const auto& params = (const IEntityQueryParams&)params_;
+  const auto& params = *pparams;
 
   auto q = EntityQuery::empty_query(this);
 
@@ -488,8 +488,7 @@ EntityId EntityManager::entityIdByProtoAndChunkRelOffset(
 
 IEntityManager::Ptr create_entity_manager()
 {
-  IEntityManager::Ptr ptr;
-  ptr.reset(new EntityManager());
+  auto ptr = IEntityManager::Ptr(new EntityManager());
 
   return ptr;
 }
